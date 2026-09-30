@@ -1,0 +1,193 @@
+<Window x:Class="MineEngine.Editor.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:MineEngine.Editor.ViewModels"
+        xmlns:assets="clr-namespace:MineEngine.Editor.ViewModels.Assets"
+        Title="{Binding WindowTitle}"
+        Width="1200" Height="780" MinWidth="900" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        Closing="OnClosing">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="EditorStyles.xaml" />
+                <ResourceDictionary Source="InspectorTemplates.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Window.InputBindings>
+        <KeyBinding Key="N" Modifiers="Control" Command="{Binding NewProjectCommand}" />
+        <KeyBinding Key="O" Modifiers="Control" Command="{Binding OpenProjectCommand}" />
+        <KeyBinding Key="S" Modifiers="Control" Command="{Binding SaveProjectCommand}" />
+        <KeyBinding Key="B" Modifiers="Control+Shift" Command="{Binding BuildCommand}" />
+        <KeyBinding Key="F5" Command="{Binding RunClientCommand}" />
+        <KeyBinding Key="OemComma" Modifiers="Control" Command="{Binding OpenSettingsCommand}" />
+    </Window.InputBindings>
+
+    <DockPanel>
+        <!-- Menu principal -->
+        <Menu DockPanel.Dock="Top" Padding="2">
+            <MenuItem Header="_Fichier">
+                <MenuItem Header="_Nouveau projet..." Command="{Binding NewProjectCommand}" InputGestureText="Ctrl+N" />
+                <MenuItem Header="_Ouvrir un projet..." Command="{Binding OpenProjectCommand}" InputGestureText="Ctrl+O" />
+                <MenuItem Header="_Enregistrer" Command="{Binding SaveProjectCommand}" InputGestureText="Ctrl+S" />
+                <MenuItem Header="_Fermer le projet" Command="{Binding CloseProjectCommand}" />
+                <Separator />
+                <MenuItem Header="Ouvrir le dossier du projet" Command="{Binding OpenProjectFolderCommand}" />
+                <Separator />
+                <MenuItem Header="_Quitter" Click="OnExitClick" />
+            </MenuItem>
+            <MenuItem Header="_Projet">
+                <MenuItem Header="_Paramètres du projet..." Command="{Binding EditProjectSettingsCommand}" />
+                <Separator />
+                <MenuItem Header="Ajouter un _item" Command="{Binding AddItemCommand}" />
+                <MenuItem Header="Ajouter un _bloc" Command="{Binding AddBlockCommand}" />
+                <Separator />
+                <MenuItem Header="_Supprimer l'asset sélectionné" Command="{Binding DeleteAssetCommand}" />
+            </MenuItem>
+            <MenuItem Header="_Build">
+                <MenuItem Header="_Générer le mod (.jar)" Command="{Binding BuildCommand}" InputGestureText="Ctrl+Maj+B" />
+                <MenuItem Header="_Lancer Minecraft" Command="{Binding RunClientCommand}" InputGestureText="F5" />
+                <MenuItem Header="_Annuler" Command="{Binding CancelBuildCommand}" />
+                <Separator />
+                <MenuItem Header="Ouvrir le dossier Build" Command="{Binding OpenBuildFolderCommand}" />
+            </MenuItem>
+            <MenuItem Header="_Outils">
+                <MenuItem Header="Gestionnaire de _MDK..." Command="{Binding OpenMdkManagerCommand}" />
+                <Separator />
+                <MenuItem Header="_Paramètres..." Command="{Binding OpenSettingsCommand}" InputGestureText="Ctrl+," />
+            </MenuItem>
+        </Menu>
+
+        <!-- Barre de statut -->
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusText}" />
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <TextBlock Text="{Binding Project.TargetDescription}" Foreground="{DynamicResource HintBrush}" />
+            </StatusBarItem>
+        </StatusBar>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" MinHeight="200" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="220" MinHeight="80" />
+            </Grid.RowDefinitions>
+
+            <!-- Écran d'accueil (aucun projet ouvert) -->
+            <StackPanel Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Center"
+                        Visibility="{Binding HasProject, Converter={StaticResource InverseBoolToVisibility}}">
+                <TextBlock Text="Mine Engine" FontSize="30" FontWeight="Bold" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource PanelHeaderBrush}" />
+                <TextBlock Text="V0.1 - prototype technique" HorizontalAlignment="Center" Margin="0,4,0,20"
+                           Foreground="{DynamicResource HintBrush}" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="Nouveau projet..." Command="{Binding NewProjectCommand}" Padding="16,6" Margin="0,0,10,0" />
+                    <Button Content="Ouvrir un projet..." Command="{Binding OpenProjectCommand}" Padding="16,6" Margin="0,0,10,0" />
+                    <Button Content="Gérer les MDK..." Command="{Binding OpenMdkManagerCommand}" Padding="16,6" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Espace de travail -->
+            <Grid Grid.Row="0" Visibility="{Binding HasProject, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="280" MinWidth="180" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" MinWidth="300" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Contenu du projet -->
+                <DockPanel Grid.Column="0" Margin="8">
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelTitle}" Text="Contenu" />
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Style="{StaticResource ToolButton}" Content="+ Item" Command="{Binding AddItemCommand}" />
+                        <Button Style="{StaticResource ToolButton}" Content="+ Bloc" Command="{Binding AddBlockCommand}" />
+                        <Button Style="{StaticResource ToolButton}" Content="Supprimer" Command="{Binding DeleteAssetCommand}" />
+                    </StackPanel>
+                    <ListBox ItemsSource="{Binding Project.Assets}"
+                             SelectedItem="{Binding Project.SelectedAsset}"
+                             IsEnabled="{Binding CanEdit}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type assets:AssetViewModel}">
+                                <StackPanel Orientation="Horizontal" Margin="0,2">
+                                    <Border Width="44" Background="{DynamicResource TypeBadgeBrush}" CornerRadius="2" Margin="0,0,8,0">
+                                        <TextBlock Text="{Binding TypeLabel}" FontSize="10" HorizontalAlignment="Center" Margin="0,1"
+                                                   Foreground="{DynamicResource TypeBadgeTextBrush}" />
+                                    </Border>
+                                    <TextBlock Text="{Binding Header}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+
+                <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext"
+                              Background="{DynamicResource SplitterBrush}" />
+
+                <!-- Inspector -->
+                <DockPanel Grid.Column="2" Margin="8">
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelTitle}" Text="Inspector" />
+                    <Grid>
+                        <TextBlock Text="Sélectionnez un asset dans la liste, ou ajoutez-en un avec les boutons + Item et + Bloc."
+                                   Foreground="{DynamicResource HintBrush}" TextWrapping="Wrap" Margin="0,8"
+                                   Visibility="{Binding Project.HasSelection, Converter={StaticResource InverseBoolToVisibility}}" />
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ContentControl Content="{Binding Project.SelectedAsset}" IsEnabled="{Binding CanEdit}" Focusable="False" />
+                        </ScrollViewer>
+                    </Grid>
+                </DockPanel>
+            </Grid>
+
+            <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                          Background="{DynamicResource SplitterBrush}" />
+
+            <!-- Console Output -->
+            <DockPanel Grid.Row="2" Margin="8,4,8,8">
+                <DockPanel DockPanel.Dock="Top">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="0" Content="Effacer"
+                            Command="{Binding Output.ClearCommand}" />
+                    <TextBlock Style="{StaticResource PanelTitle}" Text="Output" VerticalAlignment="Center" />
+                </DockPanel>
+                <ListBox x:Name="OutputList"
+                         ItemsSource="{Binding Output.Entries}"
+                         FontFamily="Consolas" FontSize="12"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                    <!-- Lignes compactes : le style de liste du thème prévoit une grande marge par élément. -->
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                            <Setter Property="Padding" Value="8,1" />
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="MinHeight" Value="0" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:LogEntry}">
+                            <TextBlock x:Name="Line" Text="{Binding Text}" />
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Level}" Value="Debug">
+                                    <Setter TargetName="Line" Property="Foreground" Value="{DynamicResource LogDebugBrush}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Level}" Value="Success">
+                                    <Setter TargetName="Line" Property="Foreground" Value="{DynamicResource LogSuccessBrush}" />
+                                    <Setter TargetName="Line" Property="FontWeight" Value="SemiBold" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Level}" Value="Warning">
+                                    <Setter TargetName="Line" Property="Foreground" Value="{DynamicResource LogWarningBrush}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Level}" Value="Error">
+                                    <Setter TargetName="Line" Property="Foreground" Value="{DynamicResource LogErrorBrush}" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>

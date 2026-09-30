@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(MineEngineTargetFramework)</TargetFramework>
+    <RootNamespace>MineEngine.IR</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MineEngine.Core\MineEngine.Core.csproj" />
+    <ProjectReference Include="..\MineEngine.Assets\MineEngine.Assets.csproj" />
+    <ProjectReference Include="..\MineEngine.Project\MineEngine.Project.csproj" />
+  </ItemGroup>
+
+</Project>

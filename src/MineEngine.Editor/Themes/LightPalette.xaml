@@ -1,0 +1,18 @@
+<!-- Couleurs propres à Mine Engine pour le thème clair. Les mêmes clés existent dans DarkPalette.xaml. -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <SolidColorBrush x:Key="PanelHeaderBrush" Color="#2D3E50" />
+    <SolidColorBrush x:Key="HintBrush" Color="#5F6B78" />
+    <SolidColorBrush x:Key="TypeBadgeBrush" Color="#DDE7F3" />
+    <SolidColorBrush x:Key="TypeBadgeTextBrush" Color="#1F2A36" />
+    <SolidColorBrush x:Key="PreviewBackgroundBrush" Color="#F4F6F8" />
+    <SolidColorBrush x:Key="PreviewBorderBrush" Color="#B8C2CC" />
+    <SolidColorBrush x:Key="SplitterBrush" Color="#D5DBE1" />
+
+    <SolidColorBrush x:Key="LogDebugBrush" Color="#7A848E" />
+    <SolidColorBrush x:Key="LogSuccessBrush" Color="#1E8449" />
+    <SolidColorBrush x:Key="LogWarningBrush" Color="#9A6200" />
+    <SolidColorBrush x:Key="LogErrorBrush" Color="#C0392B" />
+
+</ResourceDictionary>

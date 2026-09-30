@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(MineEngineTargetFramework)</TargetFramework>
+    <RootNamespace>MineEngine.Core</RootNamespace>
+  </PropertyGroup>
+
+</Project>

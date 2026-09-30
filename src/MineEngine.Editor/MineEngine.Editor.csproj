@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(MineEngineTargetFramework)-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>MineEngine.Editor</RootNamespace>
+  </PropertyGroup>
+
+  <!-- WPF n'importe pas System.IO par défaut (conflit avec System.Windows.Shapes.Path). -->
+  <ItemGroup>
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MineEngine.Core\MineEngine.Core.csproj" />
+    <ProjectReference Include="..\MineEngine.Assets\MineEngine.Assets.csproj" />
+    <ProjectReference Include="..\MineEngine.Project\MineEngine.Project.csproj" />
+    <ProjectReference Include="..\MineEngine.Build\MineEngine.Build.csproj" />
+  </ItemGroup>
+
+</Project>

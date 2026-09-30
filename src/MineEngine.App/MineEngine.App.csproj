@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>$(MineEngineTargetFramework)-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>MineEngine.App</RootNamespace>
+    <AssemblyName>MineEngine</AssemblyName>
+  </PropertyGroup>
+
+  <!-- WPF n'importe pas System.IO par défaut (conflit avec System.Windows.Shapes.Path). -->
+  <ItemGroup>
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MineEngine.Core\MineEngine.Core.csproj" />
+    <ProjectReference Include="..\MineEngine.Assets\MineEngine.Assets.csproj" />
+    <ProjectReference Include="..\MineEngine.Project\MineEngine.Project.csproj" />
+    <ProjectReference Include="..\MineEngine.IR\MineEngine.IR.csproj" />
+    <ProjectReference Include="..\MineEngine.Minecraft\MineEngine.Minecraft.csproj" />
+    <ProjectReference Include="..\MineEngine.Generator\MineEngine.Generator.csproj" />
+    <ProjectReference Include="..\MineEngine.Build\MineEngine.Build.csproj" />
+    <ProjectReference Include="..\MineEngine.Editor\MineEngine.Editor.csproj" />
+  </ItemGroup>
+
+</Project>

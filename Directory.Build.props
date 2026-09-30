@@ -1,0 +1,14 @@
+<Project>
+  <!-- Paramètres communs à tous les projets de la solution. -->
+  <PropertyGroup>
+    <MineEngineTargetFramework>net9.0</MineEngineTargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Company>Mine Engine</Company>
+    <Product>Mine Engine</Product>
+    <Version>0.1.0</Version>
+    <NeutralLanguage>fr</NeutralLanguage>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+</Project>

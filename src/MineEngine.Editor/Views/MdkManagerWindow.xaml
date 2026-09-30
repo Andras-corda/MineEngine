@@ -1,0 +1,92 @@
+<Window x:Class="MineEngine.Editor.Views.MdkManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Gestionnaire de MDK"
+        Width="900" Height="620" MinWidth="700" MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+
+    <Window.Resources>
+        <ResourceDictionary Source="EditorStyles.xaml" />
+    </Window.Resources>
+
+    <DockPanel Margin="16">
+
+        <!-- Explication -->
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <TextBlock TextWrapping="Wrap">
+                Un MDK (Mod Development Kit) est le projet Gradle officiel de Forge ou de NeoForge pour une version de Minecraft.
+                Mine Engine s'appuie sur le MDK choisi dans chaque projet pour générer et compiler le mod.
+            </TextBlock>
+            <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
+                       Text="{Binding SupportDescription, StringFormat='Versions prises en charge par le générateur : {0}.'}" />
+        </StackPanel>
+
+        <!-- Bas de fenêtre : dossier de la bibliothèque et fermeture -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <Button DockPanel.Dock="Right" Content="Fermer" IsCancel="True" MinWidth="100" Padding="10,4" />
+            <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" Foreground="{DynamicResource HintBrush}" />
+        </DockPanel>
+
+        <GroupBox DockPanel.Dock="Bottom" Header="Dossier des MDK" Padding="8,6" Margin="0,12,0,0">
+            <StackPanel>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            Content="Ouvrir le dossier" Command="{Binding OpenLibraryFolderCommand}" />
+                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
+                            Content="Actualiser" Command="{Binding RefreshCommand}" />
+                    <TextBox Text="{Binding LibraryDirectory, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas"
+                             VerticalContentAlignment="Center" />
+                </DockPanel>
+                <TextBlock Style="{StaticResource FieldHint}" Margin="0,6,0,0"
+                           Text="Vous pouvez aussi déposer dans ce dossier une archive .zip de MDK ou un MDK déjà extrait, puis cliquer sur Actualiser." />
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Téléchargements -->
+        <GroupBox DockPanel.Dock="Bottom" Header="Télécharger un MDK officiel" Padding="8,6" Margin="0,12,0,0">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="8,0,0,0" VerticalAlignment="Top"
+                        Content="Télécharger" Command="{Binding DownloadCommand}" />
+                <DataGrid ItemsSource="{Binding Downloads}" SelectedItem="{Binding SelectedDownload}"
+                          AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                          SelectionMode="Single" CanUserAddRows="False" GridLinesVisibility="None" Height="110">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="MDK" Binding="{Binding DisplayName}" Width="220" />
+                        <DataGridTextColumn Header="État" Binding="{Binding Status}" Width="90" />
+                        <DataGridTextColumn Header="Adresse" Binding="{Binding Url}" Width="*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </GroupBox>
+
+        <!-- MDK installés -->
+        <GroupBox Header="MDK installés" Padding="8,6">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Style="{StaticResource ToolButton}" Content="Importer une archive (.zip)..." Command="{Binding ImportArchiveCommand}" />
+                    <Button Style="{StaticResource ToolButton}" Content="Importer un dossier..." Command="{Binding ImportFolderCommand}" />
+                    <Button Style="{StaticResource ToolButton}" Content="Supprimer" Command="{Binding RemoveCommand}" />
+                </StackPanel>
+                <Grid>
+                    <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}"
+                              AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                              SelectionMode="Single" CanUserAddRows="False" GridLinesVisibility="None">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Loader" Binding="{Binding Loader}" Width="80" />
+                            <DataGridTextColumn Header="Minecraft" Binding="{Binding MinecraftVersion}" Width="80" />
+                            <DataGridTextColumn Header="Version du loader" Binding="{Binding LoaderVersion}" Width="120" />
+                            <DataGridTextColumn Header="Java" Binding="{Binding Java}" Width="45" />
+                            <DataGridTextColumn Header="Gradle" Binding="{Binding Gradle}" Width="60" />
+                            <DataGridTextColumn Header="Statut" Binding="{Binding Status}" Width="160" />
+                            <DataGridTextColumn Header="Origine" Binding="{Binding Source}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Text="Aucun MDK installé. Téléchargez-en un ci-dessous ou importez une archive."
+                               HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource HintBrush}"
+                               Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+                </Grid>
+            </DockPanel>
+        </GroupBox>
+    </DockPanel>
+</Window>
