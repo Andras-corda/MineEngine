@@ -9,6 +9,10 @@ public sealed class JavaSourceWriter
 
     private readonly StringBuilder _builder = new();
     private int _indentLevel;
+    private int _lineCount;
+
+    /// <summary>Numéro (à partir de 1) de la prochaine ligne écrite.</summary>
+    public int NextLineNumber => _lineCount + 1;
 
     public JavaSourceWriter Line(string text = "")
     {
@@ -23,6 +27,7 @@ public sealed class JavaSourceWriter
         }
 
         _builder.Append('\n');
+        _lineCount++;
         return this;
     }
 

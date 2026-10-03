@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Company>Mine Engine</Company>
     <Product>Mine Engine</Product>
-    <Version>0.1.0</Version>
+    <Version>0.3.0</Version>
     <NeutralLanguage>fr</NeutralLanguage>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>

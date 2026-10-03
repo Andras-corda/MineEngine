@@ -1,68 +1,36 @@
-using System.Windows.Input;
 using MineEngine.Assets;
-using MineEngine.Editor.Mvvm;
 
 namespace MineEngine.Editor.ViewModels.Assets;
 
-/// <summary>Asset avec texture : ajoute le choix et l'aperçu de la texture.</summary>
+/// <summary>Asset avec texture : ajoute l'emplacement de texture principal.</summary>
 public abstract class TexturedAssetViewModel : AssetViewModel
 {
-    private readonly TexturedAsset _texturedModel;
-
-    protected TexturedAssetViewModel(TexturedAsset model, AssetEditingContext context, string typeLabel)
+    protected TexturedAssetViewModel(TexturedAsset model, AssetEditingContext context, string typeLabel, string emptyTextureLabel)
         : base(model, context, typeLabel)
     {
-        _texturedModel = model;
-        ChooseTextureCommand = new RelayCommand(ChooseTexture);
-        ClearTextureCommand = new RelayCommand(ClearTexture, () => _texturedModel.HasTexture);
+        MainTexture = new TextureSlotViewModel(
+            model, context, nameof(TexturedAsset.TextureId), "Texture", emptyTextureLabel,
+            () => model.TextureId, v => model.TextureId = v);
     }
 
-    public ICommand ChooseTextureCommand { get; }
+    public TextureSlotViewModel MainTexture { get; }
 
-    public ICommand ClearTextureCommand { get; }
+    public override string? IconPath => MainTexture.FullPath;
 
-    public string TextureLabel => _texturedModel.TexturePath ?? "Aucune (texture de remplacement)";
-
-    /// <summary>Chemin absolu de la texture pour l'aperçu, ou null.</summary>
-    public string? TextureFullPath
+    public override void OnProjectContentChanged()
     {
-        get
-        {
-            string? path = Context.TextureImporter.GetAbsolutePath(Context.Project, _texturedModel);
-            return path is not null && File.Exists(path) ? path : null;
-        }
+        base.OnProjectContentChanged();
+        MainTexture.Refresh();
     }
 
-    private void ChooseTexture()
+    protected override void OnModelPropertyChanged(string propertyName)
     {
-        string? file = Context.Dialogs.AskTextureFile();
-        if (file is null)
+        base.OnModelPropertyChanged(propertyName);
+        if (propertyName == nameof(TexturedAsset.TextureId))
         {
-            return;
+            MainTexture.Refresh();
+            OnPropertyChanged(nameof(IconPath));
+            OnPropertyChanged(nameof(HasIcon));
         }
-
-        try
-        {
-            Context.TextureImporter.Import(Context.Project, _texturedModel, file);
-        }
-        catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
-        {
-            Context.Dialogs.ShowError("Texture", exception.Message);
-            return;
-        }
-
-        RaiseTextureChanged();
-    }
-
-    private void ClearTexture()
-    {
-        _texturedModel.TexturePath = null;
-        RaiseTextureChanged();
-    }
-
-    private void RaiseTextureChanged()
-    {
-        OnPropertyChanged(nameof(TextureLabel));
-        OnPropertyChanged(nameof(TextureFullPath));
     }
 }

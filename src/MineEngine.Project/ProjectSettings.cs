@@ -44,4 +44,32 @@ public sealed class ProjectSettings
     public string MinecraftVersion { get; set; } = string.Empty;
 
     public string LoaderId { get; set; } = string.Empty;
+
+    /// <summary>Copie indépendante de ces paramètres.</summary>
+    public ProjectSettings Clone()
+    {
+        var copy = new ProjectSettings(ModId, ModName);
+        copy.CopyFrom(this);
+        return copy;
+    }
+
+    /// <summary>Reprend toutes les valeurs d'autres paramètres du même mod.</summary>
+    public void CopyFrom(ProjectSettings other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        if (other.ModId != ModId)
+        {
+            throw new ArgumentException("Les paramètres d'un autre mod ne peuvent pas être recopiés.", nameof(other));
+        }
+
+        ModName = other.ModName;
+        ModVersion = other.ModVersion;
+        Authors = other.Authors;
+        Description = other.Description;
+        License = other.License;
+        Website = other.Website;
+        MdkId = other.MdkId;
+        MinecraftVersion = other.MinecraftVersion;
+        LoaderId = other.LoaderId;
+    }
 }

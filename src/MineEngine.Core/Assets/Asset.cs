@@ -50,11 +50,17 @@ public abstract class Asset
     {
         if (string.IsNullOrWhiteSpace(DisplayName))
         {
-            diagnostics.Warning("Le nom affiché est vide ; l'identifiant sera utilisé en jeu.", ToString());
+            diagnostics.Warning("Le nom affiché est vide ; l'identifiant sera utilisé en jeu.", ToString(), Id);
         }
     }
 
+    /// <summary>Liens de cet asset vers d'autres assets du projet (textures, items, sons).</summary>
+    public virtual IEnumerable<AssetReference> GetReferences() => [];
+
     public override string ToString() => $"{Type} '{ResourceId}'";
+
+    /// <summary>Signale la modification d'une propriété qui n'est pas stockée dans un simple champ.</summary>
+    protected void RaiseChanged(string propertyName) => Changed?.Invoke(this, new AssetChangedEventArgs(propertyName));
 
     protected bool SetField<T>(ref T field, T value, [CallerMemberName] string propertyName = "")
     {

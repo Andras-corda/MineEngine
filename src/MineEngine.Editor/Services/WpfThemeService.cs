@@ -1,29 +1,36 @@
 using System.Windows;
-using Microsoft.Win32;
 using MineEngine.Editor.Settings;
+using ModernWpf;
 
 namespace MineEngine.Editor.Services;
 
 /// <summary>Applique un thème à toute l'interface.</summary>
 public interface IThemeService
 {
+    /// <summary>Thème choisi (Identique à Windows, Clair ou Sombre).</summary>
     AppTheme Current { get; }
+
+    /// <summary>Vrai si l'interface est actuellement affichée en sombre.</summary>
+    bool IsDark { get; }
+
+    /// <summary>Déclenché quand l'interface passe effectivement de clair à sombre ou inversement.</summary>
+    event EventHandler? AppearanceChanged;
 
     void Apply(AppTheme theme);
 }
 
 /// <summary>
-/// Thème WPF : le thème Fluent de .NET 9 redessine les contrôles standard en clair
-/// ou en sombre, et une palette propre à Mine Engine (titres, badges, couleurs de
-/// la console) est échangée en même temps. En mode Système, la palette suit les
-/// changements de réglage de Windows.
+/// Thème basé sur ModernWpf : son ThemeManager redessine les contrôles en clair ou
+/// en sombre (ou suit Windows) ; la palette propre à Mine Engine (titres, badges,
+/// couleurs de la console) est échangée en même temps.
 /// </summary>
 public sealed class WpfThemeService : IThemeService
 {
-    private const string PersonalizeKey = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
-
     private static readonly Uri LightPalette = new("pack://application:,,,/MineEngine.Editor;component/Themes/LightPalette.xaml");
     private static readonly Uri DarkPalette = new("pack://application:,,,/MineEngine.Editor;component/Themes/DarkPalette.xaml");
+
+    /// <summary>Couleur d'accent de Mine Engine (lilas), indépendante de celle de Windows.</summary>
+    private static readonly System.Windows.Media.Color AccentColor = System.Windows.Media.Color.FromRgb(0xA8, 0x55, 0xB5);
 
     private readonly Application _application;
     private ResourceDictionary? _currentPalette;
@@ -31,30 +38,32 @@ public sealed class WpfThemeService : IThemeService
     public WpfThemeService(Application application)
     {
         _application = application ?? throw new ArgumentNullException(nameof(application));
-        SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+        ThemeManager.Current.AccentColor = AccentColor;
+        ThemeManager.Current.ActualApplicationThemeChanged += (_, _) => ApplyPalette();
     }
 
+    public event EventHandler? AppearanceChanged;
+
     public AppTheme Current { get; private set; } = AppTheme.System;
+
+    public bool IsDark => ThemeManager.Current.ActualApplicationTheme == ApplicationTheme.Dark;
 
     public void Apply(AppTheme theme)
     {
         Current = theme;
-
-#pragma warning disable WPF0001 // Le thème Fluent de WPF est encore marqué expérimental dans .NET 9.
-        _application.ThemeMode = theme switch
+        ThemeManager.Current.ApplicationTheme = theme switch
         {
-            AppTheme.Light => ThemeMode.Light,
-            AppTheme.Dark => ThemeMode.Dark,
-            _ => ThemeMode.System,
+            AppTheme.Light => ApplicationTheme.Light,
+            AppTheme.Dark => ApplicationTheme.Dark,
+            _ => null,
         };
-#pragma warning restore WPF0001
 
-        ApplyPalette(IsDark(theme) ? DarkPalette : LightPalette);
+        ApplyPalette();
     }
 
-    private void ApplyPalette(Uri source)
+    private void ApplyPalette()
     {
-        var palette = new ResourceDictionary { Source = source };
+        var palette = new ResourceDictionary { Source = IsDark ? DarkPalette : LightPalette };
         if (_currentPalette is not null)
         {
             _application.Resources.MergedDictionaries.Remove(_currentPalette);
@@ -62,26 +71,6 @@ public sealed class WpfThemeService : IThemeService
 
         _application.Resources.MergedDictionaries.Add(palette);
         _currentPalette = palette;
-    }
-
-    private static bool IsDark(AppTheme theme) => theme switch
-    {
-        AppTheme.Dark => true,
-        AppTheme.Light => false,
-        _ => IsWindowsInDarkMode(),
-    };
-
-    private static bool IsWindowsInDarkMode()
-    {
-        using RegistryKey? key = Registry.CurrentUser.OpenSubKey(PersonalizeKey);
-        return key?.GetValue("AppsUseLightTheme") is int useLight && useLight == 0;
-    }
-
-    private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
-    {
-        if (Current == AppTheme.System && e.Category == UserPreferenceCategory.General)
-        {
-            _application.Dispatcher.BeginInvoke(() => Apply(AppTheme.System));
-        }
+        AppearanceChanged?.Invoke(this, EventArgs.Empty);
     }
 }

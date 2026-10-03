@@ -44,6 +44,31 @@ public sealed class SettingsViewModel : ObservableObject
         set => SelectThemeIf(value, AppTheme.Dark);
     }
 
+    /// <summary>Minutes entre deux sauvegardes automatiques ; 0 les désactive (double pour le NumberBox).</summary>
+    public double AutoSaveMinutes
+    {
+        get => _draft.AutoSaveMinutes;
+        set
+        {
+            _draft.AutoSaveMinutes = double.IsNaN(value) ? 0 : (int)Math.Round(value);
+            OnPropertyChanged();
+        }
+    }
+
+    public double BackupsToKeep
+    {
+        get => _draft.BackupsToKeep;
+        set
+        {
+            _draft.BackupsToKeep = double.IsNaN(value) ? 1 : (int)Math.Round(value);
+            OnPropertyChanged();
+        }
+    }
+
+    public int MaxAutoSaveMinutes => EditorSettings.MaxAutoSaveMinutes;
+
+    public int MaxBackupsToKeep => EditorSettings.MaxBackupsToKeep;
+
     /// <summary>À appeler à la fermeture : annule l'aperçu si rien n'a été enregistré.</summary>
     public void DiscardPreview()
     {

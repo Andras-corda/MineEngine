@@ -15,4 +15,20 @@
     <SolidColorBrush x:Key="LogWarningBrush" Color="#E0A93A" />
     <SolidColorBrush x:Key="LogErrorBrush" Color="#FF6B6B" />
 
+    <!-- Accueil (sélection de projet) -->
+    <SolidColorBrush x:Key="HubBackgroundBrush" Color="#1F1F22" />
+    <SolidColorBrush x:Key="SidebarBrush" Color="#1A1A1D" />
+    <SolidColorBrush x:Key="CardBrush" Color="#27272B" />
+    <SolidColorBrush x:Key="CardHoverBrush" Color="#2E2E33" />
+    <SolidColorBrush x:Key="CardBorderBrush" Color="#38383E" />
+    <SolidColorBrush x:Key="CardSelectedBrush" Color="#2E2531" />
+    <SolidColorBrush x:Key="CardSelectedBorderBrush" Color="#C98BD0" />
+    <SolidColorBrush x:Key="NavSelectedBrush" Color="#3A2C3E" />
+    <SolidColorBrush x:Key="AccentLineBrush" Color="#D493DA" />
+    <SolidColorBrush x:Key="BadgeBrush" Color="#333338" />
+    <SolidColorBrush x:Key="BadgeTextBrush" Color="#B9B9C2" />
+    <SolidColorBrush x:Key="LinkBrush" Color="#E2A8E9" />
+    <SolidColorBrush x:Key="PreviewGridBrush" Color="#303036" />
+    <SolidColorBrush x:Key="StrongTextBrush" Color="#F2F2F5" />
+
 </ResourceDictionary>

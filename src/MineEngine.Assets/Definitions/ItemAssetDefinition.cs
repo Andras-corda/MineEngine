@@ -4,10 +4,11 @@ using MineEngine.Core.Identifiers;
 
 namespace MineEngine.Assets.Definitions;
 
-public sealed class ItemAssetDefinition : AssetDefinition<ItemAsset>
+public sealed class ItemAssetDefinition : InventoryAssetDefinition<ItemAsset>
 {
-    private const string MaxStackSizeKey = "maxStackSize";
-    private const string TextureKey = "texture";
+    private const string DurabilityKey = "durability";
+    private const string GlintKey = "glint";
+    private const string FoodKey = "food";
 
     public override AssetType Type => AssetType.Item;
 
@@ -22,14 +23,34 @@ public sealed class ItemAssetDefinition : AssetDefinition<ItemAsset>
 
     protected override void ReadProperties(ItemAsset asset, JsonPropertyReader reader)
     {
-        int stackSize = reader.GetInt32(MaxStackSizeKey, ItemAsset.DefaultStackSize);
-        asset.MaxStackSize = Math.Clamp(stackSize, ItemAsset.MinStackSize, ItemAsset.MaxStackSizeLimit);
-        asset.TexturePath = reader.GetString(TextureKey);
+        ReadInventory(asset, reader);
+        asset.Durability = reader.GetInt32(DurabilityKey, 0);
+        asset.HasGlint = reader.GetBoolean(GlintKey, false);
+
+        JsonPropertyReader? food = reader.GetObject(FoodKey);
+        asset.IsFood = food is not null;
+        if (food is not null)
+        {
+            asset.Nutrition = food.GetInt32("nutrition", 4);
+            asset.Saturation = food.GetSingle("saturation", 0.3f);
+            asset.AlwaysEdible = food.GetBoolean("alwaysEdible", false);
+            asset.IsMeat = food.GetBoolean("meat", false);
+        }
     }
 
     protected override void WriteProperties(ItemAsset asset, JsonObject properties)
     {
-        properties[MaxStackSizeKey] = asset.MaxStackSize;
-        properties[TextureKey] = asset.TexturePath;
+        WriteInventory(asset, properties);
+        properties[DurabilityKey] = asset.Durability;
+        properties[GlintKey] = asset.HasGlint;
+        properties[FoodKey] = asset.IsFood
+            ? new JsonObject
+            {
+                ["nutrition"] = asset.Nutrition,
+                ["saturation"] = asset.Saturation,
+                ["alwaysEdible"] = asset.AlwaysEdible,
+                ["meat"] = asset.IsMeat,
+            }
+            : null;
     }
 }

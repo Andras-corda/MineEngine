@@ -3,6 +3,7 @@ using MineEngine.Assets.Serialization;
 using MineEngine.Core.Assets;
 using MineEngine.Core.Identifiers;
 using MineEngine.Core.IO;
+using MineEngine.Core.Json;
 using MineEngine.Project.Serialization;
 
 namespace MineEngine.Project;
@@ -14,6 +15,7 @@ public sealed class ProjectRepository
 
     private readonly AssetSerializer _assetSerializer;
     private readonly ProjectSettingsSerializer _settingsSerializer;
+    private readonly AssetFormatMigrator _migrator = new();
 
     public ProjectRepository(AssetSerializer assetSerializer, ProjectSettingsSerializer settingsSerializer)
     {
@@ -60,19 +62,35 @@ public sealed class ProjectRepository
         ProjectSettings settings = _settingsSerializer.Deserialize(
             File.ReadAllText(layout.ProjectFile), ProjectLayout.ProjectFileName);
 
-        var assets = new AssetRegistry();
+        var documents = new List<AssetDocument>();
         if (Directory.Exists(layout.ContentDirectory))
         {
-            foreach (string file in Directory.EnumerateFiles(layout.ContentDirectory, "*" + AssetSerializer.FileExtension)
+            foreach (string file in Directory
+                         .EnumerateFiles(layout.ContentDirectory, "*" + AssetSerializer.FileExtension, SearchOption.AllDirectories)
                          .Order(StringComparer.Ordinal))
             {
-                string sourceName = "Content/" + Path.GetFileName(file);
-                assets.Add(_assetSerializer.Deserialize(File.ReadAllText(file), sourceName));
+                string sourceName = "Content/" + Path.GetRelativePath(layout.ContentDirectory, file).Replace(Path.DirectorySeparatorChar, '/');
+                documents.Add(new AssetDocument(JsonFormatting.ParseObject(File.ReadAllText(file), sourceName), sourceName));
             }
         }
 
+        // Les projets des versions précédentes sont convertis en mémoire ; ils sont réécrits
+        // au nouveau format au prochain enregistrement.
+        AssetMigrationResult migration = _migrator.Migrate(documents);
+        var assets = new AssetRegistry();
+        foreach (AssetDocument document in migration.Documents)
+        {
+            assets.Add(_assetSerializer.Deserialize(document.Root, document.SourceName));
+        }
+
         layout.EnsureDirectories();
-        return new ModProject(layout, settings, assets);
+        var project = new ModProject(layout, settings, assets) { LoadNotes = migration.Notes };
+        if (migration.HasChanges)
+        {
+            project.MarkDirty();
+        }
+
+        return project;
     }
 
     /// <summary>Enregistre les paramètres et tous les assets, puis supprime les fichiers d'assets obsolètes.</summary>
@@ -88,11 +106,13 @@ public sealed class ProjectRepository
         foreach (Asset asset in project.Assets)
         {
             string path = layout.GetAssetFilePath(asset);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             AtomicFile.WriteAllText(path, _assetSerializer.Serialize(asset));
             writtenFiles.Add(Path.GetFullPath(path));
         }
 
-        foreach (string file in Directory.EnumerateFiles(layout.ContentDirectory, "*" + AssetSerializer.FileExtension))
+        foreach (string file in Directory.EnumerateFiles(
+                     layout.ContentDirectory, "*" + AssetSerializer.FileExtension, SearchOption.AllDirectories))
         {
             if (!writtenFiles.Contains(Path.GetFullPath(file)))
             {

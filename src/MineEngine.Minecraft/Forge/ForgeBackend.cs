@@ -2,6 +2,7 @@ using MineEngine.IR.Model;
 using MineEngine.Minecraft.Backends;
 using MineEngine.Minecraft.Generation;
 using MineEngine.Minecraft.Mdk;
+using MineEngine.Minecraft.Resources;
 
 namespace MineEngine.Minecraft.Forge;
 
@@ -15,7 +16,8 @@ public sealed class ForgeBackend : MdkBackend
 
     public override string LoaderId => ModLoaderKind.Forge.ToId();
 
-    public override IReadOnlyList<IFileEmitter> CreateEmitters() => [new ForgeJavaEmitter(), new ForgeMetadataEmitter(Mdk)];
+    public override IReadOnlyList<IFileEmitter> CreateEmitters() =>
+        [new ForgeJavaEmitter(), new ForgeMetadataEmitter(Mdk), new SpawnBiomeModifierEmitter("forge")];
 
     /// <summary>Forge lit les auteurs et la description dans gradle.properties.</summary>
     protected override void ConfigureProperties(GradlePropertiesFile properties, IRModInfo mod)

@@ -24,7 +24,7 @@ public sealed class ModGenerator
 
     public IModLoaderBackend Backend { get; }
 
-    /// <summary>Générateur avec les ressources standard : items, blocs, langues anglaise et française.</summary>
+    /// <summary>Générateur avec les ressources standard : items, blocs, mobs, recettes, sons, langues anglaise et française.</summary>
     public static ModGenerator CreateDefault(IModLoaderBackend backend)
     {
         var placeholder = new PlaceholderTexture(new PngEncoder());
@@ -32,7 +32,11 @@ public sealed class ModGenerator
         [
             new ItemResourcesEmitter(placeholder),
             new BlockResourcesEmitter(placeholder),
+            new MobResourcesEmitter(placeholder),
+            new RecipesEmitter(),
+            new SoundsEmitter(),
             new LanguageEmitter(["en_us", "fr_fr"]),
+            new TagsEmitter(),
         ]);
     }
 
@@ -82,5 +86,5 @@ public sealed class ModGenerator
     }
 
     private static GenerationResult CreateResult(GenerationContext context) =>
-        new(context.WorkspaceDirectory, context.Files.WrittenFiles, context.Diagnostics);
+        new(context.WorkspaceDirectory, context.Files.WrittenFiles, context.Diagnostics, context.SourceMap);
 }

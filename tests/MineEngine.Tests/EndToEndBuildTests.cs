@@ -72,8 +72,7 @@ public sealed class EndToEndBuildTests
 
         var repository = new ProjectRepository(new AssetSerializer(AssetCatalog.CreateDefault()), new ProjectSettingsSerializer());
         ModProject project = repository.Create(projectDirectory, settings);
-        project.Assets.Add(new ItemAsset(Guid.NewGuid(), ResourceId.Parse("magic_sword"), "Épée magique") { MaxStackSize = 1 });
-        project.Assets.Add(new BlockAsset(Guid.NewGuid(), ResourceId.Parse("ruby_block"), "Bloc de rubis"));
+        SampleContent.AddTo(project);
         repository.Save(project);
 
         var pipeline = new BuildPipeline(

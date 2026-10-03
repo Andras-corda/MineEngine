@@ -61,11 +61,12 @@ public sealed class GeneratorTests
         Assert.Equal([0x89, 0x50, 0x4E, 0x47], png[..4]);
 
         string items = Read("src/main/java/com/mineengine/mods/testmod/registry/ModItems.java");
-        Assert.Contains("\"magic_sword\", new Item.Properties().stacksTo(1));", items);
-        Assert.Contains("\"ruby_block\", ModBlocks.RUBY_BLOCK);", items);
+        Assert.Contains("public static final DeferredItem<Item> MAGIC_SWORD = ITEMS.register(", items);
+        Assert.Contains("\"magic_sword\", () -> new Item(new Item.Properties().stacksTo(1)));", items);
+        Assert.Contains("\"ruby_block\", () -> new BlockItem(ModBlocks.RUBY_BLOCK.get(), new Item.Properties()));", items);
 
         string blocks = Read("src/main/java/com/mineengine/mods/testmod/registry/ModBlocks.java");
-        Assert.Contains("BlockBehaviour.Properties.of().strength(3.0f, 9.5f));", blocks);
+        Assert.Contains("\"ruby_block\", () -> new Block(BlockBehaviour.Properties.of().strength(3.0f, 9.5f)));", blocks);
 
         string main = Read("src/main/java/com/mineengine/mods/testmod/TestMod.java");
         Assert.Contains("@Mod(TestMod.MOD_ID)", main);
@@ -93,6 +94,28 @@ public sealed class GeneratorTests
 
         string tabs = Read("src/main/java/com/mineengine/mods/testmod/registry/ModCreativeTabs.java");
         Assert.Contains("public static final RegistryObject<CreativeModeTab> MAIN_TAB", tabs);
+    }
+
+    [Fact]
+    public async Task Source_map_points_to_the_java_lines_of_each_asset()
+    {
+        using var temp = new TemporaryDirectory();
+        ModProject project = CreateSampleProject(temp.Path, "forge", "1.20.1");
+        ModIR ir = ModIRBuilder.CreateDefault().Build(project, new DiagnosticBag())!;
+        string workspace = Path.Combine(temp.Path, "workspace");
+
+        GenerationResult result = await ModGenerator.CreateDefault(new FakeBackend(ModLoaderKind.Forge, "1.20.1", new ForgeJavaEmitter()))
+            .GenerateAsync(ir, workspace, NullLog.Instance, CancellationToken.None);
+
+        // 3 assets dans ModItems (2 items + 1 bloc) et 1 dans ModBlocks.
+        Assert.Equal(4, result.SourceMap.Entries.Count);
+        foreach (SourceMapEntry entry in result.SourceMap.Entries)
+        {
+            string[] lines = File.ReadAllLines(Path.Combine(workspace, entry.File));
+            string resourceId = project.Assets.Find(entry.AssetId)!.ResourceId.Value;
+            string declaration = string.Join('\n', lines[(entry.FirstLine - 1)..entry.LastLine]);
+            Assert.Contains($"\"{resourceId}\"", declaration);
+        }
     }
 
     [Fact]

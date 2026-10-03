@@ -13,7 +13,11 @@ namespace MineEngine.Assets.Serialization;
 /// </summary>
 public sealed class AssetSerializer
 {
-    public const int FormatVersion = 1;
+    /// <summary>
+    /// Version du format des fichiers d'assets. 2 (V0.3) : textures et items désignés
+    /// par guid. Les fichiers plus anciens passent par <see cref="AssetFormatMigrator"/>.
+    /// </summary>
+    public const int FormatVersion = 2;
     public const string FileExtension = ".asset.json";
 
     private readonly AssetCatalog _catalog;
@@ -39,15 +43,25 @@ public sealed class AssetSerializer
         return JsonFormatting.ToText(root);
     }
 
-    public Asset Deserialize(string json, string sourceName)
-    {
-        JsonObject root = JsonFormatting.ParseObject(json, sourceName);
+    /// <summary>Lit un fichier d'asset au format courant.</summary>
+    public Asset Deserialize(string json, string sourceName) =>
+        Deserialize(JsonFormatting.ParseObject(json, sourceName), sourceName);
 
-        int version = root["formatVersion"]?.GetValue<int>() ?? 0;
+    /// <summary>Lit un document JSON d'asset au format courant (déjà migré si besoin).</summary>
+    public Asset Deserialize(JsonObject root, string sourceName)
+    {
+        ArgumentNullException.ThrowIfNull(root);
+        int version = ReadFormatVersion(root);
         if (version > FormatVersion)
         {
             throw new InvalidDataException(
                 $"{sourceName} a été créé par une version plus récente de Mine Engine (format {version}).");
+        }
+
+        if (version < FormatVersion)
+        {
+            throw new InvalidDataException(
+                $"{sourceName} utilise un ancien format (format {version}) : ouvrez le projet pour le convertir.");
         }
 
         string typeName = RequireString(root, "type", sourceName);
@@ -72,6 +86,8 @@ public sealed class AssetSerializer
 
         return definition!.Read(id, resourceId!, displayName, properties);
     }
+
+    public static int ReadFormatVersion(JsonObject root) => root["formatVersion"]?.GetValue<int>() ?? 0;
 
     private static string RequireString(JsonObject root, string name, string sourceName) =>
         root[name]?.GetValue<string>()

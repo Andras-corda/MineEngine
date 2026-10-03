@@ -13,13 +13,17 @@ public sealed class GradleRunner
     /// <summary>Codes couleur ANSI émis par certains outils NeoForge malgré --console=plain.</summary>
     private static readonly Regex AnsiEscape = new(@"\x1B\[[0-9;]*[A-Za-z]", RegexOptions.Compiled);
 
-    /// <summary>Lance les tâches demandées et retourne le code de sortie de Gradle.</summary>
+    /// <summary>
+    /// Lance les tâches demandées et retourne le code de sortie de Gradle. Chaque ligne
+    /// produite est écrite dans <paramref name="log"/> et transmise à <paramref name="outputObserver"/>.
+    /// </summary>
     public async Task<int> RunAsync(
         string workspaceDirectory,
         JdkInstallation jdk,
         IReadOnlyList<string> tasks,
         ILog log,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<string>? outputObserver = null)
     {
         ArgumentNullException.ThrowIfNull(jdk);
         ArgumentNullException.ThrowIfNull(log);
@@ -50,8 +54,8 @@ public sealed class GradleRunner
         log.Info($"> gradlew {string.Join(' ', startInfo.ArgumentList)}  [{jdk}]");
 
         using var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
-        process.OutputDataReceived += (_, e) => Forward(log, e.Data, isError: false);
-        process.ErrorDataReceived += (_, e) => Forward(log, e.Data, isError: true);
+        process.OutputDataReceived += (_, e) => Forward(log, outputObserver, e.Data, isError: false);
+        process.ErrorDataReceived += (_, e) => Forward(log, outputObserver, e.Data, isError: true);
 
         if (!process.Start())
         {
@@ -70,7 +74,7 @@ public sealed class GradleRunner
         return process.ExitCode;
     }
 
-    private static void Forward(ILog log, string? rawLine, bool isError)
+    private static void Forward(ILog log, Action<string>? observer, string? rawLine, bool isError)
     {
         if (string.IsNullOrEmpty(rawLine))
         {
@@ -78,8 +82,11 @@ public sealed class GradleRunner
         }
 
         string line = AnsiEscape.Replace(rawLine, string.Empty);
+        observer?.Invoke(line);
 
-        LogLevel level = line.Contains("error:", StringComparison.OrdinalIgnoreCase) || line.StartsWith("FAILURE", StringComparison.Ordinal)
+        LogLevel level = line.Contains("error:", StringComparison.OrdinalIgnoreCase)
+                         || line.Contains("erreur :", StringComparison.OrdinalIgnoreCase)
+                         || line.StartsWith("FAILURE", StringComparison.Ordinal)
             ? LogLevel.Error
             : isError
                 ? LogLevel.Warning

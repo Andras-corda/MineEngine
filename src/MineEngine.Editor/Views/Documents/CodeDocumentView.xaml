@@ -1,0 +1,67 @@
+<UserControl x:Class="MineEngine.Editor.Views.Documents.CodeDocumentView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
+             xmlns:docs="clr-namespace:MineEngine.Editor.ViewModels.Documents">
+
+    <!-- Onglet de code : fil d'Ariane, bandeau éventuel, éditeur avec numéros de ligne. -->
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../EditorStyles.xaml" />
+                <ResourceDictionary Source="../Hub/HubStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <DockPanel Background="{DynamicResource HubBackgroundBrush}">
+        <!-- Fil d'Ariane -->
+        <Border DockPanel.Dock="Top" Padding="12,5" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1">
+            <ItemsControl ItemsSource="{Binding Breadcrumb}" Focusable="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type docs:BreadcrumbSegment}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="Name" Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource HintBrush}" />
+                            <TextBlock x:Name="Separator" Text="  &#x203A;  " FontSize="12" Foreground="{DynamicResource HintBrush}" />
+                        </StackPanel>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsLast}" Value="True">
+                                <Setter TargetName="Separator" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="Name" Property="Foreground" Value="{DynamicResource StrongTextBrush}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+
+        <!-- Bandeau : fichier généré, aperçu d'asset, erreur d'enregistrement -->
+        <Border DockPanel.Dock="Top" Style="{StaticResource InfoBanner}" Margin="10,8,10,2"
+                Visibility="{Binding Banner, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE946;" Margin="0,2,8,0"
+                           Foreground="{DynamicResource AccentLineBrush}" />
+                <TextBlock Text="{Binding Banner}" TextWrapping="Wrap" FontSize="12" />
+            </DockPanel>
+        </Border>
+
+        <avalonEdit:TextEditor x:Name="Editor"
+                               Document="{Binding Document}"
+                               IsReadOnly="{Binding IsReadOnly}"
+                               ShowLineNumbers="True"
+                               FontFamily="Cascadia Mono, Consolas"
+                               FontSize="13"
+                               Padding="6,4,0,0"
+                               Background="{DynamicResource HubBackgroundBrush}"
+                               Foreground="{DynamicResource StrongTextBrush}"
+                               LineNumbersForeground="{DynamicResource HintBrush}"
+                               HorizontalScrollBarVisibility="Auto"
+                               VerticalScrollBarVisibility="Auto" />
+    </DockPanel>
+</UserControl>

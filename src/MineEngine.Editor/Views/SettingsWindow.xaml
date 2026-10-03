@@ -1,8 +1,10 @@
 <Window x:Class="MineEngine.Editor.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.modernwpf.com/2019"
+        ui:WindowHelper.UseModernWindowStyle="True"
         Title="Paramètres"
-        Width="560" Height="380" MinWidth="460" MinHeight="320"
+        Width="600" Height="460" MinWidth="480" MinHeight="380"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">
 
@@ -12,22 +14,42 @@
 
     <DockPanel Margin="16">
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="Enregistrer" Command="{Binding SaveCommand}" IsDefault="True" MinWidth="100" Padding="10,4" Margin="0,0,8,0" />
-            <Button Content="Annuler" IsCancel="True" MinWidth="100" Padding="10,4" />
+            <Button Content="Enregistrer" Command="{Binding SaveCommand}" IsDefault="True" MinWidth="110"
+                    Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,0" />
+            <Button Content="Annuler" IsCancel="True" MinWidth="110" />
         </StackPanel>
 
         <TabControl>
             <TabItem Header="Apparence">
                 <StackPanel Margin="12">
                     <TextBlock Style="{StaticResource PanelTitle}" Text="Thème" />
-                    <RadioButton GroupName="Theme" Margin="0,4" IsChecked="{Binding IsSystemTheme}"
-                                 Content="Identique à Windows" />
+                    <RadioButton GroupName="Theme" Margin="0,4" IsChecked="{Binding IsSystemTheme}" Content="Identique à Windows" />
                     <TextBlock Style="{StaticResource FieldHint}" Margin="28,0,0,6"
                                Text="Passe automatiquement en clair ou en sombre selon le réglage de Windows." />
                     <RadioButton GroupName="Theme" Margin="0,4" IsChecked="{Binding IsLightTheme}" Content="Clair" />
                     <RadioButton GroupName="Theme" Margin="0,4" IsChecked="{Binding IsDarkTheme}" Content="Sombre" />
                     <TextBlock Style="{StaticResource FieldHint}" Margin="0,12,0,0"
                                Text="Le thème est appliqué immédiatement pour vous permettre de le voir. Annuler rétablit le thème précédent." />
+                </StackPanel>
+            </TabItem>
+
+            <TabItem Header="Sauvegarde">
+                <StackPanel Margin="12">
+                    <TextBlock Style="{StaticResource PanelTitle}" Text="Sauvegarde automatique" />
+                    <ui:NumberBox Header="Intervalle (minutes)" Width="300" HorizontalAlignment="Left"
+                                  Minimum="0" Maximum="{Binding MaxAutoSaveMinutes}" SmallChange="1" LargeChange="5"
+                                  SpinButtonPlacementMode="Inline"
+                                  Value="{Binding AutoSaveMinutes, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,16"
+                               Text="Le projet ouvert est enregistré automatiquement à cet intervalle s'il a été modifié. 0 désactive la sauvegarde automatique." />
+
+                    <TextBlock Style="{StaticResource PanelTitle}" Text="Sauvegardes de secours" />
+                    <ui:NumberBox Header="Nombre de sauvegardes conservées" Width="300" HorizontalAlignment="Left"
+                                  Minimum="1" Maximum="{Binding MaxBackupsToKeep}" SmallChange="1" LargeChange="5"
+                                  SpinButtonPlacementMode="Inline"
+                                  Value="{Binding BackupsToKeep, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
+                               Text="À chaque enregistrement (au plus une fois toutes les 10 minutes), une copie du projet est rangée dans .mineengine\backups. Les plus anciennes sont supprimées." />
                 </StackPanel>
             </TabItem>
         </TabControl>

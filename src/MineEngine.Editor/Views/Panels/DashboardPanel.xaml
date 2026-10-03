@@ -1,0 +1,307 @@
+<UserControl x:Class="MineEngine.Editor.Views.Panels.DashboardPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.modernwpf.com/2019"
+             xmlns:vm="clr-namespace:MineEngine.Editor.ViewModels"
+             xmlns:assets="clr-namespace:MineEngine.Editor.ViewModels.Assets"
+             x:Name="Root">
+
+    <!--
+        Dashboard (onglet permanent) : les éléments du mod en liste ou en vignettes, comme
+        l'espace de travail de MCreator, avec filtres par type, recherche et actions.
+        DataContext : MainViewModel.
+    -->
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../EditorStyles.xaml" />
+                <ResourceDictionary Source="../Hub/HubStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Icône d'un élément : sa texture, sinon le glyphe de son type. -->
+            <DataTemplate x:Key="AssetIcon" DataType="{x:Type assets:AssetViewModel}">
+                <Border Width="34" Height="34" CornerRadius="5" Background="{DynamicResource BadgeBrush}">
+                    <Grid>
+                        <Image Source="{Binding IconPath, Converter={StaticResource FilePathToImage}}" Margin="5"
+                               RenderOptions.BitmapScalingMode="NearestNeighbor"
+                               Visibility="{Binding HasIcon, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Text="{Binding TypeGlyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource BadgeTextBrush}"
+                                   Visibility="{Binding HasIcon, Converter={StaticResource InverseBoolToVisibility}}" />
+                    </Grid>
+                </Border>
+            </DataTemplate>
+
+            <!-- État de validation : vert, orange ou rouge. -->
+            <DataTemplate x:Key="AssetIssue" DataType="{x:Type assets:AssetViewModel}">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse x:Name="Dot" Width="7" Height="7" Margin="0,0,6,0" Fill="{DynamicResource LogSuccessBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding IssueLabel}" FontSize="12" Foreground="{DynamicResource HintBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding HasIssueWarnings}" Value="True">
+                        <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource LogWarningBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding HasIssueErrors}" Value="True">
+                        <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource LogErrorBrush}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- Menu contextuel d'un élément ; Tag de l'élément = MainViewModel. -->
+            <ContextMenu x:Key="AssetMenu" x:Shared="False">
+                <MenuItem Header="Afficher dans Détails" CommandParameter="{Binding}"
+                          Command="{Binding PlacementTarget.Tag.ShowAssetDetailsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                <MenuItem Header="Voir le fichier de l'asset"
+                          Command="{Binding PlacementTarget.Tag.OpenAssetSourceCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                <Separator />
+                <MenuItem Header="Supprimer"
+                          Command="{Binding PlacementTarget.Tag.DeleteAssetCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+            </ContextMenu>
+
+            <Style x:Key="AssetItem" TargetType="ListBoxItem" BasedOn="{StaticResource ProjectItem}">
+                <Setter Property="Margin" Value="0,0,0,6" />
+                <Setter Property="Tag" Value="{Binding DataContext, ElementName=Root}" />
+                <Setter Property="ContextMenu" Value="{StaticResource AssetMenu}" />
+                <EventSetter Event="MouseDoubleClick" Handler="OnAssetDoubleClick" />
+                <EventSetter Event="PreviewMouseRightButtonDown" Handler="OnAssetRightClick" />
+            </Style>
+
+            <!-- Pastille de filtre ("Items 3") ; Tag = vrai si active. -->
+            <Style x:Key="FilterChip" TargetType="Button">
+                <Setter Property="Foreground" Value="{DynamicResource BadgeTextBrush}" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Margin" Value="0,0,6,6" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Back" CornerRadius="12" Padding="11,4" Background="{DynamicResource CardBrush}"
+                                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+                                <ContentPresenter />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Back" Property="Background" Value="{DynamicResource CardHoverBrush}" />
+                                </Trigger>
+                                <Trigger Property="Tag" Value="{StaticResource True}">
+                                    <Setter TargetName="Back" Property="Background" Value="{DynamicResource NavSelectedBrush}" />
+                                    <Setter TargetName="Back" Property="BorderBrush" Value="{DynamicResource CardSelectedBorderBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource StrongTextBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <ScrollViewer x:Name="Page" Background="{DynamicResource HubBackgroundBrush}" VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <DockPanel Margin="24,18,24,12" Visibility="{Binding HasProject, Converter={StaticResource BoolToVisibility}}">
+
+            <!-- En-tête : projet, cible, compilation -->
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                <WrapPanel x:Name="HeaderActions" DockPanel.Dock="Right" VerticalAlignment="Top">
+                    <Button Command="{Binding ValidateCommand}" Padding="12,6" Margin="0,0,8,6" ToolTip="Valider le projet (F7)">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE73E;" />
+                            <TextBlock Text="Valider" />
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding BuildCommand}" Padding="12,6" Margin="0,0,8,6" ToolTip="Générer le mod (Ctrl+Maj+B)">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE90F;" />
+                            <TextBlock Text="Compiler" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{DynamicResource AccentButtonStyle}" Command="{Binding RunClientCommand}" Padding="12,6" Margin="0,0,0,6"
+                            ToolTip="Lancer Minecraft avec le mod (F5)">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE768;" />
+                            <TextBlock Text="Lancer" />
+                        </StackPanel>
+                    </Button>
+                </WrapPanel>
+                <StackPanel>
+                    <TextBlock Text="{Binding Project.Name}" FontSize="24" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource StrongTextBrush}" />
+                    <TextBlock Text="{Binding Project.TargetDescription}" Foreground="{DynamicResource HintBrush}" Margin="0,3,0,0"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Foreground="{DynamicResource HintBrush}" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap">
+                        <Run Text="{Binding Diagnostics.Summary, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding LastBuildSummary, Mode=OneWay}" />
+                    </TextBlock>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- Ajout d'éléments -->
+            <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                <Button Command="{Binding AddItemCommand}" Padding="10,5" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="&#xE710;" /><TextBlock Text="Item" /></StackPanel>
+                </Button>
+                <Button Command="{Binding AddBlockCommand}" Padding="10,5" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="&#xE710;" /><TextBlock Text="Bloc" /></StackPanel>
+                </Button>
+                <Button Command="{Binding AddMobCommand}" Padding="10,5" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="&#xE710;" /><TextBlock Text="Mob" /></StackPanel>
+                </Button>
+                <Button Command="{Binding AddRecipeCommand}" Padding="10,5" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="&#xE710;" /><TextBlock Text="Recette" /></StackPanel>
+                </Button>
+                <ui:DropDownButton Padding="10,5" Margin="0,0,6,6">
+                    <ui:DropDownButton.Content>
+                        <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="&#xE8B5;" /><TextBlock Text="Importer" /></StackPanel>
+                    </ui:DropDownButton.Content>
+                    <ui:DropDownButton.Flyout>
+                        <ui:MenuFlyout Placement="Bottom">
+                            <MenuItem Header="Textures (PNG)..." Command="{Binding ImportTexturesCommand}" />
+                            <MenuItem Header="Sons (OGG)..." Command="{Binding ImportSoundsCommand}" />
+                        </ui:MenuFlyout>
+                    </ui:DropDownButton.Flyout>
+                </ui:DropDownButton>
+                <Button Command="{Binding DeleteAssetCommand}" Padding="10,5" Margin="0,0,6,6" ToolTip="Supprimer l'élément sélectionné">
+                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="&#xE74D;" /><TextBlock Text="Supprimer" /></StackPanel>
+                </Button>
+            </WrapPanel>
+
+            <!-- Filtres, recherche, mode d'affichage -->
+            <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Project.TypeFilters}" Focusable="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:AssetTypeFilter}">
+                        <Button Style="{StaticResource FilterChip}" Tag="{Binding IsActive}" CommandParameter="{Binding}"
+                                Command="{Binding DataContext.Project.SelectTypeFilterCommand, ElementName=Root}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Label}" />
+                                <TextBlock Text="{Binding Count}" Margin="7,0,0,0" Foreground="{DynamicResource HintBrush}" />
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <DockPanel DockPanel.Dock="Top" Margin="0,4,0,10">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
+                    <Button Style="{StaticResource IconButton}" Content="&#xE8FD;" ToolTip="Liste" Command="{Binding Project.ShowListCommand}" />
+                    <Button Style="{StaticResource IconButton}" Content="&#xF0E2;" ToolTip="Vignettes" Command="{Binding Project.ShowTilesCommand}" />
+                </StackPanel>
+                <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="12" Foreground="{DynamicResource HintBrush}">
+                    <Run Text="{Binding Project.VisibleCount, Mode=OneWay}" /><Run Text=" élément(s)" />
+                </TextBlock>
+                <Grid>
+                    <TextBox x:Name="SearchBox" Padding="28,5,8,5" Text="{Binding Project.SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE721;" FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center"
+                               IsHitTestVisible="False" Foreground="{DynamicResource HintBrush}" />
+                    <TextBlock Text="Rechercher un élément du mod..." Margin="29,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                               Foreground="{DynamicResource HintBrush}"
+                               Visibility="{Binding Text, ElementName=SearchBox, Converter={StaticResource EmptyToVisible}}" />
+                </Grid>
+            </DockPanel>
+
+            <!-- En-têtes de colonnes (mode liste, fenêtre large) -->
+            <Grid DockPanel.Dock="Top" Margin="15,0,15,6"
+                  Visibility="{Binding Project.IsTileView, Converter={StaticResource InverseBoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="48" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="{Binding WideColumn, ElementName=Root}" />
+                    <ColumnDefinition Width="{Binding WideColumn, ElementName=Root}" />
+                    <ColumnDefinition Width="90" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="1" Style="{StaticResource PanelCaption}" Text="ÉLÉMENT" />
+                <TextBlock Grid.Column="2" Style="{StaticResource PanelCaption}" Text="ÉTAT" />
+                <TextBlock Grid.Column="3" Style="{StaticResource PanelCaption}" Text="UTILISÉ PAR" />
+                <TextBlock Grid.Column="4" Style="{StaticResource PanelCaption}" Text="TYPE" HorizontalAlignment="Right" />
+            </Grid>
+
+            <Grid>
+                <!-- Mod vide -->
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420" Margin="0,40,0,0"
+                            Visibility="{Binding Project.IsEmpty, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
+                    <TextBlock Text="Le mod est vide" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"
+                               Foreground="{DynamicResource StrongTextBrush}" />
+                    <TextBlock TextWrapping="Wrap" TextAlignment="Center" Margin="0,6,0,0" Foreground="{DynamicResource HintBrush}"
+                               Text="Ajoutez un item, un bloc, un mob ou une recette avec les boutons ci-dessus, puis réglez-le dans le panneau Détails." />
+                </StackPanel>
+
+                <!-- Liste -->
+                <ListBox ItemsSource="{Binding Project.FilteredAssets}" SelectedItem="{Binding Project.SelectedAsset}"
+                         Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource AssetItem}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                         PreviewMouseWheel="OnListMouseWheel"
+                         Visibility="{Binding Project.IsTileView, Converter={StaticResource InverseBoolToVisibility}}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type assets:AssetViewModel}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="48" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="{Binding WideColumn, ElementName=Root}" />
+                                    <ColumnDefinition Width="{Binding WideColumn, ElementName=Root}" />
+                                    <ColumnDefinition Width="90" />
+                                </Grid.ColumnDefinitions>
+                                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AssetIcon}" Focusable="False" HorizontalAlignment="Left" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Header}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource StrongTextBrush}" />
+                                    <TextBlock Style="{StaticResource MonoHint}" Text="{Binding DetailsSubtitle}" Margin="0,2,0,0" />
+                                </StackPanel>
+                                <ContentControl Grid.Column="2" Content="{Binding}" ContentTemplate="{StaticResource AssetIssue}" Focusable="False"
+                                                VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="3" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource HintBrush}">
+                                    <Run Text="{Binding UsageCount, Mode=OneWay}" /><Run Text=" élément(s)" />
+                                </TextBlock>
+                                <Border Grid.Column="4" Style="{StaticResource Badge}" HorizontalAlignment="Right">
+                                    <TextBlock Style="{StaticResource BadgeText}" Text="{Binding DetailsBadge}" />
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Vignettes -->
+                <ListBox ItemsSource="{Binding Project.FilteredAssets}" SelectedItem="{Binding Project.SelectedAsset}"
+                         Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource AssetItem}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                         PreviewMouseWheel="OnListMouseWheel"
+                         Visibility="{Binding Project.IsTileView, Converter={StaticResource BoolToVisibility}}">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type assets:AssetViewModel}">
+                            <StackPanel Width="120" Margin="0,4">
+                                <Border Width="56" Height="56" CornerRadius="6" Background="{DynamicResource BadgeBrush}" HorizontalAlignment="Center">
+                                    <Grid>
+                                        <Image Source="{Binding IconPath, Converter={StaticResource FilePathToImage}}" Margin="8"
+                                               RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                               Visibility="{Binding HasIcon, Converter={StaticResource BoolToVisibility}}" />
+                                        <TextBlock Text="{Binding TypeGlyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="22"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource BadgeTextBrush}"
+                                                   Visibility="{Binding HasIcon, Converter={StaticResource InverseBoolToVisibility}}" />
+                                    </Grid>
+                                </Border>
+                                <TextBlock Text="{Binding Header}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,2"
+                                           TextTrimming="CharacterEllipsis" Foreground="{DynamicResource StrongTextBrush}" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Border Style="{StaticResource Badge}" Margin="0">
+                                        <TextBlock Style="{StaticResource BadgeText}" Text="{Binding DetailsBadge}" />
+                                    </Border>
+                                </StackPanel>
+                                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AssetIssue}" Focusable="False"
+                                                HorizontalAlignment="Center" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </DockPanel>
+    </ScrollViewer>
+</UserControl>

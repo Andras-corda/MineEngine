@@ -13,6 +13,9 @@ public sealed class EditorPreferences
         Themes = themes ?? throw new ArgumentNullException(nameof(themes));
     }
 
+    /// <summary>Déclenché après l'enregistrement de nouvelles préférences.</summary>
+    public event EventHandler? Changed;
+
     public EditorSettings Current { get; private set; } = new();
 
     public IThemeService Themes { get; }
@@ -31,5 +34,6 @@ public sealed class EditorPreferences
         Current = settings.Clone();
         Themes.Apply(Current.Theme);
         _store.Save(Current);
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 }

@@ -1,4 +1,5 @@
 using MineEngine.Assets;
+using MineEngine.Core.Assets;
 using MineEngine.Core.Identifiers;
 
 namespace MineEngine.Tests;
@@ -9,10 +10,10 @@ public sealed class AssetRegistryTests
     public void Unique_identifiers_get_a_numeric_suffix()
     {
         var registry = new AssetRegistry();
-        registry.Add(new ItemAsset(Guid.NewGuid(), registry.CreateUniqueResourceId("new_item"), "A"));
-        registry.Add(new ItemAsset(Guid.NewGuid(), registry.CreateUniqueResourceId("new_item"), "B"));
+        registry.Add(new ItemAsset(Guid.NewGuid(), registry.CreateUniqueResourceId("new_item", AssetType.Item), "A"));
+        registry.Add(new ItemAsset(Guid.NewGuid(), registry.CreateUniqueResourceId("new_item", AssetType.Item), "B"));
 
-        Assert.Equal("new_item_3", registry.CreateUniqueResourceId("new_item").Value);
+        Assert.Equal("new_item_3", registry.CreateUniqueResourceId("new_item", AssetType.Item).Value);
     }
 
     [Fact]

@@ -1,0 +1,47 @@
+<UserControl x:Class="MineEngine.Editor.Views.Panels.DiagnosticsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Resources>
+        <ResourceDictionary Source="../EditorStyles.xaml" />
+    </UserControl.Resources>
+
+    <DockPanel Margin="8,4,8,8">
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+            <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="0" Content="Valider le projet"
+                    Command="{Binding ValidateCommand}" />
+            <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Diagnostics.Summary}" />
+            <TextBlock Style="{StaticResource FieldHint}" VerticalAlignment="Center" Margin="12,0,0,0"
+                       Text="Double-clic sur une ligne : aller à l'asset concerné." />
+        </DockPanel>
+
+        <DataGrid ItemsSource="{Binding Diagnostics.Items}" SelectedItem="{Binding Diagnostics.SelectedItem}"
+                  AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                  SelectionMode="Single" CanUserAddRows="False" GridLinesVisibility="None">
+            <DataGrid.InputBindings>
+                <MouseBinding Gesture="LeftDoubleClick" Command="{Binding Diagnostics.NavigateCommand}" />
+            </DataGrid.InputBindings>
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="Gravité" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock x:Name="Severity" Text="{Binding SeverityLabel}" VerticalAlignment="Center" />
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Severity}" Value="Error">
+                                    <Setter TargetName="Severity" Property="Foreground" Value="{DynamicResource LogErrorBrush}" />
+                                    <Setter TargetName="Severity" Property="FontWeight" Value="SemiBold" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Severity}" Value="Warning">
+                                    <Setter TargetName="Severity" Property="Foreground" Value="{DynamicResource LogWarningBrush}" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*" />
+                <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="200" />
+                <DataGridTextColumn Header="Origine" Binding="{Binding Origin}" Width="90" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>

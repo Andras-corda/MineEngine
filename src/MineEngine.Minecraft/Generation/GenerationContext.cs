@@ -32,5 +32,8 @@ public sealed class GenerationContext
 
     public DiagnosticBag Diagnostics { get; } = new();
 
+    /// <summary>Origine (asset) des lignes de code générées.</summary>
+    public SourceMap SourceMap { get; } = new();
+
     public ILog Log { get; }
 }

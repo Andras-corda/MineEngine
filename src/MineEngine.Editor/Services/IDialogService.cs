@@ -43,6 +43,12 @@ public interface IDialogService
 
     string? AskTextureFile();
 
+    /// <summary>Une ou plusieurs images PNG à importer ; liste vide si l'utilisateur annule.</summary>
+    IReadOnlyList<string> AskTextureFiles();
+
+    /// <summary>Un ou plusieurs sons OGG à importer ; liste vide si l'utilisateur annule.</summary>
+    IReadOnlyList<string> AskSoundFiles();
+
     string? AskMdkArchive();
 
     string? AskFolder(string title);
@@ -51,6 +57,12 @@ public interface IDialogService
 
     bool Confirm(string title, string message);
 
+    /// <summary>Demande un texte court (nom de fichier...) ; null si l'utilisateur annule.</summary>
+    string? AskText(string title, string prompt, string defaultValue);
+
+    /// <summary>Fichier modifié à la fermeture de son onglet : enregistrer, abandonner ou annuler.</summary>
+    UnsavedChangesChoice AskUnsavedFile(string fileName);
+
     void ShowError(string title, string message);
 }
 
@@ -58,4 +70,7 @@ public interface IDialogService
 public interface IShellService
 {
     void OpenFolder(string directory);
+
+    /// <summary>Ouvre un fichier avec l'application associée par Windows.</summary>
+    void OpenFile(string file);
 }

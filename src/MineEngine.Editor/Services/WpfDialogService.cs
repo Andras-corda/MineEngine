@@ -97,6 +97,28 @@ public sealed class WpfDialogService : IDialogService
         return ShowDialog(dialog) ? dialog.FileName : null;
     }
 
+    public IReadOnlyList<string> AskTextureFiles()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Importer des textures",
+            Filter = "Images PNG (*.png)|*.png",
+            Multiselect = true,
+        };
+        return ShowDialog(dialog) ? dialog.FileNames : [];
+    }
+
+    public IReadOnlyList<string> AskSoundFiles()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Importer des sons",
+            Filter = "Sons OGG Vorbis (*.ogg)|*.ogg",
+            Multiselect = true,
+        };
+        return ShowDialog(dialog) ? dialog.FileNames : [];
+    }
+
     public string? AskMdkArchive()
     {
         var dialog = new OpenFileDialog
@@ -134,6 +156,27 @@ public sealed class WpfDialogService : IDialogService
 
     public void ShowError(string title, string message) =>
         ShowMessage(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+
+    public string? AskText(string title, string prompt, string defaultValue)
+    {
+        var window = new TextInputWindow(title, prompt, defaultValue) { Owner = Owner };
+        return window.ShowDialog() == true ? window.Value : null;
+    }
+
+    public UnsavedChangesChoice AskUnsavedFile(string fileName)
+    {
+        MessageBoxResult result = ShowMessage(
+            $"Le fichier '{fileName}' contient des modifications non enregistrées.\n\nVoulez-vous les enregistrer ?",
+            ApplicationTitle,
+            MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Warning);
+        return result switch
+        {
+            MessageBoxResult.Yes => UnsavedChangesChoice.Save,
+            MessageBoxResult.No => UnsavedChangesChoice.Discard,
+            _ => UnsavedChangesChoice.Cancel,
+        };
+    }
 
     private static MessageBoxResult ShowMessage(string message, string title, MessageBoxButton buttons, MessageBoxImage image) =>
         Owner is { } owner

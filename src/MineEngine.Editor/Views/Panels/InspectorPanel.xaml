@@ -1,0 +1,134 @@
+<UserControl x:Class="MineEngine.Editor.Views.Panels.InspectorPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:docs="clr-namespace:MineEngine.Editor.ViewModels.Documents">
+
+    <!--
+        Panneau Détails / Inspecteur, façon Unreal et Unity : la cible (asset sélectionné ou
+        onglet de code actif) puis ses propriétés par sections. DataContext : MainViewModel.
+    -->
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../EditorStyles.xaml" />
+                <ResourceDictionary Source="../Hub/HubStyles.xaml" />
+                <ResourceDictionary Source="../InspectorTemplates.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Ligne libellé / valeur d'une section. -->
+            <Style x:Key="DetailsRow" TargetType="DockPanel">
+                <Setter Property="LastChildFill" Value="True" />
+            </Style>
+
+            <!-- Onglet de code : propriétés du fichier, structure, actions. -->
+            <DataTemplate DataType="{x:Type docs:CodeDocumentViewModel}">
+                <StackPanel>
+                    <Border Style="{StaticResource DetailsSection}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource PanelCaption}" Text="PROPRIÉTÉS" Margin="0,0,0,6" />
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding Language}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="Type" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding EncodingLabel}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="Encodage" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding IndentationLabel}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="Indentation" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding LineCount}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="Lignes" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding CaretLabel}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="Curseur" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock x:Name="State" DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="Enregistré" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="État" />
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource DetailsSection}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource PanelCaption}" Text="STRUCTURE" Margin="0,0,0,6" />
+                            <TextBlock Style="{StaticResource FieldHint}" Text="Aucun symbole reconnu dans ce fichier."
+                                       Visibility="{Binding Outline.Count, Converter={StaticResource ZeroToVisible}}" />
+                            <ItemsControl ItemsSource="{Binding Outline}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type docs:OutlineItem}">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding LineLabel, StringFormat='ligne {0}'}"
+                                                       Foreground="{DynamicResource LinkBrush}" />
+                                            <TextBlock Style="{StaticResource DetailsLabel}" FontFamily="Cascadia Mono, Consolas" Text="{Binding Name}" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource InfoBanner}" Margin="0,0,0,10"
+                            Visibility="{Binding Banner, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE946;" Margin="0,2,8,0"
+                                       Foreground="{DynamicResource AccentLineBrush}" />
+                            <TextBlock Text="{Binding Banner}" TextWrapping="Wrap" FontSize="12" />
+                        </DockPanel>
+                    </Border>
+
+                    <WrapPanel>
+                        <Button Style="{DynamicResource AccentButtonStyle}" Content="Enregistrer" Padding="12,5" Margin="0,0,6,6"
+                                Command="{Binding DataContext.SaveDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <Button Content="Recharger" Padding="12,5" Margin="0,0,6,6"
+                                Command="{Binding DataContext.ReloadDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <Button Content="Afficher dans Windows" Padding="12,5" Margin="0,0,6,6"
+                                Command="{Binding DataContext.RevealDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                    </WrapPanel>
+                </StackPanel>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsDirty}" Value="True">
+                        <Setter TargetName="State" Property="Text" Value="Modifié" />
+                        <Setter TargetName="State" Property="Foreground" Value="{DynamicResource LogWarningBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsReadOnly}" Value="True">
+                        <Setter TargetName="State" Property="Text" Value="Lecture seule" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource SidebarBrush}">
+        <TextBlock Margin="14" TextWrapping="Wrap" Foreground="{DynamicResource HintBrush}"
+                   Text="Sélectionnez un élément dans le Dashboard, ou ouvrez un fichier depuis l'Explorateur, pour voir ses détails."
+                   Visibility="{Binding HasDetails, Converter={StaticResource InverseBoolToVisibility}}" />
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                      Visibility="{Binding HasDetails, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel Margin="10">
+                <!-- Cible -->
+                <Border Style="{StaticResource DetailsSection}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,6">
+                            <Border DockPanel.Dock="Right" Style="{StaticResource Badge}">
+                                <TextBlock Style="{StaticResource BadgeText}" Text="{Binding Details.DetailsBadge}" />
+                            </Border>
+                            <TextBlock Style="{StaticResource PanelCaption}" Text="CIBLE" />
+                        </DockPanel>
+                        <TextBlock Text="{Binding Details.DetailsTitle}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource StrongTextBrush}" />
+                        <TextBlock Style="{StaticResource MonoHint}" Text="{Binding Details.DetailsSubtitle}" Margin="0,3,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <ContentControl Content="{Binding Details}" IsEnabled="{Binding CanEdit}" Focusable="False" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

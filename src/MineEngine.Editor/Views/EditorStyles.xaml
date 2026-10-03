@@ -5,7 +5,9 @@
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     <conv:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibility" />
     <conv:InverseBooleanConverter x:Key="InverseBool" />
+    <conv:EmptyStringToVisibilityConverter x:Key="EmptyToVisible" />
     <conv:FilePathToImageConverter x:Key="FilePathToImage" />
+    <conv:ZeroToVisibilityConverter x:Key="ZeroToVisible" />
 
     <!-- Les couleurs (PanelHeaderBrush, HintBrush...) viennent de la palette du thème : Themes/*Palette.xaml. -->
 
@@ -14,7 +16,8 @@
         très visible en thème sombre. Ce modèle simple suit les couleurs du thème.
     -->
     <Style TargetType="GroupBox">
-        <Setter Property="BorderBrush" Value="{DynamicResource PreviewBorderBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource CardBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Template">
             <Setter.Value>
@@ -24,9 +27,9 @@
                             Background="{TemplateBinding Background}"
                             CornerRadius="4">
                         <DockPanel>
-                            <ContentPresenter DockPanel.Dock="Top" ContentSource="Header" Margin="8,6,8,0"
-                                              TextElement.FontWeight="SemiBold"
-                                              TextElement.Foreground="{DynamicResource PanelHeaderBrush}" />
+                            <ContentPresenter DockPanel.Dock="Top" ContentSource="Header" Margin="10,8,10,0"
+                                              TextElement.FontWeight="SemiBold" TextElement.FontSize="11"
+                                              TextElement.Foreground="{DynamicResource HintBrush}" />
                             <ContentPresenter Margin="{TemplateBinding Padding}" />
                         </DockPanel>
                     </Border>

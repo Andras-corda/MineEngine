@@ -29,14 +29,14 @@ public sealed class DiagnosticBag : IReadOnlyCollection<Diagnostic>
         }
     }
 
-    public void Error(string message, string? source = null) =>
-        Add(new Diagnostic(DiagnosticSeverity.Error, message, source));
+    public void Error(string message, string? source = null, Guid? assetId = null) =>
+        Add(new Diagnostic(DiagnosticSeverity.Error, message, source, assetId));
 
-    public void Warning(string message, string? source = null) =>
-        Add(new Diagnostic(DiagnosticSeverity.Warning, message, source));
+    public void Warning(string message, string? source = null, Guid? assetId = null) =>
+        Add(new Diagnostic(DiagnosticSeverity.Warning, message, source, assetId));
 
-    public void Info(string message, string? source = null) =>
-        Add(new Diagnostic(DiagnosticSeverity.Info, message, source));
+    public void Info(string message, string? source = null, Guid? assetId = null) =>
+        Add(new Diagnostic(DiagnosticSeverity.Info, message, source, assetId));
 
     public IEnumerator<Diagnostic> GetEnumerator() => _items.GetEnumerator();
 

@@ -1,0 +1,53 @@
+<UserControl x:Class="MineEngine.Editor.Views.Panels.OutputPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:MineEngine.Editor.ViewModels">
+
+    <UserControl.Resources>
+        <ResourceDictionary Source="../EditorStyles.xaml" />
+    </UserControl.Resources>
+
+    <DockPanel Margin="8,4,8,8">
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+            <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="0" Content="Effacer"
+                    Command="{Binding Output.ClearCommand}" />
+            <TextBlock Style="{StaticResource FieldHint}" VerticalAlignment="Center" Margin="0"
+                       Text="Journal de l'éditeur, de la génération et de Gradle (aussi enregistré dans %LOCALAPPDATA%\MineEngine\logs)." />
+        </DockPanel>
+        <ListBox x:Name="OutputList"
+                 ItemsSource="{Binding Output.Entries}"
+                 FontFamily="Consolas" FontSize="12"
+                 VirtualizingPanel.IsVirtualizing="True"
+                 VirtualizingPanel.VirtualizationMode="Recycling"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto">
+            <!-- Lignes compactes : le style de liste du thème prévoit une grande marge par élément. -->
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                    <Setter Property="Padding" Value="8,1" />
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="MinHeight" Value="0" />
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:LogEntry}">
+                    <TextBlock x:Name="Line" Text="{Binding Text}" />
+                    <DataTemplate.Triggers>
+                        <DataTrigger Binding="{Binding Level}" Value="Debug">
+                            <Setter TargetName="Line" Property="Foreground" Value="{DynamicResource LogDebugBrush}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Level}" Value="Success">
+                            <Setter TargetName="Line" Property="Foreground" Value="{DynamicResource LogSuccessBrush}" />
+                            <Setter TargetName="Line" Property="FontWeight" Value="SemiBold" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Level}" Value="Warning">
+                            <Setter TargetName="Line" Property="Foreground" Value="{DynamicResource LogWarningBrush}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Level}" Value="Error">
+                            <Setter TargetName="Line" Property="Foreground" Value="{DynamicResource LogErrorBrush}" />
+                        </DataTrigger>
+                    </DataTemplate.Triggers>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</UserControl>

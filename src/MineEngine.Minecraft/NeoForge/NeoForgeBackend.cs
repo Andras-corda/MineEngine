@@ -2,6 +2,7 @@ using MineEngine.IR.Model;
 using MineEngine.Minecraft.Backends;
 using MineEngine.Minecraft.Generation;
 using MineEngine.Minecraft.Mdk;
+using MineEngine.Minecraft.Resources;
 
 namespace MineEngine.Minecraft.NeoForge;
 
@@ -20,7 +21,8 @@ public sealed class NeoForgeBackend : MdkBackend
 
     protected override IReadOnlyList<string> AdditionalExclusions { get; } = [ModsTomlRelativePath];
 
-    public override IReadOnlyList<IFileEmitter> CreateEmitters() => [new NeoForgeJavaEmitter()];
+    public override IReadOnlyList<IFileEmitter> CreateEmitters() =>
+        [new NeoForgeJavaEmitter(), new SpawnBiomeModifierEmitter("neoforge")];
 
     protected override async Task ConfigureWorkspaceAsync(GenerationContext context, CancellationToken cancellationToken)
     {

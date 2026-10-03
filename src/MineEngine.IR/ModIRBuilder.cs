@@ -22,7 +22,10 @@ public sealed class ModIRBuilder
         }
     }
 
-    public static ModIRBuilder CreateDefault() => new([new ItemLowering(), new BlockLowering()]);
+    public static ModIRBuilder CreateDefault() => new(
+    [
+        new ItemLowering(), new BlockLowering(), new MobLowering(), new RecipeLowering(), new TextureLowering(), new SoundLowering(),
+    ]);
 
     /// <summary>
     /// Valide le projet puis le traduit. Retourne null si des erreurs empêchent

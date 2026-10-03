@@ -62,7 +62,7 @@ public sealed class ProjectRepositoryTests
         item.ResourceId = ResourceId.Parse("new_name");
         _repository.Save(project);
 
-        string[] files = Directory.GetFiles(project.Layout.ContentDirectory).Select(Path.GetFileName).ToArray()!;
+        string[] files = Directory.GetFiles(project.Layout.ContentDirectory, "*", SearchOption.AllDirectories).Select(Path.GetFileName).ToArray()!;
         Assert.Equal(["new_name.asset.json"], files);
     }
 
@@ -74,9 +74,9 @@ public sealed class ProjectRepositoryTests
         project.Assets.Add(new BlockAsset(Guid.NewGuid(), ResourceId.Parse("ruby_block"), "Ruby"));
 
         _repository.Save(project);
-        string first = File.ReadAllText(Path.Combine(project.Layout.ContentDirectory, "ruby_block.asset.json"));
+        string first = File.ReadAllText(Path.Combine(project.Layout.ContentDirectory, "Blocks", "ruby_block.asset.json"));
         _repository.Save(project);
-        string second = File.ReadAllText(Path.Combine(project.Layout.ContentDirectory, "ruby_block.asset.json"));
+        string second = File.ReadAllText(Path.Combine(project.Layout.ContentDirectory, "Blocks", "ruby_block.asset.json"));
 
         Assert.Equal(first, second);
         Assert.DoesNotContain("\r\n", first);

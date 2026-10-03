@@ -8,8 +8,9 @@ namespace MineEngine.Project;
 /// <code>
 /// MyMod/
 ///   Project.json   paramètres du projet
-///   Content/       un fichier .asset.json par asset
-///   Textures/      textures PNG importées
+///   Content/       un fichier .asset.json par asset, rangé par type (Items/, Mobs/...)
+///   Textures/      images PNG importées
+///   Sounds/        sons OGG importés
 ///   Scripts/       code Java de l'utilisateur (jamais modifié par Mine Engine)
 ///   Graphs/        graphes nodaux (V0.4)
 ///   Generated/     projet NeoForge généré (réécrit à chaque build)
@@ -35,6 +36,8 @@ public sealed class ProjectLayout
 
     public string TexturesDirectory => Path.Combine(RootDirectory, "Textures");
 
+    public string SoundsDirectory => Path.Combine(RootDirectory, "Sounds");
+
     public string ScriptsDirectory => Path.Combine(RootDirectory, "Scripts");
 
     public string GraphsDirectory => Path.Combine(RootDirectory, "Graphs");
@@ -49,7 +52,7 @@ public sealed class ProjectLayout
     {
         foreach (string directory in new[]
                  {
-                     RootDirectory, ContentDirectory, TexturesDirectory, ScriptsDirectory, GraphsDirectory,
+                     RootDirectory, ContentDirectory, TexturesDirectory, SoundsDirectory, ScriptsDirectory, GraphsDirectory,
                  })
         {
             Directory.CreateDirectory(directory);
@@ -57,7 +60,19 @@ public sealed class ProjectLayout
     }
 
     public string GetAssetFilePath(Asset asset) =>
-        Path.Combine(ContentDirectory, asset.ResourceId.Value + AssetSerializer.FileExtension);
+        Path.Combine(ContentDirectory, AssetFolder(asset.Type), asset.ResourceId.Value + AssetSerializer.FileExtension);
+
+    /// <summary>Sous-dossier de Content/ propre à chaque type d'asset.</summary>
+    public static string AssetFolder(AssetType type) => type switch
+    {
+        AssetType.Item => "Items",
+        AssetType.Block => "Blocks",
+        AssetType.Mob => "Mobs",
+        AssetType.Recipe => "Recipes",
+        AssetType.Texture => "Textures",
+        AssetType.Sound => "Sounds",
+        _ => type.ToString(),
+    };
 
     /// <summary>Convertit un chemin relatif au projet ("Textures/a.png") en chemin absolu.</summary>
     public string ToAbsolutePath(string projectRelativePath) =>

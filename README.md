@@ -1,6 +1,6 @@
 # Mine Engine
 
-Environnement de création de mods Minecraft, en C# / WPF. Cette version est la **V0.1 : prototype technique**.
+Environnement de création de mods Minecraft, en C# / WPF. Version en cours : **V0.3, système d'assets, mobs et IA** (textures et sons en assets référencés par guid, recettes, mobs avec IA, migration des anciens projets), après la V0.2 (interface ModernWpf, panneaux ancrables, annuler/rétablir, diagnostics, sauvegardes, items et blocs détaillés comme dans MCreator).
 
 Objectif de la V0.1 : créer un projet, ajouter un item ou un bloc, générer le projet Minecraft, compiler, puis voir l'item dans Minecraft.
 
@@ -46,27 +46,43 @@ Tout MDK Forge, NeoForge ou Fabric peut être installé, mais le générateur ne
 ## Utilisation
 
 1. **Outils > Gestionnaire de MDK** : installez au moins un MDK.
-2. **Fichier > Nouveau projet** : nom, identifiant, version, auteurs, site web, licence, description et MDK. Tout reste modifiable dans **Projet > Paramètres du projet**, sauf l'identifiant.
-3. **+ Item** ou **+ Bloc**, puis réglez les propriétés dans l'Inspector (nom, identifiant, taille de pile, dureté, résistance, texture PNG).
-4. **Build > Générer le mod** (Ctrl+Maj+B) : le `.jar` est copié dans le dossier `Build/` du projet.
-5. **Build > Lancer Minecraft** (F5) : lance Minecraft avec le mod. Le contenu se trouve dans un onglet créatif portant le nom du mod.
+2. L'**accueil** liste vos projets (recherche, tri, récents) : double-cliquez pour en ouvrir un, ou **Ajouter un projet...** pour en référencer un existant. **Fichier > Fermer le projet** y ramène.
+3. **Nouveau projet...** : nom, identifiant, version, auteurs, site web, licence, description et MDK. Tout reste modifiable dans **Projet > Paramètres du projet**, sauf l'identifiant.
+4. Ajoutez du contenu (barre d'outils, menu **Projet** ou panneau Contenu) et réglez-le dans l'Inspector :
+   - **Item** : Visuel, Propriétés, Nourriture ;
+   - **Bloc** : Visuel, Propriétés, Récolte, Item ;
+   - **Mob** : Apparence, Attributs, IA (comportements par ordre de priorité), Apparition (œuf, biomes), Sons et butin ;
+   - **Recette** : établi avec ou sans disposition, ou four ;
+   - **Importer** : des images PNG (assets Texture) et des sons OGG (assets Son), réutilisables partout.
+5. **Compilation > Générer le mod** (Ctrl+Maj+B) : le `.jar` est copié dans le dossier `Build/` du projet.
+6. **Compilation > Lancer Minecraft** (F5) : lance Minecraft avec le mod. Le contenu se trouve dans un onglet créatif portant le nom du mod.
+
+## Éditeur
+
+- **Panneaux** : Contenu (recherche et filtre), Explorateur de projet, Accueil, Inspector, Output, Diagnostics. Ils se déplacent, s'empilent ou se détachent ; la disposition est enregistrée. **Affichage > Réinitialiser la disposition** revient à l'origine.
+- **Annuler / Rétablir** (Ctrl+Z / Ctrl+Y) : toute modification du projet, y compris l'ajout et la suppression d'assets et les paramètres du projet.
+- **Références** : textures, sons et items sont désignés par leur identifiant interne ; on peut renommer un asset sans casser ce qui l'utilise. L'Inspector affiche « Utilisé par », et supprimer un asset utilisé demande confirmation.
+- **Anciens projets** : un projet V0.1 ou V0.2 est converti à l'ouverture (ses textures deviennent des assets) ; enregistrez pour écrire le nouveau format.
+- **Diagnostics** : mis à jour à chaque modification et après chaque build. Une erreur de compilation Java est rattachée à l'asset qui l'a produite ; un double-clic y mène.
+- **Sauvegardes** : enregistrement automatique (5 minutes par défaut) et sauvegardes de secours dans `.mineengine\backups` du projet.
+- **Journal** : la console Output est aussi écrite dans `%LOCALAPPDATA%\MineEngine\logs`.
 
 ## Paramètres
 
-**Outils > Paramètres** (Ctrl+,), onglet **Apparence** : thème clair, sombre ou identique à Windows. Le choix s'applique immédiatement et est enregistré dans `%LOCALAPPDATA%\MineEngine\settings.json`.
+**Outils > Paramètres** (Ctrl+,) : onglet **Apparence** pour le thème clair, sombre ou identique à Windows ; onglet **Sauvegarde** pour l'intervalle de sauvegarde automatique et le nombre de sauvegardes de secours. Le choix s'applique immédiatement et est enregistré dans `%LOCALAPPDATA%\MineEngine\settings.json`.
 
 ## Architecture
 
 ```
 src/
-  MineEngine.Core        identifiants, Asset, diagnostics, journal, JSON, fichiers
-  MineEngine.Assets      ItemAsset, BlockAsset, AssetRegistry, définitions, sérialisation
-  MineEngine.Project     ModProject, ProjectLayout, ProjectRepository, TextureImporter
+  MineEngine.Core        identifiants, Asset, historique annuler/rétablir, diagnostics, journaux, JSON, fichiers
+  MineEngine.Assets      Item, Block, Mob (IA), Recipe, Texture, Sound, AssetRegistry, sérialisation, migration
+  MineEngine.Project     ModProject, ProjectLayout, ProjectRepository, AssetFileImporter
   MineEngine.IR          Mod IR et traduction des assets (ModIRBuilder)
   MineEngine.Minecraft   MDK (bibliothèque, inspection, catalogue), backends Forge et NeoForge, ressources
   MineEngine.Generator   ModGenerator : Mod IR vers projet Gradle
   MineEngine.Build       BuildPipeline, JdkLocator, GradleRunner
-  MineEngine.Editor      WPF : vues, ViewModels (MVVM), services de dialogue
+  MineEngine.Editor      WPF (ModernWpf, AvalonDock) : vues, panneaux, ViewModels (MVVM), services
   MineEngine.App         exécutable et CompositionRoot
 tests/
   MineEngine.Tests       tests xUnit
@@ -84,8 +100,9 @@ Règles :
 ```
 MonMod/
   Project.json      paramètres du projet (dont le MDK choisi)
-  Content/          un fichier .asset.json par asset
-  Textures/         textures PNG importées
+  Content/          un fichier .asset.json par asset, rangé par type (Items/, Blocks/, Mobs/, Recipes/, Textures/, Sounds/)
+  Textures/         images PNG importées
+  Sounds/           sons OGG importés
   Scripts/          réservé au code Java de l'utilisateur (V1.1)
   Graphs/           réservé aux graphes nodaux (V0.4)
   Generated/        projet Gradle généré à partir du MDK, réécrit à chaque build (run/ est conservé)

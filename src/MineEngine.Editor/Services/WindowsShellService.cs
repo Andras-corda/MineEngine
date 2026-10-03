@@ -9,4 +9,12 @@ public sealed class WindowsShellService : IShellService
         Directory.CreateDirectory(directory);
         Process.Start(new ProcessStartInfo { FileName = directory, UseShellExecute = true });
     }
+
+    public void OpenFile(string file)
+    {
+        if (File.Exists(file))
+        {
+            Process.Start(new ProcessStartInfo { FileName = file, UseShellExecute = true });
+        }
+    }
 }

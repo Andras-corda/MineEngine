@@ -11,6 +11,19 @@
     <Using Include="System.IO" />
   </ItemGroup>
 
+  <!--
+    ModernWpf : styles Windows 11 et thèmes clair/sombre (branche 1.x, la 0.9 n'est plus maintenue).
+    AvalonDock : panneaux ancrables façon Visual Studio.
+    AvalonEdit : éditeur de code des onglets (numéros de ligne, coloration syntaxique).
+  -->
+  <ItemGroup>
+    <PackageReference Include="ModernWpfUI" Version="1.0.0-rc.1" />
+    <PackageReference Include="Dirkster.AvalonDock" Version="5.0.0" />
+    <PackageReference Include="Dirkster.AvalonDock.Themes.VS2013" Version="5.0.0" />
+    <PackageReference Include="Dirkster.AvalonDock.Serializer.Xml" Version="5.0.0" />
+    <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\MineEngine.Core\MineEngine.Core.csproj" />
     <ProjectReference Include="..\MineEngine.Assets\MineEngine.Assets.csproj" />

@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Threading;
 using MineEngine.Core.Logging;
+using MineEngine.Editor;
 using MineEngine.Editor.Views;
 
 namespace MineEngine.App;
@@ -15,20 +16,20 @@ public partial class App : Application
         DispatcherUnhandledException += OnDispatcherUnhandledException;
 
         _compositionRoot = new CompositionRoot(this);
-        var window = new MainWindow(_compositionRoot.MainViewModel);
+        var window = new MainWindow(_compositionRoot.MainViewModel, _compositionRoot.Preferences.Themes, _compositionRoot.DockLayout);
         MainWindow = window;
         window.Show();
 
-        _compositionRoot.Output.Info("Mine Engine 0.1 prêt. Créez ou ouvrez un projet pour commencer.");
-        _compositionRoot.MdkLibrary.Refresh(_compositionRoot.Output);
+        _compositionRoot.Log.Info($"Mine Engine {EditorInfo.VersionLabel} prêt. Créez ou ouvrez un projet pour commencer.");
+        _compositionRoot.MdkLibrary.Refresh(_compositionRoot.Log);
         if (_compositionRoot.MdkLibrary.Installed.Count == 0)
         {
-            _compositionRoot.Output.Warning(
+            _compositionRoot.Log.Warning(
                 "Aucun MDK installé. Ouvrez Outils > Gestionnaire de MDK pour en télécharger un avant de créer un projet.");
         }
         else
         {
-            _compositionRoot.Output.Info(
+            _compositionRoot.Log.Info(
                 "MDK installés : " + string.Join(", ", _compositionRoot.MdkLibrary.Installed.Select(m => m.DisplayName)));
         }
         if (e.Args.Length > 0)
@@ -45,7 +46,7 @@ public partial class App : Application
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        _compositionRoot?.Output.Error("Erreur inattendue : " + e.Exception);
+        _compositionRoot?.Log.Error("Erreur inattendue : " + e.Exception);
         MessageBox.Show(
             "Une erreur inattendue s'est produite :\n\n" + e.Exception.Message + "\n\nLe détail est affiché dans la console Output.",
             "Mine Engine",

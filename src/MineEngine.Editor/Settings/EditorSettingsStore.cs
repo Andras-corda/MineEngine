@@ -34,6 +34,9 @@ public sealed class EditorSettingsStore
             {
                 settings.Theme = theme;
             }
+
+            settings.AutoSaveMinutes = root["autoSaveMinutes"]?.GetValue<int>() ?? settings.AutoSaveMinutes;
+            settings.BackupsToKeep = root["backupsToKeep"]?.GetValue<int>() ?? settings.BackupsToKeep;
         }
         catch (Exception exception) when (exception is IOException or InvalidDataException or InvalidOperationException or JsonException)
         {
@@ -46,7 +49,12 @@ public sealed class EditorSettingsStore
     public void Save(EditorSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        var root = new JsonObject { ["theme"] = settings.Theme.ToString() };
+        var root = new JsonObject
+        {
+            ["theme"] = settings.Theme.ToString(),
+            ["autoSaveMinutes"] = settings.AutoSaveMinutes,
+            ["backupsToKeep"] = settings.BackupsToKeep,
+        };
         AtomicFile.WriteAllText(_file, JsonFormatting.ToText(root));
     }
 }

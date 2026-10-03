@@ -27,6 +27,7 @@ public sealed class BuildPipeline
     private readonly JdkLocator _jdkLocator;
     private readonly GradleJavaCompatibility _gradleJava;
     private readonly GradleRunner _gradle;
+    private readonly CompilerErrorMapper _errorMapper = new();
 
     public BuildPipeline(
         ModIRBuilder irBuilder,
@@ -101,7 +102,26 @@ public sealed class BuildPipeline
 
         IReadOnlyList<string> tasks = runClient ? backend.RunClientTasks : backend.BuildTasks;
         log.Info($"[4/{StepCount}] {(runClient ? "Lancement de Minecraft" : "Compilation")} avec Gradle (le premier build peut prendre plusieurs minutes)");
-        int exitCode = await _gradle.RunAsync(workspace, jdk, tasks, log, cancellationToken).ConfigureAwait(false);
+        var gradleOutput = new List<string>();
+        int exitCode = await _gradle
+            .RunAsync(workspace, jdk, tasks, log, cancellationToken, line => { lock (gradleOutput) { gradleOutput.Add(line); } })
+            .ConfigureAwait(false);
+
+        IReadOnlyList<Diagnostic> compilerMessages;
+        lock (gradleOutput)
+        {
+            compilerMessages = _errorMapper.Map(gradleOutput, workspace, generation.SourceMap);
+        }
+
+        foreach (Diagnostic message in compilerMessages)
+        {
+            diagnostics.Add(message);
+            if (message.AssetId is not null)
+            {
+                log.Write(message.Severity == DiagnosticSeverity.Error ? LogLevel.Error : LogLevel.Warning, "Origine : " + message);
+            }
+        }
+
         if (exitCode != 0)
         {
             ReportError(log, diagnostics, $"Gradle s'est terminé avec le code {exitCode}. Consultez la sortie ci-dessus.");
