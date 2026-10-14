@@ -1,19 +1,20 @@
 # Roadmap Mine Engine
 
-Ce fichier suit l'avancement du projet version par version. Le détail de chaque version (objectifs, périmètre, choix techniques) est dans le cahier des charges ; ici, on coche ce qui est fait.
+Ce fichier suit l'avancement du projet version par version. Le détail de chaque version (objectifs, périmètre, choix techniques) est dans le cahier des charges.
 
-Règle : une version n'est terminée que lorsque son **critère de réussite** est démontré.
 
 | Version | Thème | État |
 | --- | --- | --- |
-| V0.1 | Prototype technique | En cours (critère de réussite validé) |
-| V0.2 | Fondation de l'éditeur | En cours (critère à valider en jeu) |
-| V0.3 | Système d'assets, mobs et IA | En cours (critère à valider en jeu) |
-| V0.4 | Prototype nodal | En cours (critère à valider en jeu) |
+| V0.1 | Prototype technique | Finis (critère de réussite validé) |
+| V0.2 | Fondation de l'éditeur | Finis (critère de réussite validé) |
+| V0.3 | Système d'assets, mobs et IA (simple) | En cours (Certaines choses manquante) |
+| V0.4 | Prototype nodal | En cours (bugs) |
+| V0.5 | Paramètrage plus poussé de l'interface | À faire |
+| V0.6 | Intégration du sous programme puppeteer (ai trees) | À faire |
 | V1.0 | Alpha exploitable | À faire |
 | V1.1 | Code et custom nodes | À faire |
 | V1.2 | Particules | À faire |
-| V1.3 | Renderers | À faire |
+| V1.3 | Intégration du sous programme des renderer | À faire |
 | V1.4 | Animation | À faire |
 | V1.5 | Entités et IA avancées | À faire |
 | V1.6 | Plugins | À faire |
@@ -96,8 +97,8 @@ L'Inspector est organisé en onglets, comme les éditeurs d'items et de blocs de
 Repoussé à plus tard : génération de minerai dans le monde, rotation horizontale, gravité, inflammabilité, redstone, déclencheurs (procédures), modèles personnalisés.
 
 Reste à faire pour clore la V0.2 :
-- [ ] Valider le critère de réussite à la main, notamment sur un vrai build en erreur (la remontée `javac` n'est testée que par des tests automatiques)
-- [ ] Vérifier en jeu les nouveaux items et blocs (nourriture, minerai qui laisse un item, bûche, fleur, bloc lumineux)
+- [x] Valider le critère de réussite à la main, notamment sur un vrai build en erreur (la remontée `javac` n'est testée que par des tests automatiques)
+- [x] Vérifier en jeu les nouveaux items et blocs (nourriture, minerai qui laisse un item, bûche, fleur, bloc lumineux)
 
 ---
 
