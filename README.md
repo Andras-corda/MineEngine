@@ -5,6 +5,9 @@
 [![GitHub Repository Size](https://shields.io)](https://github.com/Andras-corda/MineEngine)
 [![GitHub Open Issues](https://shields.io)](https://github.com)
 [![GitHub Stars](https://shields.io)](https://github.com)
+![.NET Version](https://shields.io)
+![Platform](https://shields.io)
+[![Architecture diagram](https://gitdiagram.com/diagram-badge.svg)](https://gitdiagram.com/andras-corda/mineengine?utm_source=readme&utm_medium=badge)
 
 Environnement de création de mods Minecraft, en C# / WPF. Version en cours : **V0.4, prototype nodal** (graphes de comportements façon Blueprints, traduits en Java pour Forge et NeoForge), après la V0.3 (textures et sons en assets référencés par guid, recettes, mobs avec IA) et la V0.2 (interface, panneaux ancrables, annuler/rétablir, diagnostics, sauvegardes).
 
