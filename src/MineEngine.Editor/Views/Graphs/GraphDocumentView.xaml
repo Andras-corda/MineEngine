@@ -1,0 +1,287 @@
+<UserControl x:Class="MineEngine.Editor.Views.Graphs.GraphDocumentView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:graphs="clr-namespace:MineEngine.Editor.ViewModels.Graphs"
+             xmlns:assets="clr-namespace:MineEngine.Editor.ViewModels.Assets"
+             xmlns:local="clr-namespace:MineEngine.Editor.Views.Graphs"
+             Focusable="True" FocusVisualStyle="{x:Null}">
+
+    <!--
+        Éditeur nodal (façon Blueprints d'Unreal). DataContext : GraphDocumentViewModel.
+        Les nœuds et les fils sont dessinés dans un canevas "monde" que la vue déplace et
+        zoome ; les gestes de la souris sont gérés par le code-behind.
+    -->
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <local:PinTypeBrushConverter x:Key="PinBrush" />
+            <local:NodeCategoryBrushConverter x:Key="CategoryBrush" />
+
+            <!-- Broche : triangle pour l'exécution, rond pour une valeur ; pleine quand elle est reliée. -->
+            <DataTemplate x:Key="PinTemplate" DataType="{x:Type graphs:GraphPinViewModel}">
+                <Border x:Name="Hit" Tag="pin" Width="18" Height="18" Background="Transparent" Cursor="Cross"
+                        ToolTip="{Binding ToolTipText}">
+                    <Grid>
+                        <Ellipse x:Name="Dot" Width="10" Height="10" StrokeThickness="2"
+                                 Stroke="{Binding Type, Converter={StaticResource PinBrush}}" Fill="Transparent" />
+                        <Path x:Name="Arrow" Data="M 0,0 L 8,5 L 0,10 Z" StrokeThickness="1.6" Visibility="Collapsed"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,0,0,0"
+                              Stroke="{DynamicResource StrongTextBrush}" Fill="Transparent" />
+                    </Grid>
+                </Border>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                        <Setter TargetName="Dot" Property="Fill" Value="{Binding Type, Converter={StaticResource PinBrush}}" />
+                        <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource StrongTextBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsExec}" Value="True">
+                        <Setter TargetName="Dot" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="Arrow" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding CanConnect}" Value="False">
+                        <Setter TargetName="Hit" Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <Style x:Key="NodeField" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="Padding" Value="4,1" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Margin" Value="2,2,6,2" />
+            </Style>
+
+            <!-- Entrée : broche, libellé et, si elle n'est pas reliée, sa valeur. -->
+            <DataTemplate x:Key="InputTemplate" DataType="{x:Type graphs:GraphPinViewModel}">
+                <StackPanel Orientation="Horizontal" MinHeight="24">
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource PinTemplate}" Focusable="False" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Margin="2,0,6,0" FontSize="12"
+                               Foreground="{DynamicResource BadgeTextBrush}" />
+                    <TextBox x:Name="Number" Style="{StaticResource NodeField}" Width="56" Visibility="Collapsed"
+                             Text="{Binding NumberText, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox x:Name="Text" Style="{StaticResource NodeField}" Width="130" Visibility="Collapsed"
+                             Text="{Binding TextValue, UpdateSourceTrigger=PropertyChanged}" />
+                    <CheckBox x:Name="Flag" Visibility="Collapsed" MinWidth="0" Margin="2,0,6,0" VerticalAlignment="Center"
+                              IsChecked="{Binding BoolValue}" />
+                    <ComboBox x:Name="Reference" Visibility="Collapsed" Width="170" Margin="2,2,6,2" FontSize="12"
+                              IsEditable="True" IsTextSearchEnabled="False" FontFamily="Consolas"
+                              ItemsSource="{Binding Picker.Suggestions}" ToolTip="{Binding Picker.Text}"
+                              Text="{Binding Picker.Text, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
+                </StackPanel>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding Editor}" Value="{x:Static graphs:PinEditorKind.Number}">
+                        <Setter TargetName="Number" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Editor}" Value="{x:Static graphs:PinEditorKind.Text}">
+                        <Setter TargetName="Text" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Editor}" Value="{x:Static graphs:PinEditorKind.Boolean}">
+                        <Setter TargetName="Flag" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Editor}" Value="{x:Static graphs:PinEditorKind.Reference}">
+                        <Setter TargetName="Reference" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- Sortie : libellé puis broche, alignés à droite. -->
+            <DataTemplate x:Key="OutputTemplate" DataType="{x:Type graphs:GraphPinViewModel}">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" MinHeight="24">
+                    <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Margin="6,0,2,0" FontSize="12"
+                               Foreground="{DynamicResource BadgeTextBrush}" />
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource PinTemplate}" Focusable="False" VerticalAlignment="Center" />
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- Un nœud. -->
+            <DataTemplate x:Key="NodeTemplate" DataType="{x:Type graphs:GraphNodeViewModel}">
+                <Border x:Name="NodeRoot" Tag="node" MinWidth="170" CornerRadius="7" BorderThickness="1.5"
+                        Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                        SizeChanged="OnNodeSizeChanged" Loaded="OnNodeLoaded" PreviewMouseLeftButtonDown="OnNodePreviewMouseDown"
+                        ToolTipService.ShowOnDisabled="True">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.35" />
+                    </Border.Effect>
+                    <StackPanel>
+                        <Border x:Name="Header" Tag="header" CornerRadius="5.5,5.5,0,0" Padding="2,3"
+                                Background="{Binding Category, Converter={StaticResource CategoryBrush}}" Cursor="SizeAll"
+                                ToolTip="{Binding Description}">
+                            <DockPanel>
+                                <ContentControl DockPanel.Dock="Left" Content="{Binding ExecInput}" ContentTemplate="{StaticResource PinTemplate}"
+                                                Focusable="False" />
+                                <ContentControl DockPanel.Dock="Right" Content="{Binding ExecOutput}" ContentTemplate="{StaticResource PinTemplate}"
+                                                Focusable="False" />
+                                <TextBlock Text="{Binding Title}" Foreground="White" FontWeight="SemiBold" FontSize="13"
+                                           VerticalAlignment="Center" Margin="6,0" />
+                            </DockPanel>
+                        </Border>
+                        <Grid Margin="0,4,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" MinWidth="12" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ItemsControl ItemsSource="{Binding Inputs}" ItemTemplate="{StaticResource InputTemplate}" Focusable="False" />
+                            <ItemsControl Grid.Column="2" ItemsSource="{Binding Outputs}" ItemTemplate="{StaticResource OutputTemplate}" Focusable="False" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                        <Setter TargetName="NodeRoot" Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding HasWarning}" Value="True">
+                        <Setter TargetName="NodeRoot" Property="BorderBrush" Value="{DynamicResource LogWarningBrush}" />
+                        <Setter TargetName="NodeRoot" Property="ToolTip" Value="{Binding IssueText}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                        <Setter TargetName="NodeRoot" Property="BorderBrush" Value="{DynamicResource LogErrorBrush}" />
+                        <Setter TargetName="NodeRoot" Property="ToolTip" Value="{Binding IssueText}" />
+                    </DataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding IsSelected}" Value="True" />
+                            <Condition Binding="{Binding HasError}" Value="False" />
+                            <Condition Binding="{Binding HasWarning}" Value="False" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="NodeRoot" Property="BorderThickness" Value="2" />
+                    </MultiDataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- Fil entre deux broches. -->
+            <DataTemplate x:Key="ConnectionTemplate" DataType="{x:Type graphs:GraphConnectionViewModel}">
+                <Path x:Name="Wire" Data="{Binding Geometry}" StrokeThickness="2.2" IsHitTestVisible="False"
+                      Stroke="{Binding Type, Converter={StaticResource PinBrush}}" />
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsExec}" Value="True">
+                        <Setter TargetName="Wire" Property="Stroke" Value="{DynamicResource StrongTextBrush}" />
+                        <Setter TargetName="Wire" Property="StrokeThickness" Value="2.8" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- Entrée du menu d'ajout. -->
+            <DataTemplate x:Key="ChoiceTemplate" DataType="{x:Type graphs:NodeChoiceViewModel}">
+                <DockPanel Margin="0,2">
+                    <Border DockPanel.Dock="Left" Width="4" CornerRadius="2" Margin="0,0,8,0"
+                            Background="{Binding Category, Converter={StaticResource CategoryBrush}}" />
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding CategoryLabel}" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Top"
+                               Foreground="{DynamicResource HintBrush}" />
+                    <StackPanel>
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" />
+                        <TextBlock Text="{Binding Description}" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource HintBrush}" />
+                    </StackPanel>
+                </DockPanel>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid x:Name="Root" Background="{DynamicResource HubBackgroundBrush}" ClipToBounds="True"
+          MouseLeftButtonDown="OnRootMouseLeftButtonDown" MouseRightButtonDown="OnRootMouseRightButtonDown"
+          MouseDown="OnRootMouseDown" MouseMove="OnRootMouseMove" MouseUp="OnRootMouseUp" MouseWheel="OnRootMouseWheel"
+          LostMouseCapture="OnRootLostMouseCapture" SizeChanged="OnRootSizeChanged">
+
+        <!-- Quadrillage (déplacé et zoomé avec le monde) -->
+        <Rectangle x:Name="GridLayer" IsHitTestVisible="False" />
+
+        <!-- Monde : fils, fil en cours, nœuds -->
+        <Canvas x:Name="World" IsHitTestVisible="True">
+            <Canvas.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="Zoom" />
+                    <TranslateTransform x:Name="Pan" />
+                </TransformGroup>
+            </Canvas.RenderTransform>
+            <ItemsControl ItemsSource="{Binding Connections}" ItemTemplate="{StaticResource ConnectionTemplate}" Focusable="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+            <Path x:Name="PendingWire" StrokeThickness="2.2" StrokeDashArray="4 2" IsHitTestVisible="False" Visibility="Collapsed" />
+            <ItemsControl x:Name="NodesHost" ItemsSource="{Binding Nodes}" ItemTemplate="{StaticResource NodeTemplate}" Focusable="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Canvas.Left" Value="{Binding X}" />
+                        <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
+            </ItemsControl>
+        </Canvas>
+
+        <!-- Rectangle de sélection (coordonnées de l'écran) -->
+        <Canvas IsHitTestVisible="False">
+            <Rectangle x:Name="Marquee" Visibility="Collapsed" StrokeThickness="1" StrokeDashArray="3 2"
+                       Stroke="{DynamicResource AccentLineBrush}" Fill="{DynamicResource CardSelectedBrush}" Opacity="0.6" />
+        </Canvas>
+
+        <!-- Graphe vide -->
+        <Border Style="{StaticResource Card}" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420" IsHitTestVisible="False"
+                Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel>
+                <TextBlock Text="Graphe vide" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" />
+                <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource HintBrush}"
+                           Text="Faites un clic droit pour ajouter un nœud. Commencez par un événement (« Clic droit sur un bloc »), puis reliez sa sortie blanche à une condition ou à une action." />
+            </StackPanel>
+        </Border>
+
+        <!-- Barre d'outils -->
+        <Border Style="{StaticResource Card}" Padding="6,4" Margin="12" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource FlatButton}" Click="OnAddNodeClick" ToolTip="Ajouter un nœud (clic droit dans le graphe)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE710;" />
+                        <TextBlock Text="Ajouter un nœud" />
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource FlatButton}" Click="OnFrameAllClick" ToolTip="Afficher tout le graphe (F)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE9A6;" />
+                        <TextBlock Text="Tout afficher" />
+                    </StackPanel>
+                </Button>
+                <TextBlock x:Name="ZoomLabel" Text="100 %" VerticalAlignment="Center" Margin="8,0,6,0" FontSize="12"
+                           Foreground="{DynamicResource HintBrush}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Aide et messages -->
+        <StackPanel HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12" IsHitTestVisible="False">
+            <Border Style="{StaticResource InfoBanner}" Margin="0,0,0,6"
+                    Visibility="{Binding StatusText, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}">
+                <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" FontSize="12" MaxWidth="480" />
+            </Border>
+            <TextBlock FontSize="11" Foreground="{DynamicResource HintBrush}" TextWrapping="Wrap"
+                       Text="Clic droit : ajouter · Glisser une broche : relier · Alt+clic : débrancher · Clic droit glissé ou molette pressée : déplacer la vue · Molette : zoom · Suppr : effacer · Ctrl+D : dupliquer" />
+        </StackPanel>
+
+        <!-- Menu d'ajout de nœud (placé au point du clic) -->
+        <Canvas>
+            <Border x:Name="Palette" Visibility="Collapsed" Width="340" Style="{StaticResource Card}" Padding="8"
+                    Background="{DynamicResource SidebarBrush}">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.4" />
+                </Border.Effect>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelCaption}" Text="AJOUTER UN NŒUD" Margin="2,0,0,6" />
+                    <TextBox x:Name="PaletteSearchBox" DockPanel.Dock="Top" Margin="0,0,0,6"
+                             Text="{Binding PaletteSearch, UpdateSourceTrigger=PropertyChanged}" PreviewKeyDown="OnPaletteSearchKeyDown" />
+                    <ListBox x:Name="PaletteList" MaxHeight="330" ItemsSource="{Binding PaletteChoices}" ItemTemplate="{StaticResource ChoiceTemplate}"
+                             Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             MouseUp="OnPaletteListMouseUp" KeyDown="OnPaletteListKeyDown" />
+                </DockPanel>
+            </Border>
+        </Canvas>
+    </Grid>
+</UserControl>

@@ -340,6 +340,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         "Recette" => "Recettes",
         "Texture" => "Textures",
         "Son" => "Sons",
+        "Graphe" => "Graphes",
         _ => label,
     };
 

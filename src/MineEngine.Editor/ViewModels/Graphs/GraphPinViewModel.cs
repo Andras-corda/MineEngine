@@ -1,0 +1,152 @@
+using System.Windows;
+using MineEngine.Assets.Graphs;
+using MineEngine.Editor.Mvvm;
+using MineEngine.Editor.ViewModels.Assets;
+
+namespace MineEngine.Editor.ViewModels.Graphs;
+
+public enum PinDirection
+{
+    Input,
+    Output,
+}
+
+/// <summary>Éditeur affiché sur une entrée non reliée.</summary>
+public enum PinEditorKind
+{
+    None,
+    Number,
+    Text,
+    Boolean,
+    Reference,
+}
+
+/// <summary>
+/// Une broche d'un nœud. Une entrée non reliée montre un champ pour sa valeur ; la
+/// position de la broche sur le canevas (mesurée par la vue) sert à dessiner les fils.
+/// </summary>
+public sealed class GraphPinViewModel : ObservableObject
+{
+    private bool _isConnected;
+    private Point _offset;
+    private string _numberText;
+
+    public GraphPinViewModel(GraphNodeViewModel node, PinInfo info, PinDirection direction, ReferencePickerViewModel? picker)
+    {
+        Node = node ?? throw new ArgumentNullException(nameof(node));
+        Info = info ?? throw new ArgumentNullException(nameof(info));
+        Direction = direction;
+        Picker = picker;
+        _numberText = node.Model.GetValue(info.Name) ?? string.Empty;
+    }
+
+    public GraphNodeViewModel Node { get; }
+
+    public PinInfo Info { get; }
+
+    public PinDirection Direction { get; }
+
+    public string Name => Info.Name;
+
+    public string Label => Info.Label;
+
+    public PinType Type => Info.Type;
+
+    public bool IsExec => Info.Type == PinType.Exec;
+
+    public bool IsInput => Direction == PinDirection.Input;
+
+    /// <summary>Faux pour un champ du nœud qui n'accepte pas de fil (valeur d'une constante).</summary>
+    public bool CanConnect => Info.Connectable;
+
+    public string ToolTipText => IsExec ? "Exécution" : $"{Label} ({Type.Label()})";
+
+    public bool IsConnected
+    {
+        get => _isConnected;
+        set
+        {
+            if (SetProperty(ref _isConnected, value))
+            {
+                OnPropertyChanged(nameof(Editor));
+                OnPropertyChanged(nameof(HasEditor));
+            }
+        }
+    }
+
+    public PinEditorKind Editor => !IsInput || IsConnected || !Type.HasInlineValue()
+        ? PinEditorKind.None
+        : Type switch
+        {
+            PinType.Number => PinEditorKind.Number,
+            PinType.Text => PinEditorKind.Text,
+            PinType.Boolean => PinEditorKind.Boolean,
+            _ => PinEditorKind.Reference,
+        };
+
+    public bool HasEditor => Editor != PinEditorKind.None;
+
+    /// <summary>Choix d'un item, d'un bloc ou d'un son (entrées de ces types).</summary>
+    public ReferencePickerViewModel? Picker { get; }
+
+    /// <summary>Texte saisi pour un nombre ; appliqué seulement s'il est valide.</summary>
+    public string NumberText
+    {
+        get => _numberText;
+        set
+        {
+            if (SetProperty(ref _numberText, value ?? string.Empty) && GraphValidator.TryParseNumber(_numberText, out int number))
+            {
+                Node.Document.SetValue(Node, Name, number.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+        }
+    }
+
+    public string TextValue
+    {
+        get => Node.Model.GetValue(Name) ?? string.Empty;
+        set => Node.Document.SetValue(Node, Name, value ?? string.Empty);
+    }
+
+    public bool BoolValue
+    {
+        get => bool.TryParse(Node.Model.GetValue(Name), out bool flag) && flag;
+        set => Node.Document.SetValue(Node, Name, value ? "true" : "false");
+    }
+
+    /// <summary>Position du centre de la broche par rapport au coin du nœud (mesurée par la vue).</summary>
+    public Point Offset
+    {
+        get => _offset;
+        set
+        {
+            if (SetProperty(ref _offset, value))
+            {
+                OnPropertyChanged(nameof(Anchor));
+            }
+        }
+    }
+
+    /// <summary>Position du centre de la broche sur le canevas, là où s'accroche le fil.</summary>
+    public Point Anchor => new(Node.X + _offset.X, Node.Y + _offset.Y);
+
+    /// <summary>Le nœud a bougé : les fils accrochés doivent suivre.</summary>
+    internal void NotifyAnchorMoved() => OnPropertyChanged(nameof(Anchor));
+
+    /// <summary>La valeur du nœud a changé (saisie, annulation) : les champs se remettent à jour.</summary>
+    internal void Refresh()
+    {
+        string current = Node.Model.GetValue(Name) ?? string.Empty;
+        if (!GraphValidator.TryParseNumber(_numberText, out int typed) || typed.ToString(System.Globalization.CultureInfo.InvariantCulture) != current)
+        {
+            _numberText = current;
+            OnPropertyChanged(nameof(NumberText));
+        }
+
+        OnPropertyChanged(nameof(TextValue));
+        OnPropertyChanged(nameof(BoolValue));
+        Picker?.Refresh();
+    }
+
+    public override string ToString() => $"{Node.Title}.{Label}";
+}

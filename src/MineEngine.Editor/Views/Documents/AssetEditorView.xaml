@@ -1,0 +1,66 @@
+<UserControl x:Class="MineEngine.Editor.Views.Documents.AssetEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        Onglet d'édition d'un élément du mod. DataContext : AssetEditorDocumentViewModel.
+        L'éditeur complet vient des modèles de InspectorTemplates.xaml (un par type d'asset).
+    -->
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
+                <ResourceDictionary Source="../InspectorTemplates.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <ScrollViewer Background="{DynamicResource HubBackgroundBrush}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="28,20,28,28" MaxWidth="760" HorizontalAlignment="Left">
+            <!-- En-tête : icône, nom, type, identifiant, état -->
+            <DockPanel Margin="0,0,0,16" DataContext="{Binding Asset}">
+                <Border DockPanel.Dock="Left" Width="56" Height="56" CornerRadius="8" Margin="0,0,14,0" Background="{DynamicResource BadgeBrush}">
+                    <Grid>
+                        <Image Source="{Binding IconPath, Converter={StaticResource FilePathToImage}}" Margin="8"
+                               RenderOptions.BitmapScalingMode="NearestNeighbor"
+                               Visibility="{Binding HasIcon, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Text="{Binding TypeGlyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="24"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource BadgeTextBrush}"
+                                   Visibility="{Binding HasIcon, Converter={StaticResource InverseBoolToVisibility}}" />
+                    </Grid>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Header}" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" />
+                        <Border Style="{StaticResource Badge}" Margin="10,0,0,0">
+                            <TextBlock Style="{StaticResource BadgeText}" Text="{Binding DetailsBadge}" />
+                        </Border>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Style="{StaticResource MonoHint}" Text="{Binding DetailsSubtitle}" />
+                        <TextBlock Text="  ·  " Foreground="{DynamicResource HintBrush}" FontSize="11" />
+                        <TextBlock Text="{Binding IssueLabel}" FontSize="11">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource LogSuccessBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasIssueWarnings}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource LogWarningBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding HasIssueErrors}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource LogErrorBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- Éditeur de l'asset -->
+            <ContentControl Content="{Binding Asset}" Focusable="False" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

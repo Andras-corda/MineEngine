@@ -8,11 +8,10 @@ namespace MineEngine.Project;
 /// <code>
 /// MyMod/
 ///   Project.json   paramètres du projet
-///   Content/       un fichier .asset.json par asset, rangé par type (Items/, Mobs/...)
+///   Content/       un fichier .asset.json par asset, rangé par type (Items/, Mobs/, Graphs/...)
 ///   Textures/      images PNG importées
 ///   Sounds/        sons OGG importés
 ///   Scripts/       code Java de l'utilisateur (jamais modifié par Mine Engine)
-///   Graphs/        graphes nodaux (V0.4)
 ///   Generated/     projet NeoForge généré (réécrit à chaque build)
 ///   Build/         mods .jar produits
 ///   .mineengine/   cache local
@@ -40,8 +39,6 @@ public sealed class ProjectLayout
 
     public string ScriptsDirectory => Path.Combine(RootDirectory, "Scripts");
 
-    public string GraphsDirectory => Path.Combine(RootDirectory, "Graphs");
-
     public string GeneratedDirectory => Path.Combine(RootDirectory, "Generated");
 
     public string BuildDirectory => Path.Combine(RootDirectory, "Build");
@@ -52,7 +49,7 @@ public sealed class ProjectLayout
     {
         foreach (string directory in new[]
                  {
-                     RootDirectory, ContentDirectory, TexturesDirectory, SoundsDirectory, ScriptsDirectory, GraphsDirectory,
+                     RootDirectory, ContentDirectory, TexturesDirectory, SoundsDirectory, ScriptsDirectory,
                  })
         {
             Directory.CreateDirectory(directory);
@@ -71,6 +68,7 @@ public sealed class ProjectLayout
         AssetType.Recipe => "Recipes",
         AssetType.Texture => "Textures",
         AssetType.Sound => "Sounds",
+        AssetType.Graph => "Graphs",
         _ => type.ToString(),
     };
 

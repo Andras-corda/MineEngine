@@ -17,7 +17,7 @@ public sealed class AssetCatalog
 
     public IReadOnlyCollection<IAssetDefinition> Definitions => _definitions.Values;
 
-    /// <summary>Catalogue standard : items, blocs, mobs, recettes, textures et sons.</summary>
+    /// <summary>Catalogue standard : items, blocs, mobs, recettes, textures, sons et graphes.</summary>
     public static AssetCatalog CreateDefault() =>
         new(
         [
@@ -27,6 +27,7 @@ public sealed class AssetCatalog
             new RecipeAssetDefinition(),
             new TextureAssetDefinition(),
             new SoundAssetDefinition(),
+            new GraphAssetDefinition(),
         ]);
 
     public void Register(IAssetDefinition definition)

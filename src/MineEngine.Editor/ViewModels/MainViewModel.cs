@@ -80,6 +80,7 @@ public sealed partial class MainViewModel : ObservableObject
         Diagnostics = new DiagnosticsViewModel(NavigateToAsset);
         Explorer = new ProjectExplorerViewModel(shell, dialogs, OpenFileFromExplorer, SelectFileFromExplorer);
         InitializeDocumentCommands();
+        _assetViewModels.Navigation.OpenRequested += (_, e) => OpenAsset(e.Asset, e.NodeId);
 
         _validationTimer = new DispatcherTimer { Interval = ValidationDelay };
         _validationTimer.Tick += (_, _) =>
@@ -108,10 +109,12 @@ public sealed partial class MainViewModel : ObservableObject
 
         // Projet
         EditProjectSettingsCommand = new RelayCommand(EditProjectSettings, () => CanEdit);
-        AddItemCommand = new RelayCommand(() => _project!.AddAsset(AssetType.Item), () => CanEdit);
-        AddBlockCommand = new RelayCommand(() => _project!.AddAsset(AssetType.Block), () => CanEdit);
-        AddMobCommand = new RelayCommand(() => _project!.AddAsset(AssetType.Mob), () => CanEdit);
-        AddRecipeCommand = new RelayCommand(() => _project!.AddAsset(AssetType.Recipe), () => CanEdit);
+        // Un nouvel élément s'ouvre directement dans son onglet d'édition.
+        AddItemCommand = new RelayCommand(() => AddAndEdit(AssetType.Item), () => CanEdit);
+        AddBlockCommand = new RelayCommand(() => AddAndEdit(AssetType.Block), () => CanEdit);
+        AddMobCommand = new RelayCommand(() => AddAndEdit(AssetType.Mob), () => CanEdit);
+        AddRecipeCommand = new RelayCommand(() => AddAndEdit(AssetType.Recipe), () => CanEdit);
+        AddGraphCommand = new RelayCommand(AddGraph, () => CanEdit);
         ImportTexturesCommand = new RelayCommand(ImportTextures, () => CanEdit);
         ImportSoundsCommand = new RelayCommand(ImportSounds, () => CanEdit);
         ValidateCommand = new RelayCommand(ValidateAndShow, () => HasProject);
@@ -145,6 +148,7 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 _project.PropertyChanged -= OnProjectPropertyChanged;
                 _project.Model.Assets.Changed -= OnProjectContentChanged;
+                _project.Model.Assets.Changed -= OnRegistryChanged;
                 _project.History.Changed -= OnHistoryChanged;
                 _project.Dispose();
             }
@@ -154,6 +158,7 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 _project.PropertyChanged += OnProjectPropertyChanged;
                 _project.Model.Assets.Changed += OnProjectContentChanged;
+                _project.Model.Assets.Changed += OnRegistryChanged;
                 _project.History.Changed += OnHistoryChanged;
             }
 
@@ -235,6 +240,9 @@ public sealed partial class MainViewModel : ObservableObject
     public ICommand AddMobCommand { get; }
 
     public ICommand AddRecipeCommand { get; }
+
+    /// <summary>Crée un graphe nodal et l'ouvre dans l'éditeur.</summary>
+    public ICommand AddGraphCommand { get; }
 
     /// <summary>Importe des images PNG comme assets Texture.</summary>
     public ICommand ImportTexturesCommand { get; }
@@ -602,11 +610,12 @@ public sealed partial class MainViewModel : ObservableObject
         };
     }
 
+    /// <summary>Double-clic dans Diagnostics : l'asset concerné s'ouvre dans son onglet.</summary>
     private void NavigateToAsset(Guid assetId)
     {
-        if (_project?.SelectAsset(assetId) == true)
+        if (_project?.Model.Assets.Find(assetId) is { } asset)
         {
-            PanelRequested?.Invoke(this, InspectorPanelId);
+            OpenAsset(asset);
         }
         else
         {

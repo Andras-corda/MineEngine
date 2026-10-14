@@ -75,7 +75,7 @@ public partial class ProjectExplorerPanel : UserControl
     {
         if (sender is ListBox list && list.SelectedItem is OutlineItem item)
         {
-            Main?.ActiveDocument?.GoToLine(item.Line);
+            Main?.ActiveDocument?.Navigate(item);
             list.SelectedItem = null;
         }
     }

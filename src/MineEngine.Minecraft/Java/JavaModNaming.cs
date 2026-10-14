@@ -21,6 +21,7 @@ public sealed class JavaModNaming
         RegistryPackage = RootPackage + ".registry";
         EntityPackage = RootPackage + ".entity";
         ClientPackage = RootPackage + ".client";
+        BehaviorPackage = RootPackage + ".behavior";
 
         string typeName = JavaNames.ToTypeName(mod.Name, JavaNames.ToTypeName(mod.ModId.Value, "Generated"));
         // Le suffixe "Mod" évite aussi toute collision avec ModBlocks, ModItems et ModCreativeTabs.
@@ -36,6 +37,9 @@ public sealed class JavaModNaming
 
     /// <summary>Package du code chargé seulement par le client (rendu).</summary>
     public string ClientPackage { get; }
+
+    /// <summary>Package des classes générées à partir des graphes nodaux.</summary>
+    public string BehaviorPackage { get; }
 
     public string MainClass { get; }
 
@@ -53,6 +57,12 @@ public sealed class JavaModNaming
 
     /// <summary>Classe Java d'un mob ("goblin" devient "GoblinEntity").</summary>
     public string EntityClassFor(ResourceId id) => JavaNames.ToTypeName(id.Value, "Mob") + "Entity";
+
+    /// <summary>Classe Java d'un graphe ("magic_wand" devient "MagicWandBehavior").</summary>
+    public string BehaviorClassFor(ResourceId id) => BehaviorClassName(id);
+
+    /// <summary>Même règle que <see cref="BehaviorClassFor"/>, utilisable sans mod (affichage dans l'éditeur).</summary>
+    public static string BehaviorClassName(ResourceId id) => JavaNames.ToTypeName(id.Value, "Graph") + "Behavior";
 
     /// <summary>Nom du champ Java qui porte un élément ("magic_sword" devient "MAGIC_SWORD").</summary>
     public string ConstantFor(ResourceId id) => ConstantFor(id.Value);

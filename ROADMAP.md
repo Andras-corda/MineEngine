@@ -9,7 +9,7 @@ Règle : une version n'est terminée que lorsque son **critère de réussite** e
 | V0.1 | Prototype technique | En cours (critère de réussite validé) |
 | V0.2 | Fondation de l'éditeur | En cours (critère à valider en jeu) |
 | V0.3 | Système d'assets, mobs et IA | En cours (critère à valider en jeu) |
-| V0.4 | Prototype nodal | À faire |
+| V0.4 | Prototype nodal | En cours (critère à valider en jeu) |
 | V1.0 | Alpha exploitable | À faire |
 | V1.1 | Code et custom nodes | À faire |
 | V1.2 | Particules | À faire |
@@ -140,6 +140,9 @@ Objectif : une base de contenu solide pour toutes les versions suivantes. Les mo
 - [x] Nouvel accueil (sélection de projet) : barre latérale (Accueil, Mes projets, Paramètres, MDK, Aide), liste des projets avec recherche, tri et onglet Récents, aperçu du projet sélectionné, ajout d'un projet existant, retrait de la liste
 - [x] Liste des projets enregistrée dans `%LOCALAPPDATA%\MineEngine\projects.json` ; au premier lancement, les projets de `Documents\MineEngine Projects` y sont ajoutés
 - [x] Couleur d'accent fixe (lilas), cartes et barre de statut harmonisées, menu Build renommé Compilation, version affichée depuis `Directory.Build.props`
+- [x] Espace de travail refait : barre d'outils supprimée ; Explorateur façon VS Code à gauche (arborescence, recherche, création, renommage, corbeille, structure du fichier) ; onglets de code au centre (AvalonEdit, édition, lecture seule pour les fichiers générés) ; Dashboard en onglet permanent (liste ou vignettes, filtres, état, utilisations) ; panneau Détails / Inspecteur à droite ; barre de statut (curseur, encodage, langage)
+- [x] Interface responsive : accueil sur une colonne, panneaux latéraux et du bas réduits, colonnes secondaires du Dashboard masquées en fenêtre étroite
+- [x] Style de l'accueil appliqué partout : un seul dictionnaire de styles (`Themes/BaseStyles.xaml`), palette neutre et lilas sans bleu, panneaux AvalonDock rhabillés (thème `MineEngineDockTheme` construit depuis la palette), sélection des listes, onglets soulignés et fenêtres de dialogue assortis
 
 Déplacé :
 - Asset Graph : avec le node editor en V0.4.
@@ -157,13 +160,19 @@ Objectif : un premier node editor, volontairement réduit.
 
 **Critère de réussite :** le graphe `PlayerInteract -> HasItem -> SpawnItem` fonctionne en jeu.
 
-- [ ] Asset Graph (déplacé de la V0.3)
-- [ ] Node editor (Nodify) : créer, déplacer, connecter, supprimer des nodes
-- [ ] Catégories Event, Condition, Action, Variable
-- [ ] Pins d'exécution et pins de données typés
-- [ ] Sauvegarde et chargement des graphes
-- [ ] Partie comportement du Mod IR (`IRBehavior`) et `GraphCompiler`
-- [ ] Génération Java des événements pour Forge et NeoForge
+- [x] Asset Graph (déplacé de la V0.3) : graphe immuable (nœuds, fils), annulable comme le reste, rangé dans `Content/Graphs`
+- [x] Node editor : créer, déplacer, connecter, supprimer, dupliquer des nodes ; sélection au rectangle, déplacement de la vue et zoom, menu d'ajout avec recherche, fil lâché dans le vide qui crée un node déjà branché, valeurs réglées sur les nodes
+- [x] Catégories Event (4), Condition (5), Action (8), Variable (11)
+- [x] Pins d'exécution et pins de données typés (booléen, nombre, texte, joueur, position, item, bloc, son), fils colorés par type, conversion nombre vers texte
+- [x] Sauvegarde et chargement des graphes, références par `guid` aux items, blocs et sons du projet (« Utilisé par », renommage sans casse)
+- [x] Validation : entrées obligatoires, valeurs saisies, nodes jamais exécutés, boucles, valeurs prises dans un autre événement, annulation d'un événement qui ne s'annule pas ; nodes en erreur entourés dans l'éditeur, problèmes dans Détails et Diagnostics
+- [x] Partie comportement du Mod IR (`IRBehavior`) et `GraphCompiler`
+- [x] Génération Java des événements pour Forge 1.20.1, Forge 1.21.1 et NeoForge 1.21.1, vérifiée par un build Gradle réel ; les erreurs `javac` remontent au graphe
+
+Choix : l'éditeur nodal est écrit en WPF (canevas, fils en courbes de Bézier) plutôt qu'avec Nodify, en s'inspirant des ébauches NodalCraft (couleurs par type, menu d'ajout, valeurs en ligne).
+
+Reste à faire pour clore la V0.4 :
+- [ ] Valider le critère de réussite en jeu : clic droit sur un bloc avec trois rubis, un diamant apparaît
 
 ---
 

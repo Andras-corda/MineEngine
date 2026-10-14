@@ -13,6 +13,7 @@ public abstract class Asset
 {
     private ResourceId _resourceId;
     private string _displayName;
+    private string _folder = string.Empty;
 
     protected Asset(Guid id, ResourceId resourceId, string displayName)
     {
@@ -43,6 +44,13 @@ public abstract class Asset
     {
         get => _displayName;
         set => SetField(ref _displayName, value ?? string.Empty);
+    }
+
+    /// <summary>Dossier du Dashboard où l'asset est rangé ("" : racine). Sans effet sur le jeu.</summary>
+    public string Folder
+    {
+        get => _folder;
+        set => SetField(ref _folder, AssetFolders.Normalize(value) ?? throw new ArgumentException($"Chemin de dossier invalide : '{value}'.", nameof(value)));
     }
 
     /// <summary>Vérifie la cohérence de l'asset et ajoute les problèmes trouvés.</summary>

@@ -2,20 +2,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <SolidColorBrush x:Key="PanelHeaderBrush" Color="#2D3E50" />
-    <SolidColorBrush x:Key="HintBrush" Color="#5F6B78" />
-    <SolidColorBrush x:Key="TypeBadgeBrush" Color="#DDE7F3" />
-    <SolidColorBrush x:Key="TypeBadgeTextBrush" Color="#1F2A36" />
-    <SolidColorBrush x:Key="PreviewBackgroundBrush" Color="#F4F6F8" />
-    <SolidColorBrush x:Key="PreviewBorderBrush" Color="#B8C2CC" />
-    <SolidColorBrush x:Key="SplitterBrush" Color="#D5DBE1" />
-
-    <SolidColorBrush x:Key="LogDebugBrush" Color="#7A848E" />
-    <SolidColorBrush x:Key="LogSuccessBrush" Color="#1E8449" />
-    <SolidColorBrush x:Key="LogWarningBrush" Color="#9A6200" />
-    <SolidColorBrush x:Key="LogErrorBrush" Color="#C0392B" />
-
-    <!-- Accueil (sélection de projet) -->
+    <!-- Fonds et surfaces (palette de l'accueil, reprise dans tout l'éditeur et dans les panneaux AvalonDock) -->
     <SolidColorBrush x:Key="HubBackgroundBrush" Color="#F6F6F8" />
     <SolidColorBrush x:Key="SidebarBrush" Color="#EDEDF1" />
     <SolidColorBrush x:Key="CardBrush" Color="#FFFFFF" />
@@ -29,6 +16,32 @@
     <SolidColorBrush x:Key="BadgeTextBrush" Color="#4B4B57" />
     <SolidColorBrush x:Key="LinkBrush" Color="#8E3F99" />
     <SolidColorBrush x:Key="PreviewGridBrush" Color="#E3E3EA" />
+
+    <!-- Texte -->
     <SolidColorBrush x:Key="StrongTextBrush" Color="#1B1B22" />
+    <SolidColorBrush x:Key="HintBrush" Color="#63636E" />
+
+    <!-- Inspecteur : badges de type, aperçus de texture -->
+    <SolidColorBrush x:Key="TypeBadgeBrush" Color="#E7E7EC" />
+    <SolidColorBrush x:Key="TypeBadgeTextBrush" Color="#4B4B57" />
+    <SolidColorBrush x:Key="PreviewBackgroundBrush" Color="#EDEDF1" />
+    <SolidColorBrush x:Key="PreviewBorderBrush" Color="#DCDCE3" />
+    <SolidColorBrush x:Key="SplitterBrush" Color="#DCDCE3" />
+
+    <!-- Journal et diagnostics -->
+    <SolidColorBrush x:Key="LogDebugBrush" Color="#7A7A86" />
+    <SolidColorBrush x:Key="LogSuccessBrush" Color="#1E8449" />
+    <SolidColorBrush x:Key="LogWarningBrush" Color="#9A6200" />
+    <SolidColorBrush x:Key="LogErrorBrush" Color="#C0392B" />
+
+    <!-- Sélection dans les listes et arbres : remplace l'accent vif de ModernWpf par la sélection de l'accueil -->
+    <SolidColorBrush x:Key="ListBoxItemUnselectedBackgroundPointerOverThemeBrush" Color="#F4F0F6" />
+    <SolidColorBrush x:Key="ListBoxItemSelectedBackgroundThemeBrush" Color="#EBDDEE" />
+    <SolidColorBrush x:Key="ListBoxItemSelectedBackgroundPointerOverThemeBrush" Color="#E3D0E7" />
+    <SolidColorBrush x:Key="ListBoxItemSelectedForegroundThemeBrush" Color="#1B1B22" />
+    <SolidColorBrush x:Key="TreeViewItemBackgroundPointerOver" Color="#F4F0F6" />
+    <SolidColorBrush x:Key="TreeViewItemBackgroundSelected" Color="#EBDDEE" />
+    <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPointerOver" Color="#E3D0E7" />
+    <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPressed" Color="#DAC3DF" />
 
 </ResourceDictionary>

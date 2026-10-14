@@ -11,14 +11,19 @@ public enum OutlineKind
     Property,
     Heading,
     Section,
+
+    /// <summary>Nœud événement d'un graphe.</summary>
+    Event,
 }
 
-/// <summary>Une entrée de la section Structure de l'explorateur : symbole et ligne où il se trouve.</summary>
+/// <summary>Une entrée de la section Structure de l'explorateur : symbole et endroit où il se trouve.</summary>
 /// <param name="Name">Nom affiché.</param>
 /// <param name="Kind">Nature du symbole.</param>
-/// <param name="Line">Ligne (à partir de 1).</param>
+/// <param name="Line">Ligne (à partir de 1) dans un fichier de code.</param>
 /// <param name="Depth">Niveau d'imbrication, pour l'indentation.</param>
-public sealed record OutlineItem(string Name, OutlineKind Kind, int Line, int Depth)
+/// <param name="NodeId">Nœud visé dans un graphe, sinon null.</param>
+/// <param name="Hint">Texte affiché à droite à la place du numéro de ligne.</param>
+public sealed record OutlineItem(string Name, OutlineKind Kind, int Line, int Depth, Guid? NodeId = null, string? Hint = null)
 {
     /// <summary>Glyphe Segoe MDL2 Assets.</summary>
     public string Glyph => Kind switch
@@ -26,10 +31,11 @@ public sealed record OutlineItem(string Name, OutlineKind Kind, int Line, int De
         OutlineKind.Type => "\uE943",
         OutlineKind.Method => "\uE8F4",
         OutlineKind.Field or OutlineKind.Property => "\uE8EC",
+        OutlineKind.Event => "\uE945",
         _ => "\uE8A5",
     };
 
-    public string LineLabel => Line.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    public string LineLabel => Hint ?? Line.ToString(System.Globalization.CultureInfo.InvariantCulture);
 }
 
 /// <summary>

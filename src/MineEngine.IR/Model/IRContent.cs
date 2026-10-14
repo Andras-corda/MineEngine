@@ -11,13 +11,15 @@ public sealed class IRContent
         IEnumerable<IRBlock> blocks,
         IEnumerable<IRMob>? mobs = null,
         IEnumerable<IRRecipe>? recipes = null,
-        IEnumerable<IRSound>? sounds = null)
+        IEnumerable<IRSound>? sounds = null,
+        IEnumerable<IRBehavior>? behaviors = null)
     {
         Items = items.OrderBy(i => i.Id).ToList();
         Blocks = blocks.OrderBy(b => b.Id).ToList();
         Mobs = (mobs ?? []).OrderBy(m => m.Id).ToList();
         Recipes = (recipes ?? []).OrderBy(r => r.Id).ToList();
         Sounds = (sounds ?? []).OrderBy(s => s.Id).ToList();
+        Behaviors = (behaviors ?? []).OrderBy(b => b.Id).ToList();
     }
 
     public IReadOnlyList<IRItem> Items { get; }
@@ -30,10 +32,14 @@ public sealed class IRContent
 
     public IReadOnlyList<IRSound> Sounds { get; }
 
+    /// <summary>Comportements issus des graphes nodaux (seulement ceux qui réagissent à au moins un événement).</summary>
+    public IReadOnlyList<IRBehavior> Behaviors { get; }
+
     /// <summary>Mobs qui ont un œuf d'apparition.</summary>
     public IEnumerable<IRMob> MobsWithSpawnEgg => Mobs.Where(m => m.SpawnEgg is not null);
 
-    public bool IsEmpty => Items.Count == 0 && Blocks.Count == 0 && Mobs.Count == 0 && Recipes.Count == 0 && Sounds.Count == 0;
+    public bool IsEmpty =>
+        Items.Count == 0 && Blocks.Count == 0 && Mobs.Count == 0 && Recipes.Count == 0 && Sounds.Count == 0 && Behaviors.Count == 0;
 
     /// <summary>Tous les éléments qui ont une forme item (items, puis blocs avec item).</summary>
     public IEnumerable<IRElement> ElementsWithItemForm =>
@@ -97,6 +103,9 @@ public sealed class IRItemForm
     public IReadOnlySet<CreativeTab> CreativeTabs { get; }
 }
 
+/// <summary>Effet donné en mangeant : durée en ticks, niveau (0 = I), probabilité de 0 à 1.</summary>
+public sealed record IRFoodEffect(FoodEffectKind Effect, int DurationTicks, int Amplifier, float Probability);
+
 /// <summary>Valeurs nutritives d'un item comestible.</summary>
 public sealed class IRFood
 {
@@ -107,6 +116,11 @@ public sealed class IRFood
         AlwaysEdible = alwaysEdible;
         IsMeat = isMeat;
     }
+
+    /// <summary>Se mange deux fois plus vite.</summary>
+    public bool Fast { get; init; }
+
+    public IReadOnlyList<IRFoodEffect> Effects { get; init; } = [];
 
     public int Nutrition { get; }
 
@@ -146,6 +160,33 @@ public sealed class IRItem : IRElement
     public bool HasGlint { get; }
 
     public IRFood? Food { get; }
+
+    /// <summary>Classe de l'item : simple, outil, arme ou armure.</summary>
+    public ItemKind Kind { get; init; } = ItemKind.Simple;
+
+    public ItemTier Tier { get; init; } = ItemTier.Iron;
+
+    public ArmorMaterialKind ArmorMaterial { get; init; } = ArmorMaterialKind.Iron;
+
+    /// <summary>Dégâts ajoutés au matériau (outils et armes).</summary>
+    public float AttackDamage { get; init; }
+
+    /// <summary>Vitesse d'attaque (outils et armes).</summary>
+    public float AttackSpeed { get; init; }
+
+    /// <summary>Modèle "handheld" : tenu comme un outil.</summary>
+    public bool Handheld { get; init; }
+
+    /// <summary>Item rendu après une fabrication, ou null.</summary>
+    public NamespacedId? CraftRemainder { get; init; }
+
+    public bool NoRepair { get; init; }
+
+    /// <summary>Durée de combustion en ticks ; 0 = pas un combustible.</summary>
+    public int BurnTime { get; init; }
+
+    /// <summary>Tags d'items auxquels l'item est ajouté.</summary>
+    public IReadOnlyList<NamespacedId> Tags { get; init; } = [];
 }
 
 /// <summary>Ce qu'un bloc laisse tomber.</summary>

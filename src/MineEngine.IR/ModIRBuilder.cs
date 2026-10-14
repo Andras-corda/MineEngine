@@ -25,6 +25,7 @@ public sealed class ModIRBuilder
     public static ModIRBuilder CreateDefault() => new(
     [
         new ItemLowering(), new BlockLowering(), new MobLowering(), new RecipeLowering(), new TextureLowering(), new SoundLowering(),
+        new GraphLowering(),
     ]);
 
     /// <summary>

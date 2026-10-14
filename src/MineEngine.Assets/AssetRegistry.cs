@@ -144,6 +144,8 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
                 $"{Capitalize(reference.Role)} : {target} n'est pas une texture.",
             AssetReferenceKind.Sound when target is not SoundAsset =>
                 $"{Capitalize(reference.Role)} : {target} n'est pas un son.",
+            AssetReferenceKind.Block when target is not BlockAsset =>
+                $"{Capitalize(reference.Role)} : {target} n'est pas un bloc.",
             AssetReferenceKind.Item when target is BlockAsset { HasItemForm: false } =>
                 $"{Capitalize(reference.Role)} : le bloc {target.ResourceId} n'a pas de forme item.",
             AssetReferenceKind.Item when target is not (ItemAsset or BlockAsset) =>

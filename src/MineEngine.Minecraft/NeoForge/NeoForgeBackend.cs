@@ -22,7 +22,7 @@ public sealed class NeoForgeBackend : MdkBackend
     protected override IReadOnlyList<string> AdditionalExclusions { get; } = [ModsTomlRelativePath];
 
     public override IReadOnlyList<IFileEmitter> CreateEmitters() =>
-        [new NeoForgeJavaEmitter(), new SpawnBiomeModifierEmitter("neoforge")];
+        [new NeoForgeJavaEmitter(), new SpawnBiomeModifierEmitter("neoforge"), new FuelDataMapEmitter()];
 
     protected override async Task ConfigureWorkspaceAsync(GenerationContext context, CancellationToken cancellationToken)
     {

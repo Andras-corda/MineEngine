@@ -1,4 +1,4 @@
-<Window x:Class="MineEngine.Editor.Views.MainWindow"
+﻿<Window x:Class="MineEngine.Editor.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.modernwpf.com/2019"
@@ -15,8 +15,7 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="EditorStyles.xaml" />
-                <ResourceDictionary Source="Hub/HubStyles.xaml" />
+                <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
@@ -72,6 +71,7 @@
                 <MenuItem Header="Ajouter un _bloc" Command="{Binding AddBlockCommand}" />
                 <MenuItem Header="Ajouter un _mob" Command="{Binding AddMobCommand}" />
                 <MenuItem Header="Ajouter une _recette" Command="{Binding AddRecipeCommand}" />
+                <MenuItem Header="Ajouter un _graphe nodal" Command="{Binding AddGraphCommand}" />
                 <Separator />
                 <MenuItem Header="Importer des _textures (PNG)..." Command="{Binding ImportTexturesCommand}" />
                 <MenuItem Header="Importer des _sons (OGG)..." Command="{Binding ImportSoundsCommand}" />
@@ -98,14 +98,14 @@
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <StackPanel x:Name="CaretStatus" Orientation="Horizontal"
-                                Visibility="{Binding HasActiveDocument, Converter={StaticResource BoolToVisibility}}">
-                        <TextBlock Text="{Binding ActiveDocument.CaretLabel}" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="12"
+                                Visibility="{Binding HasActiveCodeDocument, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="{Binding ActiveCodeDocument.CaretLabel}" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="12"
                                    Foreground="{DynamicResource HintBrush}" />
-                        <TextBlock Text="{Binding ActiveDocument.IndentationLabel}" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="12"
+                        <TextBlock Text="{Binding ActiveCodeDocument.IndentationLabel}" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="12"
                                    Foreground="{DynamicResource HintBrush}" />
-                        <TextBlock Text="{Binding ActiveDocument.EncodingLabel}" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="12"
+                        <TextBlock Text="{Binding ActiveCodeDocument.EncodingLabel}" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="12"
                                    Foreground="{DynamicResource HintBrush}" />
-                        <TextBlock Text="{Binding ActiveDocument.Language}" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="12"
+                        <TextBlock Text="{Binding ActiveCodeDocument.Language}" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="12"
                                    Foreground="{DynamicResource HintBrush}" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Visibility="{Binding HasProject, Converter={StaticResource BoolToVisibility}}">

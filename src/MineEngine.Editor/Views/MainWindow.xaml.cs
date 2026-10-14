@@ -6,12 +6,13 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using AvalonDock;
 using AvalonDock.Layout;
-using AvalonDock.Themes;
 using ICSharpCode.AvalonEdit.Editing;
 using MineEngine.Editor.Services;
 using MineEngine.Editor.ViewModels;
 using MineEngine.Editor.ViewModels.Documents;
+using MineEngine.Editor.ViewModels.Graphs;
 using MineEngine.Editor.Views.Documents;
+using MineEngine.Editor.Views.Graphs;
 
 namespace MineEngine.Editor.Views;
 
@@ -30,7 +31,7 @@ public partial class MainWindow : Window
     private readonly DockLayoutService _layout;
 
     /// <summary>Onglets en cours de fermeture par l'utilisateur (pour ne pas les refermer une seconde fois).</summary>
-    private readonly HashSet<CodeDocumentViewModel> _closing = [];
+    private readonly HashSet<DocumentViewModel> _closing = [];
 
     public MainWindow(MainViewModel viewModel, IThemeService themes, DockLayoutService layout)
     {
@@ -154,9 +155,14 @@ public partial class MainWindow : Window
 
     private void OnDocumentsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        foreach (CodeDocumentViewModel document in e.NewItems?.OfType<CodeDocumentViewModel>() ?? [])
+        foreach (DocumentViewModel document in e.NewItems?.OfType<DocumentViewModel>() ?? [])
         {
-            var view = new CodeDocumentView { DataContext = document };
+            FrameworkElement view = document switch
+            {
+                GraphDocumentViewModel => new GraphDocumentView { DataContext = document },
+                AssetEditorDocumentViewModel => new AssetEditorView { DataContext = document },
+                _ => new CodeDocumentView { DataContext = document },
+            };
             var layoutDocument = new LayoutDocument
             {
                 ContentId = document.Id,
@@ -166,7 +172,7 @@ public partial class MainWindow : Window
             };
             document.PropertyChanged += (_, args) =>
             {
-                if (args.PropertyName == nameof(CodeDocumentViewModel.Title))
+                if (args.PropertyName == nameof(DocumentViewModel.Title))
                 {
                     layoutDocument.Title = document.Title;
                 }
@@ -174,7 +180,7 @@ public partial class MainWindow : Window
             DocumentPane().Children.Add(layoutDocument);
         }
 
-        foreach (CodeDocumentViewModel document in e.OldItems?.OfType<CodeDocumentViewModel>() ?? [])
+        foreach (DocumentViewModel document in e.OldItems?.OfType<DocumentViewModel>() ?? [])
         {
             if (!_closing.Contains(document) && FindLayoutDocument(document.Id) is { } layoutDocument)
             {
@@ -185,7 +191,7 @@ public partial class MainWindow : Window
         if (e.Action == NotifyCollectionChangedAction.Reset)
         {
             foreach (LayoutDocument stale in DockManager.Layout.Descendents().OfType<LayoutDocument>()
-                         .Where(d => d.Content is CodeDocumentView).ToList())
+                         .Where(d => d.Content is CodeDocumentView or GraphDocumentView or AssetEditorView).ToList())
             {
                 stale.Close();
             }
@@ -195,7 +201,7 @@ public partial class MainWindow : Window
     /// <summary>Fermeture d'un onglet par l'utilisateur : le ViewModel confirme s'il y a des modifications.</summary>
     private void OnDocumentClosing(object? sender, DocumentClosingEventArgs e)
     {
-        if (e.Document.Content is not CodeDocumentView { DataContext: CodeDocumentViewModel document })
+        if (e.Document.Content is not FrameworkElement { DataContext: DocumentViewModel document })
         {
             return;
         }
@@ -211,7 +217,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ActivateDocument(CodeDocumentViewModel? document)
+    private void ActivateDocument(DocumentViewModel? document)
     {
         LayoutDocument? target = FindLayoutDocument(document?.Id ?? DashboardContentId);
         if (target is null)
@@ -221,9 +227,14 @@ public partial class MainWindow : Window
 
         target.IsSelected = true;
         target.IsActive = true;
-        if (target.Content is CodeDocumentView view)
+        switch (target.Content)
         {
-            Dispatcher.BeginInvoke(view.FocusEditor);
+            case CodeDocumentView view:
+                Dispatcher.BeginInvoke(view.FocusEditor);
+                break;
+            case GraphDocumentView graph:
+                Dispatcher.BeginInvoke(graph.FocusCanvas);
+                break;
         }
     }
 
@@ -232,7 +243,7 @@ public partial class MainWindow : Window
     {
         switch (DockManager.ActiveContent)
         {
-            case CodeDocumentView { DataContext: CodeDocumentViewModel document }:
+            case FrameworkElement { DataContext: DocumentViewModel document }:
                 _viewModel.ActiveDocument = document;
                 break;
             case Panels.DashboardPanel:
@@ -334,7 +345,7 @@ public partial class MainWindow : Window
 
     private void ApplyTheme()
     {
-        DockManager.Theme = _themes.IsDark ? new Vs2013DarkTheme() : new Vs2013LightTheme();
+        DockManager.Theme = new MineEngineDockTheme(_themes.IsDark, key => (System.Windows.Media.Brush)FindResource(key));
         CodeHighlighting.IsDark = _themes.IsDark;
     }
 
@@ -383,7 +394,7 @@ public partial class MainWindow : Window
     /// <summary>La disposition d'origine n'a pas d'onglets de code : ils sont d'abord fermés.</summary>
     private void OnResetLayoutClick(object sender, RoutedEventArgs e)
     {
-        foreach (CodeDocumentViewModel document in _viewModel.Documents.ToList())
+        foreach (DocumentViewModel document in _viewModel.Documents.ToList())
         {
             if (!_viewModel.RequestCloseDocument(document))
             {

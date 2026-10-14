@@ -11,6 +11,9 @@ public enum AssetReferenceKind
 
     /// <summary>Un asset Sound.</summary>
     Sound,
+
+    /// <summary>Un asset Block.</summary>
+    Block,
 }
 
 /// <summary>

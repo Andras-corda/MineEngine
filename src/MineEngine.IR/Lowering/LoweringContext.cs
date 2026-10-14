@@ -1,6 +1,7 @@
 using MineEngine.Assets;
 using MineEngine.Core.Assets;
 using MineEngine.Core.Diagnostics;
+using MineEngine.Core.GameData;
 using MineEngine.Core.Identifiers;
 using MineEngine.IR.Model;
 using MineEngine.Project;
@@ -15,6 +16,7 @@ public sealed class LoweringContext
     private readonly List<IRMob> _mobs = [];
     private readonly List<IRRecipe> _recipes = [];
     private readonly List<IRSound> _sounds = [];
+    private readonly List<IRBehavior> _behaviors = [];
 
     public LoweringContext(ModProject project, DiagnosticBag diagnostics)
     {
@@ -37,6 +39,8 @@ public sealed class LoweringContext
     public void AddRecipe(IRRecipe recipe) => _recipes.Add(recipe);
 
     public void AddSound(IRSound sound) => _sounds.Add(sound);
+
+    public void AddBehavior(IRBehavior behavior) => _behaviors.Add(behavior);
 
     /// <summary>
     /// Fichier d'une texture du projet. Sans texture, ou si son fichier manque, la
@@ -84,7 +88,8 @@ public sealed class LoweringContext
     /// <summary>Propriétés d'inventaire communes aux items et aux blocs.</summary>
     public IRItemForm CreateItemForm(InventoryAsset asset)
     {
-        bool hasDurability = asset is ItemAsset { HasDurability: true };
+        // Un item à durabilité, un outil ou une armure ne s'empile pas.
+        bool hasDurability = asset is ItemAsset item && (item.HasDurability || item.Kind.IsEquipment());
         return new IRItemForm(
             hasDurability ? 1 : asset.MaxStackSize,
             asset.Rarity,
@@ -94,7 +99,7 @@ public sealed class LoweringContext
             asset.CreativeTabs);
     }
 
-    public IRContent BuildContent() => new(_items, _blocks, _mobs, _recipes, _sounds);
+    public IRContent BuildContent() => new(_items, _blocks, _mobs, _recipes, _sounds, _behaviors);
 
     private NamespacedId? ResolveAsset(Asset owner, Guid assetId, string role)
     {

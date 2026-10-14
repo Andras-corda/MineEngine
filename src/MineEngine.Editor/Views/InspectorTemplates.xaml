@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:ui="http://schemas.modernwpf.com/2019"
                     xmlns:assets="clr-namespace:MineEngine.Editor.ViewModels.Assets">
@@ -13,7 +13,7 @@
     -->
 
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="EditorStyles.xaml" />
+        <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
     <!--
@@ -203,19 +203,60 @@
     <DataTemplate DataType="{x:Type assets:ItemAssetViewModel}">
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CommonAssetFields}" Focusable="False" />
-            <TabControl>
+            <TabControl Style="{StaticResource UnderlineTabControl}">
                 <TabItem Header="Visuel">
                     <StackPanel Style="{StaticResource TabContent}">
                         <ContentControl Content="{Binding MainTexture}" Focusable="False" />
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,8"
                                    Text="Image PNG, idéalement 16 x 16 pixels. Une image importée devient un asset Texture réutilisable." />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="Effet brillant (comme un livre enchanté)" IsChecked="{Binding HasGlint}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="Effet brillant (comme un livre enchanté)" Margin="0,4" IsChecked="{Binding HasGlint}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="Tenu comme un outil (en diagonale dans la main)" Margin="0,4" IsChecked="{Binding Handheld}" />
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="Type">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="Type d'item" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding KindChoices}" SelectedValue="{Binding Kind}" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource RowHint}"
+                                   Text="Un outil, une arme ou une armure reprend le comportement de Minecraft (minage, dégâts, défense) ; sa durabilité vient de son matériau." />
+
+                        <StackPanel Visibility="{Binding IsTool, Converter={StaticResource BoolToVisibility}}">
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="Matériau" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding TierChoices}" SelectedValue="{Binding Tier}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="Fixe la durabilité, la vitesse de minage, l'enchantabilité et le matériau de réparation." />
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="Dégâts ajoutés" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="-100" Maximum="{Binding MaxAttack}" SmallChange="0.5"
+                                              Value="{Binding AttackDamage, UpdateSourceTrigger=PropertyChanged}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="Vitesse d'attaque" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="-4" Maximum="{Binding MaxAttack}" SmallChange="0.1"
+                                              Value="{Binding AttackSpeed, UpdateSourceTrigger=PropertyChanged}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}"
+                                       Text="Épée en fer : 3 et -2,4 ; hache : 6 et -3,1. Les dégâts s'ajoutent à ceux du matériau ; une vitesse plus basse frappe moins souvent." />
+                        </StackPanel>
+
+                        <StackPanel Visibility="{Binding IsArmor, Converter={StaticResource BoolToVisibility}}">
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="Matériau" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ArmorMaterialChoices}" SelectedValue="{Binding ArmorMaterial}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}"
+                                       Text="Fixe la défense, la durabilité et l'apparence de l'armure portée (celle de Minecraft pour ce matériau)." />
+                        </StackPanel>
                     </StackPanel>
                 </TabItem>
 
                 <TabItem Header="Propriétés">
                     <StackPanel Style="{StaticResource TabContent}">
-                        <WrapPanel Style="{StaticResource Row}">
+                        <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding CanEditDurability}">
                             <TextBlock Style="{StaticResource RowLabel}" Text="Durabilité" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxDurability}"
                                           SmallChange="1" LargeChange="50"
@@ -224,6 +265,7 @@
                         <TextBlock Style="{StaticResource RowHint}"
                                    Text="Nombre d'utilisations avant de casser ; 0 = aucune. Fer : 250, diamant : 1561. Un item à durabilité ne s'empile pas." />
                         <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryFields}" Focusable="False" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="Non réparable à l'enclume avec un matériau" Margin="0,8,0,4" IsChecked="{Binding NoRepair}" />
                     </StackPanel>
                 </TabItem>
 
@@ -245,18 +287,114 @@
                             <TextBlock Style="{StaticResource RowHint}" Text="Retarde la faim. Pomme : 0,3 ; steak : 0,8." />
                             <CheckBox Style="{StaticResource WrapCheck}" Content="Toujours mangeable, même sans faim" Margin="0,4" IsChecked="{Binding AlwaysEdible}" />
                             <CheckBox Style="{StaticResource WrapCheck}" Content="Viande (les loups peuvent la manger)" Margin="0,4" IsChecked="{Binding IsMeat}" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="Se mange deux fois plus vite (comme les baies)" Margin="0,4" IsChecked="{Binding FastFood}" />
+
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="Effets en mangeant" Margin="0,12,0,4" />
+                            <ItemsControl ItemsSource="{Binding FoodEffects}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type assets:FoodEffectViewModel}">
+                                        <Border Style="{StaticResource Card}">
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE74D;" ToolTip="Retirer"
+                                                        VerticalAlignment="Top" Command="{Binding RemoveCommand}" />
+                                                <StackPanel>
+                                                    <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding EffectChoices}" SelectedValue="{Binding Kind}" />
+                                                    <WrapPanel>
+                                                        <ui:NumberBox Header="Durée (s)" Width="120" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
+                                                                      Minimum="1" Maximum="{Binding MaxSeconds}" Value="{Binding Seconds, UpdateSourceTrigger=PropertyChanged}" />
+                                                        <ui:NumberBox Header="Niveau" Width="90" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
+                                                                      Minimum="1" Maximum="{Binding MaxLevel}" Value="{Binding Level, UpdateSourceTrigger=PropertyChanged}" />
+                                                        <ui:NumberBox Header="Chance (%)" Width="110" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
+                                                                      Minimum="0" Maximum="100" Value="{Binding Percent, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </WrapPanel>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="Ajouter un effet" Command="{Binding AddFoodEffectCommand}" />
+                            <TextBlock Style="{StaticResource RowHint}" Margin="0,6,0,0"
+                                       Text="Pomme dorée : Régénération II pendant 5 s et Absorption I pendant 2 min, chance 100 %." />
                         </StackPanel>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="Données">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="Item rendu après fabrication" />
+                            <ContentControl Style="{StaticResource RowPicker}" Content="{Binding CraftRemainder}" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource RowHint}" Text="Laissé dans la grille d'artisanat (comme le seau vide après un gâteau). Vide : rien." />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="Combustible (secondes)" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxBurnSeconds}" SmallChange="5"
+                                          Value="{Binding BurnSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource RowHint}" Text="Durée de combustion dans un four ; 0 = pas un combustible. Charbon : 80 s, bâton : 5 s." />
+
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="Tags" Margin="0,12,0,4" />
+                        <TextBox Style="{StaticResource FieldBox}" AcceptsReturn="True" FontFamily="Consolas" MinHeight="56"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Text="{Binding TagsText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
+                        <TextBlock Style="{StaticResource FieldHint}"
+                                   Text="Un tag par ligne. Ils servent aux recettes et à la compatibilité avec d'autres mods : c:gems/ruby, minecraft:piglin_loved, minecraft:beacon_payment_items..." />
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="Événements">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,8"
+                                   Text="Reliez un événement de l'item à un graphe nodal : ce qui s'y passe (message, son, item donné...) s'exécute quand l'événement survient." />
+                        <ItemsControl ItemsSource="{Binding Events}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type assets:ItemEventViewModel}">
+                                    <Border x:Name="EventCard" Style="{StaticResource Card}">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                                                <Button Style="{StaticResource ToolButton}" Content="Ouvrir" Command="{Binding OpenCommand}"
+                                                        Visibility="{Binding IsLinked, Converter={StaticResource BoolToVisibility}}" />
+                                                <Button Style="{StaticResource ToolButton}" Command="{Binding AddCommand}" ToolTip="Ajouter cet événement au graphe d'événements de l'item">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE710;" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                        <TextBlock Text="Relier" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock x:Name="Bolt" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE945;" Margin="0,2,8,0"
+                                                               Foreground="{DynamicResource HintBrush}" />
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Description}" TextWrapping="Wrap" FontSize="12" Margin="0,2,0,0" Foreground="{DynamicResource HintBrush}" />
+                                                <TextBlock x:Name="StatusText" Text="{Binding Status}" TextWrapping="Wrap" FontSize="12" Margin="0,4,0,0"
+                                                           Foreground="{DynamicResource HintBrush}" />
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsLinked}" Value="True">
+                                            <Setter TargetName="Bolt" Property="Foreground" Value="{DynamicResource AccentLineBrush}" />
+                                            <Setter TargetName="StatusText" Property="Foreground" Value="{DynamicResource LinkBrush}" />
+                                            <Setter TargetName="EventCard" Property="BorderBrush" Value="{DynamicResource CardSelectedBorderBrush}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource RowHint}" Margin="0,6,0,0" Text="{Binding EventsHint}" />
                     </StackPanel>
                 </TabItem>
             </TabControl>
         </StackPanel>
     </DataTemplate>
-
     <!-- ===================== Bloc ===================== -->
     <DataTemplate DataType="{x:Type assets:BlockAssetViewModel}">
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CommonAssetFields}" Focusable="False" />
-            <TabControl>
+            <TabControl Style="{StaticResource UnderlineTabControl}">
                 <TabItem Header="Visuel">
                     <StackPanel Style="{StaticResource TabContent}">
                         <WrapPanel Style="{StaticResource Row}">
@@ -433,6 +571,63 @@
         </StackPanel>
     </DataTemplate>
 
+    <!-- ===================== Graphe nodal ===================== -->
+    <DataTemplate DataType="{x:Type assets:GraphAssetViewModel}">
+        <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CommonAssetFields}" Focusable="False" />
+            <Button Style="{DynamicResource AccentButtonStyle}" HorizontalAlignment="Left" Padding="14,6" Margin="0,8,0,4"
+                    Command="{Binding DataContext.OpenGraphEditorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    CommandParameter="{Binding}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xEA86;" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <TextBlock Text="Ouvrir l'éditeur nodal" />
+                </StackPanel>
+            </Button>
+            <TextBlock Style="{StaticResource RowHint}"
+                       Text="Les nœuds se placent et se relient dans l'éditeur ; double-cliquer sur le graphe dans le Dashboard l'ouvre aussi." />
+
+            <TextBlock Style="{StaticResource PanelTitle}" Text="Résumé" Margin="0,12,0,4" />
+            <WrapPanel Style="{StaticResource Row}">
+                <TextBlock Style="{StaticResource RowLabel}" Text="Nœuds" />
+                <TextBlock VerticalAlignment="Center" Text="{Binding NodeCount}" />
+            </WrapPanel>
+            <WrapPanel Style="{StaticResource Row}">
+                <TextBlock Style="{StaticResource RowLabel}" Text="Fils" />
+                <TextBlock VerticalAlignment="Center" Text="{Binding ConnectionCount}" />
+            </WrapPanel>
+            <WrapPanel Style="{StaticResource Row}">
+                <TextBlock Style="{StaticResource RowLabel}" Text="Classe Java" />
+                <TextBlock VerticalAlignment="Center" FontFamily="Consolas" Text="{Binding JavaClassName}" />
+            </WrapPanel>
+
+            <TextBlock Style="{StaticResource StackedLabel}" Text="Événements" Margin="0,8,0,2" />
+            <TextBlock Style="{StaticResource FieldHint}" Text="Aucun événement : le graphe ne fera rien en jeu."
+                       Visibility="{Binding HasEvents, Converter={StaticResource InverseBoolToVisibility}}" />
+            <ItemsControl ItemsSource="{Binding Events}" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Margin="0,1">
+                            <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE945;" FontSize="11" Margin="0,2,6,0"
+                                       Foreground="{DynamicResource AccentLineBrush}" />
+                            <TextBlock Text="{Binding}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <StackPanel Visibility="{Binding HasProblems, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Style="{StaticResource StackedLabel}" Text="Problèmes" Margin="0,8,0,2" />
+                <ItemsControl ItemsSource="{Binding Problems}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,1" Foreground="{DynamicResource LogWarningBrush}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
     <!-- ===================== Recette ===================== -->
     <DataTemplate DataType="{x:Type assets:RecipeAssetViewModel}">
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
@@ -559,7 +754,7 @@
     <DataTemplate DataType="{x:Type assets:MobAssetViewModel}">
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CommonAssetFields}" Focusable="False" />
-            <TabControl>
+            <TabControl Style="{StaticResource UnderlineTabControl}">
                 <TabItem Header="Apparence">
                     <StackPanel Style="{StaticResource TabContent}">
                         <WrapPanel Style="{StaticResource Row}">

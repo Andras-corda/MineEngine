@@ -22,7 +22,8 @@ public sealed class ItemResourcesEmitter : ResourceEmitter
         {
             WriteJson(context, paths.ItemModel(item.Id), new JsonObject
             {
-                ["parent"] = "minecraft:item/generated",
+                // "handheld" : tenu en diagonale comme un outil ; "generated" : à plat.
+                ["parent"] = item.Handheld ? "minecraft:item/handheld" : "minecraft:item/generated",
                 ["textures"] = new JsonObject { ["layer0"] = paths.Reference($"item/{item.Id}") },
             });
 

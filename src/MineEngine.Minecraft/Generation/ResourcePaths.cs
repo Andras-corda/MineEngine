@@ -68,6 +68,12 @@ public sealed class ResourcePaths
     /// <summary>Tag d'items de Minecraft ("meat"...), complété par le mod.</summary>
     public string VanillaItemTag(string tag) => $"{ResourcesRoot}/data/minecraft/tags/{_itemTagFolder}/{tag}.json";
 
+    /// <summary>Tag d'items de n'importe quel espace de noms ("c:gems/ruby", "minecraft:piglin_loved").</summary>
+    public string ItemTag(NamespacedId tag) => $"{ResourcesRoot}/data/{tag.Namespace}/tags/{_itemTagFolder}/{tag.Path}.json";
+
+    /// <summary>Data map NeoForge (1.21) : "furnace_fuels" pour les combustibles.</summary>
+    public string NeoForgeItemDataMap(string name) => $"{ResourcesRoot}/data/neoforge/data_maps/item/{name}.json";
+
     public string Reference(string path) => $"{Namespace}:{path}";
 
     public string TooltipTranslationKey(ResourceId id, int line) => $"tooltip.{Namespace}.{id}.{line}";

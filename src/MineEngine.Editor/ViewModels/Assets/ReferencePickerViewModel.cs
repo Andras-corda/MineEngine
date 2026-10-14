@@ -16,6 +16,9 @@ public enum ReferenceDomain
 
     /// <summary>Sons.</summary>
     Sound,
+
+    /// <summary>Blocs (à placer dans le monde).</summary>
+    Block,
 }
 
 /// <summary>
@@ -52,6 +55,13 @@ public sealed class ReferencePickerViewModel : ValidatingObservableObject
         "minecraft:entity.villager.ambient", "minecraft:entity.villager.hurt", "minecraft:entity.villager.death",
         "minecraft:entity.wolf.growl", "minecraft:entity.zombie.ambient", "minecraft:entity.zombie.hurt",
         "minecraft:entity.zombie.death",
+    ];
+
+    private static readonly string[] VanillaBlocks =
+    [
+        "minecraft:air", "minecraft:cobblestone", "minecraft:diamond_block", "minecraft:dirt", "minecraft:glass",
+        "minecraft:glowstone", "minecraft:gold_block", "minecraft:grass_block", "minecraft:iron_block", "minecraft:oak_log",
+        "minecraft:oak_planks", "minecraft:obsidian", "minecraft:sand", "minecraft:stone", "minecraft:tnt", "minecraft:water",
     ];
 
     private readonly AssetEditingContext _context;
@@ -109,6 +119,7 @@ public sealed class ReferencePickerViewModel : ValidatingObservableObject
             IEnumerable<string> game = _domain switch
             {
                 ReferenceDomain.Sound => VanillaSounds,
+                ReferenceDomain.Block => VanillaBlocks,
                 ReferenceDomain.Ingredient => VanillaItems.Concat(VanillaTags),
                 _ => VanillaItems,
             };
@@ -138,6 +149,7 @@ public sealed class ReferencePickerViewModel : ValidatingObservableObject
     private bool IsCandidate(Asset asset) => _domain switch
     {
         ReferenceDomain.Sound => asset is SoundAsset,
+        ReferenceDomain.Block => asset is BlockAsset,
         _ => asset is ItemAsset or BlockAsset { HasItemForm: true },
     };
 

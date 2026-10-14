@@ -133,7 +133,9 @@ public sealed class ContentOptionsTests
         Assert.Contains(", UniformInt.of(2, 5))", blocks);
 
         Assert.True(File.Exists(Path.Combine(workspace, "src/main/resources/data/minecraft/tags/blocks/mineable/pickaxe.json")));
-        Assert.False(Directory.Exists(Path.Combine(workspace, "src/main/resources/data/minecraft/tags/items")));
+        // 1.20.1 : pas de tag minecraft:meat (la viande passe par le builder), dossier de tags au pluriel.
+        Assert.False(File.Exists(Path.Combine(workspace, "src/main/resources/data/minecraft/tags/items/meat.json")));
+        Assert.True(File.Exists(Path.Combine(workspace, "src/main/resources/data/minecraft/tags/items/piglin_loved.json")));
     }
 
     private static Asset Find(ModProject project, string id) => project.Assets.FindByResourceId(ResourceId.Parse(id), AssetType.Item)!;

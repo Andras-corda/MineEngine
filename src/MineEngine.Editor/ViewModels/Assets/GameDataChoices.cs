@@ -161,6 +161,72 @@ public static class GameDataChoices
         new(SpawnBiome.End, "End"),
     ];
 
+    public static IReadOnlyList<Choice<ItemKind>> ItemKinds { get; } =
+    [
+        new(ItemKind.Simple, "Item simple"),
+        new(ItemKind.Sword, "Épée"),
+        new(ItemKind.Pickaxe, "Pioche"),
+        new(ItemKind.Axe, "Hache"),
+        new(ItemKind.Shovel, "Pelle"),
+        new(ItemKind.Hoe, "Houe"),
+        new(ItemKind.Helmet, "Casque"),
+        new(ItemKind.Chestplate, "Plastron"),
+        new(ItemKind.Leggings, "Jambières"),
+        new(ItemKind.Boots, "Bottes"),
+    ];
+
+    public static IReadOnlyList<Choice<ItemTier>> ItemTiers { get; } =
+    [
+        new(ItemTier.Wood, "Bois (59 utilisations)"),
+        new(ItemTier.Stone, "Pierre (131)"),
+        new(ItemTier.Iron, "Fer (250)"),
+        new(ItemTier.Gold, "Or (32, rapide)"),
+        new(ItemTier.Diamond, "Diamant (1561)"),
+        new(ItemTier.Netherite, "Netherite (2031)"),
+    ];
+
+    public static IReadOnlyList<Choice<ArmorMaterialKind>> ArmorMaterials { get; } =
+    [
+        new(ArmorMaterialKind.Leather, "Cuir"),
+        new(ArmorMaterialKind.Chainmail, "Mailles"),
+        new(ArmorMaterialKind.Iron, "Fer"),
+        new(ArmorMaterialKind.Gold, "Or"),
+        new(ArmorMaterialKind.Diamond, "Diamant"),
+        new(ArmorMaterialKind.Turtle, "Carapace de tortue"),
+        new(ArmorMaterialKind.Netherite, "Netherite"),
+    ];
+
+    public static IReadOnlyList<Choice<FoodEffectKind>> FoodEffects { get; } =
+    [
+        new(FoodEffectKind.Speed, "Vitesse"),
+        new(FoodEffectKind.Slowness, "Lenteur"),
+        new(FoodEffectKind.Haste, "Célérité"),
+        new(FoodEffectKind.MiningFatigue, "Fatigue de minage"),
+        new(FoodEffectKind.Strength, "Force"),
+        new(FoodEffectKind.InstantHealth, "Soin instantané"),
+        new(FoodEffectKind.InstantDamage, "Dégâts instantanés"),
+        new(FoodEffectKind.JumpBoost, "Saut amélioré"),
+        new(FoodEffectKind.Nausea, "Nausée"),
+        new(FoodEffectKind.Regeneration, "Régénération"),
+        new(FoodEffectKind.Resistance, "Résistance"),
+        new(FoodEffectKind.FireResistance, "Résistance au feu"),
+        new(FoodEffectKind.WaterBreathing, "Apnée"),
+        new(FoodEffectKind.Invisibility, "Invisibilité"),
+        new(FoodEffectKind.Blindness, "Cécité"),
+        new(FoodEffectKind.NightVision, "Vision nocturne"),
+        new(FoodEffectKind.Hunger, "Faim"),
+        new(FoodEffectKind.Weakness, "Faiblesse"),
+        new(FoodEffectKind.Poison, "Poison"),
+        new(FoodEffectKind.Wither, "Wither"),
+        new(FoodEffectKind.HealthBoost, "Bonus de vie"),
+        new(FoodEffectKind.Absorption, "Absorption"),
+        new(FoodEffectKind.Saturation, "Saturation"),
+        new(FoodEffectKind.Glowing, "Surbrillance"),
+        new(FoodEffectKind.Levitation, "Lévitation"),
+        new(FoodEffectKind.Luck, "Chance"),
+        new(FoodEffectKind.SlowFalling, "Chute lente"),
+    ];
+
     public static string SlotLabel(BlockTextureSlot slot) => slot switch
     {
         BlockTextureSlot.Top => "Dessus",

@@ -1,8 +1,9 @@
-<Window x:Class="MineEngine.Editor.Views.ProjectPropertiesWindow"
+﻿<Window x:Class="MineEngine.Editor.Views.ProjectPropertiesWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.modernwpf.com/2019"
         ui:WindowHelper.UseModernWindowStyle="True"
+        Background="{DynamicResource HubBackgroundBrush}"
         Title="{Binding Title}"
         Width="640" SizeToContent="Height"
         ResizeMode="NoResize"
@@ -11,7 +12,7 @@
         FocusManager.FocusedElement="{Binding ElementName=ModNameBox}">
 
     <Window.Resources>
-        <ResourceDictionary Source="EditorStyles.xaml" />
+        <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
     </Window.Resources>
 
     <StackPanel Margin="16" Grid.IsSharedSizeScope="True">

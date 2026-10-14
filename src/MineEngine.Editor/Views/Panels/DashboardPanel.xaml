@@ -1,4 +1,4 @@
-<UserControl x:Class="MineEngine.Editor.Views.Panels.DashboardPanel"
+﻿<UserControl x:Class="MineEngine.Editor.Views.Panels.DashboardPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.modernwpf.com/2019"
@@ -15,8 +15,7 @@
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="../EditorStyles.xaml" />
-                <ResourceDictionary Source="../Hub/HubStyles.xaml" />
+                <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Icône d'un élément : sa texture, sinon le glyphe de son type. -->
@@ -51,6 +50,9 @@
 
             <!-- Menu contextuel d'un élément ; Tag de l'élément = MainViewModel. -->
             <ContextMenu x:Key="AssetMenu" x:Shared="False">
+                <MenuItem Header="Ouvrir l'éditeur nodal" CommandParameter="{Binding}" FontWeight="SemiBold"
+                          Command="{Binding PlacementTarget.Tag.OpenGraphEditorCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                          Visibility="{Binding IsEnabled, RelativeSource={RelativeSource Self}, Converter={StaticResource BoolToVisibility}}" />
                 <MenuItem Header="Afficher dans Détails" CommandParameter="{Binding}"
                           Command="{Binding PlacementTarget.Tag.ShowAssetDetailsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 <MenuItem Header="Voir le fichier de l'asset"
@@ -149,17 +151,22 @@
                 <Button Command="{Binding AddRecipeCommand}" Padding="10,5" Margin="0,0,6,6">
                     <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="&#xE710;" /><TextBlock Text="Recette" /></StackPanel>
                 </Button>
-                <ui:DropDownButton Padding="10,5" Margin="0,0,6,6">
-                    <ui:DropDownButton.Content>
-                        <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="&#xE8B5;" /><TextBlock Text="Importer" /></StackPanel>
-                    </ui:DropDownButton.Content>
-                    <ui:DropDownButton.Flyout>
-                        <ui:MenuFlyout Placement="Bottom">
+                <Button Command="{Binding AddGraphCommand}" Padding="10,5" Margin="0,0,6,6" ToolTip="Nouveau graphe nodal (comportements en jeu)">
+                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="&#xE710;" /><TextBlock Text="Graphe" /></StackPanel>
+                </Button>
+                <!-- Bouton + menu : le DropDownButton de ModernWpf provoquait une boucle de mise en page. -->
+                <Button Padding="10,5" Margin="0,0,6,6" Click="OnImportClick" ToolTip="Importer des fichiers dans le projet">
+                    <Button.ContextMenu>
+                        <ContextMenu>
                             <MenuItem Header="Textures (PNG)..." Command="{Binding ImportTexturesCommand}" />
                             <MenuItem Header="Sons (OGG)..." Command="{Binding ImportSoundsCommand}" />
-                        </ui:MenuFlyout>
-                    </ui:DropDownButton.Flyout>
-                </ui:DropDownButton>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE8B5;" /><TextBlock Text="Importer" />
+                        <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE70D;" FontSize="9" Margin="6,1,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
                 <Button Command="{Binding DeleteAssetCommand}" Padding="10,5" Margin="0,0,6,6" ToolTip="Supprimer l'élément sélectionné">
                     <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="&#xE74D;" /><TextBlock Text="Supprimer" /></StackPanel>
                 </Button>
@@ -226,7 +233,7 @@
                     <TextBlock Text="Le mod est vide" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"
                                Foreground="{DynamicResource StrongTextBrush}" />
                     <TextBlock TextWrapping="Wrap" TextAlignment="Center" Margin="0,6,0,0" Foreground="{DynamicResource HintBrush}"
-                               Text="Ajoutez un item, un bloc, un mob ou une recette avec les boutons ci-dessus, puis réglez-le dans le panneau Détails." />
+                               Text="Ajoutez un item, un bloc, un mob, une recette ou un graphe avec les boutons ci-dessus, puis réglez-le dans le panneau Détails." />
                 </StackPanel>
 
                 <!-- Liste -->
@@ -235,6 +242,12 @@
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
                          PreviewMouseWheel="OnListMouseWheel"
                          Visibility="{Binding Project.IsTileView, Converter={StaticResource InverseBoolToVisibility}}">
+                    <!-- Pas de virtualisation : la page entière défile, la liste n'a pas de hauteur propre. -->
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="{x:Type assets:AssetViewModel}">
                             <Grid>

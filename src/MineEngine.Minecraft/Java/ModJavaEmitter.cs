@@ -64,6 +64,11 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             Write(context, naming, naming.RegistryPackage, naming.SoundsClass, WriteSoundsClass(context, naming, api));
         }
 
+        foreach (IRBehavior behavior in content.Behaviors)
+        {
+            WriteBehaviorClass(context, naming, api, behavior);
+        }
+
         if (content.Mobs.Count > 0)
         {
             Write(context, naming, naming.RegistryPackage, naming.EntitiesClass, WriteEntitiesClass(context, naming, api));
@@ -127,6 +132,8 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             imports.AddRange(ClientEnvironmentImports);
         }
 
+        imports.AddRange(content.Behaviors.Select(b => $"{naming.BehaviorPackage}.{naming.BehaviorClassFor(b.Id)}"));
+
         JavaSourceWriter w = WriteHeader(naming.RootPackage, imports, $"Classe principale du mod {mod.Name}.")
             .Line($"@Mod({naming.MainClass}.MOD_ID)")
             .OpenBlock($"public final class {naming.MainClass}")
@@ -166,6 +173,12 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             w.OpenBlock($"if ({ClientEnvironmentCheck})")
                 .Line($"modEventBus.addListener({naming.EntityRenderersClass}::registerRenderers);")
                 .CloseBlock();
+        }
+
+        // Graphes nodaux : leurs réactions s'inscrivent sur le bus des événements du jeu.
+        foreach (IRBehavior behavior in content.Behaviors)
+        {
+            w.Line($"{naming.BehaviorClassFor(behavior.Id)}.register();");
         }
 
         return w.CloseBlock().CloseBlock();
@@ -321,6 +334,19 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             imports.Add(SpawnEggItemType);
         }
 
+        if (content.Items.Any(i => i.Food is { Effects.Count: > 0 }))
+        {
+            imports.Add("net.minecraft.world.effect.MobEffectInstance");
+            imports.Add("net.minecraft.world.effect.MobEffects");
+        }
+
+        // Méthodes ajoutées aux items (V0.4.1) : calculées avant l'en-tête, elles fixent des imports.
+        Dictionary<IRItem, List<string>> behaviours = content.Items.ToDictionary(i => i, i => ItemBehaviourOverrides(i, context, naming, api, imports));
+        foreach (IRItem item in content.Items)
+        {
+            imports.UnionWith(ItemConstructionImports(item));
+        }
+
         JavaSourceWriter w = WriteHeader(naming.RegistryPackage, imports, "Items du mod, y compris les items qui représentent les blocs.")
             .OpenBlock($"public final class {naming.ItemsClass}")
             .Line(ItemsRegisterDeclaration(naming));
@@ -329,10 +355,20 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         {
             w.Line();
             int firstLine = w.NextLineNumber;
+            (string head, IReadOnlyList<string> extraCalls, string tail) = ItemConstruction(item, api);
+            List<string> calls = ItemPropertyCalls(item.Form, item.Durability, item.Food, api, equipment: item.Kind.IsEquipment());
+            calls.AddRange(extraCalls);
+
+            List<string> overrides = ItemOverrides(item, item.Form, item.HasGlint, context, api);
+            if (overrides.Count > 0 && behaviours[item].Count > 0)
+            {
+                overrides.Add(string.Empty);
+            }
+
+            overrides.AddRange(behaviours[item]);
             WriteRegistration(
                 w, ItemHolderType, naming.ConstantFor(item.Id), "ITEMS", item.Id.Value,
-                "new Item(", "new Item.Properties()", ItemPropertyCalls(item.Form, item.Durability, item.Food, api), ")",
-                ItemOverrides(item, item.Form, item.HasGlint, context, api));
+                head, "new Item.Properties()", calls, tail, overrides);
             context.SourceMap.Add(file, firstLine, w.NextLineNumber - 1, item.SourceAssetId, $"Item '{item.Id}'");
         }
 
@@ -365,16 +401,17 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         return WritePrivateConstructor(w, naming.ItemsClass);
     }
 
-    private static List<string> ItemPropertyCalls(IRItemForm form, int durability, IRFood? food, JavaGameApi api)
+    private static List<string> ItemPropertyCalls(IRItemForm form, int durability, IRFood? food, JavaGameApi api, bool equipment = false)
     {
         var calls = new List<string>();
 
-        // Minecraft refuse une taille de pile différente de 1 sur un item à durabilité.
-        if (durability > 0)
+        // Minecraft refuse une taille de pile différente de 1 sur un item à durabilité ;
+        // un outil ou une armure tient sa durabilité (et sa pile de 1) de son matériau.
+        if (!equipment && durability > 0)
         {
             calls.Add($".durability({durability})");
         }
-        else if (form.MaxStackSize != 64)
+        else if (!equipment && form.MaxStackSize != 64)
         {
             calls.Add($".stacksTo({form.MaxStackSize})");
         }

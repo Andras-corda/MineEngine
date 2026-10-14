@@ -23,6 +23,7 @@ public sealed class ProjectSettingsSerializer
             ["mdk"] = settings.MdkId,
             ["minecraftVersion"] = settings.MinecraftVersion,
             ["loader"] = settings.LoaderId,
+            ["folders"] = new JsonArray([.. settings.Folders.Select(f => (JsonNode?)JsonValue.Create(f))]),
         };
 
         return JsonFormatting.ToText(root);
@@ -55,6 +56,9 @@ public sealed class ProjectSettingsSerializer
         settings.MdkId = root["mdk"]?.GetValue<string>();
         settings.MinecraftVersion = ReadString(root, "minecraftVersion", settings.MinecraftVersion);
         settings.LoaderId = ReadString(root, "loader", settings.LoaderId);
+        settings.Folders = root["folders"] is JsonArray folders
+            ? [.. folders.Select(f => f?.GetValue<string>()).OfType<string>()]
+            : [];
         return settings;
     }
 

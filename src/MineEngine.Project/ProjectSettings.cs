@@ -1,3 +1,4 @@
+using MineEngine.Core.Assets;
 using MineEngine.Core.Identifiers;
 
 namespace MineEngine.Project;
@@ -8,6 +9,7 @@ public sealed class ProjectSettings
     public const int CurrentFormatVersion = 1;
 
     private string _modName;
+    private IReadOnlyList<string> _folders = [];
 
     public ProjectSettings(ModId modId, string modName)
     {
@@ -45,6 +47,17 @@ public sealed class ProjectSettings
 
     public string LoaderId { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Dossiers créés dans le Dashboard, même vides ("Armes", "Armes/Épées"). Les dossiers
+    /// qui contiennent des assets existent aussi sans être listés ici.
+    /// </summary>
+    public IReadOnlyList<string> Folders
+    {
+        get => _folders;
+        set => _folders = [.. (value ?? []).Select(AssetFolders.Normalize).OfType<string>().Where(f => f.Length > 0)
+            .Distinct(StringComparer.Ordinal).Order(StringComparer.CurrentCultureIgnoreCase)];
+    }
+
     /// <summary>Copie indépendante de ces paramètres.</summary>
     public ProjectSettings Clone()
     {
@@ -71,5 +84,6 @@ public sealed class ProjectSettings
         MdkId = other.MdkId;
         MinecraftVersion = other.MinecraftVersion;
         LoaderId = other.LoaderId;
+        Folders = other.Folders;
     }
 }

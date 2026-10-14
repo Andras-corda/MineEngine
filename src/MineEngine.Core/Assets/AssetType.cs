@@ -8,6 +8,9 @@ public enum AssetType
     Recipe,
     Texture,
     Sound,
+
+    /// <summary>Graphe nodal : comportements déclenchés par des événements du jeu.</summary>
+    Graph,
 }
 
 /// <summary>
@@ -21,6 +24,7 @@ public enum AssetIdScope
     Recipe,
     Texture,
     Sound,
+    Graph,
 }
 
 public static class AssetTypeExtensions
@@ -30,6 +34,7 @@ public static class AssetTypeExtensions
         AssetType.Recipe => AssetIdScope.Recipe,
         AssetType.Texture => AssetIdScope.Texture,
         AssetType.Sound => AssetIdScope.Sound,
+        AssetType.Graph => AssetIdScope.Graph,
         _ => AssetIdScope.GameContent,
     };
 }

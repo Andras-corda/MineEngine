@@ -37,8 +37,15 @@ public sealed class AssetSerializer
             ["type"] = asset.Type.ToString(),
             ["resourceId"] = asset.ResourceId.Value,
             ["displayName"] = asset.DisplayName,
-            ["properties"] = _catalog.Get(asset.Type).WriteProperties(asset),
         };
+
+        // Dossier du Dashboard (V0.4.1) : écrit seulement s'il y en a un, les fichiers des autres assets ne changent pas.
+        if (asset.Folder.Length > 0)
+        {
+            root["folder"] = asset.Folder;
+        }
+
+        root["properties"] = _catalog.Get(asset.Type).WriteProperties(asset);
 
         return JsonFormatting.ToText(root);
     }
@@ -84,7 +91,9 @@ public sealed class AssetSerializer
         string displayName = root["displayName"]?.GetValue<string>() ?? string.Empty;
         JsonObject properties = root["properties"] as JsonObject ?? [];
 
-        return definition!.Read(id, resourceId!, displayName, properties);
+        Asset asset = definition!.Read(id, resourceId!, displayName, properties);
+        asset.Folder = AssetFolders.Normalize(root["folder"]?.GetValue<string>()) ?? string.Empty;
+        return asset;
     }
 
     public static int ReadFormatVersion(JsonObject root) => root["formatVersion"]?.GetValue<int>() ?? 0;

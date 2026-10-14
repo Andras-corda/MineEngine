@@ -84,6 +84,7 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
         AssetType.Recipe => "\uE8FD",
         AssetType.Texture => "\uEB9F",
         AssetType.Sound => "\uE8D6",
+        AssetType.Graph => "\uEA86",
         _ => "\uE8A5",
     };
 

@@ -1,3 +1,4 @@
+using MineEngine.Assets.Graphs;
 using MineEngine.Minecraft.Java;
 
 namespace MineEngine.Minecraft.NeoForge;
@@ -72,6 +73,17 @@ public sealed class NeoForgeJavaEmitter : ModJavaEmitter
         "net.neoforged.api.distmarker.Dist",
         "net.neoforged.fml.loading.FMLEnvironment",
     ];
+
+    protected override (string Expression, string Import) GameEventBus => ("NeoForge.EVENT_BUS", "net.neoforged.neoforge.common.NeoForge");
+
+    protected override (string Import, string TypeName) GameEventType(GraphNodeKind eventKind) => eventKind switch
+    {
+        GraphNodeKind.OnRightClickBlock => ("net.neoforged.neoforge.event.entity.player.PlayerInteractEvent", "PlayerInteractEvent.RightClickBlock"),
+        GraphNodeKind.OnUseItem => ("net.neoforged.neoforge.event.entity.player.PlayerInteractEvent", "PlayerInteractEvent.RightClickItem"),
+        GraphNodeKind.OnPlayerJoin => ("net.neoforged.neoforge.event.entity.player.PlayerEvent", "PlayerEvent.PlayerLoggedInEvent"),
+        GraphNodeKind.OnBlockBroken => ("net.neoforged.neoforge.event.level.BlockEvent", "BlockEvent.BreakEvent"),
+        _ => throw new NotSupportedException($"{eventKind} n'est pas un événement."),
+    };
 
     protected override string EntityTypeHolderType(string entityClass) => $"DeferredHolder<EntityType<?>, EntityType<{entityClass}>>";
 

@@ -53,6 +53,7 @@ public sealed class ProjectCardViewModel : ObservableObject
                      {
                          (AssetType.Item, "item", "items"), (AssetType.Block, "bloc", "blocs"),
                          (AssetType.Mob, "mob", "mobs"), (AssetType.Recipe, "recette", "recettes"),
+                         (AssetType.Graph, "graphe", "graphes"),
                      })
             {
                 int count = _summary.Count(type);

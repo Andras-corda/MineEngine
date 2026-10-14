@@ -1,3 +1,4 @@
+using MineEngine.Assets.Graphs;
 using MineEngine.Minecraft.Java;
 
 namespace MineEngine.Minecraft.Forge;
@@ -77,6 +78,32 @@ public sealed class ForgeJavaEmitter : ModJavaEmitter
     [
         "net.minecraftforge.api.distmarker.Dist",
         "net.minecraftforge.fml.loading.FMLEnvironment",
+    ];
+
+    protected override (string Expression, string Import) GameEventBus => ("MinecraftForge.EVENT_BUS", "net.minecraftforge.common.MinecraftForge");
+
+    protected override (string Import, string TypeName) GameEventType(GraphNodeKind eventKind) => eventKind switch
+    {
+        GraphNodeKind.OnRightClickBlock => ("net.minecraftforge.event.entity.player.PlayerInteractEvent", "PlayerInteractEvent.RightClickBlock"),
+        GraphNodeKind.OnUseItem => ("net.minecraftforge.event.entity.player.PlayerInteractEvent", "PlayerInteractEvent.RightClickItem"),
+        GraphNodeKind.OnPlayerJoin => ("net.minecraftforge.event.entity.player.PlayerEvent", "PlayerEvent.PlayerLoggedInEvent"),
+        GraphNodeKind.OnBlockBroken => ("net.minecraftforge.event.level.BlockEvent", "BlockEvent.BreakEvent"),
+        _ => throw new NotSupportedException($"{eventKind} n'est pas un événement."),
+    };
+
+    /// <summary>Forge (1.20.1 et 1.21.1) : la durée de combustion est une méthode de l'item (IForgeItem).</summary>
+    protected override IReadOnlyList<string>? BurnTimeOverride(int ticks) =>
+    [
+        "@Override",
+        "public int getBurnTime(ItemStack stack, RecipeType<?> recipeType) {",
+        $"    return {ticks};",
+        "}",
+    ];
+
+    protected override IReadOnlyList<string> BurnTimeImports { get; } =
+    [
+        "net.minecraft.world.item.ItemStack",
+        "net.minecraft.world.item.crafting.RecipeType",
     ];
 
     protected override string EntityTypeHolderType(string entityClass) => $"RegistryObject<EntityType<{entityClass}>>";

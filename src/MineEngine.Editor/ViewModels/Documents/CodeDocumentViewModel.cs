@@ -1,13 +1,11 @@
 using System.Globalization;
-using System.Windows.Input;
 using System.Windows.Threading;
 using ICSharpCode.AvalonEdit.Document;
-using MineEngine.Editor.Mvvm;
 
 namespace MineEngine.Editor.ViewModels.Documents;
 
 /// <summary>
-/// Cible du panneau Détails : un asset ou un onglet de code. Fournit l'en-tête "Cible"
+/// Cible du panneau Détails : un asset ou un onglet. Fournit l'en-tête "Cible"
 /// affiché en haut du panneau.
 /// </summary>
 public interface IDetailsTarget
@@ -28,20 +26,17 @@ public sealed record BreadcrumbSegment(string Name, bool IsLast);
 /// Un onglet de code : texte (document AvalonEdit), position du curseur, structure,
 /// état modifié. Les sous-classes disent d'où vient le texte et comment l'enregistrer.
 /// </summary>
-public abstract class CodeDocumentViewModel : ObservableObject, IDetailsTarget
+public abstract class CodeDocumentViewModel : DocumentViewModel
 {
     private static readonly TimeSpan OutlineDelay = TimeSpan.FromMilliseconds(500);
 
     private readonly DispatcherTimer _outlineTimer;
     private int _line = 1;
     private int _column = 1;
-    private bool _isDirty;
-    private IReadOnlyList<OutlineItem> _outline = [];
 
     protected CodeDocumentViewModel(string id, string displayPath, string extension)
+        : base(id, displayPath)
     {
-        Id = id;
-        DisplayPath = displayPath.Replace('\\', '/');
         Extension = extension;
         Document = new TextDocument();
         Document.TextChanged += (_, _) => OnTextChanged();
@@ -51,25 +46,14 @@ public abstract class CodeDocumentViewModel : ObservableObject, IDetailsTarget
             _outlineTimer.Stop();
             Outline = OutlineBuilder.Build(Extension, Document.Text);
         };
-        GoToLineCommand = new RelayCommand<OutlineItem>(item => GoToLine(item.Line));
     }
 
     /// <summary>Demande à la vue d'afficher une ligne (clic dans la structure).</summary>
     public event EventHandler<int>? LineRequested;
 
-    /// <summary>Identifiant de l'onglet (unique parmi les onglets ouverts).</summary>
-    public string Id { get; }
-
-    /// <summary>Chemin relatif au projet, avec des '/'.</summary>
-    public string DisplayPath { get; }
-
     public string Extension { get; }
 
-    public string FileName => Path.GetFileName(DisplayPath);
-
     public TextDocument Document { get; }
-
-    public abstract bool IsReadOnly { get; }
 
     /// <summary>Explication affichée en bandeau au-dessus du texte, ou null.</summary>
     public abstract string? Banner { get; }
@@ -155,27 +139,6 @@ public abstract class CodeDocumentViewModel : ObservableObject, IDetailsTarget
 
     public int LineCount => Document.LineCount;
 
-    public bool IsDirty
-    {
-        get => _isDirty;
-        protected set
-        {
-            if (SetProperty(ref _isDirty, value))
-            {
-                OnPropertyChanged(nameof(Title));
-            }
-        }
-    }
-
-    /// <summary>Titre de l'onglet ; un point signale des modifications non enregistrées.</summary>
-    public string Title => _isDirty ? FileName + " ●" : FileName;
-
-    public IReadOnlyList<OutlineItem> Outline
-    {
-        get => _outline;
-        private set => SetProperty(ref _outline, value);
-    }
-
     public IReadOnlyList<BreadcrumbSegment> Breadcrumb
     {
         get
@@ -185,18 +148,9 @@ public abstract class CodeDocumentViewModel : ObservableObject, IDetailsTarget
         }
     }
 
-    public ICommand GoToLineCommand { get; }
-
-    public virtual string DetailsTitle => FileName;
-
-    public virtual string DetailsBadge => IsReadOnly ? "LECTURE SEULE" : "FICHIER";
-
-    public string DetailsSubtitle => DisplayPath;
-
-    /// <summary>Enregistre le texte ; faux si l'enregistrement a échoué ou est impossible.</summary>
-    public abstract bool Save();
-
     public void GoToLine(int line) => LineRequested?.Invoke(this, Math.Clamp(line, 1, Math.Max(1, Document.LineCount)));
+
+    public override void Navigate(OutlineItem item) => GoToLine(item.Line);
 
     /// <summary>Remplace le texte sans le marquer comme modifié (chargement, rechargement).</summary>
     protected void LoadText(string text)

@@ -19,6 +19,7 @@ public sealed class TextInputWindow : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ShowInTaskbar = false;
         WindowHelper.SetUseModernWindowStyle(this, true);
+        SetResourceReference(BackgroundProperty, "HubBackgroundBrush");
 
         _input = new TextBox { Text = defaultValue, Margin = new Thickness(0, 8, 0, 16) };
         var ok = new Button { Content = "OK", IsDefault = true, MinWidth = 90, Margin = new Thickness(0, 0, 8, 0) };

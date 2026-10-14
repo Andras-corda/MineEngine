@@ -42,11 +42,15 @@ public partial class DashboardPanel : UserControl
 
     private void OnAssetDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (sender is ListBoxItem { DataContext: AssetViewModel asset } && Main?.ShowAssetDetailsCommand is { } command)
+        if (sender is not ListBoxItem { DataContext: AssetViewModel asset } || Main is not { } main)
         {
-            command.Execute(asset);
-            e.Handled = true;
+            return;
         }
+
+        // Le double-clic ouvre l'élément dans son onglet (éditeur nodal pour un graphe).
+        ICommand command = main.OpenAssetEditorCommand;
+        command.Execute(asset);
+        e.Handled = true;
     }
 
     /// <summary>Les listes ne défilent pas elles-mêmes : la molette fait défiler toute la page.</summary>
@@ -54,6 +58,18 @@ public partial class DashboardPanel : UserControl
     {
         Page.ScrollToVerticalOffset(Page.VerticalOffset - e.Delta);
         e.Handled = true;
+    }
+
+    /// <summary>Le bouton Importer ouvre son menu sous lui (le DataContext suit celui du bouton).</summary>
+    private void OnImportClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { ContextMenu: { } menu } button)
+        {
+            menu.DataContext = button.DataContext;
+            menu.PlacementTarget = button;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            menu.IsOpen = true;
+        }
     }
 
     /// <summary>Le clic droit sélectionne aussi l'élément, pour que le menu agisse sur lui.</summary>

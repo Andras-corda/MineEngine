@@ -8,6 +8,7 @@ using MineEngine.Editor.Mvvm;
 using MineEngine.Editor.Services;
 using MineEngine.Editor.ViewModels.Assets;
 using MineEngine.Editor.ViewModels.Documents;
+using MineEngine.Editor.ViewModels.Graphs;
 
 namespace MineEngine.Editor.ViewModels;
 
@@ -18,18 +19,18 @@ namespace MineEngine.Editor.ViewModels;
 /// </summary>
 public sealed partial class MainViewModel
 {
-    private CodeDocumentViewModel? _activeDocument;
+    private DocumentViewModel? _activeDocument;
     private IDetailsTarget? _details;
     private AssetSerializer? _assetSerializer;
 
     /// <summary>Demande à la vue d'afficher un onglet (null : le Dashboard).</summary>
-    public event EventHandler<CodeDocumentViewModel?>? DocumentActivationRequested;
+    public event EventHandler<DocumentViewModel?>? DocumentActivationRequested;
 
-    /// <summary>Onglets de code ouverts (sans le Dashboard).</summary>
-    public ObservableCollection<CodeDocumentViewModel> Documents { get; } = [];
+    /// <summary>Onglets ouverts (fichiers et graphes, sans le Dashboard).</summary>
+    public ObservableCollection<DocumentViewModel> Documents { get; } = [];
 
-    /// <summary>Onglet de code actif, ou null quand le Dashboard est affiché.</summary>
-    public CodeDocumentViewModel? ActiveDocument
+    /// <summary>Onglet actif, ou null quand le Dashboard est affiché.</summary>
+    public DocumentViewModel? ActiveDocument
     {
         get => _activeDocument;
         set
@@ -37,12 +38,19 @@ public sealed partial class MainViewModel
             if (SetProperty(ref _activeDocument, value))
             {
                 OnPropertyChanged(nameof(HasActiveDocument));
+                OnPropertyChanged(nameof(ActiveCodeDocument));
+                OnPropertyChanged(nameof(HasActiveCodeDocument));
                 Details = value ?? (IDetailsTarget?)_project?.SelectedAsset;
             }
         }
     }
 
     public bool HasActiveDocument => _activeDocument is not null;
+
+    /// <summary>Onglet actif s'il contient du texte (curseur, encodage... dans la barre de statut).</summary>
+    public CodeDocumentViewModel? ActiveCodeDocument => _activeDocument as CodeDocumentViewModel;
+
+    public bool HasActiveCodeDocument => _activeDocument is CodeDocumentViewModel;
 
     /// <summary>Ce qu'affiche le panneau Détails : l'asset sélectionné ou l'onglet de code actif.</summary>
     public IDetailsTarget? Details
@@ -77,8 +85,11 @@ public sealed partial class MainViewModel
     /// <summary>Affiche l'asset passé en paramètre dans le panneau Détails (double-clic dans le Dashboard).</summary>
     public ICommand ShowAssetDetailsCommand { get; private set; } = null!;
 
+    /// <summary>Ouvre l'éditeur nodal d'un graphe (paramètre : son ViewModel, sinon l'asset sélectionné).</summary>
+    public ICommand OpenGraphEditorCommand { get; private set; } = null!;
+
     /// <summary>Appelé par la vue quand l'utilisateur ferme un onglet ; faux pour l'annuler.</summary>
-    public bool RequestCloseDocument(CodeDocumentViewModel document)
+    public bool RequestCloseDocument(DocumentViewModel document)
     {
         if (document.IsDirty)
         {
@@ -96,7 +107,7 @@ public sealed partial class MainViewModel
 
     private void InitializeDocumentCommands()
     {
-        CloseDocumentCommand = new RelayCommand<CodeDocumentViewModel>(d => RequestCloseDocument(d));
+        CloseDocumentCommand = new RelayCommand<DocumentViewModel>(d => RequestCloseDocument(d));
         CloseActiveDocumentCommand = new RelayCommand(() => RequestCloseDocument(_activeDocument!), () => _activeDocument is not null);
         ReloadDocumentCommand = new RelayCommand(
             () => ((FileDocumentViewModel)_activeDocument!).Reload(), () => _activeDocument is FileDocumentViewModel);
@@ -114,6 +125,110 @@ public sealed partial class MainViewModel
             Details = asset;
             PanelRequested?.Invoke(this, InspectorPanelId);
         });
+        OpenGraphEditorCommand = new RelayCommand<AssetViewModel?>(
+            asset =>
+            {
+                if ((asset ?? _project?.SelectedAsset)?.Model is GraphAsset graph)
+                {
+                    OpenGraphDocument(graph);
+                }
+            },
+            asset => (asset ?? _project?.SelectedAsset)?.Model is GraphAsset);
+        OpenAssetEditorCommand = new RelayCommand<AssetViewModel?>(
+            asset =>
+            {
+                if ((asset ?? _project?.SelectedAsset)?.Model is { } model)
+                {
+                    OpenAsset(model);
+                }
+            },
+            asset => (asset ?? _project?.SelectedAsset) is not null);
+    }
+
+    /// <summary>Ouvre l'onglet d'édition d'un élément (paramètre : son ViewModel, sinon l'élément sélectionné).</summary>
+    public ICommand OpenAssetEditorCommand { get; private set; } = null!;
+
+    /// <summary>Crée un élément et l'ouvre dans son onglet d'édition.</summary>
+    private void AddAndEdit(AssetType type)
+    {
+        _project!.AddAsset(type);
+        if (_project.SelectedAsset is { } created)
+        {
+            OpenAsset(created.Model);
+        }
+    }
+
+    /// <summary>Ouvre un asset dans son onglet : éditeur nodal pour un graphe, éditeur complet sinon.</summary>
+    private void OpenAsset(Asset asset, Guid? nodeId = null)
+    {
+        if (_project is null)
+        {
+            return;
+        }
+
+        _project.SelectAsset(asset.Id);
+        if (asset is GraphAsset graph)
+        {
+            OpenGraphDocument(graph);
+            if (nodeId is { } node && _activeDocument is GraphDocumentViewModel editor)
+            {
+                editor.ShowNode(node);
+            }
+
+            return;
+        }
+
+        if (_project.Assets.FirstOrDefault(a => a.Model.Id == asset.Id) is not { } viewModel)
+        {
+            return;
+        }
+
+        string id = AssetEditorDocumentViewModel.IdFor(asset.Id);
+        DocumentViewModel document = Documents.FirstOrDefault(d => d.Id == id)
+                                     ?? AddDocument(new AssetEditorDocumentViewModel(
+                                         viewModel, _project.Model.Layout.ToRelativePath(_project.Model.Layout.GetAssetFilePath(asset))));
+        Activate(document);
+    }
+
+    /// <summary>Un asset supprimé (ou retiré par une annulation) ferme ses onglets.</summary>
+    private void OnRegistryChanged(object? sender, AssetRegistryChangedEventArgs e)
+    {
+        if (e.Change != AssetRegistryChange.Removed)
+        {
+            return;
+        }
+
+        foreach (DocumentViewModel document in Documents.Where(d =>
+                     d.Id == AssetEditorDocumentViewModel.IdFor(e.Asset.Id) || d.Id == "graph:" + e.Asset.Id.ToString("N")).ToList())
+        {
+            RemoveDocument(document);
+        }
+    }
+
+    private void AddGraph()
+    {
+        _project!.AddAsset(AssetType.Graph);
+        if (_project.SelectedAsset?.Model is GraphAsset graph)
+        {
+            OpenGraphDocument(graph);
+        }
+    }
+
+    /// <summary>Ouvre (ou active) l'onglet d'édition nodale d'un graphe.</summary>
+    private void OpenGraphDocument(GraphAsset graph)
+    {
+        if (_project is null)
+        {
+            return;
+        }
+
+        string id = "graph:" + graph.Id.ToString("N");
+        DocumentViewModel document = Documents.FirstOrDefault(d => d.Id == id)
+                                     ?? AddDocument(new GraphDocumentViewModel(
+                                         graph,
+                                         _assetViewModels.CreateContext(_project.Model, assetId => _project.SelectAsset(assetId)),
+                                         _project.Model.Layout.ToRelativePath(_project.Model.Layout.GetAssetFilePath(graph))));
+        Activate(document);
     }
 
     /// <summary>Le serializer des assets sert à l'aperçu JSON ; il est créé au premier besoin.</summary>
@@ -129,7 +244,15 @@ public sealed partial class MainViewModel
 
         if (FindAssetForFile(fullPath) is { } asset && fullPath.EndsWith(AssetSerializer.FileExtension, StringComparison.OrdinalIgnoreCase))
         {
-            OpenAssetDocument(asset);
+            if (asset is GraphAsset graph)
+            {
+                OpenGraphDocument(graph);
+            }
+            else
+            {
+                OpenAssetDocument(asset);
+            }
+
             return;
         }
 
@@ -140,7 +263,7 @@ public sealed partial class MainViewModel
         }
 
         string id = "file:" + Path.GetFullPath(fullPath).ToLowerInvariant();
-        CodeDocumentViewModel document = Documents.FirstOrDefault(d => d.Id == id)
+        DocumentViewModel document = Documents.FirstOrDefault(d => d.Id == id)
                                          ?? AddDocument(new FileDocumentViewModel(fullPath, _project.Model.Layout));
         Activate(document);
     }
@@ -176,25 +299,25 @@ public sealed partial class MainViewModel
         }
 
         string id = "asset:" + asset.Id.ToString("N");
-        CodeDocumentViewModel document = Documents.FirstOrDefault(d => d.Id == id)
+        DocumentViewModel document = Documents.FirstOrDefault(d => d.Id == id)
                                          ?? AddDocument(new AssetDocumentViewModel(asset, AssetSerializer, _project.Model.Layout));
         Activate(document);
     }
 
-    private CodeDocumentViewModel AddDocument(CodeDocumentViewModel document)
+    private DocumentViewModel AddDocument(DocumentViewModel document)
     {
         document.PropertyChanged += OnDocumentPropertyChanged;
         Documents.Add(document);
         return document;
     }
 
-    private void Activate(CodeDocumentViewModel document)
+    private void Activate(DocumentViewModel document)
     {
         ActiveDocument = document;
         DocumentActivationRequested?.Invoke(this, document);
     }
 
-    private void RemoveDocument(CodeDocumentViewModel document)
+    private void RemoveDocument(DocumentViewModel document)
     {
         document.PropertyChanged -= OnDocumentPropertyChanged;
         Documents.Remove(document);
@@ -215,7 +338,7 @@ public sealed partial class MainViewModel
     /// <summary>Ferme tous les onglets de code, sans confirmation (projet fermé).</summary>
     private void CloseAllDocuments()
     {
-        foreach (CodeDocumentViewModel document in Documents.ToList())
+        foreach (DocumentViewModel document in Documents.ToList())
         {
             RemoveDocument(document);
         }
@@ -226,7 +349,7 @@ public sealed partial class MainViewModel
     /// <summary>Demande quoi faire des fichiers modifiés ; faux si l'utilisateur annule.</summary>
     private bool ConfirmDirtyDocuments()
     {
-        foreach (CodeDocumentViewModel document in Documents.Where(d => d.IsDirty).ToList())
+        foreach (DocumentViewModel document in Documents.Where(d => d.IsDirty).ToList())
         {
             switch (_dialogs.AskUnsavedFile(document.FileName))
             {
@@ -245,7 +368,7 @@ public sealed partial class MainViewModel
 
     private void OnDocumentPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(CodeDocumentViewModel.IsDirty) && sender is CodeDocumentViewModel document)
+        if (e.PropertyName == nameof(DocumentViewModel.IsDirty) && sender is DocumentViewModel document)
         {
             if (document is FileDocumentViewModel file)
             {

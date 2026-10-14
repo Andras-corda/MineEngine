@@ -1,15 +1,16 @@
-<Window x:Class="MineEngine.Editor.Views.SettingsWindow"
+﻿<Window x:Class="MineEngine.Editor.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.modernwpf.com/2019"
         ui:WindowHelper.UseModernWindowStyle="True"
+        Background="{DynamicResource HubBackgroundBrush}"
         Title="Paramètres"
         Width="600" Height="460" MinWidth="480" MinHeight="380"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">
 
     <Window.Resources>
-        <ResourceDictionary Source="EditorStyles.xaml" />
+        <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
     </Window.Resources>
 
     <DockPanel Margin="16">
@@ -19,9 +20,9 @@
             <Button Content="Annuler" IsCancel="True" MinWidth="110" />
         </StackPanel>
 
-        <TabControl>
+        <TabControl Style="{StaticResource UnderlineTabControl}">
             <TabItem Header="Apparence">
-                <StackPanel Margin="12">
+                <StackPanel Margin="0,4,0,0">
                     <TextBlock Style="{StaticResource PanelTitle}" Text="Thème" />
                     <RadioButton GroupName="Theme" Margin="0,4" IsChecked="{Binding IsSystemTheme}" Content="Identique à Windows" />
                     <TextBlock Style="{StaticResource FieldHint}" Margin="28,0,0,6"
@@ -34,7 +35,7 @@
             </TabItem>
 
             <TabItem Header="Sauvegarde">
-                <StackPanel Margin="12">
+                <StackPanel Margin="0,4,0,0">
                     <TextBlock Style="{StaticResource PanelTitle}" Text="Sauvegarde automatique" />
                     <ui:NumberBox Header="Intervalle (minutes)" Width="300" HorizontalAlignment="Left"
                                   Minimum="0" Maximum="{Binding MaxAutoSaveMinutes}" SmallChange="1" LargeChange="5"

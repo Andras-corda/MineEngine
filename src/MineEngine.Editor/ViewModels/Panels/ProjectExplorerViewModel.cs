@@ -311,7 +311,7 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
         string[] standard =
         [
             layout.RootDirectory, layout.ProjectFile, layout.ContentDirectory, layout.TexturesDirectory, layout.SoundsDirectory,
-            layout.ScriptsDirectory, layout.GraphsDirectory, layout.GeneratedDirectory, layout.BuildDirectory,
+            layout.ScriptsDirectory, layout.GeneratedDirectory, layout.BuildDirectory,
         ];
         if (standard.Any(s => string.Equals(Path.TrimEndingDirectorySeparator(s), path, StringComparison.OrdinalIgnoreCase)))
         {

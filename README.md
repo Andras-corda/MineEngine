@@ -1,6 +1,6 @@
 # Mine Engine
 
-Environnement de création de mods Minecraft, en C# / WPF. Version en cours : **V0.3, système d'assets, mobs et IA** (textures et sons en assets référencés par guid, recettes, mobs avec IA, migration des anciens projets), après la V0.2 (interface ModernWpf, panneaux ancrables, annuler/rétablir, diagnostics, sauvegardes, items et blocs détaillés comme dans MCreator).
+Environnement de création de mods Minecraft, en C# / WPF. Version en cours : **V0.4, prototype nodal** (graphes de comportements façon Blueprints, traduits en Java pour Forge et NeoForge), après la V0.3 (textures et sons en assets référencés par guid, recettes, mobs avec IA) et la V0.2 (interface, panneaux ancrables, annuler/rétablir, diagnostics, sauvegardes).
 
 Objectif de la V0.1 : créer un projet, ajouter un item ou un bloc, générer le projet Minecraft, compiler, puis voir l'item dans Minecraft.
 
@@ -48,18 +48,23 @@ Tout MDK Forge, NeoForge ou Fabric peut être installé, mais le générateur ne
 1. **Outils > Gestionnaire de MDK** : installez au moins un MDK.
 2. L'**accueil** liste vos projets (recherche, tri, récents) : double-cliquez pour en ouvrir un, ou **Ajouter un projet...** pour en référencer un existant. **Fichier > Fermer le projet** y ramène.
 3. **Nouveau projet...** : nom, identifiant, version, auteurs, site web, licence, description et MDK. Tout reste modifiable dans **Projet > Paramètres du projet**, sauf l'identifiant.
-4. Ajoutez du contenu (barre d'outils, menu **Projet** ou panneau Contenu) et réglez-le dans l'Inspector :
+4. Ajoutez du contenu depuis le **Dashboard** ou le menu **Projet**, puis réglez-le dans le panneau **Détails** :
    - **Item** : Visuel, Propriétés, Nourriture ;
    - **Bloc** : Visuel, Propriétés, Récolte, Item ;
    - **Mob** : Apparence, Attributs, IA (comportements par ordre de priorité), Apparition (œuf, biomes), Sons et butin ;
    - **Recette** : établi avec ou sans disposition, ou four ;
+   - **Graphe** : comportements en jeu, dessinés dans l'éditeur nodal (voir plus bas) ;
    - **Importer** : des images PNG (assets Texture) et des sons OGG (assets Son), réutilisables partout.
 5. **Compilation > Générer le mod** (Ctrl+Maj+B) : le `.jar` est copié dans le dossier `Build/` du projet.
 6. **Compilation > Lancer Minecraft** (F5) : lance Minecraft avec le mod. Le contenu se trouve dans un onglet créatif portant le nom du mod.
 
 ## Éditeur
 
-- **Panneaux** : Contenu (recherche et filtre), Explorateur de projet, Accueil, Inspector, Output, Diagnostics. Ils se déplacent, s'empilent ou se détachent ; la disposition est enregistrée. **Affichage > Réinitialiser la disposition** revient à l'origine.
+- **Disposition** : Explorateur à gauche, onglets au centre, Détails à droite, Sortie et Diagnostics en bas. Les panneaux se déplacent, s'empilent ou se détachent ; la disposition est enregistrée. **Affichage > Réinitialiser la disposition** revient à l'origine. Les panneaux s'adaptent à une fenêtre étroite.
+- **Explorateur** (façon VS Code) : arborescence du projet, recherche de fichier, création, renommage et mise à la corbeille ; mis à jour quand les fichiers changent sur le disque. La section Structure liste les classes, méthodes ou clés du fichier ouvert.
+- **Dashboard** : onglet permanent qui liste les éléments du mod (comme MCreator), en liste ou en vignettes, avec filtres par type, recherche, état de validation et nombre d'utilisations.
+- **Onglets de code** : éditeur avec coloration, numéros de ligne et fil d'Ariane. Les fichiers générés et Project.json sont en lecture seule ; un asset s'ouvre en aperçu JSON. Ctrl+W ferme l'onglet ; à l'intérieur, Ctrl+Z agit sur le texte.
+- **Détails** (façon Unreal et Unity) : la cible sélectionnée, puis ses propriétés : l'inspecteur d'un asset, ou les propriétés d'un fichier ouvert.
 - **Annuler / Rétablir** (Ctrl+Z / Ctrl+Y) : toute modification du projet, y compris l'ajout et la suppression d'assets et les paramètres du projet.
 - **Références** : textures, sons et items sont désignés par leur identifiant interne ; on peut renommer un asset sans casser ce qui l'utilise. L'Inspector affiche « Utilisé par », et supprimer un asset utilisé demande confirmation.
 - **Anciens projets** : un projet V0.1 ou V0.2 est converti à l'ouverture (ses textures deviennent des assets) ; enregistrez pour écrire le nouveau format.
@@ -67,8 +72,17 @@ Tout MDK Forge, NeoForge ou Fabric peut être installé, mais le générateur ne
 - **Sauvegardes** : enregistrement automatique (5 minutes par défaut) et sauvegardes de secours dans `.mineengine\backups` du projet.
 - **Journal** : la console Output est aussi écrite dans `%LOCALAPPDATA%\MineEngine\logs`.
 
-## Paramètres
+## Graphes nodaux
 
+Un **graphe** décrit des comportements sans écrire de Java, comme les Blueprints d'Unreal : un **événement** (clic droit sur un bloc, utilisation d'un item, connexion d'un joueur, bloc cassé) déclenche une suite de **conditions** (possède l'item, tient l'item, est accroupi, chance, si) et d'**actions** (faire apparaître, donner ou retirer un item, envoyer un message, jouer un son, placer un bloc, explosion, annuler l'événement). Les nœuds de **valeurs** calculent des nombres, des textes, des positions ou des conditions.
+
+- **+ Graphe** dans le Dashboard crée un graphe et l'ouvre ; un double-clic sur un graphe le rouvre.
+- Le fil blanc donne l'ordre d'exécution ; les fils colorés portent des valeurs (rouge : booléen, vert : nombre, rose : texte, bleu : joueur, orange : position). Une entrée non reliée se règle directement sur le nœud.
+- **Clic droit** : ajouter un nœud (recherche). **Glisser une broche** vers une autre : relier ; dans le vide : choisir un nœud qui s'y branche. **Alt+clic** : débrancher. **Clic droit glissé** ou molette pressée : déplacer la vue ; **molette** : zoom ; **F** : tout afficher ; **Suppr**, **Ctrl+D**, **Ctrl+A**.
+- Les nœuds incomplets sont entourés de rouge (erreur) ou d'orange (avertissement) ; Détails et Diagnostics listent les problèmes, un clic montre le nœud. Tout s'annule avec Ctrl+Z et s'enregistre avec le projet.
+- À la compilation, chaque graphe devient une classe Java (MonGrapheBehavior) inscrite sur le bus d'événements de Forge ou NeoForge.
+
+## Paramètres
 **Outils > Paramètres** (Ctrl+,) : onglet **Apparence** pour le thème clair, sombre ou identique à Windows ; onglet **Sauvegarde** pour l'intervalle de sauvegarde automatique et le nombre de sauvegardes de secours. Le choix s'applique immédiatement et est enregistré dans `%LOCALAPPDATA%\MineEngine\settings.json`.
 
 ## Architecture
@@ -76,9 +90,9 @@ Tout MDK Forge, NeoForge ou Fabric peut être installé, mais le générateur ne
 ```
 src/
   MineEngine.Core        identifiants, Asset, historique annuler/rétablir, diagnostics, journaux, JSON, fichiers
-  MineEngine.Assets      Item, Block, Mob (IA), Recipe, Texture, Sound, AssetRegistry, sérialisation, migration
+  MineEngine.Assets      Item, Block, Mob (IA), Recipe, Texture, Sound, Graph (nœuds, validation), AssetRegistry, sérialisation
   MineEngine.Project     ModProject, ProjectLayout, ProjectRepository, AssetFileImporter
-  MineEngine.IR          Mod IR et traduction des assets (ModIRBuilder)
+  MineEngine.IR          Mod IR et traduction des assets (ModIRBuilder), GraphCompiler (graphe vers IRBehavior)
   MineEngine.Minecraft   MDK (bibliothèque, inspection, catalogue), backends Forge et NeoForge, ressources
   MineEngine.Generator   ModGenerator : Mod IR vers projet Gradle
   MineEngine.Build       BuildPipeline, JdkLocator, GradleRunner
@@ -100,11 +114,10 @@ Règles :
 ```
 MonMod/
   Project.json      paramètres du projet (dont le MDK choisi)
-  Content/          un fichier .asset.json par asset, rangé par type (Items/, Blocks/, Mobs/, Recipes/, Textures/, Sounds/)
+  Content/          un fichier .asset.json par asset, rangé par type (Items/, Blocks/, Mobs/, Recipes/, Textures/, Sounds/, Graphs/)
   Textures/         images PNG importées
   Sounds/           sons OGG importés
   Scripts/          réservé au code Java de l'utilisateur (V1.1)
-  Graphs/           réservé aux graphes nodaux (V0.4)
   Generated/        projet Gradle généré à partir du MDK, réécrit à chaque build (run/ est conservé)
   Build/            mods .jar produits
 ```
