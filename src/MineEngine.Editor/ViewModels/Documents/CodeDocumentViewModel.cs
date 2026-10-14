@@ -1,6 +1,10 @@
 using System.Globalization;
+using System.Windows.Input;
 using System.Windows.Threading;
 using ICSharpCode.AvalonEdit.Document;
+using MineEngine.Core.Diagnostics;
+using MineEngine.Editor.Mvvm;
+using MineEngine.Minecraft.Java;
 
 namespace MineEngine.Editor.ViewModels.Documents;
 
@@ -22,6 +26,9 @@ public interface IDetailsTarget
 /// <summary>Un segment du fil d'Ariane au-dessus de l'éditeur ("Projet > scripts > terrain.java").</summary>
 public sealed record BreadcrumbSegment(string Name, bool IsLast);
 
+/// <summary>Problème signalé sur une ligne du fichier (erreur javac de la dernière compilation).</summary>
+public sealed record CodeMarker(int Line, DiagnosticSeverity Severity, string Message);
+
 /// <summary>
 /// Un onglet de code : texte (document AvalonEdit), position du curseur, structure,
 /// état modifié. Les sous-classes disent d'où vient le texte et comment l'enregistrer.
@@ -33,6 +40,8 @@ public abstract class CodeDocumentViewModel : DocumentViewModel
     private readonly DispatcherTimer _outlineTimer;
     private int _line = 1;
     private int _column = 1;
+    private int _pendingLine;
+    private IReadOnlyList<CodeMarker> _markers = [];
 
     protected CodeDocumentViewModel(string id, string displayPath, string extension)
         : base(id, displayPath)
@@ -46,12 +55,34 @@ public abstract class CodeDocumentViewModel : DocumentViewModel
             _outlineTimer.Stop();
             Outline = OutlineBuilder.Build(Extension, Document.Text);
         };
+        FormatCommand = new RelayCommand(Format, () => CanFormat);
+        SaveCommand = new RelayCommand(() => Save(), () => !IsReadOnly && IsDirty);
     }
 
     /// <summary>Demande à la vue d'afficher une ligne (clic dans la structure).</summary>
     public event EventHandler<int>? LineRequested;
 
     public string Extension { get; }
+
+    public bool IsJava => string.Equals(Extension, ".java", StringComparison.OrdinalIgnoreCase);
+
+    public bool CanFormat => IsJava && !IsReadOnly;
+
+    /// <summary>Enregistre cet onglet.</summary>
+    public ICommand SaveCommand { get; }
+
+    /// <summary>Réindente tout le fichier Java (une seule étape d'annulation).</summary>
+    public ICommand FormatCommand { get; }
+
+    /// <summary>Propositions de l'auto-complétion (fichiers Java du projet), vide sinon.</summary>
+    public IReadOnlyList<JavaCompletionEntry> Completions { get; set; } = [];
+
+    /// <summary>Problèmes de la dernière compilation situés dans ce fichier.</summary>
+    public IReadOnlyList<CodeMarker> Markers
+    {
+        get => _markers;
+        set => SetProperty(ref _markers, value ?? []);
+    }
 
     public TextDocument Document { get; }
 
@@ -148,7 +179,26 @@ public abstract class CodeDocumentViewModel : DocumentViewModel
         }
     }
 
-    public void GoToLine(int line) => LineRequested?.Invoke(this, Math.Clamp(line, 1, Math.Max(1, Document.LineCount)));
+    /// <summary>Affiche une ligne ; si la vue n'existe pas encore, elle l'affichera à son ouverture.</summary>
+    public void GoToLine(int line)
+    {
+        int target = Math.Clamp(line, 1, Math.Max(1, Document.LineCount));
+        if (LineRequested is null)
+        {
+            _pendingLine = target;
+            return;
+        }
+
+        LineRequested(this, target);
+    }
+
+    /// <summary>Ligne demandée avant que la vue soit prête (0 si aucune) ; elle n'est rendue qu'une fois.</summary>
+    public int TakePendingLine()
+    {
+        int line = _pendingLine;
+        _pendingLine = 0;
+        return line;
+    }
 
     public override void Navigate(OutlineItem item) => GoToLine(item.Line);
 
@@ -168,6 +218,15 @@ public abstract class CodeDocumentViewModel : DocumentViewModel
     {
         Document.UndoStack.MarkAsOriginalFile();
         IsDirty = false;
+    }
+
+    private void Format()
+    {
+        string formatted = new JavaFormatter(IndentationLabel.StartsWith('2') ? 2 : 4).Format(Document.Text);
+        if (formatted != Document.Text)
+        {
+            Document.Replace(0, Document.TextLength, formatted);
+        }
     }
 
     private void OnTextChanged()

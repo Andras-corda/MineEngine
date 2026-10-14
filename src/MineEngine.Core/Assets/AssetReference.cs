@@ -14,6 +14,9 @@ public enum AssetReferenceKind
 
     /// <summary>Un asset Block.</summary>
     Block,
+
+    /// <summary>Une définition de programme (graphe : fonction, classe, structure, interface, énumération).</summary>
+    Definition,
 }
 
 /// <summary>

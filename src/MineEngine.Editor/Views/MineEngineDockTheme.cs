@@ -61,9 +61,9 @@ public sealed class MineEngineDockTheme : DictionaryTheme
         (Keys.NavigatorWindowSelectedBackground, "NavSelectedBrush"),
         (Keys.NavigatorWindowSelectedText, "StrongTextBrush"),
 
-        // Onglets de documents (Dashboard, fichiers) : sélection lilas comme la barre latérale de l'accueil
-        (Keys.DocumentWellTabSelectedActiveBackground, "NavSelectedBrush"),
-        (Keys.DocumentWellTabSelectedActiveText, "StrongTextBrush"),
+        // Onglets de documents (Dashboard, fichiers) : l'onglet actif est bleu plein, les autres discrets
+        (Keys.DocumentWellTabSelectedActiveBackground, "AccentBrush"),
+        (Keys.DocumentWellTabSelectedActiveText, "AccentForegroundBrush"),
         (Keys.DocumentWellTabSelectedInactiveBackground, "CardBrush"),
         (Keys.DocumentWellTabSelectedInactiveText, "StrongTextBrush"),
         (Keys.DocumentWellTabUnselectedBackground, "SidebarBrush"),
@@ -72,13 +72,13 @@ public sealed class MineEngineDockTheme : DictionaryTheme
         (Keys.DocumentWellTabUnselectedHoveredText, "StrongTextBrush"),
 
         // Bouton de fermeture des onglets de documents
-        (Keys.DocumentWellTabButtonSelectedActiveGlyph, "BadgeTextBrush"),
-        (Keys.DocumentWellTabButtonSelectedActiveHoveredBackground, "CardHoverBrush"),
-        (Keys.DocumentWellTabButtonSelectedActiveHoveredBorder, "CardHoverBrush"),
-        (Keys.DocumentWellTabButtonSelectedActiveHoveredGlyph, "StrongTextBrush"),
-        (Keys.DocumentWellTabButtonSelectedActivePressedBackground, "BadgeBrush"),
-        (Keys.DocumentWellTabButtonSelectedActivePressedBorder, "BadgeBrush"),
-        (Keys.DocumentWellTabButtonSelectedActivePressedGlyph, "StrongTextBrush"),
+        (Keys.DocumentWellTabButtonSelectedActiveGlyph, "AccentForegroundBrush"),
+        (Keys.DocumentWellTabButtonSelectedActiveHoveredBackground, "AccentHoverBrush"),
+        (Keys.DocumentWellTabButtonSelectedActiveHoveredBorder, "AccentHoverBrush"),
+        (Keys.DocumentWellTabButtonSelectedActiveHoveredGlyph, "AccentForegroundBrush"),
+        (Keys.DocumentWellTabButtonSelectedActivePressedBackground, "AccentPressedBrush"),
+        (Keys.DocumentWellTabButtonSelectedActivePressedBorder, "AccentPressedBrush"),
+        (Keys.DocumentWellTabButtonSelectedActivePressedGlyph, "AccentForegroundBrush"),
         (Keys.DocumentWellTabButtonSelectedInactiveGlyph, "HintBrush"),
         (Keys.DocumentWellTabButtonSelectedInactiveHoveredBackground, "CardHoverBrush"),
         (Keys.DocumentWellTabButtonSelectedInactiveHoveredBorder, "CardHoverBrush"),
@@ -125,7 +125,7 @@ public sealed class MineEngineDockTheme : DictionaryTheme
         (Keys.ToolWindowCaptionButtonInactivePressedBorder, "BadgeBrush"),
         (Keys.ToolWindowCaptionButtonInactivePressedGlyph, "StrongTextBrush"),
 
-        // Onglets des panneaux (Sortie / Diagnostics) : texte lilas pour l'onglet actif
+        // Onglets des panneaux (Sortie / Diagnostics) : texte bleu pour l'onglet actif
         (Keys.ToolWindowTabSelectedActiveBackground, "SidebarBrush"),
         (Keys.ToolWindowTabSelectedActiveText, "AccentLineBrush"),
         (Keys.ToolWindowTabSelectedInactiveBackground, "SidebarBrush"),

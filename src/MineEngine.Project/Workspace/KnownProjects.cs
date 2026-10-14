@@ -7,7 +7,7 @@ using MineEngine.Core.Json;
 namespace MineEngine.Project.Workspace;
 
 /// <summary>Projet présent dans la liste de l'accueil.</summary>
-/// <param name="RootDirectory">Dossier du projet (celui qui contient Project.json).</param>
+/// <param name="RootDirectory">Dossier du projet (celui qui contient le fichier .mineengine).</param>
 /// <param name="LastOpened">Dernière ouverture dans l'éditeur, ou null s'il n'a jamais été ouvert.</param>
 public sealed record KnownProject(string RootDirectory, DateTimeOffset? LastOpened);
 

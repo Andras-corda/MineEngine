@@ -109,8 +109,8 @@
                 <StackPanel>
                     <Border Style="{StaticResource DetailsSection}">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource PanelCaption}" Text="GRAPHE" Margin="0,0,0,6" />
-                            <DockPanel>
+                            <TextBlock Style="{StaticResource PanelCaption}" Text="{Binding DetailsBadge}" Margin="0,0,0,6" />
+                            <DockPanel Visibility="{Binding IsEventGraph, Converter={StaticResource BoolToVisibility}}">
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding EventCount}" />
                                 <TextBlock Style="{StaticResource DetailsLabel}" Text="Événements" />
                             </DockPanel>

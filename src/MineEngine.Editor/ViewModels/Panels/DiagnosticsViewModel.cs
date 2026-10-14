@@ -32,24 +32,25 @@ public sealed class DiagnosticItemViewModel
     /// <summary>"Validation" ou "Build".</summary>
     public string Origin { get; }
 
-    public bool CanNavigate => Diagnostic.AssetId is not null;
+    public bool CanNavigate => Diagnostic.AssetId is not null || Diagnostic.FilePath is not null;
 }
 
 /// <summary>
 /// Panneau Diagnostics : problèmes de la dernière validation (mise à jour à chaque
-/// modification) et du dernier build. Un double-clic mène à l'asset concerné.
+/// modification) et du dernier build. Un double-clic mène à l'élément concerné, ou au fichier
+/// Java à la ligne de l'erreur.
 /// </summary>
 public sealed class DiagnosticsViewModel : ObservableObject
 {
     private const string ValidationOrigin = "Validation";
     private const string BuildOrigin = "Build";
 
-    private readonly Action<Guid> _navigateToAsset;
+    private readonly Action<Diagnostic> _navigate;
     private DiagnosticItemViewModel? _selectedItem;
 
-    public DiagnosticsViewModel(Action<Guid> navigateToAsset)
+    public DiagnosticsViewModel(Action<Diagnostic> navigate)
     {
-        _navigateToAsset = navigateToAsset ?? throw new ArgumentNullException(nameof(navigateToAsset));
+        _navigate = navigate ?? throw new ArgumentNullException(nameof(navigate));
         NavigateCommand = new RelayCommand(Navigate, () => _selectedItem?.CanNavigate == true);
     }
 
@@ -124,9 +125,9 @@ public sealed class DiagnosticsViewModel : ObservableObject
 
     private void Navigate()
     {
-        if (_selectedItem?.Diagnostic.AssetId is { } id)
+        if (_selectedItem is { CanNavigate: true } item)
         {
-            _navigateToAsset(id);
+            _navigate(item.Diagnostic);
         }
     }
 }

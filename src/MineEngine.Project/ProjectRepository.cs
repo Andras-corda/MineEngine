@@ -4,6 +4,7 @@ using MineEngine.Core.Assets;
 using MineEngine.Core.Identifiers;
 using MineEngine.Core.IO;
 using MineEngine.Core.Json;
+using MineEngine.Project.Migration;
 using MineEngine.Project.Serialization;
 
 namespace MineEngine.Project;
@@ -11,7 +12,7 @@ namespace MineEngine.Project;
 /// <summary>Création, ouverture et enregistrement des projets sur le disque.</summary>
 public sealed class ProjectRepository
 {
-    private const string ProjectGitIgnore = "Generated/\nBuild/\n.mineengine/\n";
+    private const string ProjectGitIgnore = "build/\nrun/\n.gradle/\n.mineengine/\n";
 
     private readonly AssetSerializer _assetSerializer;
     private readonly ProjectSettingsSerializer _settingsSerializer;
@@ -35,7 +36,7 @@ public sealed class ProjectRepository
             throw new IOException($"Le dossier '{rootDirectory}' existe déjà et n'est pas vide.");
         }
 
-        var layout = new ProjectLayout(rootDirectory);
+        var layout = new ProjectLayout(rootDirectory, ProjectLayout.DefaultProjectFileName(Path.GetFileName(rootDirectory)));
         layout.EnsureDirectories();
         AtomicFile.WriteAllText(Path.Combine(layout.RootDirectory, ".gitignore"), ProjectGitIgnore);
 
@@ -44,7 +45,10 @@ public sealed class ProjectRepository
         return project;
     }
 
-    /// <summary>Ouvre un projet à partir de son fichier Project.json ou de son dossier.</summary>
+    /// <summary>
+    /// Ouvre un projet à partir de son fichier .mineengine ou de son dossier. Un projet
+    /// d'une version antérieure (Project.json) est d'abord converti à la nouvelle organisation.
+    /// </summary>
     public ModProject Open(string projectFileOrDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(projectFileOrDirectory);
@@ -52,24 +56,33 @@ public sealed class ProjectRepository
         string rootDirectory = Directory.Exists(projectFileOrDirectory)
             ? projectFileOrDirectory
             : Path.GetDirectoryName(Path.GetFullPath(projectFileOrDirectory))!;
-        var layout = new ProjectLayout(rootDirectory);
+        IReadOnlyList<string> layoutNotes = [];
+        if (LegacyLayoutMigrator.NeedsMigration(rootDirectory))
+        {
+            layoutNotes = new LegacyLayoutMigrator().Migrate(rootDirectory);
+        }
+
+        string? requestedFile = File.Exists(projectFileOrDirectory)
+            && projectFileOrDirectory.EndsWith(ProjectLayout.ProjectFileExtension, StringComparison.OrdinalIgnoreCase)
+            ? Path.GetFileName(projectFileOrDirectory)
+            : null;
+        var layout = new ProjectLayout(rootDirectory, requestedFile);
 
         if (!File.Exists(layout.ProjectFile))
         {
-            throw new FileNotFoundException($"Aucun fichier {ProjectLayout.ProjectFileName} dans '{rootDirectory}'.");
+            throw new FileNotFoundException($"Aucun projet Mine Engine (*{ProjectLayout.ProjectFileExtension}) dans '{rootDirectory}'.");
         }
 
-        ProjectSettings settings = _settingsSerializer.Deserialize(
-            File.ReadAllText(layout.ProjectFile), ProjectLayout.ProjectFileName);
+        ProjectSettings settings = _settingsSerializer.Deserialize(File.ReadAllText(layout.ProjectFile), layout.ProjectFileName);
 
         var documents = new List<AssetDocument>();
-        if (Directory.Exists(layout.ContentDirectory))
+        if (Directory.Exists(layout.ElementsDirectory))
         {
             foreach (string file in Directory
-                         .EnumerateFiles(layout.ContentDirectory, "*" + AssetSerializer.FileExtension, SearchOption.AllDirectories)
+                         .EnumerateFiles(layout.ElementsDirectory, "*" + AssetSerializer.FileExtension, SearchOption.AllDirectories)
                          .Order(StringComparer.Ordinal))
             {
-                string sourceName = "Content/" + Path.GetRelativePath(layout.ContentDirectory, file).Replace(Path.DirectorySeparatorChar, '/');
+                string sourceName = layout.ToRelativePath(file);
                 documents.Add(new AssetDocument(JsonFormatting.ParseObject(File.ReadAllText(file), sourceName), sourceName));
             }
         }
@@ -84,7 +97,7 @@ public sealed class ProjectRepository
         }
 
         layout.EnsureDirectories();
-        var project = new ModProject(layout, settings, assets) { LoadNotes = migration.Notes };
+        var project = new ModProject(layout, settings, assets) { LoadNotes = [.. layoutNotes, .. migration.Notes] };
         if (migration.HasChanges)
         {
             project.MarkDirty();
@@ -112,7 +125,7 @@ public sealed class ProjectRepository
         }
 
         foreach (string file in Directory.EnumerateFiles(
-                     layout.ContentDirectory, "*" + AssetSerializer.FileExtension, SearchOption.AllDirectories))
+                     layout.ElementsDirectory, "*" + AssetSerializer.FileExtension, SearchOption.AllDirectories))
         {
             if (!writtenFiles.Contains(Path.GetFullPath(file)))
             {

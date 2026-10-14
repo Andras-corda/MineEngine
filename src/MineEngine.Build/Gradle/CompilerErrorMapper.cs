@@ -39,9 +39,10 @@ public sealed class CompilerErrorMapper
 
             SourceMapEntry? entry = sourceMap.Find(relative, lineNumber);
             string message = "Java : " + match.Groups["message"].Value.Trim();
+            // Le workspace est le dossier du projet : le chemin sert aussi à ouvrir le fichier.
             diagnostics.Add(entry is null
-                ? new Diagnostic(severity, message, $"{relative}:{lineNumber}")
-                : new Diagnostic(severity, message, entry.Label, entry.AssetId));
+                ? new Diagnostic(severity, message, $"{relative}:{lineNumber}") { FilePath = relative, Line = lineNumber }
+                : new Diagnostic(severity, message, entry.Label, entry.AssetId) { FilePath = relative, Line = lineNumber });
         }
 
         return diagnostics;

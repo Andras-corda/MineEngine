@@ -3,30 +3,30 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- Fonds et surfaces (palette de l'accueil, reprise dans tout l'éditeur et dans les panneaux AvalonDock) -->
-    <SolidColorBrush x:Key="HubBackgroundBrush" Color="#1F1F22" />
-    <SolidColorBrush x:Key="SidebarBrush" Color="#1A1A1D" />
-    <SolidColorBrush x:Key="CardBrush" Color="#27272B" />
-    <SolidColorBrush x:Key="CardHoverBrush" Color="#2E2E33" />
-    <SolidColorBrush x:Key="CardBorderBrush" Color="#38383E" />
-    <SolidColorBrush x:Key="CardSelectedBrush" Color="#2E2531" />
-    <SolidColorBrush x:Key="CardSelectedBorderBrush" Color="#C98BD0" />
-    <SolidColorBrush x:Key="NavSelectedBrush" Color="#3A2C3E" />
-    <SolidColorBrush x:Key="AccentLineBrush" Color="#D493DA" />
-    <SolidColorBrush x:Key="BadgeBrush" Color="#333338" />
-    <SolidColorBrush x:Key="BadgeTextBrush" Color="#B9B9C2" />
-    <SolidColorBrush x:Key="LinkBrush" Color="#E2A8E9" />
-    <SolidColorBrush x:Key="PreviewGridBrush" Color="#303036" />
+    <SolidColorBrush x:Key="HubBackgroundBrush" Color="#1B1D23" />
+    <SolidColorBrush x:Key="SidebarBrush" Color="#15171C" />
+    <SolidColorBrush x:Key="CardBrush" Color="#21242B" />
+    <SolidColorBrush x:Key="CardHoverBrush" Color="#292D35" />
+    <SolidColorBrush x:Key="CardBorderBrush" Color="#2E333D" />
+    <SolidColorBrush x:Key="CardSelectedBrush" Color="#1A2A40" />
+    <SolidColorBrush x:Key="CardSelectedBorderBrush" Color="#3B8EEA" />
+    <SolidColorBrush x:Key="NavSelectedBrush" Color="#1E3A5F" />
+    <SolidColorBrush x:Key="AccentLineBrush" Color="#3B8EEA" />
+    <SolidColorBrush x:Key="BadgeBrush" Color="#2A2F38" />
+    <SolidColorBrush x:Key="BadgeTextBrush" Color="#AEB7C4" />
+    <SolidColorBrush x:Key="LinkBrush" Color="#6CB6FF" />
+    <SolidColorBrush x:Key="PreviewGridBrush" Color="#2B3039" />
 
     <!-- Texte -->
-    <SolidColorBrush x:Key="StrongTextBrush" Color="#F2F2F5" />
-    <SolidColorBrush x:Key="HintBrush" Color="#A1A1AB" />
+    <SolidColorBrush x:Key="StrongTextBrush" Color="#EEF1F5" />
+    <SolidColorBrush x:Key="HintBrush" Color="#97A0AD" />
 
     <!-- Inspecteur : badges de type, aperçus de texture -->
-    <SolidColorBrush x:Key="TypeBadgeBrush" Color="#333338" />
-    <SolidColorBrush x:Key="TypeBadgeTextBrush" Color="#B9B9C2" />
-    <SolidColorBrush x:Key="PreviewBackgroundBrush" Color="#1A1A1D" />
-    <SolidColorBrush x:Key="PreviewBorderBrush" Color="#38383E" />
-    <SolidColorBrush x:Key="SplitterBrush" Color="#38383E" />
+    <SolidColorBrush x:Key="TypeBadgeBrush" Color="#2A2F38" />
+    <SolidColorBrush x:Key="TypeBadgeTextBrush" Color="#AEB7C4" />
+    <SolidColorBrush x:Key="PreviewBackgroundBrush" Color="#15171C" />
+    <SolidColorBrush x:Key="PreviewBorderBrush" Color="#2E333D" />
+    <SolidColorBrush x:Key="SplitterBrush" Color="#2E333D" />
 
     <!-- Journal et diagnostics -->
     <SolidColorBrush x:Key="LogDebugBrush" Color="#8A8A94" />
@@ -34,14 +34,31 @@
     <SolidColorBrush x:Key="LogWarningBrush" Color="#E0A93A" />
     <SolidColorBrush x:Key="LogErrorBrush" Color="#FF6B6B" />
 
-    <!-- Sélection dans les listes et arbres : remplace l'accent vif de ModernWpf par la sélection de l'accueil -->
-    <SolidColorBrush x:Key="ListBoxItemUnselectedBackgroundPointerOverThemeBrush" Color="#2E2E33" />
-    <SolidColorBrush x:Key="ListBoxItemSelectedBackgroundThemeBrush" Color="#3A2C3E" />
-    <SolidColorBrush x:Key="ListBoxItemSelectedBackgroundPointerOverThemeBrush" Color="#44344A" />
-    <SolidColorBrush x:Key="ListBoxItemSelectedForegroundThemeBrush" Color="#F2F2F5" />
-    <SolidColorBrush x:Key="TreeViewItemBackgroundPointerOver" Color="#2E2E33" />
-    <SolidColorBrush x:Key="TreeViewItemBackgroundSelected" Color="#3A2C3E" />
-    <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPointerOver" Color="#44344A" />
-    <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPressed" Color="#4E3B55" />
+    <!-- Sélection dans les listes et arbres : sélection bleue, plus discrète que l'accent de ModernWpf -->
+    <SolidColorBrush x:Key="ListBoxItemUnselectedBackgroundPointerOverThemeBrush" Color="#292D35" />
+    <SolidColorBrush x:Key="ListBoxItemSelectedBackgroundThemeBrush" Color="#1E3A5F" />
+    <SolidColorBrush x:Key="ListBoxItemSelectedBackgroundPointerOverThemeBrush" Color="#24456F" />
+    <SolidColorBrush x:Key="ListBoxItemSelectedForegroundThemeBrush" Color="#EEF1F5" />
+    <SolidColorBrush x:Key="TreeViewItemBackgroundPointerOver" Color="#292D35" />
+    <SolidColorBrush x:Key="TreeViewItemBackgroundSelected" Color="#1E3A5F" />
+    <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPointerOver" Color="#24456F" />
+    <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPressed" Color="#2A5080" />
+
+    <!-- Accent bleu plein : bouton principal, onglet actif. Remplace aussi les boutons d'accent de ModernWpf. -->
+    <SolidColorBrush x:Key="AccentBrush" Color="#2F7FD8" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#3B8EEA" />
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#2668B3" />
+    <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="AccentButtonBackground" Color="#2F7FD8" />
+    <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="#3B8EEA" />
+    <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="#2668B3" />
+    <SolidColorBrush x:Key="AccentButtonForeground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="#E6EEF8" />
+
+    <!-- Éditeur de code : ligne courante, sélection, marque des lignes en erreur -->
+    <SolidColorBrush x:Key="CodeCurrentLineBrush" Color="#22262E" />
+    <SolidColorBrush x:Key="CodeSelectionBrush" Color="#264F78" />
+    <SolidColorBrush x:Key="CodeErrorLineBrush" Color="#3A1F24" />
 
 </ResourceDictionary>

@@ -16,11 +16,11 @@ public abstract partial class ModJavaEmitter
     /// <summary>Classe Java de l'événement d'un nœud événement : import et nom tel qu'écrit dans le code.</summary>
     protected abstract (string Import, string TypeName) GameEventType(GraphNodeKind eventKind);
 
-    private void WriteBehaviorClass(GenerationContext context, JavaModNaming naming, JavaGameApi api, IRBehavior behavior)
+    private void WriteBehaviorClass(GenerationContext context, JavaModNaming naming, JavaGameApi api, JavaProgramNames names, IRBehavior behavior)
     {
         string className = naming.BehaviorClassFor(behavior.Id);
         string path = naming.SourcePath(naming.BehaviorPackage, className);
-        var java = new BehaviorJava(api);
+        var java = new BehaviorJava(api, names);
         (string bus, string busImport) = GameEventBus;
 
         // Le corps est écrit d'abord : il détermine les imports et les méthodes utilitaires.
@@ -28,6 +28,17 @@ public abstract partial class ModJavaEmitter
         var nodeLines = new List<(int First, int Last, Guid NodeId)>();
         var registered = new List<string>();
         var imports = new SortedSet<string>(StringComparer.Ordinal) { busImport };
+        if (context.Ir.Content.Definitions.Count > 0)
+        {
+            imports.Add(names.Package + ".*");
+        }
+
+        // Variables du graphe : communes à toutes ses réactions, conservées tant que le jeu tourne.
+        foreach (IRVariable variable in behavior.Variables)
+        {
+            imports.UnionWith(JavaProgramNames.ImportsFor(variable.Type));
+            body.Line($"private static {names.JavaType(variable.Type)} {names.Variable(variable.Id)} = {java.Expression(variable.Initial)};");
+        }
 
         foreach ((IREventHandler handler, string method) in HandlerMethods(behavior))
         {
@@ -50,6 +61,7 @@ public abstract partial class ModJavaEmitter
                 }
             }
 
+            WriteLocals(body, java, names, handler.Locals, imports);
             WriteStatements(body, java, handler.Body, nodeLines);
             body.CloseBlock();
         }
@@ -110,6 +122,16 @@ public abstract partial class ModJavaEmitter
         return methods;
     }
 
+    /// <summary>Variables locales qui reçoivent les résultats des nœuds exécutés, initialisées à leur valeur par défaut.</summary>
+    private static void WriteLocals(JavaSourceWriter w, BehaviorJava java, JavaProgramNames names, IReadOnlyList<IRLocal> locals, ISet<string> imports)
+    {
+        foreach (IRLocal local in locals)
+        {
+            imports.UnionWith(JavaProgramNames.ImportsFor(local.Type));
+            w.Line($"{names.JavaType(local.Type)} {local.Name} = {java.DefaultValue(local.Type)};");
+        }
+    }
+
     private static void WriteStatements(
         JavaSourceWriter w, BehaviorJava java, IReadOnlyList<IRStatement> statements, List<(int, int, Guid)> nodeLines)
     {
@@ -118,10 +140,6 @@ public abstract partial class ModJavaEmitter
             int first = w.NextLineNumber;
             switch (statement)
             {
-                case IRActionStatement action:
-                    w.Line(java.Action(action));
-                    break;
-
                 // Une condition sans suite ni d'un côté ni de l'autre n'a aucun effet.
                 case IRIfStatement { Then.Count: 0, Else.Count: 0 }:
                     continue;
@@ -129,11 +147,31 @@ public abstract partial class ModJavaEmitter
                 case IRIfStatement branch:
                     WriteIf(w, java, branch, "if", nodeLines);
                     break;
+
+                default:
+                    foreach (string line in java.Statement(statement))
+                    {
+                        w.Line(line);
+                    }
+
+                    break;
             }
 
             nodeLines.Add((first, statement is IRIfStatement ? first : w.NextLineNumber - 1, statement.NodeId));
         }
     }
+
+    /// <summary>
+    /// Vrai si l'exécution ne peut pas dépasser ces instructions (elles finissent par un retour,
+    /// ou par une condition dont les deux branches finissent par un retour) : Java refuse
+    /// alors toute instruction qui suivrait.
+    /// </summary>
+    private static bool EndsWithReturn(IReadOnlyList<IRStatement> statements) => statements.Count > 0 && statements[^1] switch
+    {
+        IRReturnStatement => true,
+        IRIfStatement branch => EndsWithReturn(branch.Then) && EndsWithReturn(branch.Else),
+        _ => false,
+    };
 
     /// <summary>"if (...) { } else { }", en enchaînant "else if" quand la branche Faux n'est qu'une autre condition.</summary>
     private static void WriteIf(JavaSourceWriter w, BehaviorJava java, IRIfStatement branch, string keyword, List<(int, int, Guid)> nodeLines)

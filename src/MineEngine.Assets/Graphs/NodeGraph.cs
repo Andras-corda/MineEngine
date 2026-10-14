@@ -65,10 +65,12 @@ public sealed class NodeGraph
 
     /// <summary>
     /// Vérifie qu'un fil peut relier ces deux broches ; retourne null si c'est possible,
-    /// sinon la raison du refus (affichée dans l'éditeur).
+    /// sinon la raison du refus (affichée dans l'éditeur). Sans <paramref name="context"/>,
+    /// seuls les nœuds du catalogue sont connus.
     /// </summary>
-    public string? DescribeConnectionProblem(GraphConnection connection)
+    public string? DescribeConnectionProblem(GraphConnection connection, IGraphContext? context = null)
     {
+        context ??= CatalogGraphContext.Instance;
         GraphNode? from = FindNode(connection.FromNode);
         GraphNode? to = FindNode(connection.ToNode);
         if (from is null || to is null)
@@ -81,15 +83,17 @@ public sealed class NodeGraph
             return "Un nœud ne peut pas être relié à lui-même.";
         }
 
-        if (from.Info.FindExecOutput(connection.FromPin) is not null)
+        NodeInfo fromInfo = context.Describe(from);
+        NodeInfo toInfo = context.Describe(to);
+        if (fromInfo.FindExecOutput(connection.FromPin) is not null)
         {
-            return connection.ToPin == NodeInfo.ExecInput && to.Info.HasExecInput
+            return connection.ToPin == NodeInfo.ExecInput && toInfo.HasExecInput
                 ? null
                 : "Un fil d'exécution (blanc) doit arriver sur l'entrée d'exécution d'une condition ou d'une action.";
         }
 
-        PinInfo? output = from.Info.FindOutput(connection.FromPin);
-        PinInfo? input = to.Info.FindInput(connection.ToPin);
+        PinInfo? output = fromInfo.FindOutput(connection.FromPin);
+        PinInfo? input = toInfo.FindInput(connection.ToPin);
         if (output is null || input is null)
         {
             return connection.ToPin == NodeInfo.ExecInput
@@ -102,9 +106,9 @@ public sealed class NodeGraph
             return $"L'entrée « {input.Label} » se règle directement sur le nœud.";
         }
 
-        if (!output.Type.CanFeed(input.Type))
+        if (!context.CanFeed(output.Type, input.Type))
         {
-            return $"Types incompatibles : {output.Type.Label()} vers {input.Type.Label()}.";
+            return $"Types incompatibles : {context.TypeLabel(output.Type)} vers {context.TypeLabel(input.Type)}.";
         }
 
         return CreatesValueCycle(from.Id, to.Id) ? "Ce fil créerait une boucle de valeurs." : null;
@@ -115,14 +119,15 @@ public sealed class NodeGraph
     /// valeur ou d'une sortie d'exécution est remplacé). Un fil invalide lève une exception :
     /// vérifier d'abord avec <see cref="DescribeConnectionProblem"/>.
     /// </summary>
-    public NodeGraph Connect(GraphConnection connection)
+    public NodeGraph Connect(GraphConnection connection, IGraphContext? context = null)
     {
-        if (DescribeConnectionProblem(connection) is { } problem)
+        context ??= CatalogGraphContext.Instance;
+        if (DescribeConnectionProblem(connection, context) is { } problem)
         {
             throw new InvalidOperationException(problem);
         }
 
-        bool isExec = FindNode(connection.FromNode)!.Info.FindExecOutput(connection.FromPin) is not null;
+        bool isExec = context.Describe(FindNode(connection.FromNode)!).FindExecOutput(connection.FromPin) is not null;
         IEnumerable<GraphConnection> kept = isExec
             ? Connections.Where(c => !(c.FromNode == connection.FromNode && c.FromPin == connection.FromPin))
             : Connections.Where(c => !(c.ToNode == connection.ToNode && c.ToPin == connection.ToPin));

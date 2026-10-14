@@ -235,7 +235,7 @@ public sealed class ProjectHubViewModel : ObservableObject
         if (firstRun && Directory.Exists(defaultProjectsDirectory))
         {
             foreach (string directory in Directory.EnumerateDirectories(defaultProjectsDirectory)
-                         .Where(d => File.Exists(Path.Combine(d, ProjectLayout.ProjectFileName))))
+                         .Where(ProjectLayout.ContainsProject))
             {
                 Upsert(new KnownProject(KnownProjectsStore.Normalize(directory), null));
             }
@@ -262,7 +262,7 @@ public sealed class ProjectHubViewModel : ObservableObject
 
         if (ProjectSummary.TryRead(directory, _settingsSerializer) is null)
         {
-            _dialogs.ShowError("Ajouter un projet", $"Le dossier '{directory}' ne contient pas de projet Mine Engine ({ProjectLayout.ProjectFileName}).");
+            _dialogs.ShowError("Ajouter un projet", $"Le dossier '{directory}' ne contient pas de projet Mine Engine (*{ProjectLayout.ProjectFileExtension}).");
             return;
         }
 

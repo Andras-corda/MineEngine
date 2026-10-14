@@ -35,11 +35,15 @@ public sealed class IRContent
     /// <summary>Comportements issus des graphes nodaux (seulement ceux qui réagissent à au moins un événement).</summary>
     public IReadOnlyList<IRBehavior> Behaviors { get; }
 
+    /// <summary>Fonctions, procédures, classes, structures, interfaces et énumérations des graphes.</summary>
+    public IReadOnlyList<IRDefinition> Definitions { get; init; } = [];
+
     /// <summary>Mobs qui ont un œuf d'apparition.</summary>
     public IEnumerable<IRMob> MobsWithSpawnEgg => Mobs.Where(m => m.SpawnEgg is not null);
 
     public bool IsEmpty =>
-        Items.Count == 0 && Blocks.Count == 0 && Mobs.Count == 0 && Recipes.Count == 0 && Sounds.Count == 0 && Behaviors.Count == 0;
+        Items.Count == 0 && Blocks.Count == 0 && Mobs.Count == 0 && Recipes.Count == 0 && Sounds.Count == 0 && Behaviors.Count == 0
+        && Definitions.Count == 0;
 
     /// <summary>Tous les éléments qui ont une forme item (items, puis blocs avec item).</summary>
     public IEnumerable<IRElement> ElementsWithItemForm =>

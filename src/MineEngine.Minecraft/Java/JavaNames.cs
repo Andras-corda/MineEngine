@@ -17,6 +17,9 @@ public static class JavaNames
         "record", "yield", "sealed", "permits", "module", "exports", "requires", "opens",
     };
 
+    /// <summary>Vrai pour un mot réservé de Java (inutilisable comme nom).</summary>
+    public static bool IsKeyword(string word) => Keywords.Contains(word);
+
     /// <summary>"magic_sword" devient "MAGIC_SWORD".</summary>
     public static string ToConstantName(ResourceId id) => id.Value.ToUpperInvariant();
 

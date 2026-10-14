@@ -27,7 +27,7 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
     {
         Model = model ?? throw new ArgumentNullException(nameof(model));
         Context = context ?? throw new ArgumentNullException(nameof(context));
-        TypeLabel = typeLabel;
+        _typeLabel = typeLabel;
         _resourceIdText = model.ResourceId.Value;
         OpenAssetCommand = new RelayCommand<Guid>(id => Context.SelectAsset(id));
         Model.Changed += OnModelChanged;
@@ -35,7 +35,10 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
 
     public Asset Model { get; }
 
-    public string TypeLabel { get; }
+    private readonly string _typeLabel;
+
+    /// <summary>Type affiché ("Item", "Fonction"...).</summary>
+    public virtual string TypeLabel => _typeLabel;
 
     /// <summary>Texte affiché dans la liste du contenu.</summary>
     public string Header => string.IsNullOrWhiteSpace(Model.DisplayName) ? Model.ResourceId.Value : Model.DisplayName;
@@ -73,10 +76,13 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
 
     public string DetailsBadge => TypeLabel.ToUpperInvariant();
 
+    /// <summary>Dossier du Dashboard qui contient l'élément ("Armes/Épées"), ou "Racine".</summary>
+    public string FolderLabel => Model.Folder.Length == 0 ? "Racine" : Model.Folder;
+
     public string DetailsSubtitle => HasGameId ? FullResourceId : Model.ResourceId.Value;
 
     /// <summary>Glyphe Segoe MDL2 Assets du type, affiché quand l'asset n'a pas d'image.</summary>
-    public string TypeGlyph => Model.Type switch
+    public virtual string TypeGlyph => Model.Type switch
     {
         AssetType.Item => "\uE8EC",
         AssetType.Block => "\uE80A",
@@ -198,6 +204,10 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
     {
         switch (propertyName)
         {
+            case nameof(Asset.Folder):
+                OnPropertyChanged(nameof(FolderLabel));
+                break;
+
             case nameof(Asset.DisplayName):
                 OnPropertyChanged(nameof(DisplayName));
                 OnPropertyChanged(nameof(Header));

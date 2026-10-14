@@ -5,12 +5,14 @@ using System.Windows.Input;
 using MineEngine.Assets;
 using MineEngine.Assets.Commands;
 using MineEngine.Assets.Definitions;
+using MineEngine.Assets.Graphs;
 using MineEngine.Core.Assets;
 using MineEngine.Core.Commands;
 using MineEngine.Core.Identifiers;
 using MineEngine.Editor.Mvvm;
 using MineEngine.Editor.ViewModels.Assets;
 using MineEngine.Project;
+using MineEngine.Project.Commands;
 
 namespace MineEngine.Editor.ViewModels;
 
@@ -49,8 +51,10 @@ public sealed class AssetTypeFilter : ObservableObject
 }
 
 /// <summary>
-/// Projet ouvert dans l'éditeur : contenu, sélection courante et filtre du Content
-/// Browser. La liste suit le registre d'assets, y compris lors d'une annulation.
+/// Projet ouvert dans l'éditeur : contenu, sélection courante, dossier ouvert et filtre du
+/// Dashboard. La liste suit le registre d'assets et les dossiers, y compris lors d'une
+/// annulation. Sans recherche, le Dashboard montre le contenu du dossier ouvert (ses
+/// sous-dossiers puis ses éléments) ; une recherche porte sur tous les dossiers.
 /// </summary>
 public sealed class ProjectViewModel : ObservableObject, IDisposable
 {
@@ -59,6 +63,9 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
     private string _searchText = string.Empty;
     private AssetTypeFilter _typeFilter;
     private bool _isTileView;
+    private string _currentFolder = string.Empty;
+    private IReadOnlyList<FolderCrumb> _breadcrumb = [];
+    private IReadOnlyList<FolderChoice> _folderChoices = [];
 
     public ProjectViewModel(ModProject model, AssetViewModelFactory factory)
     {
@@ -75,6 +82,8 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         SelectTypeFilterCommand = new RelayCommand<AssetTypeFilter>(f => TypeFilter = f);
         ShowListCommand = new RelayCommand(() => IsTileView = false);
         ShowTilesCommand = new RelayCommand(() => IsTileView = true);
+        OpenFolderCommand = new RelayCommand<string>(path => CurrentFolder = path ?? string.Empty);
+        OpenParentFolderCommand = new RelayCommand(() => CurrentFolder = AssetFolders.Parent(_currentFolder), () => _currentFolder.Length > 0);
 
         foreach (Asset asset in model.Assets)
         {
@@ -83,6 +92,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
 
         FilteredAssets = new ListCollectionView(Assets) { Filter = MatchesFilter };
         UpdateFilterCounts();
+        RefreshFolders();
 
         Model.DirtyStateChanged += OnDirtyStateChanged;
         Model.Assets.Changed += OnRegistryChanged;
@@ -116,6 +126,9 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
             {
                 FilteredAssets.Refresh();
                 OnPropertyChanged(nameof(VisibleCount));
+                OnPropertyChanged(nameof(IsSearching));
+                OnPropertyChanged(nameof(ShowFolders));
+                OnPropertyChanged(nameof(IsFolderEmpty));
             }
         }
     }
@@ -154,6 +167,108 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
 
     public bool IsEmpty => Assets.Count == 0;
 
+    // ----- Dossiers -----
+
+    /// <summary>Dossier ouvert ("" : la racine). Un dossier qui n'existe plus ramène à son parent le plus proche.</summary>
+    public string CurrentFolder
+    {
+        get => _currentFolder;
+        set
+        {
+            string target = AssetFolders.Normalize(value) ?? string.Empty;
+            while (!FolderOperations.Exists(Model, target))
+            {
+                target = AssetFolders.Parent(target);
+            }
+
+            if (SetProperty(ref _currentFolder, target))
+            {
+                SearchText = string.Empty;
+                FilteredAssets.Refresh();
+                RefreshFolders();
+                OnPropertyChanged(nameof(VisibleCount));
+                OnPropertyChanged(nameof(IsInFolder));
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+    }
+
+    public bool IsInFolder => _currentFolder.Length > 0;
+
+    /// <summary>Sous-dossiers directs du dossier ouvert.</summary>
+    public ObservableCollection<FolderItemViewModel> Folders { get; } = [];
+
+    /// <summary>Fil d'Ariane du dossier ouvert, de la racine à lui.</summary>
+    public IReadOnlyList<FolderCrumb> Breadcrumb
+    {
+        get => _breadcrumb;
+        private set => SetProperty(ref _breadcrumb, value);
+    }
+
+    /// <summary>Destinations de "Déplacer vers" : la racine puis tous les dossiers.</summary>
+    public IReadOnlyList<FolderChoice> FolderChoices
+    {
+        get => _folderChoices;
+        private set => SetProperty(ref _folderChoices, value);
+    }
+
+    public bool IsSearching => _searchText.Length > 0;
+
+    /// <summary>Les dossiers s'affichent hors recherche (une recherche porte sur tout le projet).</summary>
+    public bool ShowFolders => !IsSearching && Folders.Count > 0;
+
+    /// <summary>Le dossier ouvert ne contient rien (ni élément ni sous-dossier).</summary>
+    public bool IsFolderEmpty => IsInFolder && !IsSearching && Folders.Count == 0 && VisibleCount == 0;
+
+    /// <summary>Ouvre un dossier (paramètre : son chemin, "" pour la racine).</summary>
+    public ICommand OpenFolderCommand { get; }
+
+    public ICommand OpenParentFolderCommand { get; }
+
+    /// <summary>Relit les dossiers (création, renommage, annulation, élément déplacé).</summary>
+    public void RefreshFolders()
+    {
+        if (!FolderOperations.Exists(Model, _currentFolder))
+        {
+            CurrentFolder = _currentFolder;
+            return;
+        }
+
+        IReadOnlyList<string> all = FolderOperations.AllFolders(Model);
+        List<FolderItemViewModel> folders =
+        [
+            .. all.Where(f => f.Length > 0 && AssetFolders.Parent(f) == _currentFolder)
+                .Select(folder => new FolderItemViewModel(
+                    folder,
+                    Model.Assets.Count(a => AssetFolders.IsWithin(a.Folder, folder)),
+                    all.Count(f => f.Length > 0 && AssetFolders.Parent(f) == folder))),
+        ];
+
+        // Reconstruite seulement si elle change : une saisie dans un élément ne fait pas clignoter la liste.
+        if (!folders.Select(f => (f.Path, f.AssetCount, f.FolderCount)).SequenceEqual(Folders.Select(f => (f.Path, f.AssetCount, f.FolderCount))))
+        {
+            Folders.Clear();
+            foreach (FolderItemViewModel folder in folders)
+            {
+                Folders.Add(folder);
+            }
+        }
+
+        string[] segments = _currentFolder.Length == 0 ? [] : _currentFolder.Split(AssetFolders.Separator);
+        Breadcrumb =
+        [
+            new FolderCrumb("Contenu du mod", string.Empty, segments.Length == 0),
+            .. segments.Select((s, i) => new FolderCrumb(s, string.Join(AssetFolders.Separator, segments[..(i + 1)]), i == segments.Length - 1)),
+        ];
+        FolderChoices =
+        [
+            new FolderChoice(string.Empty, "Contenu du mod (racine)"),
+            .. all.Where(f => f.Length > 0).Select(f => new FolderChoice(f, new string(' ', 4 * f.Count(c => c == AssetFolders.Separator)) + AssetFolders.Name(f))),
+        ];
+        OnPropertyChanged(nameof(ShowFolders));
+        OnPropertyChanged(nameof(IsFolderEmpty));
+    }
+
     public AssetViewModel? SelectedAsset
     {
         get => _selectedAsset;
@@ -182,8 +297,26 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         IAssetDefinition definition = _factory.Catalog.Get(type);
         Asset asset = definition.CreateNew(
             Model.Assets.CreateUniqueResourceId(definition.DefaultResourceIdBase, type), definition.DefaultDisplayName);
+        asset.Folder = _currentFolder;
         History.Execute(new AddAssetCommand(Model.Assets, asset, definition.Label));
         SelectAsset(asset.Id);
+    }
+
+    /// <summary>
+    /// Crée un graphe (étape annulable) : réactions aux événements, fonction, procédure, classe,
+    /// structure, interface ou énumération, avec ses nœuds de départ. Avec <paramref name="owner"/>,
+    /// la définition est intégrée à cette classe et rangée dans son dossier.
+    /// </summary>
+    public GraphAsset AddGraph(GraphKind kind, Guid? owner = null)
+    {
+        GraphAsset? ownerGraph = owner is { } id ? Model.Assets.Find(id) as GraphAsset : null;
+        string baseId = ownerGraph is null ? ProgramPalette.ResourceIdBase(kind) : $"{ownerGraph.ResourceId}_{kind.ToString().ToLowerInvariant()}";
+        string name = kind is GraphKind.Function or GraphKind.Procedure && ownerGraph is not null ? "nouvelle méthode" : ProgramPalette.DefaultName(kind);
+        GraphAsset graph = ProgramPalette.CreateGraph(kind, Model.Assets.CreateUniqueResourceId(baseId, AssetType.Graph), name, owner);
+        graph.Folder = ownerGraph?.Folder ?? _currentFolder;
+        History.Execute(new AddAssetCommand(Model.Assets, graph, kind.Label()));
+        SelectAsset(graph.Id);
+        return graph;
     }
 
     /// <summary>
@@ -202,6 +335,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
             try
             {
                 last = import(Model, file, reservedIds);
+                last.Folder = _currentFolder;
                 commands.Add(new AddAssetCommand(Model.Assets, last, label));
             }
             catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
@@ -237,8 +371,10 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
 
         if (!FilteredAssets.Contains(target))
         {
-            SearchText = string.Empty;
+            // L'élément est ailleurs : on ouvre son dossier, sans recherche ni filtre.
             TypeFilter = TypeFilters[0];
+            CurrentFolder = target.Model.Folder;
+            SearchText = string.Empty;
         }
 
         SelectedAsset = target;
@@ -275,8 +411,12 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
             return false;
         }
 
-        return _searchText.Length == 0
-               || asset.Header.Contains(_searchText, StringComparison.CurrentCultureIgnoreCase)
+        if (_searchText.Length == 0)
+        {
+            return asset.Model.Folder == _currentFolder;
+        }
+
+        return asset.Header.Contains(_searchText, StringComparison.CurrentCultureIgnoreCase)
                || asset.Model.ResourceId.Value.Contains(_searchText, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -322,6 +462,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(VisibleCount));
         OnPropertyChanged(nameof(IsEmpty));
         UpdateFilterCounts();
+        RefreshFolders();
     }
 
     private void UpdateFilterCounts()
@@ -344,7 +485,12 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         _ => label,
     };
 
-    private void OnHistoryChanged(object? sender, EventArgs e) => RefreshSettings();
+    /// <summary>Les dossiers déclarés font partie des paramètres : une annulation peut les changer.</summary>
+    private void OnHistoryChanged(object? sender, EventArgs e)
+    {
+        RefreshSettings();
+        RefreshFolders();
+    }
 
     private void OnDirtyStateChanged(object? sender, EventArgs e) => OnPropertyChanged(nameof(IsDirty));
 }

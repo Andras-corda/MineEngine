@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows.Input;
 using System.Windows.Threading;
+using MineEngine.Assets.Graphs;
 using MineEngine.Build;
 using MineEngine.Core.Assets;
 using MineEngine.Core.Diagnostics;
@@ -77,9 +78,10 @@ public sealed partial class MainViewModel : ObservableObject
 
         ArgumentNullException.ThrowIfNull(createHub);
         Hub = createHub(OpenProjectFromHub);
-        Diagnostics = new DiagnosticsViewModel(NavigateToAsset);
+        Diagnostics = new DiagnosticsViewModel(NavigateToDiagnostic);
         Explorer = new ProjectExplorerViewModel(shell, dialogs, OpenFileFromExplorer, SelectFileFromExplorer);
         InitializeDocumentCommands();
+        InitializeFolderCommands();
         _assetViewModels.Navigation.OpenRequested += (_, e) => OpenAsset(e.Asset, e.NodeId);
 
         _validationTimer = new DispatcherTimer { Interval = ValidationDelay };
@@ -114,7 +116,7 @@ public sealed partial class MainViewModel : ObservableObject
         AddBlockCommand = new RelayCommand(() => AddAndEdit(AssetType.Block), () => CanEdit);
         AddMobCommand = new RelayCommand(() => AddAndEdit(AssetType.Mob), () => CanEdit);
         AddRecipeCommand = new RelayCommand(() => AddAndEdit(AssetType.Recipe), () => CanEdit);
-        AddGraphCommand = new RelayCommand(AddGraph, () => CanEdit);
+        AddGraphCommand = new RelayCommand<GraphKind>(kind => AddGraph(kind), _ => CanEdit);
         ImportTexturesCommand = new RelayCommand(ImportTextures, () => CanEdit);
         ImportSoundsCommand = new RelayCommand(ImportSounds, () => CanEdit);
         ValidateCommand = new RelayCommand(ValidateAndShow, () => HasProject);
@@ -153,6 +155,10 @@ public sealed partial class MainViewModel : ObservableObject
                 _project.Dispose();
             }
 
+            _files?.Dispose();
+            _files = value is null ? null : new ProjectFiles(value.Model);
+            _buildDiagnostics = [];
+            _javaCompletions = null;
             _project = value;
             if (_project is not null)
             {
@@ -540,6 +546,8 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
+        // Le code Java ouvert dans les onglets est compilé tel qu'il est affiché.
+        SaveDirtyDocuments();
         ModProject project = _project.Model;
         SetBusy(new CancellationTokenSource());
         StatusText = runClient ? "Lancement de Minecraft..." : "Build en cours...";
@@ -552,6 +560,7 @@ public sealed partial class MainViewModel : ObservableObject
                 : await _pipeline.BuildAsync(project, _log, _buildCancellation!.Token);
 
             Diagnostics.SetBuildResults(result.Diagnostics.Where(d => d.Severity != DiagnosticSeverity.Info));
+            _buildDiagnostics = [.. result.Diagnostics];
             StatusText = result.Success ? (runClient ? "Minecraft fermé" : "Build réussi") : "Échec du build";
             _lastBuildSummary = result.Success
                 ? $"{(runClient ? "Lancement" : "Build")} réussi le {DateTime.Now:dd/MM à HH:mm} en {result.Duration:mm\\:ss}"
@@ -578,6 +587,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             SetBusy(null);
             Explorer.Refresh();
+            RefreshGeneratedDocuments();
         }
     }
 
@@ -610,16 +620,34 @@ public sealed partial class MainViewModel : ObservableObject
         };
     }
 
-    /// <summary>Double-clic dans Diagnostics : l'asset concerné s'ouvre dans son onglet.</summary>
-    private void NavigateToAsset(Guid assetId)
+    /// <summary>
+    /// Double-clic dans Diagnostics : l'élément concerné s'ouvre dans son onglet ; une erreur
+    /// Java dans du code écrit à la main ou verrouillé ouvre le fichier à la ligne fautive.
+    /// </summary>
+    private void NavigateToDiagnostic(Diagnostic diagnostic)
     {
-        if (_project?.Model.Assets.Find(assetId) is { } asset)
+        if (_project is null)
         {
-            OpenAsset(asset);
+            return;
         }
-        else
+
+        if (diagnostic.AssetId is { } assetId)
         {
-            StatusText = "Cet asset n'existe plus.";
+            if (_project.Model.Assets.Find(assetId) is { } asset)
+            {
+                OpenAsset(asset);
+            }
+            else
+            {
+                StatusText = "Cet élément n'existe plus.";
+            }
+
+            return;
+        }
+
+        if (diagnostic.FilePath is { } path)
+        {
+            OpenFileAtLine(_project.Model.Layout.ToAbsolutePath(path), diagnostic.Line);
         }
     }
 

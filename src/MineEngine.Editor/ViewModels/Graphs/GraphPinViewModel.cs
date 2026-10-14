@@ -19,6 +19,9 @@ public enum PinEditorKind
     Text,
     Boolean,
     Reference,
+
+    /// <summary>Liste des valeurs d'une énumération.</summary>
+    Choice,
 }
 
 /// <summary>
@@ -50,16 +53,16 @@ public sealed class GraphPinViewModel : ObservableObject
 
     public string Label => Info.Label;
 
-    public PinType Type => Info.Type;
+    public DataType Type => Info.Type;
 
-    public bool IsExec => Info.Type == PinType.Exec;
+    public bool IsExec => Info.Type.IsExec;
 
     public bool IsInput => Direction == PinDirection.Input;
 
     /// <summary>Faux pour un champ du nœud qui n'accepte pas de fil (valeur d'une constante).</summary>
     public bool CanConnect => Info.Connectable;
 
-    public string ToolTipText => IsExec ? "Exécution" : $"{Label} ({Type.Label()})";
+    public string ToolTipText => IsExec ? "Exécution" : $"{Label} ({Node.Document.TypeLabel(Type)})";
 
     public bool IsConnected
     {
@@ -74,15 +77,32 @@ public sealed class GraphPinViewModel : ObservableObject
         }
     }
 
-    public PinEditorKind Editor => !IsInput || IsConnected || !Type.HasInlineValue()
+    public PinEditorKind Editor => !IsInput || IsConnected || !Type.HasInlineValue
         ? PinEditorKind.None
-        : Type switch
+        : Type.Kind switch
         {
             PinType.Number => PinEditorKind.Number,
             PinType.Text => PinEditorKind.Text,
             PinType.Boolean => PinEditorKind.Boolean,
+            PinType.Enum => PinEditorKind.Choice,
             _ => PinEditorKind.Reference,
         };
+
+    /// <summary>Valeurs d'une entrée d'énumération.</summary>
+    public IReadOnlyList<EnumConstant> Choices => Info.Choices;
+
+    /// <summary>Valeur d'énumération choisie sur le nœud.</summary>
+    public EnumConstant? ChoiceValue
+    {
+        get => Guid.TryParse(Node.Model.GetValue(Name) ?? Info.DefaultValue, out Guid id) ? Choices.FirstOrDefault(c => c.Id == id) : null;
+        set
+        {
+            if (value is not null)
+            {
+                Node.Document.SetValue(Node, Name, value.Id.ToString("D"));
+            }
+        }
+    }
 
     public bool HasEditor => Editor != PinEditorKind.None;
 
@@ -145,6 +165,7 @@ public sealed class GraphPinViewModel : ObservableObject
 
         OnPropertyChanged(nameof(TextValue));
         OnPropertyChanged(nameof(BoolValue));
+        OnPropertyChanged(nameof(ChoiceValue));
         Picker?.Refresh();
     }
 

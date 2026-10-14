@@ -36,6 +36,11 @@ public sealed class V02ServicesTests
         Assert.Equal("Item 'ruby'", diagnostics[0].Source);
         Assert.Null(diagnostics[1].AssetId);
         Assert.Equal("src/main/java/com/mineengine/mods/test/registry/ModItems.java:3", diagnostics[1].Source);
+
+        // V0.4.2 : le workspace est le projet, le fichier et la ligne servent à ouvrir l'erreur dans l'éditeur.
+        Assert.Equal("src/main/java/com/mineengine/mods/test/registry/ModItems.java", diagnostics[0].FilePath);
+        Assert.Equal(11, diagnostics[0].Line);
+        Assert.Equal(3, diagnostics[1].Line);
     }
 
     [Fact]
@@ -64,8 +69,8 @@ public sealed class V02ServicesTests
         IReadOnlyList<ProjectBackup> kept = backups.List(project);
         Assert.Equal(2, kept.Count);
         using System.IO.Compression.ZipArchive archive = System.IO.Compression.ZipFile.OpenRead(kept[0].File);
-        Assert.Contains(archive.Entries, e => e.FullName == "Content/Items/ruby.asset.json");
-        Assert.Contains(archive.Entries, e => e.FullName == ProjectLayout.ProjectFileName);
+        Assert.Contains(archive.Entries, e => e.FullName == "elements/items/ruby.asset.json");
+        Assert.Contains(archive.Entries, e => e.FullName == project.Layout.ProjectFileName);
     }
 
     [Fact]

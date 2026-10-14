@@ -35,7 +35,7 @@ public sealed class GraphTests
         GraphAsset graph = SampleContent.CreateAltarGraph(Ref("minecraft:emerald"), Diamond);
         Assert.DoesNotContain(GraphValidator.Validate(graph.Graph), i => i.Severity != DiagnosticSeverity.Info);
 
-        IREventHandler handler = Assert.Single(new GraphCompiler(graph.Graph, (r, _) => r.Id).Compile());
+        IREventHandler handler = Assert.Single(new GraphCompiler(graph, new ProgramModel([graph]), (r, _) => r.Id).CompileEvents());
 
         Assert.Equal(GraphNodeKind.OnRightClickBlock, handler.Event);
         IRIfStatement branch = Assert.IsType<IRIfStatement>(Assert.Single(handler.Body));
@@ -192,7 +192,7 @@ public sealed class GraphTests
         Assert.Equal(original.Graph.Nodes.Length, loaded.Graph.Nodes.Length);
         Assert.Equal(original.Graph.Connections.ToHashSet(), loaded.Graph.Connections.ToHashSet());
         Assert.All(original.Graph.Nodes, n => Assert.Equal(n.Values.OrderBy(v => v.Key), loaded.Graph.FindNode(n.Id)!.Values.OrderBy(v => v.Key)));
-        Assert.True(File.Exists(Path.Combine(project.Layout.ContentDirectory, "Graphs", "all_nodes.asset.json")));
+        Assert.True(File.Exists(Path.Combine(project.Layout.ElementsDirectory, "Graphs", "all_nodes.asset.json")));
 
         // Le rubis est utilisé par les deux graphes, par guid : le renommer ne casse rien.
         Asset ruby = reopened.Assets.FindByResourceId(ResourceId.Parse("ruby"), AssetType.Item)!;
@@ -201,7 +201,7 @@ public sealed class GraphTests
         var diagnostics = new DiagnosticBag();
         ModIR ir = ModIRBuilder.CreateDefault().Build(reopened, diagnostics)!;
         Assert.True(ir is not null, string.Join('\n', diagnostics));
-        Assert.Equal(3, ir.Content.Behaviors.Count);
+        Assert.Equal(4, ir.Content.Behaviors.Count);
     }
 
     [Fact]
@@ -261,8 +261,6 @@ public sealed class GraphTests
         public MdkDescriptor Mdk { get; }
 
         public MinecraftVersion MinecraftVersion => Mdk.MinecraftVersion;
-
-        public IReadOnlyList<string> GeneratedSourceRoots => ["src/main/java", "src/main/resources"];
 
         public IReadOnlyList<string> BuildTasks => ["build"];
 

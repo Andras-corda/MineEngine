@@ -123,6 +123,13 @@ public static class NodeCatalog
             "Vrai si les deux nombres sont égaux.",
             inputs: [new PinInfo("a", "A", PinType.Number, "0"), new PinInfo("b", "B", PinType.Number, "0")],
             outputs: [new PinInfo("result", "Résultat", PinType.Boolean)]),
+        Arithmetic(GraphNodeKind.Add, "Addition (+)", "A plus B."),
+        Arithmetic(GraphNodeKind.Subtract, "Soustraction (-)", "A moins B."),
+        Arithmetic(GraphNodeKind.Multiply, "Multiplication (×)", "A fois B."),
+        new(GraphNodeKind.LessThan, NodeCategory.Variable, "Plus petit que (<)",
+            "Vrai si A est strictement plus petit que B.",
+            inputs: [new PinInfo("a", "A", PinType.Number, "0"), new PinInfo("b", "B", PinType.Number, "0")],
+            outputs: [new PinInfo("result", "Résultat", PinType.Boolean)]),
         new(GraphNodeKind.Not, NodeCategory.Variable, "Non (!)",
             "Inverse une condition.",
             inputs: [new PinInfo("value", "Condition", PinType.Boolean, "true")],
@@ -132,13 +139,27 @@ public static class NodeCatalog
     /// <summary>Plus grande valeur acceptée pour un nombre saisi sur un nœud.</summary>
     public const int MaxNumber = 1_000_000;
 
+    /// <summary>Nœuds du catalogue ; les nœuds de programmation (appels, objets...) sont décrits par ProgramModel.</summary>
     public static IReadOnlyCollection<NodeInfo> All => Nodes.Values;
 
     public static NodeInfo Get(GraphNodeKind kind) =>
         Nodes.TryGetValue(kind, out NodeInfo? info) ? info : throw new ArgumentOutOfRangeException(nameof(kind), kind, "Nœud inconnu.");
 
+    /// <summary>Description d'un nœud du catalogue, ou null pour un nœud de programmation.</summary>
+    public static NodeInfo? Find(GraphNodeKind kind) => Nodes.GetValueOrDefault(kind);
+
+    /// <summary>Nœud dont la définition n'existe plus : sans broches, il est signalé en erreur.</summary>
+    public static NodeInfo Missing(GraphNodeKind kind, string title) =>
+        new(kind, NodeCategory.Object, title, "La définition utilisée par ce nœud a été supprimée ou n'est pas accessible ici.",
+            flow: NodeFlow.Pure) { IsMissing = true };
+
     /// <summary>Nœud de l'événement d'un item, par sorte d'événement.</summary>
     public static NodeInfo ForItemEvent(ItemEventKind kind) => Nodes.Values.First(n => n.ItemEvent == kind);
+
+    private static NodeInfo Arithmetic(GraphNodeKind kind, string title, string description) =>
+        new(kind, NodeCategory.Variable, title, description,
+            inputs: [new PinInfo("a", "A", PinType.Number, "0"), new PinInfo("b", "B", PinType.Number, "0")],
+            outputs: [new PinInfo("result", "Résultat", PinType.Number)]);
 
     private static NodeInfo ItemEvent(GraphNodeKind kind, ItemEventKind itemEvent, string title, string description, string positionLabel) =>
         new(kind, NodeCategory.Event, title, description,
@@ -151,6 +172,8 @@ public static class NodeCatalog
         NodeCategory.Condition => "Conditions",
         NodeCategory.Action => "Actions",
         NodeCategory.Variable => "Valeurs",
+        NodeCategory.Function => "Fonctions",
+        NodeCategory.Object => "Objets et variables",
         _ => category.ToString(),
     };
 }

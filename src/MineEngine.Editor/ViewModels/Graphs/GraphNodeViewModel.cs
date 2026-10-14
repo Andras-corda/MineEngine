@@ -19,20 +19,21 @@ public sealed class GraphNodeViewModel : ObservableObject
     private DiagnosticSeverity? _issueSeverity;
     private string? _issueText;
 
-    public GraphNodeViewModel(GraphDocumentViewModel document, GraphNode model, AssetEditingContext context)
+    /// <param name="info">Description du nœud dans ce graphe (les broches d'un appel suivent la fonction appelée).</param>
+    public GraphNodeViewModel(GraphDocumentViewModel document, GraphNode model, NodeInfo info, AssetEditingContext context)
     {
         Document = document ?? throw new ArgumentNullException(nameof(document));
         _model = model ?? throw new ArgumentNullException(nameof(model));
+        Info = info ?? throw new ArgumentNullException(nameof(info));
         _x = model.X;
         _y = model.Y;
-        NodeInfo info = model.Info;
 
         if (info.HasExecInput)
         {
-            ExecInput = new GraphPinViewModel(this, new PinInfo(NodeInfo.ExecInput, string.Empty, PinType.Exec), PinDirection.Input, null);
+            ExecInput = new GraphPinViewModel(this, new PinInfo(NodeInfo.ExecInput, string.Empty, DataType.Exec), PinDirection.Input, null);
         }
 
-        if (info.Category is NodeCategory.Event or NodeCategory.Action)
+        if (info.Flow is NodeFlow.Start or NodeFlow.Step)
         {
             ExecOutput = new GraphPinViewModel(this, info.ExecOutputs[0], PinDirection.Output, null);
         }
@@ -40,7 +41,7 @@ public sealed class GraphNodeViewModel : ObservableObject
         Inputs = [.. info.Inputs.Select(p => new GraphPinViewModel(this, p, PinDirection.Input, CreatePicker(p, context)))];
         Outputs =
         [
-            .. info.Category == NodeCategory.Condition ? info.ExecOutputs.Select(p => new GraphPinViewModel(this, p, PinDirection.Output, null)) : [],
+            .. info.Flow == NodeFlow.Branch ? info.ExecOutputs.Select(p => new GraphPinViewModel(this, p, PinDirection.Output, null)) : [],
             .. info.Outputs.Select(p => new GraphPinViewModel(this, p, PinDirection.Output, null)),
         ];
     }
@@ -51,7 +52,10 @@ public sealed class GraphNodeViewModel : ObservableObject
 
     public Guid Id => _model.Id;
 
-    public NodeInfo Info => _model.Info;
+    public NodeInfo Info { get; }
+
+    /// <summary>Le nœud d'entrée d'une fonction ne se supprime pas : le graphe n'aurait plus de début.</summary>
+    public bool IsEntry => _model.Kind == GraphNodeKind.FunctionEntry;
 
     public string Title => Info.Title;
 
@@ -157,12 +161,12 @@ public sealed class GraphNodeViewModel : ObservableObject
 
     private ReferencePickerViewModel? CreatePicker(PinInfo pin, AssetEditingContext context)
     {
-        if (!pin.Type.IsContentReference())
+        if (!pin.Type.IsContentReference)
         {
             return null;
         }
 
-        ReferenceDomain domain = pin.Type switch
+        ReferenceDomain domain = pin.Type.Kind switch
         {
             PinType.Block => ReferenceDomain.Block,
             PinType.Sound => ReferenceDomain.Sound,

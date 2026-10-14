@@ -6,8 +6,8 @@ using MineEngine.Minecraft.Java;
 namespace MineEngine.Editor.ViewModels.Assets;
 
 /// <summary>
-/// Inspector d'un graphe nodal : nom, identifiant et résumé (événements, nœuds,
-/// problèmes). Le graphe lui-même se modifie dans l'éditeur nodal, ouvert dans un onglet.
+/// Inspector d'un graphe nodal : nom, identifiant, ce qu'il définit et résumé (événements,
+/// nœuds, problèmes). Le graphe lui-même se modifie dans l'éditeur nodal, ouvert dans un onglet.
 /// </summary>
 public sealed class GraphAssetViewModel : AssetViewModel
 {
@@ -25,20 +25,43 @@ public sealed class GraphAssetViewModel : AssetViewModel
 
     public int ConnectionCount => Graph.Graph.Connections.Length;
 
+    /// <summary>"Fonction", "Classe"... ; "Graphe d'événements" pour les réactions au jeu.</summary>
+    public string KindLabel => Graph.Kind.Label();
+
+    /// <summary>Dans le Dashboard : "Graphe" pour les événements, sinon ce que définit le graphe.</summary>
+    public override string TypeLabel => Graph.Kind == GraphKind.Events ? base.TypeLabel : Graph.Kind.Label();
+
+    public override string TypeGlyph => Graph.Kind switch
+    {
+        GraphKind.Function or GraphKind.Procedure => "",
+        GraphKind.Class => "",
+        GraphKind.Struct => "",
+        GraphKind.Interface => "",
+        GraphKind.Enum => "",
+        _ => base.TypeGlyph,
+    };
+
     /// <summary>Événements auxquels réagit le graphe ("Clic droit sur un bloc", ...).</summary>
     public IReadOnlyList<string> Events =>
-        [.. Graph.Graph.Nodes.Where(n => n.Info.Category == NodeCategory.Event).Select(n => n.Info.Title)];
+        [.. Graph.Graph.Nodes.Select(n => NodeCatalog.Find(n.Kind)).OfType<NodeInfo>().Where(i => i.Category == NodeCategory.Event).Select(i => i.Title)];
 
     public bool HasEvents => Events.Count > 0;
 
+    public bool IsEventGraph => Graph.Kind == GraphKind.Events;
+
+    public bool ShowNoEventHint => IsEventGraph && !HasEvents;
+
     /// <summary>Problèmes du graphe (erreurs et avertissements), tels qu'affichés dans Diagnostics.</summary>
     public IReadOnlyList<string> Problems =>
-        [.. GraphValidator.Validate(Graph.Graph).Where(i => i.Severity != DiagnosticSeverity.Info).Select(i => i.Message)];
+        [.. ProgramValidator.Validate(Graph, ProgramModel.From(Context.Project.Assets))
+            .Where(i => i.Severity != DiagnosticSeverity.Info).Select(i => i.Message)];
 
     public bool HasProblems => Problems.Count > 0;
 
-    /// <summary>Nom de la classe Java générée ("magic_altar" devient "MagicAltarBehavior").</summary>
-    public string JavaClassName => JavaModNaming.BehaviorClassName(Model.ResourceId);
+    /// <summary>Nom de la classe Java générée ("magic_altar" devient "MagicAltarBehavior", "Coffre maudit" devient "CoffreMaudit").</summary>
+    public string JavaClassName => Graph.Kind == GraphKind.Events
+        ? JavaModNaming.BehaviorClassName(Model.ResourceId)
+        : ProgramNames.Identifier(ProgramModel.Name(Graph), upperFirst: true);
 
     protected override void OnModelPropertyChanged(string propertyName)
     {
@@ -50,10 +73,11 @@ public sealed class GraphAssetViewModel : AssetViewModel
                 OnPropertyChanged(nameof(ConnectionCount));
                 OnPropertyChanged(nameof(Events));
                 OnPropertyChanged(nameof(HasEvents));
+                OnPropertyChanged(nameof(ShowNoEventHint));
                 OnPropertyChanged(nameof(Problems));
                 OnPropertyChanged(nameof(HasProblems));
                 break;
-            case nameof(GraphAsset.ResourceId):
+            case nameof(GraphAsset.ResourceId) or nameof(GraphAsset.DisplayName):
                 OnPropertyChanged(nameof(JavaClassName));
                 break;
         }

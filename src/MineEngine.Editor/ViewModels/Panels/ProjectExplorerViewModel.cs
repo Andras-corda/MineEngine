@@ -3,6 +3,8 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using MineEngine.Editor.Mvvm;
 using MineEngine.Editor.Services;
+using MineEngine.Minecraft.Java;
+using MineEngine.Minecraft.Mdk;
 using MineEngine.Project;
 
 namespace MineEngine.Editor.ViewModels.Panels;
@@ -124,7 +126,7 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
     /// <summary>Dossiers jamais affichés (caches, sorties de Gradle, outils).</summary>
     private static readonly HashSet<string> HiddenDirectories = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".mineengine", ".gradle", ".git", ".idea", ".vscode", "build", "run", "runs", "bin", "obj", "out",
+        ".mineengine", ".gradle", ".git", ".idea", ".vscode", "build", "run", "runs", "bin", "obj", "out", "gradle",
     };
 
     private readonly IShellService _shell;
@@ -157,6 +159,7 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
         OpenCommand = new RelayCommand<FileNodeViewModel>(Open);
         NewFileCommand = new RelayCommand(() => CreateEntry(isDirectory: false), () => _project is not null);
         NewFolderCommand = new RelayCommand(() => CreateEntry(isDirectory: true), () => _project is not null);
+        NewJavaClassCommand = new RelayCommand<JavaClassKind>(CreateJavaClass, _ => _project is not null);
         RenameCommand = new RelayCommand<FileNodeViewModel>(Rename, node => ProtectionReason(node.FullPath) is null);
         DeleteCommand = new RelayCommand<FileNodeViewModel>(Delete, node => ProtectionReason(node.FullPath) is null);
         RevealCommand = new RelayCommand<FileNodeViewModel>(node => Reveal(node.FullPath));
@@ -206,6 +209,9 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
     public ICommand NewFileCommand { get; }
 
     public ICommand NewFolderCommand { get; }
+
+    /// <summary>Crée une classe Java de l'utilisateur (paramètre : sorte de classe).</summary>
+    public ICommand NewJavaClassCommand { get; }
 
     public ICommand RenameCommand { get; }
 
@@ -310,16 +316,16 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
         string path = Path.TrimEndingDirectorySeparator(Path.GetFullPath(fullPath));
         string[] standard =
         [
-            layout.RootDirectory, layout.ProjectFile, layout.ContentDirectory, layout.TexturesDirectory, layout.SoundsDirectory,
-            layout.ScriptsDirectory, layout.GeneratedDirectory, layout.BuildDirectory,
+            layout.RootDirectory, layout.ProjectFile, layout.ElementsDirectory, layout.TexturesDirectory, layout.SoundsDirectory,
+            layout.SourceDirectory, Path.Combine(layout.SourceDirectory, "main"), layout.JavaSourceDirectory, layout.ResourcesDirectory,
         ];
         if (standard.Any(s => string.Equals(Path.TrimEndingDirectorySeparator(s), path, StringComparison.OrdinalIgnoreCase)))
         {
             return "Dossier ou fichier indispensable au projet.";
         }
 
-        return path.StartsWith(layout.ContentDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-            ? "Les fichiers d'assets se gèrent depuis le Dashboard (renommer l'identifiant, supprimer l'asset)."
+        return path.StartsWith(layout.ElementsDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            ? "Les fichiers des éléments se gèrent depuis le Dashboard (renommer l'identifiant, supprimer l'élément)."
             : null;
     }
 
@@ -369,16 +375,7 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
             return;
         }
 
-        string parent = _selectedNode switch
-        {
-            { IsDirectory: true } directory => directory.FullPath,
-            { } file => Path.GetDirectoryName(file.FullPath)!,
-            _ => _project.Layout.ScriptsDirectory,
-        };
-        if (parent.StartsWith(_project.Layout.ContentDirectory, StringComparison.OrdinalIgnoreCase))
-        {
-            parent = _project.Layout.ScriptsDirectory;
-        }
+        string parent = SelectedFolder() ?? _project.Layout.JavaSourceDirectory;
 
         string? name = _dialogs.AskText(
             isDirectory ? "Nouveau dossier" : "Nouveau fichier",
@@ -430,6 +427,72 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
         {
             _openFile(path);
         }
+    }
+
+    /// <summary>Dossier sélectionné (ou celui du fichier sélectionné), hors elements/ qui se gère dans le Dashboard.</summary>
+    private string? SelectedFolder()
+    {
+        string? folder = _selectedNode switch
+        {
+            { IsDirectory: true } directory => directory.FullPath,
+            { } file => Path.GetDirectoryName(file.FullPath),
+            _ => null,
+        };
+        return folder is not null && !ProjectLayout.IsWithin(folder, _project!.Layout.ElementsDirectory) ? folder : null;
+    }
+
+    /// <summary>
+    /// Crée une classe Java dans le package du dossier sélectionné s'il est sous src/main/java,
+    /// sinon dans le package "custom" du mod, puis l'ouvre. Elle est compilée avec le mod.
+    /// </summary>
+    private void CreateJavaClass(JavaClassKind kind)
+    {
+        if (_project is null)
+        {
+            return;
+        }
+
+        ProjectLayout layout = _project.Layout;
+        string? folder = SelectedFolder();
+        string package = (folder is null ? null : JavaClassTemplates.PackageForFolder(layout.ToRelativePath(folder)))
+            ?? JavaClassTemplates.DefaultPackage(_project.Settings.ModId);
+
+        string? name = _dialogs.AskText("Nouvelle classe Java",
+            $"Nom de la classe (package {(package.Length == 0 ? "par défaut" : package)}) :",
+            kind == JavaClassKind.EventListener ? "MyEvents" : "MyClass");
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        name = name.Trim();
+        if (!JavaClassTemplates.IsValidClassName(name))
+        {
+            _dialogs.ShowError("Nom invalide", $"« {name} » n'est pas un nom de classe Java (lettres, chiffres et _, sans commencer par un chiffre).");
+            return;
+        }
+
+        string path = layout.ToAbsolutePath(JavaClassTemplates.SourcePath(package, name));
+        if (File.Exists(path))
+        {
+            _dialogs.ShowError("Nom déjà utilisé", $"La classe {name} existe déjà dans ce package.");
+            return;
+        }
+
+        ModLoaderKind loader = ModLoaderKindExtensions.FromId(_project.Settings.LoaderId);
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, JavaClassTemplates.Create(kind, package, name, _project.Settings.ModId, loader));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _dialogs.ShowError("Création impossible", exception.Message);
+            return;
+        }
+
+        Refresh();
+        _openFile(path);
     }
 
     private void Rename(FileNodeViewModel node)

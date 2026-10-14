@@ -20,9 +20,6 @@ public interface IModLoaderBackend
 
     MinecraftVersion MinecraftVersion { get; }
 
-    /// <summary>Dossiers du workspace entièrement réécrits à chaque génération.</summary>
-    IReadOnlyList<string> GeneratedSourceRoots { get; }
-
     /// <summary>Tâches Gradle qui produisent le .jar du mod.</summary>
     IReadOnlyList<string> BuildTasks { get; }
 

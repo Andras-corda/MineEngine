@@ -223,8 +223,6 @@ public sealed class GeneratorTests
 
         public MinecraftVersion MinecraftVersion => Mdk.MinecraftVersion;
 
-        public IReadOnlyList<string> GeneratedSourceRoots => ["src/main/java", "src/main/resources"];
-
         public IReadOnlyList<string> BuildTasks => ["build"];
 
         public IReadOnlyList<string> RunClientTasks => ["runClient"];

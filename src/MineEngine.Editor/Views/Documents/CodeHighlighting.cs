@@ -91,15 +91,18 @@ public static class CodeHighlighting
         string n = (name ?? string.Empty).ToLowerInvariant();
         (string Dark, string Light)? pair = n switch
         {
-            _ when n.Contains("comment") => ("#6E7681", "#6A737D"),
-            _ when n.Contains("string") || n.Contains("char") || n.Contains("code") => ("#E2A8E9", "#A1508F"),
+            _ when n.Contains("doctags") || n.Contains("commenttags") => ("#8DBA6F", "#3F7F3F"),
+            _ when n.Contains("comment") => ("#6A9955", "#008000"),
+            _ when n.Contains("statements") => ("#C586C0", "#AF00DB"),
+            _ when n.Contains("valuetypes") || n.Contains("referencetypes") || n.Contains("package") || n == "void" => ("#569CD6", "#0000FF"),
+            _ when n.Contains("string") || n.Contains("char") || n.Contains("code") => ("#CE9178", "#A31515"),
             _ when n.Contains("digit") || n.Contains("number") => ("#B5CEA8", "#098658"),
             _ when n.Contains("method") => ("#DCDCAA", "#795E26"),
-            _ when n.Contains("fieldname") || n.Contains("type") || n.Contains("attribute") => ("#82AAFF", "#1E5BB8"),
+            _ when n.Contains("fieldname") || n.Contains("type") || n.Contains("attribute") => ("#4EC9B0", "#267F99"),
             _ when n.Contains("heading") || n.Contains("keyword") || n.Contains("modifier") || n.Contains("visibility")
                    || n.Contains("this") || n.Contains("null") || n.Contains("bool") || n.Contains("literal")
-                   || n.Contains("intrinsic") || n.Contains("tag") || n.Contains("preprocessor") => ("#D493DA", "#8E3F99"),
-            _ when n.Contains("punctuation") || n.Contains("operator") => ("#C8C8D0", "#4B4B57"),
+                   || n.Contains("intrinsic") || n.Contains("tag") || n.Contains("preprocessor") => ("#569CD6", "#0000FF"),
+            _ when n.Contains("punctuation") || n.Contains("operator") => ("#C8CDD5", "#3B3B3B"),
             _ => null,
         };
 

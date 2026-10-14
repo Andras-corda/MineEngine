@@ -368,7 +368,7 @@
                             <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="1. Installer un MDK. " /><Run Text="Gérer les MDK : Forge 1.20.1, Forge 1.21.1 ou NeoForge 1.21.1, téléchargés en un clic." /></TextBlock>
                             <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="2. Créer un projet. " /><Run Text="Nom, identifiant du mod, version de Minecraft et MDK." /></TextBlock>
                             <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="3. Ajouter du contenu. " /><Run Text="Items, blocs, mobs (avec leur IA), recettes ; importez vos textures PNG et sons OGG." /></TextBlock>
-                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="4. Générer. " /><Run Text="Le mod .jar est produit dans le dossier Build du projet ; les erreurs s'affichent dans Diagnostics." /></TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="4. Générer. " /><Run Text="Le mod .jar est produit dans le dossier build/libs du projet ; les erreurs s'affichent dans Diagnostics." /></TextBlock>
                             <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="5. Lancer Minecraft. " /><Run Text="Le contenu apparaît dans l'onglet créatif du mod." /></TextBlock>
                         </StackPanel>
                     </Border>
@@ -412,7 +412,7 @@
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock Text="Où sont les fichiers" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,10" Foreground="{DynamicResource StrongTextBrush}" />
-                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="Projets : " /><Run Text="Documents\MineEngine Projects (par défaut). Chaque projet a ses dossiers Content, Textures, Sounds, Generated et Build." /></TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="Projets : " /><Run Text="Documents\MineEngine Projects (par défaut). Comme un workspace MCreator, chaque projet est un projet Gradle : fichier .mineengine, éléments dans elements/, code Java dans src/main/java." /></TextBlock>
                             <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="MDK, journaux, préférences : " /><Run Text="%LOCALAPPDATA%\MineEngine." /></TextBlock>
                             <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Sauvegardes de secours : " /><Run Text="dossier .mineengine\backups de chaque projet." /></TextBlock>
                         </StackPanel>

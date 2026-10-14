@@ -81,7 +81,7 @@ public sealed class WpfDialogService : IDialogService
         var dialog = new OpenFileDialog
         {
             Title = "Ouvrir un projet Mine Engine",
-            Filter = $"Projet Mine Engine ({ProjectLayout.ProjectFileName})|{ProjectLayout.ProjectFileName}|Tous les fichiers (*.*)|*.*",
+            Filter = $"Projet Mine Engine (*{ProjectLayout.ProjectFileExtension})|*{ProjectLayout.ProjectFileExtension};{ProjectLayout.LegacyProjectFileName}|Tous les fichiers (*.*)|*.*",
             InitialDirectory = Directory.Exists(_defaultProjectsDirectory) ? _defaultProjectsDirectory : string.Empty,
         };
         return ShowDialog(dialog) ? dialog.FileName : null;

@@ -29,8 +29,8 @@ public sealed class WpfThemeService : IThemeService
     private static readonly Uri LightPalette = new("pack://application:,,,/MineEngine.Editor;component/Themes/LightPalette.xaml");
     private static readonly Uri DarkPalette = new("pack://application:,,,/MineEngine.Editor;component/Themes/DarkPalette.xaml");
 
-    /// <summary>Couleur d'accent de Mine Engine (lilas), indépendante de celle de Windows.</summary>
-    private static readonly System.Windows.Media.Color AccentColor = System.Windows.Media.Color.FromRgb(0xA8, 0x55, 0xB5);
+    /// <summary>Couleur d'accent de Mine Engine (bleu), indépendante de celle de Windows.</summary>
+    private static readonly System.Windows.Media.Color AccentColor = System.Windows.Media.Color.FromRgb(0x2F, 0x7F, 0xD8);
 
     private readonly Application _application;
     private ResourceDictionary? _currentPalette;

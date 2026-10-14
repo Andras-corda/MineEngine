@@ -3,13 +3,14 @@ using MineEngine.Core.Identifiers;
 
 namespace MineEngine.Project;
 
-/// <summary>Paramètres généraux d'un projet, enregistrés dans Project.json.</summary>
+/// <summary>Paramètres généraux d'un projet, enregistrés dans le fichier .mineengine.</summary>
 public sealed class ProjectSettings
 {
     public const int CurrentFormatVersion = 1;
 
     private string _modName;
     private IReadOnlyList<string> _folders = [];
+    private IReadOnlyList<string> _lockedFiles = [];
 
     public ProjectSettings(ModId modId, string modName)
     {
@@ -58,6 +59,22 @@ public sealed class ProjectSettings
             .Distinct(StringComparer.Ordinal).Order(StringComparer.CurrentCultureIgnoreCase)];
     }
 
+    /// <summary>
+    /// Fichiers générés que l'utilisateur a verrouillés pour les modifier à la main
+    /// (chemins relatifs au projet, avec des '/') : Mine Engine ne les réécrit plus.
+    /// </summary>
+    public IReadOnlyList<string> LockedFiles
+    {
+        get => _lockedFiles;
+        set => _lockedFiles = [.. (value ?? []).Select(NormalizePath).Where(f => f.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal)];
+    }
+
+    public bool IsLocked(string projectRelativePath) =>
+        _lockedFiles.Contains(NormalizePath(projectRelativePath), StringComparer.OrdinalIgnoreCase);
+
+    private static string NormalizePath(string path) => path.Replace(Path.DirectorySeparatorChar, '/').Trim().Trim('/');
+
     /// <summary>Copie indépendante de ces paramètres.</summary>
     public ProjectSettings Clone()
     {
@@ -85,5 +102,6 @@ public sealed class ProjectSettings
         MinecraftVersion = other.MinecraftVersion;
         LoaderId = other.LoaderId;
         Folders = other.Folders;
+        LockedFiles = other.LockedFiles;
     }
 }

@@ -47,7 +47,7 @@ public sealed class BuildPipeline
         _gradle = gradle ?? throw new ArgumentNullException(nameof(gradle));
     }
 
-    /// <summary>Produit le .jar du mod et le copie dans le dossier Build/ du projet.</summary>
+    /// <summary>Produit le .jar du mod dans le dossier build/libs du projet.</summary>
     public Task<BuildResult> BuildAsync(ModProject project, ILog log, CancellationToken cancellationToken) =>
         RunAsync(project, log, runClient: false, cancellationToken);
 
@@ -80,10 +80,11 @@ public sealed class BuildPipeline
         }
 
         log.Info($"[2/{StepCount}] Génération du projet {backend.DisplayName}");
-        string workspace = project.Layout.GeneratedDirectory;
+        string workspace = project.Layout.WorkspaceDirectory;
         ModGenerator generator = _generatorFactory(backend);
+        IReadOnlyList<string> lockedFiles = project.Settings.LockedFiles;
         GenerationResult generation = await Task.Run(
-            () => generator.GenerateAsync(ir, workspace, log, cancellationToken), cancellationToken).ConfigureAwait(false);
+            () => generator.GenerateAsync(ir, workspace, log, cancellationToken, lockedFiles), cancellationToken).ConfigureAwait(false);
         Report(log, generation.Diagnostics);
         diagnostics.AddRange(generation.Diagnostics);
         if (!generation.Success)
@@ -92,6 +93,10 @@ public sealed class BuildPipeline
         }
 
         log.Info($"{generation.Files.Count} fichiers générés dans {workspace}");
+        if (lockedFiles.Count > 0)
+        {
+            log.Info($"{lockedFiles.Count} fichier(s) verrouillé(s) conservé(s) tel(s) quel(s).");
+        }
 
         log.Info($"[3/{StepCount}] Recherche d'un JDK");
         JdkInstallation? jdk = FindJdk(backend.Mdk, log, diagnostics);
@@ -128,7 +133,7 @@ public sealed class BuildPipeline
             return Fail(log, diagnostics, stopwatch, "Gradle a signalé une erreur.");
         }
 
-        string? jarPath = runClient ? null : CopyJar(project, backend, ir.Mod, workspace, log, diagnostics);
+        string? jarPath = runClient ? null : FindJar(backend, ir.Mod, workspace, log, diagnostics);
         if (diagnostics.HasErrors)
         {
             return Fail(log, diagnostics, stopwatch, "le .jar est introuvable.");
@@ -197,8 +202,8 @@ public sealed class BuildPipeline
         return jdk;
     }
 
-    private static string? CopyJar(
-        ModProject project, IModLoaderBackend backend, IRModInfo mod, string workspace, ILog log, DiagnosticBag diagnostics)
+    /// <summary>Le .jar reste là où Gradle l'a produit : build/libs du projet.</summary>
+    private static string? FindJar(IModLoaderBackend backend, IRModInfo mod, string workspace, ILog log, DiagnosticBag diagnostics)
     {
         string builtJar = backend.GetOutputJarPath(workspace, mod);
         if (!File.Exists(builtJar))
@@ -207,10 +212,7 @@ public sealed class BuildPipeline
             return null;
         }
 
-        Directory.CreateDirectory(project.Layout.BuildDirectory);
-        string target = Path.Combine(project.Layout.BuildDirectory, Path.GetFileName(builtJar));
-        File.Copy(builtJar, target, overwrite: true);
-        return target;
+        return builtJar;
     }
 
     private static void Report(ILog log, DiagnosticBag diagnostics)

@@ -1,4 +1,5 @@
 using MineEngine.Assets;
+using MineEngine.Assets.Graphs;
 using MineEngine.Core.Assets;
 using MineEngine.Core.Diagnostics;
 using MineEngine.Core.GameData;
@@ -17,6 +18,8 @@ public sealed class LoweringContext
     private readonly List<IRRecipe> _recipes = [];
     private readonly List<IRSound> _sounds = [];
     private readonly List<IRBehavior> _behaviors = [];
+    private readonly List<IRDefinition> _definitions = [];
+    private ProgramModel? _program;
 
     public LoweringContext(ModProject project, DiagnosticBag diagnostics)
     {
@@ -41,6 +44,11 @@ public sealed class LoweringContext
     public void AddSound(IRSound sound) => _sounds.Add(sound);
 
     public void AddBehavior(IRBehavior behavior) => _behaviors.Add(behavior);
+
+    public void AddDefinition(IRDefinition definition) => _definitions.Add(definition);
+
+    /// <summary>Définitions de programme du projet (fonctions, classes...), construites au premier besoin.</summary>
+    public ProgramModel Program => _program ??= ProgramModel.From(Project.Assets);
 
     /// <summary>
     /// Fichier d'une texture du projet. Sans texture, ou si son fichier manque, la
@@ -99,7 +107,7 @@ public sealed class LoweringContext
             asset.CreativeTabs);
     }
 
-    public IRContent BuildContent() => new(_items, _blocks, _mobs, _recipes, _sounds, _behaviors);
+    public IRContent BuildContent() => new(_items, _blocks, _mobs, _recipes, _sounds, _behaviors) { Definitions = [.. _definitions.OrderBy(d => d.ResourceId)] };
 
     private NamespacedId? ResolveAsset(Asset owner, Guid assetId, string role)
     {

@@ -1,5 +1,6 @@
 ﻿<UserControl x:Class="MineEngine.Editor.Views.Panels.DashboardPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:graphs="clr-namespace:MineEngine.Assets.Graphs;assembly=MineEngine.Assets"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.modernwpf.com/2019"
              xmlns:vm="clr-namespace:MineEngine.Editor.ViewModels"
@@ -58,9 +59,42 @@
                 <MenuItem Header="Voir le fichier de l'asset"
                           Command="{Binding PlacementTarget.Tag.OpenAssetSourceCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 <Separator />
+                <!-- Rempli à l'ouverture du menu avec la racine et tous les dossiers. -->
+                <MenuItem Header="Déplacer vers" Tag="move" />
                 <MenuItem Header="Supprimer"
                           Command="{Binding PlacementTarget.Tag.DeleteAssetCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
             </ContextMenu>
+
+            <!-- Menu contextuel d'un dossier ; Tag du dossier = MainViewModel. -->
+            <ContextMenu x:Key="FolderMenu" x:Shared="False">
+                <MenuItem Header="Ouvrir" FontWeight="SemiBold" CommandParameter="{Binding Path}"
+                          Command="{Binding PlacementTarget.Tag.Project.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                <MenuItem Header="Renommer..." CommandParameter="{Binding}"
+                          Command="{Binding PlacementTarget.Tag.RenameFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                <Separator />
+                <MenuItem Header="Supprimer le dossier (garder son contenu)" CommandParameter="{Binding}"
+                          Command="{Binding PlacementTarget.Tag.DeleteFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+            </ContextMenu>
+
+            <!-- Dossier : ouvert par double-clic, cible d'un glisser-déposer d'éléments. -->
+            <Style x:Key="FolderItem" TargetType="ListBoxItem" BasedOn="{StaticResource ProjectItem}">
+                <Setter Property="Margin" Value="0,0,0,6" />
+                <Setter Property="Tag" Value="{Binding DataContext, ElementName=Root}" />
+                <Setter Property="ContextMenu" Value="{StaticResource FolderMenu}" />
+                <Setter Property="AllowDrop" Value="True" />
+                <EventSetter Event="MouseDoubleClick" Handler="OnFolderDoubleClick" />
+                <EventSetter Event="DragOver" Handler="OnFolderDragOver" />
+                <EventSetter Event="DragLeave" Handler="OnFolderDragLeave" />
+                <EventSetter Event="Drop" Handler="OnFolderDrop" />
+            </Style>
+
+            <!-- Icône de dossier. -->
+            <DataTemplate x:Key="FolderIcon">
+                <Border Width="34" Height="34" CornerRadius="5" Background="{DynamicResource NavSelectedBrush}">
+                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" Foreground="{DynamicResource AccentLineBrush}" />
+                </Border>
+            </DataTemplate>
 
             <Style x:Key="AssetItem" TargetType="ListBoxItem" BasedOn="{StaticResource ProjectItem}">
                 <Setter Property="Margin" Value="0,0,0,6" />
@@ -68,6 +102,9 @@
                 <Setter Property="ContextMenu" Value="{StaticResource AssetMenu}" />
                 <EventSetter Event="MouseDoubleClick" Handler="OnAssetDoubleClick" />
                 <EventSetter Event="PreviewMouseRightButtonDown" Handler="OnAssetRightClick" />
+                <EventSetter Event="PreviewMouseLeftButtonDown" Handler="OnAssetMouseDown" />
+                <EventSetter Event="PreviewMouseMove" Handler="OnAssetMouseMove" />
+                <EventSetter Event="ContextMenuOpening" Handler="OnAssetMenuOpening" />
             </Style>
 
             <!-- Pastille de filtre ("Items 3") ; Tag = vrai si active. -->
@@ -151,8 +188,32 @@
                 <Button Command="{Binding AddRecipeCommand}" Padding="10,5" Margin="0,0,6,6">
                     <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="&#xE710;" /><TextBlock Text="Recette" /></StackPanel>
                 </Button>
-                <Button Command="{Binding AddGraphCommand}" Padding="10,5" Margin="0,0,6,6" ToolTip="Nouveau graphe nodal (comportements en jeu)">
-                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="&#xE710;" /><TextBlock Text="Graphe" /></StackPanel>
+                <Button Padding="10,5" Margin="0,0,6,6" Click="OnImportClick"
+                        ToolTip="Nouveau graphe : événements, fonction, procédure, classe, structure, interface ou énumération">
+                    <Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Graphe d'événements" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Events}"
+                                      ToolTip="Réactions aux événements du jeu (clic droit, connexion...)" />
+                            <Separator />
+                            <MenuItem Header="Fonction" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Function}"
+                                      ToolTip="Suite d'instructions qui renvoie des valeurs" />
+                            <MenuItem Header="Procédure" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Procedure}"
+                                      ToolTip="Suite d'instructions qui ne renvoie rien" />
+                            <Separator />
+                            <MenuItem Header="Classe" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Class}"
+                                      ToolTip="Type avec des champs, un constructeur, des méthodes ; héritage et interfaces" />
+                            <MenuItem Header="Structure" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Struct}"
+                                      ToolTip="Type qui regroupe des champs" />
+                            <MenuItem Header="Interface" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Interface}"
+                                      ToolTip="Méthodes que les classes qui l'implémentent doivent fournir" />
+                            <MenuItem Header="Énumération" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Enum}"
+                                      ToolTip="Liste de valeurs nommées" />
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE710;" /><TextBlock Text="Graphe" />
+                        <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE70D;" FontSize="9" Margin="6,1,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
                 </Button>
                 <!-- Bouton + menu : le DropDownButton de ModernWpf provoquait une boucle de mise en page. -->
                 <Button Padding="10,5" Margin="0,0,6,6" Click="OnImportClick" ToolTip="Importer des fichiers dans le projet">
@@ -210,6 +271,45 @@
                 </Grid>
             </DockPanel>
 
+            <!-- Dossier ouvert : fil d'Ariane (chaque segment accepte les éléments déposés), dossier parent, nouveau dossier -->
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Style="{StaticResource FlatButton}" Command="{Binding NewFolderCommand}" ToolTip="Créer un dossier dans le dossier ouvert">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE8F4;" /><TextBlock Text="Nouveau dossier" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+                <Button DockPanel.Dock="Left" Style="{StaticResource IconButton}" Content="&#xE74A;" Margin="0,0,6,0"
+                        Command="{Binding Project.OpenParentFolderCommand}" ToolTip="Dossier parent (Retour arrière)" />
+                <ItemsControl ItemsSource="{Binding Project.Breadcrumb}" Focusable="False" VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:FolderCrumb}">
+                            <StackPanel Orientation="Horizontal">
+                                <Button x:Name="Crumb" Style="{StaticResource FlatButton}" Padding="6,2" AllowDrop="True" Tag="{Binding Path}"
+                                        Command="{Binding DataContext.Project.OpenFolderCommand, ElementName=Root}" CommandParameter="{Binding Path}"
+                                        DragOver="OnFolderDragOver" DragLeave="OnFolderDragLeave" Drop="OnFolderDrop">
+                                    <TextBlock x:Name="CrumbText" Text="{Binding Name}" />
+                                </Button>
+                                <TextBlock x:Name="Separator" Text="&#x203A;" VerticalAlignment="Center" Margin="2,0" Foreground="{DynamicResource HintBrush}" />
+                            </StackPanel>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsLast}" Value="True">
+                                    <Setter TargetName="Separator" Property="Visibility" Value="Collapsed" />
+                                    <Setter TargetName="CrumbText" Property="FontWeight" Value="SemiBold" />
+                                    <Setter TargetName="Crumb" Property="Foreground" Value="{DynamicResource StrongTextBrush}" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </DockPanel>
+
             <!-- En-têtes de colonnes (mode liste, fenêtre large) -->
             <Grid DockPanel.Dock="Top" Margin="15,0,15,6"
                   Visibility="{Binding Project.IsTileView, Converter={StaticResource InverseBoolToVisibility}}">
@@ -235,6 +335,60 @@
                     <TextBlock TextWrapping="Wrap" TextAlignment="Center" Margin="0,6,0,0" Foreground="{DynamicResource HintBrush}"
                                Text="Ajoutez un item, un bloc, un mob, une recette ou un graphe avec les boutons ci-dessus, puis réglez-le dans le panneau Détails." />
                 </StackPanel>
+
+                <!-- Dossier ouvert vide -->
+                <StackPanel HorizontalAlignment="Center" MaxWidth="420" Margin="0,30,0,0"
+                            Visibility="{Binding Project.IsFolderEmpty, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
+                    <TextBlock Text="Ce dossier est vide" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center"
+                               Foreground="{DynamicResource StrongTextBrush}" />
+                    <TextBlock TextWrapping="Wrap" TextAlignment="Center" Margin="0,6,0,0" Foreground="{DynamicResource HintBrush}"
+                               Text="Créez un élément avec les boutons ci-dessus (il sera rangé ici), ou glissez-y des éléments depuis un autre dossier." />
+                </StackPanel>
+
+                <StackPanel>
+                <!-- Dossiers (mode liste) -->
+                <ListBox ItemsSource="{Binding Project.Folders}" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource FolderItem}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                         PreviewMouseWheel="OnListMouseWheel">
+                    <ListBox.Style>
+                        <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding Project.ShowFolders}" Value="True" />
+                                        <Condition Binding="{Binding Project.IsTileView}" Value="False" />
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListBox.Style>
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:FolderItemViewModel}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="48" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ContentControl ContentTemplate="{StaticResource FolderIcon}" Focusable="False" HorizontalAlignment="Left" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource StrongTextBrush}" />
+                                    <TextBlock Text="{Binding ContentLabel}" FontSize="12" Margin="0,2,0,0" Foreground="{DynamicResource HintBrush}" />
+                                </StackPanel>
+                                <Border Grid.Column="2" Style="{StaticResource Badge}" HorizontalAlignment="Right">
+                                    <TextBlock Style="{StaticResource BadgeText}" Text="DOSSIER" />
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
 
                 <!-- Liste -->
                 <ListBox ItemsSource="{Binding Project.FilteredAssets}" SelectedItem="{Binding Project.SelectedAsset}"
@@ -262,7 +416,12 @@
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding Header}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
                                                Foreground="{DynamicResource StrongTextBrush}" />
-                                    <TextBlock Style="{StaticResource MonoHint}" Text="{Binding DetailsSubtitle}" Margin="0,2,0,0" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                        <TextBlock Style="{StaticResource MonoHint}" Text="{Binding DetailsSubtitle}" />
+                                        <!-- Pendant une recherche (tous dossiers confondus), le dossier de l'élément. -->
+                                        <TextBlock FontSize="11" Margin="10,0,0,0" Foreground="{DynamicResource LinkBrush}" Text="{Binding FolderLabel}"
+                                                   Visibility="{Binding DataContext.Project.IsSearching, ElementName=Root, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
                                 </StackPanel>
                                 <ContentControl Grid.Column="2" Content="{Binding}" ContentTemplate="{StaticResource AssetIssue}" Focusable="False"
                                                 VerticalAlignment="Center" />
@@ -273,6 +432,44 @@
                                     <TextBlock Style="{StaticResource BadgeText}" Text="{Binding DetailsBadge}" />
                                 </Border>
                             </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Dossiers (vignettes) -->
+                <ListBox ItemsSource="{Binding Project.Folders}" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource FolderItem}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                         PreviewMouseWheel="OnListMouseWheel">
+                    <ListBox.Style>
+                        <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding Project.ShowFolders}" Value="True" />
+                                        <Condition Binding="{Binding Project.IsTileView}" Value="True" />
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListBox.Style>
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:FolderItemViewModel}">
+                            <StackPanel Width="120" Margin="0,4">
+                                <Border Width="56" Height="56" CornerRadius="6" Background="{DynamicResource NavSelectedBrush}" HorizontalAlignment="Center">
+                                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="24" HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" Foreground="{DynamicResource AccentLineBrush}" />
+                                </Border>
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,2"
+                                           TextTrimming="CharacterEllipsis" Foreground="{DynamicResource StrongTextBrush}" />
+                                <TextBlock Text="{Binding ContentLabel}" FontSize="11" HorizontalAlignment="Center" Foreground="{DynamicResource HintBrush}" />
+                            </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
@@ -314,6 +511,7 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
+                </StackPanel>
             </Grid>
         </DockPanel>
     </ScrollViewer>

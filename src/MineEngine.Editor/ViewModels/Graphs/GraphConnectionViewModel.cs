@@ -28,7 +28,7 @@ public sealed class GraphConnectionViewModel : ObservableObject, IDisposable
     public GraphPinViewModel To { get; }
 
     /// <summary>Type porté par le fil : sa couleur (blanc pour l'exécution).</summary>
-    public PinType Type => From.Type;
+    public DataType Type => From.Type;
 
     public bool IsExec => From.IsExec;
 
@@ -60,10 +60,19 @@ public sealed class GraphConnectionViewModel : ObservableObject, IDisposable
     }
 }
 
-/// <summary>Une entrée du menu "Ajouter un nœud".</summary>
-public sealed record NodeChoiceViewModel(NodeInfo Info)
+/// <summary>Une entrée du menu "Ajouter un nœud" (nœud du catalogue, ou appel, objet, variable du programme).</summary>
+public sealed record NodeChoiceViewModel(NodeTemplate Template)
 {
-    public string Title => Info.Title;
+    public NodeInfo Info => Template.Info;
+
+    public string Title => Template.Info.Kind switch
+    {
+        GraphNodeKind.GetVariable or GraphNodeKind.GetField => "Lire " + Info.Title,
+        GraphNodeKind.EnumEquals => Info.Title,
+        GraphNodeKind.EnumLiteral => Info.Title + " (valeur)",
+        GraphNodeKind.CallFunction => "Appeler " + Info.Title,
+        _ => Info.Title,
+    };
 
     public string Description => Info.Description;
 

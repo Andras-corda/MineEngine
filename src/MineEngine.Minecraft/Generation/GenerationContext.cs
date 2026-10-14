@@ -7,12 +7,13 @@ namespace MineEngine.Minecraft.Generation;
 /// <summary>État partagé par les générateurs de fichiers pendant une génération.</summary>
 public sealed class GenerationContext
 {
-    public GenerationContext(ModIR ir, string workspaceDirectory, MinecraftVersion minecraftVersion, ILog log)
+    public GenerationContext(
+        ModIR ir, string workspaceDirectory, MinecraftVersion minecraftVersion, ILog log, IEnumerable<string>? lockedFiles = null)
     {
         Ir = ir ?? throw new ArgumentNullException(nameof(ir));
         WorkspaceDirectory = Path.GetFullPath(workspaceDirectory);
         Log = log ?? throw new ArgumentNullException(nameof(log));
-        Files = new GeneratedFileWriter(WorkspaceDirectory);
+        Files = new GeneratedFileWriter(WorkspaceDirectory, lockedFiles);
         MinecraftVersion = minecraftVersion ?? throw new ArgumentNullException(nameof(minecraftVersion));
         Paths = new ResourcePaths(ir.Mod.ModId, minecraftVersion);
     }

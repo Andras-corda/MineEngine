@@ -32,6 +32,12 @@ public sealed class Diagnostic
     /// <summary>Asset à l'origine du problème, pour pouvoir y naviguer depuis l'éditeur.</summary>
     public Guid? AssetId { get; }
 
+    /// <summary>Fichier du projet concerné (chemin relatif, avec des '/'), pour l'ouvrir à la bonne ligne.</summary>
+    public string? FilePath { get; init; }
+
+    /// <summary>Ligne dans <see cref="FilePath"/> (à partir de 1), ou 0.</summary>
+    public int Line { get; init; }
+
     public override string ToString()
     {
         string label = Severity switch

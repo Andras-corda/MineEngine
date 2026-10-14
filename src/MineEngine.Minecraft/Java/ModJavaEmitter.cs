@@ -64,9 +64,16 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             Write(context, naming, naming.RegistryPackage, naming.SoundsClass, WriteSoundsClass(context, naming, api));
         }
 
+        var names = new JavaProgramNames(naming, content.Definitions);
+        names.AddBehaviorVariables(content.Behaviors.SelectMany(b => b.Variables));
+        foreach (IRDefinition definition in names.TopLevel)
+        {
+            WriteDefinitionFile(context, api, names, definition);
+        }
+
         foreach (IRBehavior behavior in content.Behaviors)
         {
-            WriteBehaviorClass(context, naming, api, behavior);
+            WriteBehaviorClass(context, naming, api, names, behavior);
         }
 
         if (content.Mobs.Count > 0)

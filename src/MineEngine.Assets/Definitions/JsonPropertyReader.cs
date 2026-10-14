@@ -74,6 +74,13 @@ public sealed class JsonPropertyReader
             .OfType<TEnum>()
             .ToHashSet();
 
+    /// <summary>Valeurs texte d'un sous-objet (nom vers texte) ; les valeurs d'un autre type sont ignorées.</summary>
+    public IReadOnlyDictionary<string, string> GetStringMap(string name) =>
+        _properties[name] is JsonObject child
+            ? child.Where(p => p.Value is JsonValue value && value.TryGetValue(out string? _))
+                .ToDictionary(p => p.Key, p => p.Value!.GetValue<string>(), StringComparer.Ordinal)
+            : new Dictionary<string, string>();
+
     /// <summary>Sous-objet ; null s'il est absent.</summary>
     public JsonPropertyReader? GetObject(string name) =>
         _properties[name] is JsonObject child ? new JsonPropertyReader(child, $"{_sourceName}.{name}") : null;

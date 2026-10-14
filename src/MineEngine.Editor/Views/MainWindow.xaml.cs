@@ -59,7 +59,12 @@ public partial class MainWindow : Window
         _viewModel.DocumentActivationRequested += (_, document) => ActivateDocument(document);
         DockManager.ActiveContentChanged += OnActiveContentChanged;
         DockManager.DocumentClosing += OnDocumentClosing;
-        Loaded += (_, _) => _layout.Initialize(DockManager);
+        Loaded += (_, _) =>
+        {
+            _layout.Initialize(DockManager);
+            WatchLayout();
+        };
+        DockManager.LayoutChanged += (_, _) => WatchLayout();
         // AvalonDock répartit d'abord la place lui-même : l'ajustement passe après.
         SizeChanged += (_, e) => Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
         {
@@ -358,6 +363,26 @@ public partial class MainWindow : Window
     /// </summary>
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        // Disposition, comme dans VS Code : Ctrl+B (Explorateur), Ctrl+J (panneau du bas), Ctrl+Alt+B (Détails).
+        if (_viewModel.HasProject && Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+        {
+            bool alt = Keyboard.Modifiers.HasFlag(ModifierKeys.Alt);
+            Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+            string[]? panels = (key, alt) switch
+            {
+                (Key.B, false) => [MainViewModel.ExplorerPanelId],
+                (Key.J, false) => BottomPanels,
+                (Key.B, true) => [MainViewModel.InspectorPanelId],
+                _ => null,
+            };
+            if (panels is not null)
+            {
+                TogglePanels(panels);
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) is false || Keyboard.FocusedElement is TextArea)
         {
             return;
@@ -383,6 +408,115 @@ public partial class MainWindow : Window
         }
     }
 
+    // ----- Boutons de disposition (barre de titre) -----
+
+    private static readonly string[] BottomPanels = [MainViewModel.OutputPanelId, MainViewModel.DiagnosticsPanelId];
+
+    private static readonly string[] AllPanels =
+        [MainViewModel.ExplorerPanelId, MainViewModel.OutputPanelId, MainViewModel.DiagnosticsPanelId, MainViewModel.InspectorPanelId];
+
+    private LayoutRoot? _watchedLayout;
+
+    /// <summary>Suit les changements de la disposition (panneau fermé, déplacé, disposition rechargée) pour l'état des boutons.</summary>
+    private void WatchLayout()
+    {
+        if (_watchedLayout is not null)
+        {
+            _watchedLayout.Updated -= OnLayoutUpdated;
+        }
+
+        _watchedLayout = DockManager.Layout;
+        if (_watchedLayout is not null)
+        {
+            _watchedLayout.Updated += OnLayoutUpdated;
+        }
+
+        UpdateLayoutButtons();
+    }
+
+    private void OnLayoutUpdated(object? sender, EventArgs e) => Dispatcher.BeginInvoke(DispatcherPriority.Background, UpdateLayoutButtons);
+
+    private LayoutAnchorable? FindPanel(string contentId) =>
+        DockManager.Layout?.Descendents().OfType<LayoutAnchorable>().FirstOrDefault(a => a.ContentId == contentId);
+
+    private bool IsPanelVisible(string contentId) => FindPanel(contentId) is { IsHidden: false };
+
+    /// <summary>Masque les panneaux s'il y en a un d'affiché, sinon les affiche (à leur dernière place).</summary>
+    private void TogglePanels(params string[] contentIds)
+    {
+        if (contentIds.Any(IsPanelVisible))
+        {
+            HidePanels(contentIds);
+        }
+        else
+        {
+            foreach (string id in contentIds.Reverse())
+            {
+                ShowPanel(id);
+            }
+        }
+
+        UpdateLayoutButtons();
+    }
+
+    private void HidePanels(IEnumerable<string> contentIds)
+    {
+        foreach (string id in contentIds)
+        {
+            if (FindPanel(id) is { IsHidden: false } panel)
+            {
+                panel.Hide();
+            }
+        }
+    }
+
+    private void UpdateLayoutButtons()
+    {
+        bool explorer = IsPanelVisible(MainViewModel.ExplorerPanelId);
+        bool bottom = BottomPanels.Any(IsPanelVisible);
+        bool inspector = IsPanelVisible(MainViewModel.InspectorPanelId);
+        ExplorerToggle.Tag = explorer;
+        BottomToggle.Tag = bottom;
+        InspectorToggle.Tag = inspector;
+        ExplorerMenuItem.IsChecked = explorer;
+        BottomMenuItem.IsChecked = bottom;
+        InspectorMenuItem.IsChecked = inspector;
+    }
+
+    private void OnToggleExplorerClick(object sender, RoutedEventArgs e) => TogglePanels(MainViewModel.ExplorerPanelId);
+
+    private void OnToggleBottomClick(object sender, RoutedEventArgs e) => TogglePanels(BottomPanels);
+
+    private void OnToggleInspectorClick(object sender, RoutedEventArgs e) => TogglePanels(MainViewModel.InspectorPanelId);
+
+    /// <summary>Mode concentration : seuls les onglets restent, comme le mode Zen de VS Code.</summary>
+    private void OnFocusModeClick(object sender, RoutedEventArgs e)
+    {
+        HidePanels(AllPanels);
+        UpdateLayoutButtons();
+    }
+
+    private void OnShowAllPanelsClick(object sender, RoutedEventArgs e)
+    {
+        foreach (string id in AllPanels.Where(id => !IsPanelVisible(id)))
+        {
+            ShowPanel(id);
+        }
+
+        UpdateLayoutButtons();
+    }
+
+    private void OnLayoutMenuClick(object sender, RoutedEventArgs e)
+    {
+        UpdateLayoutButtons();
+        if (LayoutMenuButton.ContextMenu is { } menu)
+        {
+            menu.PlacementTarget = LayoutMenuButton;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            menu.IsOpen = true;
+        }
+    }
+
     private void OnShowPanelClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: string contentId })
@@ -403,6 +537,7 @@ public partial class MainWindow : Window
         }
 
         _layout.Reset(DockManager);
+        WatchLayout();
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)

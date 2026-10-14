@@ -4,7 +4,7 @@ using MineEngine.Core.Json;
 
 namespace MineEngine.Project.Serialization;
 
-/// <summary>Lecture et écriture du fichier Project.json.</summary>
+/// <summary>Lecture et écriture du fichier projet (.mineengine, ou Project.json avant la 0.4.2).</summary>
 public sealed class ProjectSettingsSerializer
 {
     public string Serialize(ProjectSettings settings)
@@ -24,6 +24,7 @@ public sealed class ProjectSettingsSerializer
             ["minecraftVersion"] = settings.MinecraftVersion,
             ["loader"] = settings.LoaderId,
             ["folders"] = new JsonArray([.. settings.Folders.Select(f => (JsonNode?)JsonValue.Create(f))]),
+            ["lockedFiles"] = new JsonArray([.. settings.LockedFiles.Select(f => (JsonNode?)JsonValue.Create(f))]),
         };
 
         return JsonFormatting.ToText(root);
@@ -58,6 +59,9 @@ public sealed class ProjectSettingsSerializer
         settings.LoaderId = ReadString(root, "loader", settings.LoaderId);
         settings.Folders = root["folders"] is JsonArray folders
             ? [.. folders.Select(f => f?.GetValue<string>()).OfType<string>()]
+            : [];
+        settings.LockedFiles = root["lockedFiles"] is JsonArray locked
+            ? [.. locked.Select(f => f?.GetValue<string>()).OfType<string>()]
             : [];
         return settings;
     }

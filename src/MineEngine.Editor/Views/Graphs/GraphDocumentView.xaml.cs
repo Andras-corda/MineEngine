@@ -143,6 +143,7 @@ public partial class GraphDocumentView : UserControl
 
     private void Attach(GraphDocumentViewModel? document)
     {
+        ShowBody(document?.HasBody ?? true);
         if (_document is not null)
         {
             _document.FocusRequested -= OnFocusRequested;
@@ -153,6 +154,16 @@ public partial class GraphDocumentView : UserControl
         {
             _document.FocusRequested += OnFocusRequested;
         }
+    }
+
+    /// <summary>Une structure, une interface ou une énumération n'a pas de corps : la définition prend toute la place.</summary>
+    private void ShowBody(bool hasBody)
+    {
+        Root.Visibility = hasBody ? Visibility.Visible : Visibility.Collapsed;
+        DefinitionSplitter.Visibility = Root.Visibility;
+        DefinitionColumn.Width = hasBody ? new GridLength(320) : new GridLength(1, GridUnitType.Star);
+        DefinitionColumn.MaxWidth = hasBody ? 560 : double.PositiveInfinity;
+        BodyColumn.Width = hasBody ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
     }
 
     private void OnFocusRequested(object? sender, Guid id)
@@ -488,7 +499,7 @@ public partial class GraphDocumentView : UserControl
         bool control = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
         switch (e.Key)
         {
-            case Key.Delete:
+            case Key.Delete or Key.Back:
                 Document.DeleteSelection();
                 break;
             case Key.D when control:
@@ -555,7 +566,7 @@ public partial class GraphDocumentView : UserControl
         if (Document is not null && (PaletteList.SelectedItem ?? PaletteList.Items.Cast<object>().FirstOrDefault()) is NodeChoiceViewModel choice)
         {
             Palette.Visibility = Visibility.Collapsed;
-            Document.AddNode(choice.Info, _paletteWorld);
+            Document.AddNode(choice, _paletteWorld);
             Keyboard.Focus(this);
         }
     }

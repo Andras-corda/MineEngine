@@ -141,7 +141,7 @@ public sealed class ItemsAndFoldersTests
         ModProject project = CreateProject(temp.Path);
         SampleContent.AddTo(project);
 
-        Assert.Equal(["Équipement", "Équipement/Armure", "Équipement/Outils", "Vide"], FolderOperations.AllFolders(project));
+        Assert.Equal(["Équipement", "Équipement/Armure", "Équipement/Outils", "Programme", "Vide"], FolderOperations.AllFolders(project));
     }
 
     [Fact]
@@ -230,8 +230,6 @@ public sealed class ItemsAndFoldersTests
         public MdkDescriptor Mdk { get; }
 
         public MinecraftVersion MinecraftVersion => Mdk.MinecraftVersion;
-
-        public IReadOnlyList<string> GeneratedSourceRoots => ["src/main/java", "src/main/resources"];
 
         public IReadOnlyList<string> BuildTasks => ["build"];
 

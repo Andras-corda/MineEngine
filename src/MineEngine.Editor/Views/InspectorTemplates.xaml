@@ -600,9 +600,10 @@
                 <TextBlock VerticalAlignment="Center" FontFamily="Consolas" Text="{Binding JavaClassName}" />
             </WrapPanel>
 
-            <TextBlock Style="{StaticResource StackedLabel}" Text="Événements" Margin="0,8,0,2" />
+            <TextBlock Style="{StaticResource StackedLabel}" Text="Événements" Margin="0,8,0,2"
+                       Visibility="{Binding IsEventGraph, Converter={StaticResource BoolToVisibility}}" />
             <TextBlock Style="{StaticResource FieldHint}" Text="Aucun événement : le graphe ne fera rien en jeu."
-                       Visibility="{Binding HasEvents, Converter={StaticResource InverseBoolToVisibility}}" />
+                       Visibility="{Binding ShowNoEventHint, Converter={StaticResource BoolToVisibility}}" />
             <ItemsControl ItemsSource="{Binding Events}" Focusable="False">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>

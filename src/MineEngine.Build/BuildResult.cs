@@ -15,7 +15,7 @@ public sealed class BuildResult
 
     public bool Success { get; }
 
-    /// <summary>Chemin du .jar copié dans le dossier Build/ du projet, si le build a réussi.</summary>
+    /// <summary>Chemin du .jar produit dans build/libs, si le build a réussi.</summary>
     public string? JarPath { get; }
 
     public DiagnosticBag Diagnostics { get; }

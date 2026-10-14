@@ -1,4 +1,5 @@
 using System.Collections;
+using MineEngine.Assets.Graphs;
 using MineEngine.Core.Assets;
 using MineEngine.Core.Diagnostics;
 using MineEngine.Core.Identifiers;
@@ -122,9 +123,19 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
 
         ValidateSpawnEggIds(diagnostics);
 
+        // Les graphes se vérifient avec toutes les définitions du projet (fonctions appelées, types...).
+        var program = new ProgramModel(_assets.OfType<GraphAsset>());
         foreach (Asset asset in _assets)
         {
-            asset.Validate(diagnostics);
+            if (asset is GraphAsset graph)
+            {
+                graph.Validate(diagnostics, program);
+            }
+            else
+            {
+                asset.Validate(diagnostics);
+            }
+
             ValidateReferences(asset, diagnostics);
         }
     }
@@ -148,6 +159,8 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
                 $"{Capitalize(reference.Role)} : {target} n'est pas un bloc.",
             AssetReferenceKind.Item when target is BlockAsset { HasItemForm: false } =>
                 $"{Capitalize(reference.Role)} : le bloc {target.ResourceId} n'a pas de forme item.",
+            AssetReferenceKind.Definition when target is not GraphAsset =>
+                $"{Capitalize(reference.Role)} : {target} n'est pas une définition.",
             AssetReferenceKind.Item when target is not (ItemAsset or BlockAsset) =>
                 $"{Capitalize(reference.Role)} : {target} n'est pas un item.",
             _ => null,

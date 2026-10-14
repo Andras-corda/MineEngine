@@ -1,38 +1,74 @@
 using System.Text;
+using System.Windows.Input;
 using MineEngine.Assets.Serialization;
 using MineEngine.Core.Assets;
 using MineEngine.Core.IO;
+using MineEngine.Editor.Mvvm;
+using MineEngine.Editor.Services;
 using MineEngine.Project;
 
 namespace MineEngine.Editor.ViewModels.Documents;
 
 /// <summary>
-/// Fichier texte du disque ouvert dans un onglet. Les fichiers générés et Project.json
-/// sont en lecture seule (ils sont réécrits par Mine Engine) ; les autres s'éditent et
-/// s'enregistrent avec leur encodage d'origine.
+/// Fichier texte du disque ouvert dans un onglet. Le code écrit par l'utilisateur s'édite
+/// librement ; un fichier généré est en lecture seule jusqu'à ce qu'il soit verrouillé
+/// (Mine Engine ne le réécrit plus) ; le fichier projet et les sorties de Gradle ne
+/// s'éditent pas. Les fichiers s'enregistrent avec leur encodage d'origine.
 /// </summary>
-public sealed class FileDocumentViewModel : CodeDocumentViewModel
+public sealed class FileDocumentViewModel : CodeDocumentViewModel, IDisposable
 {
     /// <summary>Au-delà, le fichier est ouvert avec l'application de Windows plutôt que dans un onglet.</summary>
     public const long MaxEditableSize = 4 * 1024 * 1024;
 
-    private readonly string? _readOnlyReason;
+    private readonly ProjectFiles _files;
+    private ProjectFileKind _kind;
     private Encoding _encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
     private string? _saveError;
+    private DateTime _diskStamp;
 
-    public FileDocumentViewModel(string fullPath, ProjectLayout layout)
-        : base("file:" + Path.GetFullPath(fullPath).ToLowerInvariant(), layout.ToRelativePath(fullPath), Path.GetExtension(fullPath))
+    public FileDocumentViewModel(string fullPath, ProjectFiles files)
+        : base("file:" + Path.GetFullPath(fullPath).ToLowerInvariant(), files.Layout.ToRelativePath(fullPath), Path.GetExtension(fullPath))
     {
         FullPath = Path.GetFullPath(fullPath);
-        _readOnlyReason = ReadOnlyReason(FullPath, layout);
+        _files = files;
+        _kind = files.KindOf(FullPath);
+        _files.Changed += OnFilesChanged;
+        LockCommand = new RelayCommand(() => _files.Lock(FullPath), () => _kind == ProjectFileKind.Generated);
+        UnlockCommand = new RelayCommand(Unlock, () => _kind == ProjectFileKind.Locked);
         Reload();
     }
 
     public string FullPath { get; }
 
-    public override bool IsReadOnly => _readOnlyReason is not null;
+    public ProjectFileKind Kind => _kind;
 
-    public override string? Banner => _saveError ?? _readOnlyReason;
+    public override bool IsReadOnly => _kind is not (ProjectFileKind.Source or ProjectFileKind.Locked);
+
+    public bool CanLock => _kind == ProjectFileKind.Generated;
+
+    public bool CanUnlock => _kind == ProjectFileKind.Locked;
+
+    /// <summary>Verrouille le fichier généré pour le modifier à la main.</summary>
+    public ICommand LockCommand { get; }
+
+    /// <summary>Rend le fichier à Mine Engine : il sera régénéré à la prochaine compilation.</summary>
+    public ICommand UnlockCommand { get; }
+
+    public override string? Banner => _saveError ?? _kind switch
+    {
+        ProjectFileKind.Generated => "Code généré par Mine Engine : il est réécrit à chaque compilation. Verrouillez-le pour le modifier à la main.",
+        ProjectFileKind.Locked => "Code verrouillé : Mine Engine ne réécrit plus ce fichier. Les changements faits dans les éléments ne s'y appliquent plus.",
+        ProjectFileKind.ProjectFile => "Fichier du projet : modifiez-le dans Projet > Paramètres du projet.",
+        ProjectFileKind.BuildOutput => "Fichier produit par la compilation ou par le jeu.",
+        _ => null,
+    };
+
+    public override string DetailsBadge => _kind switch
+    {
+        ProjectFileKind.Generated => "GÉNÉRÉ",
+        ProjectFileKind.Locked => "VERROUILLÉ",
+        _ => base.DetailsBadge,
+    };
 
     public override string EncodingLabel => _encoding.GetPreamble().Length > 0 ? $"{_encoding.WebName.ToUpperInvariant()} avec BOM" : _encoding.WebName.ToUpperInvariant();
 
@@ -71,11 +107,22 @@ public sealed class FileDocumentViewModel : CodeDocumentViewModel
     public void Reload()
     {
         byte[] bytes = File.Exists(FullPath) ? File.ReadAllBytes(FullPath) : [];
+        _diskStamp = File.Exists(FullPath) ? File.GetLastWriteTimeUtc(FullPath) : DateTime.MinValue;
         _encoding = DetectEncoding(bytes);
         int preamble = _encoding.GetPreamble().Length;
         LoadText(_encoding.GetString(bytes, preamble, bytes.Length - preamble));
         OnPropertyChanged(nameof(EncodingLabel));
         OnPropertyChanged(nameof(SizeLabel));
+    }
+
+    /// <summary>Relit le fichier s'il a changé sur le disque et n'a pas de modifications en cours (après une compilation).</summary>
+    public void ReloadIfChangedOnDisk()
+    {
+        DateTime stamp = File.Exists(FullPath) ? File.GetLastWriteTimeUtc(FullPath) : DateTime.MinValue;
+        if (stamp != _diskStamp && !IsDirty)
+        {
+            Reload();
+        }
     }
 
     public override bool Save()
@@ -89,6 +136,7 @@ public sealed class FileDocumentViewModel : CodeDocumentViewModel
         {
             byte[] content = [.. _encoding.GetPreamble(), .. _encoding.GetBytes(Document.Text)];
             AtomicFile.WriteAllBytes(FullPath, content);
+            _diskStamp = File.GetLastWriteTimeUtc(FullPath);
             _saveError = null;
             MarkSaved();
             OnPropertyChanged(nameof(SizeLabel));
@@ -102,6 +150,35 @@ public sealed class FileDocumentViewModel : CodeDocumentViewModel
         return _saveError is null;
     }
 
+    public void Dispose() => _files.Changed -= OnFilesChanged;
+
+    private void Unlock()
+    {
+        if (IsDirty)
+        {
+            Reload();
+        }
+
+        _files.Unlock(FullPath);
+    }
+
+    private void OnFilesChanged(object? sender, EventArgs e)
+    {
+        ProjectFileKind kind = _files.KindOf(FullPath);
+        if (kind == _kind)
+        {
+            return;
+        }
+
+        _kind = kind;
+        foreach (string property in new[] { nameof(Kind), nameof(IsReadOnly), nameof(CanLock), nameof(CanUnlock), nameof(Banner), nameof(DetailsBadge) })
+        {
+            OnPropertyChanged(property);
+        }
+
+        CommandManager.InvalidateRequerySuggested();
+    }
+
     private static Encoding DetectEncoding(byte[] bytes) => bytes switch
     {
         [0xEF, 0xBB, 0xBF, ..] => new UTF8Encoding(encoderShouldEmitUTF8Identifier: true),
@@ -109,24 +186,6 @@ public sealed class FileDocumentViewModel : CodeDocumentViewModel
         [0xFE, 0xFF, ..] => Encoding.BigEndianUnicode,
         _ => new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
     };
-
-    private static string? ReadOnlyReason(string fullPath, ProjectLayout layout)
-    {
-        if (IsUnder(fullPath, layout.GeneratedDirectory))
-        {
-            return "Fichier généré : il est réécrit à chaque compilation. Modifiez le contenu du mod dans Mine Engine.";
-        }
-
-        if (string.Equals(fullPath, layout.ProjectFile, StringComparison.OrdinalIgnoreCase))
-        {
-            return "Paramètres du projet : modifiez-les dans Projet > Paramètres du projet.";
-        }
-
-        return IsUnder(fullPath, layout.BuildDirectory) ? "Fichier produit par la compilation." : null;
-    }
-
-    private static bool IsUnder(string path, string directory) =>
-        path.StartsWith(Path.TrimEndingDirectorySeparator(directory) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>
@@ -151,7 +210,7 @@ public sealed class AssetDocumentViewModel : CodeDocumentViewModel, IDisposable
 
     public override bool IsReadOnly => true;
 
-    public override string? Banner => "Aperçu de l'asset tel qu'il sera enregistré. Modifiez-le dans le panneau Détails ; ce texte suit les modifications.";
+    public override string? Banner => "Aperçu de l'asset tel qu'il sera enregistré. Modifiez-le dans son onglet d'édition ; ce texte suit les modifications.";
 
     public override string DetailsBadge => "APERÇU";
 

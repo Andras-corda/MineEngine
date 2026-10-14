@@ -104,6 +104,7 @@ internal static class SampleContent
         AddRecipes(project, ruby, sword, cookedBeast, rubyOre);
         AddGraphs(project, ruby, sword, rubyOre, goblinHurt);
         AddEquipment(project, ruby);
+        ProgramSample.AddTo(project);
     }
 
     /// <summary>V0.4.1 : outils, armures, nourriture à effets, combustible, tags et événements d'items.</summary>

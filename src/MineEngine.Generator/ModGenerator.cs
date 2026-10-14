@@ -40,15 +40,20 @@ public sealed class ModGenerator
         ]);
     }
 
+    /// <summary>
+    /// Génère le mod dans le workspace. Les fichiers de <paramref name="lockedFiles"/> (chemins
+    /// relatifs au workspace) ne sont pas réécrits ; les fichiers générés la fois précédente
+    /// qui ne sont plus produits sont supprimés ; les autres fichiers ne sont jamais touchés.
+    /// </summary>
     public async Task<GenerationResult> GenerateAsync(
-        ModIR ir, string workspaceDirectory, ILog log, CancellationToken cancellationToken)
+        ModIR ir, string workspaceDirectory, ILog log, CancellationToken cancellationToken, IEnumerable<string>? lockedFiles = null)
     {
         ArgumentNullException.ThrowIfNull(ir);
         ArgumentException.ThrowIfNullOrWhiteSpace(workspaceDirectory);
         ArgumentNullException.ThrowIfNull(log);
 
         Directory.CreateDirectory(workspaceDirectory);
-        var context = new GenerationContext(ir, workspaceDirectory, Backend.MinecraftVersion, log);
+        var context = new GenerationContext(ir, workspaceDirectory, Backend.MinecraftVersion, log, lockedFiles);
 
         if (!string.Equals(ir.Mod.LoaderId, Backend.LoaderId, StringComparison.OrdinalIgnoreCase)
             || !MinecraftVersion.TryParse(ir.Mod.MinecraftVersion, out MinecraftVersion? target)
@@ -60,8 +65,8 @@ public sealed class ModGenerator
             return CreateResult(context);
         }
 
+        GeneratedFileManifest previous = GeneratedFileManifest.Load(context.WorkspaceDirectory);
         await Backend.PrepareWorkspaceAsync(context, cancellationToken).ConfigureAwait(false);
-        CleanGeneratedSources(context);
 
         foreach (IFileEmitter emitter in _commonEmitters.Concat(Backend.CreateEmitters()))
         {
@@ -70,17 +75,33 @@ public sealed class ModGenerator
             emitter.Emit(context);
         }
 
+        var current = new GeneratedFileManifest(context.Files.WrittenFiles.Concat(context.Files.KeptLockedFiles));
+        RemoveStaleFiles(context, previous, current);
+        current.Save(context.WorkspaceDirectory);
         return CreateResult(context);
     }
 
-    private void CleanGeneratedSources(GenerationContext context)
+    /// <summary>Supprime ce qui avait été généré la fois précédente et ne l'est plus (asset supprimé, renommé...).</summary>
+    private static void RemoveStaleFiles(GenerationContext context, GeneratedFileManifest previous, GeneratedFileManifest current)
     {
-        foreach (string root in Backend.GeneratedSourceRoots)
+        foreach (string stale in previous.Files.Where(f => !current.Contains(f) && !context.Files.IsLocked(f)))
         {
-            string directory = context.Files.Resolve(root);
-            if (Directory.Exists(directory))
+            string file = context.Files.Resolve(stale);
+            if (!File.Exists(file))
             {
-                Directory.Delete(directory, recursive: true);
+                continue;
+            }
+
+            File.Delete(file);
+            context.Log.Debug("Fichier généré supprimé : " + stale);
+
+            // Les dossiers devenus vides disparaissent aussi (package d'un graphe supprimé...).
+            for (string? directory = Path.GetDirectoryName(file);
+                 directory is not null && directory.Length > context.WorkspaceDirectory.Length
+                 && Directory.Exists(directory) && !Directory.EnumerateFileSystemEntries(directory).Any();
+                 directory = Path.GetDirectoryName(directory))
+            {
+                Directory.Delete(directory);
             }
         }
     }

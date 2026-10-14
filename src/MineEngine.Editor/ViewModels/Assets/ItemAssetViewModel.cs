@@ -268,8 +268,9 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
     public void AddItemEvent(ItemEventKind kind)
     {
         string itemRef = ContentReference.ToAsset(_item.Id).ToStorageText();
-        GraphAsset? graph = Context.Project.Assets.OfType<GraphAsset>().FirstOrDefault(g => g.Graph.Nodes.Any(n => IsOwnEvent(n, itemRef)));
-        int existing = graph?.Graph.Nodes.Count(n => n.Info.Category == NodeCategory.Event) ?? 0;
+        GraphAsset? graph = Context.Project.Assets.OfType<GraphAsset>()
+            .FirstOrDefault(g => g.Kind == GraphKind.Events && g.Graph.Nodes.Any(n => IsOwnEvent(n, itemRef)));
+        int existing = graph?.Graph.Nodes.Count(n => NodeCatalog.Find(n.Kind)?.Category == NodeCategory.Event) ?? 0;
         GraphNode node = GraphNode.Create(NodeCatalog.ForItemEvent(kind).Kind, 0, existing * 220).WithValue("item", itemRef);
         string description = $"Relier « {NodeCatalog.ForItemEvent(kind).Title} »";
 
@@ -341,7 +342,7 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
         }
     }
 
-    private bool IsOwnEvent(GraphNode node, string itemRef) => node.Info.ItemEvent is not null && node.GetValue("item") == itemRef;
+    private static bool IsOwnEvent(GraphNode node, string itemRef) => NodeCatalog.Find(node.Kind)?.ItemEvent is not null && node.GetValue("item") == itemRef;
 
     private void RefreshEvents()
     {
@@ -350,7 +351,7 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
             .SelectMany(g => g.Graph.Nodes.Where(n => IsOwnEvent(n, itemRef)).Select(n => (g, n)))];
         foreach (ItemEventViewModel row in Events)
         {
-            row.SetLinks([.. links.Where(l => l.Node.Info.ItemEvent == row.Kind)]);
+            row.SetLinks([.. links.Where(l => NodeCatalog.Find(l.Node.Kind)?.ItemEvent == row.Kind)]);
         }
     }
 

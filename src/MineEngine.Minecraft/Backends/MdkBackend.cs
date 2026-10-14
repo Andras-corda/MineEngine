@@ -8,26 +8,28 @@ using MineEngine.Minecraft.Mdk;
 namespace MineEngine.Minecraft.Backends;
 
 /// <summary>
-/// Base des backends qui s'appuient sur un MDK installé : le projet Gradle du
-/// MDK est recopié dans le workspace, puis ses paramètres sont adaptés au mod.
+/// Base des backends qui s'appuient sur un MDK installé : les fichiers Gradle du
+/// MDK sont recopiés dans le workspace (le dossier du projet), puis ses paramètres
+/// sont adaptés au mod. Ils font partie des fichiers générés : verrouillés, ils ne
+/// sont plus réécrits (pour ajouter une dépendance dans build.gradle, par exemple).
 /// </summary>
 public abstract class MdkBackend : IModLoaderBackend
 {
     protected const string GradlePropertiesFileName = "gradle.properties";
 
     /// <summary>Fichier du workspace qui mémorise le MDK utilisé lors de la dernière génération.</summary>
-    private const string WorkspaceMarkerFile = ".mineengine-mdk";
+    private const string WorkspaceMarkerFile = ".mineengine/mdk";
 
     /// <summary>Éléments du MDK jamais recopiés : exemples, documentation, dossiers de travail.</summary>
     private static readonly string[] CommonExclusions =
     [
         "src/main/java", "src/main/resources", ".github", ".gradle", "build", "run", ".idea",
-        "README.md", "README.txt", "TEMPLATE_LICENSE.txt", "LICENSE.txt", "CREDITS.txt", "changelog.txt",
+        "README.md", "README.txt", "TEMPLATE_LICENSE.txt", "LICENSE.txt", "CREDITS.txt", "changelog.txt", ".gitignore", ".gitattributes",
         MdkManifestSerializer.FileName, GradlePropertiesFileName,
     ];
 
-    /// <summary>Éléments du workspace conservés quand on change de MDK (mondes et réglages du jeu).</summary>
-    private static readonly string[] PreservedOnMdkChange = ["run"];
+    /// <summary>Dossiers de travail de Gradle vidés quand on change de MDK (le reste suit la liste des fichiers générés).</summary>
+    private static readonly string[] ClearedOnMdkChange = ["build", ".gradle"];
 
     protected MdkBackend(MdkDescriptor mdk)
     {
@@ -41,8 +43,6 @@ public abstract class MdkBackend : IModLoaderBackend
     public MdkDescriptor Mdk { get; }
 
     public MinecraftVersion MinecraftVersion => Mdk.MinecraftVersion;
-
-    public IReadOnlyList<string> GeneratedSourceRoots { get; } = ["src/main/java", "src/main/resources"];
 
     public virtual IReadOnlyList<string> BuildTasks { get; } = ["build"];
 
@@ -62,9 +62,7 @@ public abstract class MdkBackend : IModLoaderBackend
 
         ResetWorkspaceIfMdkChanged(context);
 
-        string[] exclusions = [.. CommonExclusions, .. AdditionalExclusions];
-        new DirectoryCopier(path => !exclusions.Contains(path, StringComparer.OrdinalIgnoreCase))
-            .Copy(Mdk.Directory, context.WorkspaceDirectory, overwrite: true);
+        CopyMdkFiles(context);
 
         IRModInfo mod = context.Mod;
         var properties = new GradlePropertiesFile(await ReadMdkFileAsync(GradlePropertiesFileName, cancellationToken).ConfigureAwait(false));
@@ -81,8 +79,9 @@ public abstract class MdkBackend : IModLoaderBackend
         context.Files.WriteText(GradlePropertiesFileName, properties.ToString());
 
         await ConfigureWorkspaceAsync(context, cancellationToken).ConfigureAwait(false);
-        await File.WriteAllTextAsync(Path.Combine(context.WorkspaceDirectory, WorkspaceMarkerFile), Mdk.Id, cancellationToken)
-            .ConfigureAwait(false);
+        string marker = context.Files.Resolve(WorkspaceMarkerFile);
+        Directory.CreateDirectory(Path.GetDirectoryName(marker)!);
+        await File.WriteAllTextAsync(marker, Mdk.Id, cancellationToken).ConfigureAwait(false);
     }
 
     public abstract IReadOnlyList<IFileEmitter> CreateEmitters();
@@ -110,34 +109,56 @@ public abstract class MdkBackend : IModLoaderBackend
         return File.ReadAllTextAsync(file, cancellationToken);
     }
 
+    /// <summary>Recopie le projet Gradle du MDK, sans ses exemples ni ses sources.</summary>
+    private void CopyMdkFiles(GenerationContext context)
+    {
+        string[] exclusions = [.. CommonExclusions, .. AdditionalExclusions];
+        var pending = new Stack<string>([string.Empty]);
+        while (pending.Count > 0)
+        {
+            string relative = pending.Pop();
+            string directory = Path.Combine(Mdk.Directory, relative);
+            foreach (string entry in Directory.EnumerateFileSystemEntries(directory))
+            {
+                string path = (relative.Length == 0 ? string.Empty : relative + "/") + Path.GetFileName(entry);
+                if (exclusions.Contains(path, StringComparer.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (Directory.Exists(entry))
+                {
+                    pending.Push(path);
+                }
+                else
+                {
+                    context.Files.CopyFile(entry, path);
+                }
+            }
+        }
+    }
+
     /// <summary>
-    /// Si le workspace a été généré avec un autre MDK, il est vidé (sauf le dossier
-    /// run/ qui contient les mondes de test) pour ne pas mélanger deux projets Gradle.
+    /// Si le workspace a été généré avec un autre MDK, les dossiers de travail de Gradle
+    /// sont vidés pour ne pas mélanger deux versions ; les fichiers de l'ancien MDK absents
+    /// du nouveau sont ensuite retirés avec les autres fichiers générés devenus inutiles.
     /// </summary>
     private void ResetWorkspaceIfMdkChanged(GenerationContext context)
     {
-        string marker = Path.Combine(context.WorkspaceDirectory, WorkspaceMarkerFile);
+        string marker = context.Files.Resolve(WorkspaceMarkerFile);
         string? previous = File.Exists(marker) ? File.ReadAllText(marker).Trim() : null;
         if (previous is null || string.Equals(previous, Mdk.Id, StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
 
-        context.Log.Info($"Le MDK a changé ({previous} vers {Mdk.Id}) : le dossier Generated est réinitialisé.");
-        foreach (string entry in Directory.EnumerateFileSystemEntries(context.WorkspaceDirectory))
+        context.Log.Info($"Le MDK a changé ({previous} vers {Mdk.Id}) : les dossiers de travail de Gradle sont vidés.");
+        foreach (string name in ClearedOnMdkChange)
         {
-            if (PreservedOnMdkChange.Contains(Path.GetFileName(entry), StringComparer.OrdinalIgnoreCase))
+            string directory = Path.Combine(context.WorkspaceDirectory, name);
+            if (Directory.Exists(directory))
             {
-                continue;
-            }
-
-            if (Directory.Exists(entry))
-            {
-                Directory.Delete(entry, recursive: true);
-            }
-            else
-            {
-                File.Delete(entry);
+                Directory.Delete(directory, recursive: true);
             }
         }
     }

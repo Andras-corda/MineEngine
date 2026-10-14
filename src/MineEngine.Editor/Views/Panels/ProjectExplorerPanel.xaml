@@ -2,7 +2,8 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:panels="clr-namespace:MineEngine.Editor.ViewModels.Panels"
-             xmlns:docs="clr-namespace:MineEngine.Editor.ViewModels.Documents">
+             xmlns:docs="clr-namespace:MineEngine.Editor.ViewModels.Documents"
+             xmlns:java="clr-namespace:MineEngine.Minecraft.Java;assembly=MineEngine.Minecraft">
 
     <!--
         Explorateur façon VS Code : arborescence du projet, recherche de fichiers,
@@ -22,6 +23,14 @@
                 <MenuItem Header="Ouvrir" CommandParameter="{Binding}"
                           Command="{Binding PlacementTarget.Tag.Explorer.OpenCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 <Separator />
+                <MenuItem Header="Nouvelle classe Java">
+                    <MenuItem Header="Écouteur d'événements du jeu..." CommandParameter="{x:Static java:JavaClassKind.EventListener}"
+                              Command="{Binding PlacementTarget.Tag.Explorer.NewJavaClassCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    <MenuItem Header="Classe utilitaire..." CommandParameter="{x:Static java:JavaClassKind.Utility}"
+                              Command="{Binding PlacementTarget.Tag.Explorer.NewJavaClassCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    <MenuItem Header="Classe vide..." CommandParameter="{x:Static java:JavaClassKind.Empty}"
+                              Command="{Binding PlacementTarget.Tag.Explorer.NewJavaClassCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                </MenuItem>
                 <MenuItem Header="Nouveau fichier..."
                           Command="{Binding PlacementTarget.Tag.Explorer.NewFileCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 <MenuItem Header="Nouveau dossier..."
@@ -63,6 +72,8 @@
         <!-- En-tête et actions -->
         <DockPanel Grid.Row="0" Margin="12,8,6,4">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Style="{StaticResource IconButton}" Content="&#xE943;" ToolTip="Nouvelle classe Java (écouteur d'événements)"
+                        Command="{Binding Explorer.NewJavaClassCommand}" CommandParameter="{x:Static java:JavaClassKind.EventListener}" />
                 <Button Style="{StaticResource IconButton}" Content="&#xE8A5;" ToolTip="Nouveau fichier" Command="{Binding Explorer.NewFileCommand}" />
                 <Button Style="{StaticResource IconButton}" Content="&#xE8F4;" ToolTip="Nouveau dossier" Command="{Binding Explorer.NewFolderCommand}" />
                 <Button Style="{StaticResource IconButton}" Content="&#xE72C;" ToolTip="Actualiser" Command="{Binding Explorer.RefreshCommand}" />

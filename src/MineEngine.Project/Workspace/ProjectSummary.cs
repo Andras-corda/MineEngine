@@ -35,7 +35,7 @@ public sealed class ProjectSummary
     /// <summary>Chemins absolus de quelques images PNG du projet.</summary>
     public IReadOnlyList<string> PreviewTextures { get; }
 
-    /// <summary>Dernière modification du fichier Project.json.</summary>
+    /// <summary>Dernière modification du fichier projet.</summary>
     public DateTime LastModified { get; }
 
     public int Count(AssetType type) => Counts.GetValueOrDefault(type);
@@ -45,16 +45,17 @@ public sealed class ProjectSummary
     {
         ArgumentNullException.ThrowIfNull(serializer);
         var layout = new ProjectLayout(rootDirectory);
-        if (!File.Exists(layout.ProjectFile))
+        string file = File.Exists(layout.ProjectFile) ? layout.ProjectFile : layout.LegacyProjectFile;
+        if (!File.Exists(file))
         {
             return null;
         }
 
         try
         {
-            ProjectSettings settings = serializer.Deserialize(File.ReadAllText(layout.ProjectFile), ProjectLayout.ProjectFileName);
+            ProjectSettings settings = serializer.Deserialize(File.ReadAllText(file), Path.GetFileName(file));
             return new ProjectSummary(
-                layout.RootDirectory, settings, CountAssets(layout), FindPreviewTextures(layout), File.GetLastWriteTime(layout.ProjectFile));
+                layout.RootDirectory, settings, CountAssets(layout), FindPreviewTextures(layout), File.GetLastWriteTime(file));
         }
         catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException or JsonException)
         {
@@ -62,16 +63,17 @@ public sealed class ProjectSummary
         }
     }
 
-    /// <summary>Le type est lu dans chaque fichier : marche aussi pour l'ancien rangement à plat.</summary>
+    /// <summary>Le type est lu dans chaque fichier : marche aussi pour les anciens rangements (Content/).</summary>
     private static Dictionary<AssetType, int> CountAssets(ProjectLayout layout)
     {
         var counts = new Dictionary<AssetType, int>();
-        if (!Directory.Exists(layout.ContentDirectory))
+        string elements = Directory.Exists(layout.ElementsDirectory) ? layout.ElementsDirectory : Path.Combine(layout.RootDirectory, "Content");
+        if (!Directory.Exists(elements))
         {
             return counts;
         }
 
-        foreach (string file in Directory.EnumerateFiles(layout.ContentDirectory, "*" + AssetSerializer.FileExtension, SearchOption.AllDirectories))
+        foreach (string file in Directory.EnumerateFiles(elements, "*" + AssetSerializer.FileExtension, SearchOption.AllDirectories))
         {
             try
             {

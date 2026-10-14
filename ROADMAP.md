@@ -9,6 +9,9 @@ Ce fichier suit l'avancement du projet version par version. Le détail de chaque
 | V0.2 | Fondation de l'éditeur | Finis (critère de réussite validé) |
 | V0.3 | Système d'assets, mobs et IA (simple) | En cours (Certaines choses manquante) |
 | V0.4 | Prototype nodal | En cours (bugs) |
+| V0.4.1 | Items complets, dossiers, onglets d'édition | En cours (interface des dossiers à finir) |
+| V0.4.2 | Architecture façon MCreator, éditeur Java, thème sombre et bleu | En cours |
+| V0.4.3 | Programmation en graphes : fonctions, procédures, classes, structures, interfaces, énumérations | En cours |
 | V0.5 | Paramètrage plus poussé de l'interface | À faire |
 | V0.6 | Intégration du sous programme puppeteer (ai trees) | À faire |
 | V1.0 | Alpha exploitable | À faire |
@@ -140,14 +143,14 @@ Objectif : une base de contenu solide pour toutes les versions suivantes. Les mo
 ### Interface
 - [x] Nouvel accueil (sélection de projet) : barre latérale (Accueil, Mes projets, Paramètres, MDK, Aide), liste des projets avec recherche, tri et onglet Récents, aperçu du projet sélectionné, ajout d'un projet existant, retrait de la liste
 - [x] Liste des projets enregistrée dans `%LOCALAPPDATA%\MineEngine\projects.json` ; au premier lancement, les projets de `Documents\MineEngine Projects` y sont ajoutés
-- [x] Couleur d'accent fixe (lilas), cartes et barre de statut harmonisées, menu Build renommé Compilation, version affichée depuis `Directory.Build.props`
+- [x] Couleur d'accent fixe (lilas, devenue bleue en V0.4.2), cartes et barre de statut harmonisées, menu Build renommé Compilation, version affichée depuis `Directory.Build.props`
 - [x] Espace de travail refait : barre d'outils supprimée ; Explorateur façon VS Code à gauche (arborescence, recherche, création, renommage, corbeille, structure du fichier) ; onglets de code au centre (AvalonEdit, édition, lecture seule pour les fichiers générés) ; Dashboard en onglet permanent (liste ou vignettes, filtres, état, utilisations) ; panneau Détails / Inspecteur à droite ; barre de statut (curseur, encodage, langage)
 - [x] Interface responsive : accueil sur une colonne, panneaux latéraux et du bas réduits, colonnes secondaires du Dashboard masquées en fenêtre étroite
 - [x] Style de l'accueil appliqué partout : un seul dictionnaire de styles (`Themes/BaseStyles.xaml`), palette neutre et lilas sans bleu, panneaux AvalonDock rhabillés (thème `MineEngineDockTheme` construit depuis la palette), sélection des listes, onglets soulignés et fenêtres de dialogue assortis
 
 Déplacé :
 - Asset Graph : avec le node editor en V0.4.
-- Asset Script : avec l'éditeur Java en V1.1.
+- Asset Script : remplacé en V0.4.2 par les classes Java de l'utilisateur dans `src/main/java`.
 
 Reste à faire pour clore la V0.3 :
 - [ ] Valider le critère de réussite à la main dans l'éditeur, puis en jeu
@@ -177,6 +180,71 @@ Reste à faire pour clore la V0.4 :
 
 ---
 
+## V0.4.1 - Items complets, dossiers et onglets d'édition
+
+- [x] Types d'items : simple, épée, pioche, hache, pelle, houe (matériau, dégâts, vitesse d'attaque), casque, plastron, jambières, bottes (matériau d'armure) ; constructeurs propres à 1.20.1 et 1.21.1
+- [x] Nourriture : se mange vite, effets à la consommation (27 effets, durée, niveau, chance)
+- [x] Données : item rendu après fabrication, non réparable, combustible (durée), tags d'items, tenu comme un outil
+- [x] Onglet Événements : clic droit, utilisé sur un bloc, frappe une créature, bloc cassé, mangé, fabriqué, tenu en main ; chaque événement se relie à un graphe (créé au besoin) qui s'ouvre sur le nœud
+- [x] Dossiers et sous-dossiers logiques (enregistrés dans le projet, annulables), sans effet sur les fichiers
+- [x] Création et modification d'un élément dans un onglet d'édition (plus dans l'inspecteur)
+- [x] Génération vérifiée par un build Gradle réel sur Forge 1.20.1, Forge 1.21.1 et NeoForge 1.21.1
+
+- [x] Dossiers dans le Dashboard (liste et vignettes) : fil d'Ariane, dossiers avant les éléments, double-clic pour entrer, Retour arrière pour remonter, création, renommage, suppression (le contenu remonte), « Déplacer vers » et glisser-déposer sur un dossier ou le fil d'Ariane ; un nouvel élément est rangé dans le dossier ouvert ; la recherche porte sur tous les dossiers et montre le dossier de chaque élément
+
+Reste à faire :
+- [ ] Panneau Détails réduit à un résumé avec « Ouvrir l'éditeur »
+
+Reporté (liste de référence des items) :
+- Enchantements (enchantabilité, enchantements autorisés), matériaux d'armure et d'outil personnalisés
+- Rendus et modèles 3D personnalisés (V1.3), capabilities, échanges des villageois, composteur, distributeur
+- Lier un événement à du code Java plutôt qu'à un graphe : avec les custom nodes en V1.1
+
+---
+
+## V0.4.2 - Architecture façon MCreator, éditeur Java, thème sombre et bleu
+
+Objectif : une application plus fluide, où le code Java a sa place à côté des éléments, comme dans MCreator.
+
+- [x] Le dossier du projet est le projet Gradle du mod (comme un workspace MCreator) : fichier `<Nom>.mineengine`, éléments dans `elements/`, code dans `src/main/java`, ressources dans `src/main/resources`, `.jar` dans `build/libs`, mondes de test dans `run/`
+- [x] Conversion automatique des anciens projets à l'ouverture (archive de l'ancien projet dans `.mineengine/backups`) ; les classes de `Scripts/` rejoignent le dossier de leur package
+- [x] Liste des fichiers générés (`.mineengine/generated.json`) : seuls les fichiers générés qui ne sont plus produits sont supprimés, le code écrit à la main n'est jamais touché ; un fichier identique n'est pas réécrit
+- [x] Code verrouillé : un fichier généré (Java, ressource, `build.gradle`) se verrouille pour être modifié à la main ; Mine Engine ne le réécrit plus ; annulable
+- [x] Classes Java de l'utilisateur : écouteur d'événements du jeu (annotation propre à Forge ou NeoForge), classe utilitaire, classe vide ; compilées avec le mod (vérifié par un build Gradle réel sur les trois versions)
+- [x] Éditeur Java : barre d'outils (Enregistrer, Rechercher, Formater), blocs repliables, indentation automatique, fermeture des parenthèses et guillemets, auto-complétion avec ajout des imports, formatage (Ctrl+Maj+F), recherche et remplacement, erreurs `javac` soulignées dans le code et pointées dans la marge
+- [x] Erreurs de compilation : double-clic dans Diagnostics ouvre l'élément concerné ou le fichier Java à la ligne fautive
+- [x] Thème sombre et bleu : palette gris bleuté, accent bleu (#2F7FD8), onglet actif plein, coloration du code façon VS Code ; le thème clair suit le même accent
+
+- [x] Boutons de disposition dans la barre de titre, comme VS Code : personnaliser (mode concentration, tout afficher, réinitialiser), Explorateur (Ctrl+B), Sortie et Diagnostics (Ctrl+J), Détails (Ctrl+Alt+B)
+
+Reste à faire :
+- [ ] « Voir le code Java » depuis un élément du Dashboard, et verrouillage par élément (tous ses fichiers)
+- [ ] Aller à la ligne (Ctrl+G), ouverture rapide de fichiers et d'éléments (Ctrl+P)
+
+---
+
+## V0.4.3 - Programmation en graphes
+
+Objectif : les graphes ne décrivent plus seulement des réactions aux événements, mais un vrai programme, comme les Blueprints.
+
+- [x] À la création d'un graphe, choix de ce qu'il définit : graphe d'événements, fonction, procédure, classe, structure, interface ou énumération
+- [x] Panneau « Définition » : nom, accessibilité (public, protégé, privé), paramètres, valeurs renvoyées (plusieurs possibles), variables locales ou globales, fonction pure, méthode statique
+- [x] Classes : champs avec accessibilité, constructeur en nœuds (entrée avec ses paramètres, « Constructeur parent » en premier), classe parente, interfaces implémentées, méthodes et types intégrés (imbriqués)
+- [x] Structures (champs), interfaces (méthodes à fournir), énumérations (valeurs)
+- [x] Nœuds tirés des définitions : appeler (fonction, procédure, méthode, méthode d'interface), créer un objet, lire et modifier un champ ou une variable, valeur et comparaison d'énumération, « Moi », retour ; les nœuds suivent les changements de signature
+- [x] Visibilité : public partout ; privé hors classe limité au dossier du Dashboard ; membre privé limité à sa classe, protégé aussi aux classes héritières ; un type privé intégré n'est utilisable qu'à l'endroit où il est intégré
+- [x] Héritage : champs et méthodes hérités, redéfinition (même signature), un objet d'une classe héritière alimente une entrée de sa parente ou de ses interfaces ; erreurs pour les boucles d'héritage, méthodes d'interface manquantes, signatures différentes, constructeur parent oublié
+- [x] Nœuds de calcul : addition, soustraction, multiplication, plus petit que
+- [x] Génération Java dans le package `code` : classes, `extends`, `implements`, `@Override`, `record` pour plusieurs valeurs renvoyées, énumérations et types imbriqués ; le monde (`Level`) est passé à chaque méthode ; vérifiée par un build Gradle réel sur Forge 1.20.1, Forge 1.21.1 et NeoForge 1.21.1
+- [x] Retour arrière supprime les nœuds sélectionnés (sauf l'entrée)
+
+Reste à faire :
+- [ ] Boucles (pour, tant que), listes, conversion entre types (« est un », transtypage), nombres décimaux
+- [ ] Classes et méthodes abstraites, surcharge (plusieurs méthodes de même nom)
+- [ ] Appeler une méthode Java écrite à la main depuis un graphe (custom nodes, V1.1)
+
+---
+
 ## V1.0 - Alpha exploitable
 
 **Critère de réussite :** sans écrire de Java, un utilisateur crée un mod, un item, un bloc, une recette et un comportement en nodal, compile, lance Minecraft et teste.
@@ -191,7 +259,7 @@ Reste à faire pour clore la V0.4 :
 
 | Version | Contenu principal | Critère de réussite |
 | --- | --- | --- |
-| V1.1 | Asset Script (déplacé de la V0.3), éditeur Java, custom nodes `@MineNode`, API Mine Engine et bibliothèque `mineengine-runtime` | Un programmeur publie une méthode Java ; un designer l'utilise dans un graphe sans ouvrir le code |
+| V1.1 | Custom nodes `@MineNode` (l'éditeur Java et le code de l'utilisateur sont arrivés en V0.4.2), API Mine Engine et bibliothèque `mineengine-runtime` | Un programmeur publie une méthode Java ; un designer l'utilise dans un graphe sans ouvrir le code |
 | V1.2 | Éditeur de particules et preview temps réel | Un effet réglé dans la preview a le même rendu en jeu |
 | V1.3 | Renderers visuels, surchargeables en Java | À définir à la fin de la V1.2 |
 | V1.4 | Animation, import Blockbench | À définir |

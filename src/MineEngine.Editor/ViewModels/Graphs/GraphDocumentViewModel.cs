@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text;
 using System.Windows;
+using System.Windows.Threading;
 using MineEngine.Assets;
 using MineEngine.Assets.Graphs;
 using MineEngine.Core.Assets;
@@ -16,30 +17,57 @@ namespace MineEngine.Editor.ViewModels.Graphs;
 public sealed record GraphIssueItem(string Message, Guid? NodeId, bool IsError);
 
 /// <summary>
-/// Onglet d'édition d'un graphe nodal. Il présente le graphe de l'asset sous forme de
-/// nœuds et de fils, et traduit chaque geste (ajout, branchement, déplacement, saisie)
-/// en un nouveau graphe appliqué par l'historique du projet : tout est annulable, et
-/// l'annulation remet l'éditeur à jour comme n'importe quelle modification.
+/// Onglet d'édition d'un graphe nodal : réactions aux événements, fonction, procédure,
+/// classe (son constructeur), structure, interface ou énumération. Il présente le corps du
+/// graphe sous forme de nœuds et de fils, et sa définition (paramètres, variables, héritage...)
+/// dans un panneau à part. Chaque geste devient une modification appliquée par l'historique
+/// du projet : tout est annulable, et l'annulation remet l'éditeur à jour. Les nœuds qui
+/// utilisent d'autres définitions (appel, objet) suivent leurs modifications.
 /// </summary>
 public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
 {
     private readonly GraphAsset _asset;
     private readonly AssetEditingContext _context;
     private readonly Dictionary<Guid, GraphNodeViewModel> _nodes = [];
+    private ProgramModel? _program;
+    private bool _refreshPending;
     private string _paletteSearch = string.Empty;
     private string? _statusText;
     private GraphPinViewModel? _pendingSource;
     private (Guid Node, string Pin)? _lastValueEdit;
     private IReadOnlyList<GraphIssueItem> _issues = [];
 
-    public GraphDocumentViewModel(GraphAsset asset, AssetEditingContext context, string displayPath)
+    /// <param name="createMember">Crée une définition intégrée à une classe (méthode, type imbriqué) et l'ouvre.</param>
+    public GraphDocumentViewModel(GraphAsset asset, AssetEditingContext context, string displayPath, Action<GraphKind, Guid> createMember)
         : base("graph:" + asset.Id.ToString("N"), displayPath)
     {
         _asset = asset ?? throw new ArgumentNullException(nameof(asset));
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        Definition = new DefinitionViewModel(asset, context, () => Program, createMember);
         _asset.Changed += OnAssetChanged;
+        _context.Project.Assets.Changed += OnRegistryChanged;
         Sync();
     }
+
+    /// <summary>Définitions du projet, relues après chaque modification d'un graphe.</summary>
+    public ProgramModel Program => _program ??= ProgramModel.From(_context.Project.Assets);
+
+    /// <summary>Décrit les nœuds de ce graphe et la compatibilité des types.</summary>
+    public IGraphContext Context => Program.ContextFor(_asset);
+
+    /// <summary>Panneau "Définition" : signature, variables, héritage...</summary>
+    public DefinitionViewModel Definition { get; }
+
+    public GraphKind Kind => _asset.Kind;
+
+    public bool IsEventGraph => _asset.Kind == GraphKind.Events;
+
+    /// <summary>Le graphe a un corps en nœuds (sinon seul le panneau Définition s'affiche).</summary>
+    public bool HasBody => _asset.Kind.HasBody();
+
+    public string KindLabel => _asset.Kind.Label();
+
+    public string TypeLabel(DataType type) => Program.TypeLabel(type);
 
     /// <summary>Demande à la vue de montrer un nœud (structure, liste des problèmes).</summary>
     public event EventHandler<Guid>? FocusRequested;
@@ -52,7 +80,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
 
     public override bool IsReadOnly => false;
 
-    public override string DetailsBadge => "GRAPHE";
+    public override string DetailsBadge => _asset.Kind.Label().ToUpperInvariant();
 
     public ObservableCollection<GraphNodeViewModel> Nodes { get; } = [];
 
@@ -98,7 +126,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         }
     }
 
-    public int EventCount => Nodes.Count(n => n.Category == NodeCategory.Event);
+    public int EventCount => Nodes.Count(n => n.Info.IsEntryPoint);
 
     /// <summary>Message passager de l'éditeur (fil refusé...), ou null.</summary>
     public string? StatusText
@@ -134,22 +162,26 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         }
     }
 
-    /// <summary>Nœuds proposés, filtrés par la recherche (titre, description ou famille) et par la broche en attente.</summary>
+    /// <summary>
+    /// Nœuds proposés (catalogue, puis appels, objets, champs et variables visibles depuis ce graphe),
+    /// filtrés par la recherche (titre, description ou famille) et par la broche en attente.
+    /// </summary>
     public IReadOnlyList<NodeChoiceViewModel> PaletteChoices
     {
         get
         {
             string search = Normalize(_paletteSearch);
+            IGraphContext context = Context;
             return
             [
-                .. NodeCatalog.All
-                    .Where(n => _pendingSource is null || FindCompatiblePin(n, _pendingSource) is not null)
-                    .Where(n => search.Length == 0
-                                || Normalize(n.Title).Contains(search, StringComparison.Ordinal)
-                                || Normalize(n.Description).Contains(search, StringComparison.Ordinal)
-                                || Normalize(NodeCatalog.CategoryLabel(n.Category)).Contains(search, StringComparison.Ordinal))
-                    .OrderBy(n => n.Category)
-                    .Select(n => new NodeChoiceViewModel(n)),
+                .. ProgramPalette.AvailableNodes(Program, _asset)
+                    .Select(t => new NodeChoiceViewModel(t))
+                    .Where(c => _pendingSource is null || FindCompatiblePin(c.Info, _pendingSource, context) is not null)
+                    .Where(c => search.Length == 0
+                                || Normalize(c.Title).Contains(search, StringComparison.Ordinal)
+                                || Normalize(c.Description).Contains(search, StringComparison.Ordinal)
+                                || Normalize(c.CategoryLabel).Contains(search, StringComparison.Ordinal))
+                    .OrderBy(c => c.Category),
             ];
         }
     }
@@ -157,19 +189,21 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
     // ----- Modifications -----
 
     /// <summary>Ajoute un nœud ; s'il y a une broche en attente, le relie à sa première broche compatible.</summary>
-    public GraphNodeViewModel AddNode(NodeInfo info, Point position)
+    public GraphNodeViewModel AddNode(NodeChoiceViewModel choice, Point position)
     {
-        ArgumentNullException.ThrowIfNull(info);
-        GraphNode node = GraphNode.Create(info.Kind, Math.Round(position.X), Math.Round(position.Y));
+        ArgumentNullException.ThrowIfNull(choice);
+        NodeInfo info = choice.Info;
+        IGraphContext context = Context;
+        GraphNode node = choice.Template.Create(Math.Round(position.X), Math.Round(position.Y));
         NodeGraph graph = _asset.Graph.AddNode(node);
-        if (_pendingSource is { } source && FindCompatiblePin(info, source) is { } pin)
+        if (_pendingSource is { } source && FindCompatiblePin(info, source, context) is { } pin)
         {
             GraphConnection connection = source.IsInput
                 ? new GraphConnection(node.Id, pin.Name, source.Node.Id, source.Name)
                 : new GraphConnection(source.Node.Id, source.Name, node.Id, pin.Name);
-            if (graph.DescribeConnectionProblem(connection) is null)
+            if (graph.DescribeConnectionProblem(connection, context) is null)
             {
-                graph = graph.Connect(connection);
+                graph = graph.Connect(connection, context);
             }
         }
 
@@ -191,14 +225,15 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
 
         (GraphPinViewModel output, GraphPinViewModel input) = first.IsInput ? (second, first) : (first, second);
         var connection = new GraphConnection(output.Node.Id, output.Name, input.Node.Id, input.Name);
-        if (_asset.Graph.DescribeConnectionProblem(connection) is { } problem)
+        IGraphContext context = Context;
+        if (_asset.Graph.DescribeConnectionProblem(connection, context) is { } problem)
         {
             StatusText = problem;
             return false;
         }
 
         StatusText = null;
-        Apply(_asset.Graph.Connect(connection), "Relier des nœuds");
+        Apply(_asset.Graph.Connect(connection, context), "Relier des nœuds");
         return true;
     }
 
@@ -212,9 +247,15 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         }
     }
 
+    /// <summary>Supprime les nœuds sélectionnés, sauf l'entrée d'une fonction (le graphe n'aurait plus de début).</summary>
     public void DeleteSelection()
     {
-        List<Guid> ids = [.. SelectedNodes.Select(n => n.Id)];
+        if (SelectedNodes.Any(n => n.IsEntry))
+        {
+            StatusText = "Le nœud d'entrée ne se supprime pas : c'est le début de la fonction.";
+        }
+
+        List<Guid> ids = [.. SelectedNodes.Where(n => !n.IsEntry).Select(n => n.Id)];
         if (ids.Count > 0)
         {
             Apply(_asset.Graph.RemoveNodes(ids), ids.Count == 1 ? "Supprimer un nœud" : $"Supprimer {ids.Count} nœuds");
@@ -224,7 +265,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
     /// <summary>Copie les nœuds sélectionnés (et les fils entre eux) un peu plus bas à droite.</summary>
     public void DuplicateSelection()
     {
-        List<GraphNode> originals = [.. SelectedNodes.Select(n => n.Model)];
+        List<GraphNode> originals = [.. SelectedNodes.Where(n => !n.IsEntry).Select(n => n.Model)];
         if (originals.Count == 0)
         {
             return;
@@ -319,6 +360,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
     public void Dispose()
     {
         _asset.Changed -= OnAssetChanged;
+        _context.Project.Assets.Changed -= OnRegistryChanged;
         foreach (GraphConnectionViewModel connection in Connections)
         {
             connection.Dispose();
@@ -346,6 +388,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
 
     private void OnAssetChanged(object? sender, AssetChangedEventArgs e)
     {
+        _program = null;
         switch (e.PropertyName)
         {
             case nameof(GraphAsset.Graph):
@@ -355,8 +398,41 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
                 OnPropertyChanged(nameof(FileName));
                 OnPropertyChanged(nameof(Title));
                 OnPropertyChanged(nameof(DetailsTitle));
+                ScheduleRefresh();
+                break;
+            default:
+                // Signature, variables, héritage... : les nœuds et le panneau Définition suivent.
+                ScheduleRefresh();
                 break;
         }
+    }
+
+    /// <summary>Un autre graphe a changé (fonction appelée, classe utilisée...) : nœuds et types à revoir.</summary>
+    private void OnRegistryChanged(object? sender, AssetRegistryChangedEventArgs e)
+    {
+        if (e.Asset is GraphAsset && !ReferenceEquals(e.Asset, _asset))
+        {
+            _program = null;
+            ScheduleRefresh();
+        }
+    }
+
+    /// <summary>Regroupe les mises à jour d'une même saisie en une seule, une fois l'interface libre.</summary>
+    private void ScheduleRefresh()
+    {
+        if (_refreshPending)
+        {
+            return;
+        }
+
+        _refreshPending = true;
+        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+        {
+            _refreshPending = false;
+            _program = null;
+            Definition.Refresh();
+            Sync();
+        });
     }
 
     /// <summary>Met les ViewModels en accord avec le graphe de l'asset, en gardant ceux des nœuds inchangés.</summary>
@@ -370,17 +446,29 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
             _nodes.Remove(stale.Id);
         }
 
+        IGraphContext context = Context;
         foreach (GraphNode node in graph.Nodes)
         {
-            if (_nodes.TryGetValue(node.Id, out GraphNodeViewModel? existing))
+            NodeInfo info = context.Describe(node);
+            if (_nodes.TryGetValue(node.Id, out GraphNodeViewModel? existing) && existing.Info.Signature == info.Signature)
             {
                 existing.Update(node);
             }
             else
             {
-                var created = new GraphNodeViewModel(this, node, _context);
+                // Nouveau nœud, ou nœud dont les broches ont changé (paramètre ajouté à la fonction appelée...).
+                var created = new GraphNodeViewModel(this, node, info, _context);
+                if (existing is not null)
+                {
+                    created.IsSelected = existing.IsSelected;
+                    Nodes[Nodes.IndexOf(existing)] = created;
+                }
+                else
+                {
+                    Nodes.Add(created);
+                }
+
                 _nodes[node.Id] = created;
-                Nodes.Add(created);
             }
         }
 
@@ -408,7 +496,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
             pin.IsConnected = connected.Contains(pin);
         }
 
-        IReadOnlyList<GraphIssue> issues = GraphValidator.Validate(graph);
+        IReadOnlyList<GraphIssue> issues = ProgramValidator.Validate(_asset, Program);
         ILookup<Guid?, GraphIssue> byNode = issues.ToLookup(i => i.NodeId);
         foreach (GraphNodeViewModel node in Nodes)
         {
@@ -417,27 +505,27 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
 
         Issues = [.. issues.Where(i => i.Severity != DiagnosticSeverity.Info)
             .Select(i => new GraphIssueItem(i.Message, i.NodeId, i.Severity == DiagnosticSeverity.Error))];
-        Outline = [.. Nodes.Where(n => n.Category == NodeCategory.Event)
+        Outline = [.. Nodes.Where(n => n.Info.IsEntryPoint)
             .OrderBy(n => n.Y).ThenBy(n => n.X)
-            .Select(n => new OutlineItem(n.Title, OutlineKind.Event, 0, 0, n.Id, "événement"))];
+            .Select(n => new OutlineItem(n.Title, OutlineKind.Event, 0, 0, n.Id, n.IsEntry ? "entrée" : "événement"))];
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(EventCount));
         OnPropertyChanged(nameof(SelectedNode));
     }
 
     /// <summary>Broche du nœud <paramref name="info"/> qui peut se brancher sur <paramref name="source"/>, ou null.</summary>
-    private static PinInfo? FindCompatiblePin(NodeInfo info, GraphPinViewModel source)
+    private static PinInfo? FindCompatiblePin(NodeInfo info, GraphPinViewModel source, IGraphContext context)
     {
         if (source.IsExec)
         {
             return source.IsInput
                 ? info.ExecOutputs.FirstOrDefault()
-                : info.HasExecInput ? new PinInfo(NodeInfo.ExecInput, string.Empty, PinType.Exec) : null;
+                : info.HasExecInput ? new PinInfo(NodeInfo.ExecInput, string.Empty, DataType.Exec) : null;
         }
 
         return source.IsInput
-            ? info.Outputs.FirstOrDefault(o => o.Type.CanFeed(source.Type))
-            : info.Inputs.FirstOrDefault(i => i.Connectable && source.Type.CanFeed(i.Type));
+            ? info.Outputs.FirstOrDefault(o => context.CanFeed(o.Type, source.Type))
+            : info.Inputs.FirstOrDefault(i => i.Connectable && context.CanFeed(source.Type, i.Type));
     }
 
     private static string Plural(int count, string one, string many) =>

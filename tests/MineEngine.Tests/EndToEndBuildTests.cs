@@ -9,6 +9,7 @@ using MineEngine.Core.Logging;
 using MineEngine.Generator;
 using MineEngine.IR;
 using MineEngine.Minecraft.Generation;
+using MineEngine.Minecraft.Java;
 using MineEngine.Minecraft.Mdk;
 using MineEngine.Project;
 using MineEngine.Project.Serialization;
@@ -75,6 +76,15 @@ public sealed class EndToEndBuildTests
         SampleContent.AddTo(project);
         repository.Save(project);
 
+        // Code écrit par l'utilisateur, compilé avec le code généré (classes "custom" de la V0.4.2).
+        string package = JavaClassTemplates.DefaultPackage(settings.ModId);
+        foreach ((JavaClassKind kind, string name) in new[] { (JavaClassKind.EventListener, "Welcome"), (JavaClassKind.Utility, "MathTools") })
+        {
+            string file = project.Layout.ToAbsolutePath(JavaClassTemplates.SourcePath(package, name));
+            Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+            File.WriteAllText(file, JavaClassTemplates.Create(kind, package, name, settings.ModId, mdk.Loader));
+        }
+
         var pipeline = new BuildPipeline(
             ModIRBuilder.CreateDefault(), library, ModLoaderBackendRegistry.CreateDefault(), ModGenerator.CreateDefault,
             new JdkLocator(), new GradleJavaCompatibility(), new GradleRunner());
@@ -83,6 +93,9 @@ public sealed class EndToEndBuildTests
 
         Assert.True(result.Success, string.Join('\n', result.Diagnostics));
         Assert.True(File.Exists(result.JarPath));
+        Assert.StartsWith(project.Layout.BuildDirectory, result.JarPath, StringComparison.OrdinalIgnoreCase);
+        using System.IO.Compression.ZipArchive jar = System.IO.Compression.ZipFile.OpenRead(result.JarPath!);
+        Assert.Contains(jar.Entries, e => e.FullName == package.Replace('.', '/') + "/Welcome.class");
     }
 
     private sealed class TestLog : ILog

@@ -2,13 +2,19 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
 using MineEngine.Assets;
+using MineEngine.Assets.Graphs;
 using MineEngine.Assets.Serialization;
 using MineEngine.Core.Assets;
+using MineEngine.Core.Diagnostics;
 using MineEngine.Editor.Mvvm;
 using MineEngine.Editor.Services;
 using MineEngine.Editor.ViewModels.Assets;
 using MineEngine.Editor.ViewModels.Documents;
 using MineEngine.Editor.ViewModels.Graphs;
+using MineEngine.IR.Model;
+using MineEngine.Minecraft.Java;
+using MineEngine.Minecraft.Mdk;
+using MineEngine.Project.Commands;
 
 namespace MineEngine.Editor.ViewModels;
 
@@ -22,6 +28,9 @@ public sealed partial class MainViewModel
     private DocumentViewModel? _activeDocument;
     private IDetailsTarget? _details;
     private AssetSerializer? _assetSerializer;
+    private ProjectFiles? _files;
+    private IReadOnlyList<Diagnostic> _buildDiagnostics = [];
+    private IReadOnlyList<JavaCompletionEntry>? _javaCompletions;
 
     /// <summary>Demande à la vue d'afficher un onglet (null : le Dashboard).</summary>
     public event EventHandler<DocumentViewModel?>? DocumentActivationRequested;
@@ -145,6 +154,113 @@ public sealed partial class MainViewModel
             asset => (asset ?? _project?.SelectedAsset) is not null);
     }
 
+    // ----- Dossiers du Dashboard -----
+
+    /// <summary>Crée un dossier dans le dossier ouvert et l'ouvre.</summary>
+    public ICommand NewFolderCommand { get; private set; } = null!;
+
+    /// <summary>Renomme un dossier (paramètre : le dossier) ; son contenu suit.</summary>
+    public ICommand RenameFolderCommand { get; private set; } = null!;
+
+    /// <summary>Supprime un dossier (paramètre : le dossier) ; son contenu remonte d'un niveau.</summary>
+    public ICommand DeleteFolderCommand { get; private set; } = null!;
+
+    /// <summary>Déplace l'élément sélectionné vers un dossier (paramètre : son chemin, "" pour la racine).</summary>
+    public ICommand MoveAssetToFolderCommand { get; private set; } = null!;
+
+    /// <summary>Déplace des éléments vers un dossier (glisser-déposer), en une étape annulable.</summary>
+    public void MoveAssetsToFolder(IEnumerable<AssetViewModel> assets, string folder)
+    {
+        if (_project is null)
+        {
+            return;
+        }
+
+        List<Asset> moved = [.. assets.Select(a => a.Model).Where(a => a.Folder != folder)];
+        if (moved.Count > 0)
+        {
+            _project.History.Execute(FolderOperations.MoveAssets(moved, folder));
+            StatusText = moved.Count == 1 ? $"« {moved[0].DisplayName} » déplacé" : $"{moved.Count} éléments déplacés";
+        }
+    }
+
+    private void InitializeFolderCommands()
+    {
+        NewFolderCommand = new RelayCommand(NewFolder, () => CanEdit);
+        RenameFolderCommand = new RelayCommand<FolderItemViewModel>(RenameFolder, _ => CanEdit);
+        DeleteFolderCommand = new RelayCommand<FolderItemViewModel>(DeleteFolder, _ => CanEdit);
+        MoveAssetToFolderCommand = new RelayCommand<string>(
+            folder => MoveAssetsToFolder([_project!.SelectedAsset!], folder ?? string.Empty),
+            _ => CanEdit && _project?.SelectedAsset is not null);
+    }
+
+    private void NewFolder()
+    {
+        string parent = _project!.CurrentFolder;
+        string? name = AskFolderName("Nouveau dossier", "Nom du dossier :", "Nouveau dossier", parent);
+        if (name is null)
+        {
+            return;
+        }
+
+        string path = AssetFolders.Combine(parent, name);
+        _project.History.Execute(FolderOperations.Create(_project.Model, path));
+        _project.CurrentFolder = path;
+    }
+
+    private void RenameFolder(FolderItemViewModel folder)
+    {
+        string parent = AssetFolders.Parent(folder.Path);
+        string? name = AskFolderName("Renommer le dossier", $"Nouveau nom de « {folder.Name} » :", folder.Name, parent, folder.Name);
+        if (name is null || name == folder.Name)
+        {
+            return;
+        }
+
+        _project!.History.Execute(FolderOperations.Move(
+            _project.Model, folder.Path, AssetFolders.Combine(parent, name), $"Renommer le dossier « {folder.Name} »"));
+    }
+
+    private void DeleteFolder(FolderItemViewModel folder)
+    {
+        string where = AssetFolders.Parent(folder.Path) is { Length: > 0 } parent ? $"« {AssetFolders.Name(parent)} »" : "la racine";
+        if (folder.AssetCount + folder.FolderCount > 0
+            && !_dialogs.Confirm("Supprimer le dossier", $"Supprimer le dossier « {folder.Name} » ? Son contenu ({folder.ContentLabel.ToLowerInvariant()}) remonte dans {where}."))
+        {
+            return;
+        }
+
+        _project!.History.Execute(FolderOperations.Dissolve(_project.Model, folder.Path));
+    }
+
+    /// <summary>Demande un nom de dossier valide et libre dans <paramref name="parent"/> ; null si l'utilisateur annule.</summary>
+    private string? AskFolderName(string title, string prompt, string suggestion, string parent, string? current = null)
+    {
+        while (true)
+        {
+            string? name = _dialogs.AskText(title, prompt, suggestion)?.Trim();
+            if (string.IsNullOrEmpty(name))
+            {
+                return null;
+            }
+
+            if (!AssetFolders.IsValidName(name))
+            {
+                _dialogs.ShowError(title, "Nom invalide : pas de « / », de « \\ » ni de caractère interdit par Windows (64 caractères au plus).");
+            }
+            else if (name != current && FolderOperations.Exists(_project!.Model, AssetFolders.Combine(parent, name)))
+            {
+                _dialogs.ShowError(title, $"Un dossier « {name} » existe déjà ici.");
+            }
+            else
+            {
+                return name;
+            }
+
+            suggestion = name;
+        }
+    }
+
     /// <summary>Ouvre l'onglet d'édition d'un élément (paramètre : son ViewModel, sinon l'élément sélectionné).</summary>
     public ICommand OpenAssetEditorCommand { get; private set; } = null!;
 
@@ -205,10 +321,13 @@ public sealed partial class MainViewModel
         }
     }
 
-    private void AddGraph()
+    /// <summary>
+    /// Crée un graphe (événements, fonction, classe...) et l'ouvre. Avec <paramref name="owner"/>,
+    /// la définition est intégrée à cette classe (méthode, type imbriqué).
+    /// </summary>
+    private void AddGraph(GraphKind kind, Guid? owner = null)
     {
-        _project!.AddAsset(AssetType.Graph);
-        if (_project.SelectedAsset?.Model is GraphAsset graph)
+        if (_project?.AddGraph(kind, owner) is { } graph)
         {
             OpenGraphDocument(graph);
         }
@@ -227,32 +346,25 @@ public sealed partial class MainViewModel
                                      ?? AddDocument(new GraphDocumentViewModel(
                                          graph,
                                          _assetViewModels.CreateContext(_project.Model, assetId => _project.SelectAsset(assetId)),
-                                         _project.Model.Layout.ToRelativePath(_project.Model.Layout.GetAssetFilePath(graph))));
+                                         _project.Model.Layout.ToRelativePath(_project.Model.Layout.GetAssetFilePath(graph)),
+                                         (kind, owner) => AddGraph(kind, owner)));
         Activate(document);
     }
 
     /// <summary>Le serializer des assets sert à l'aperçu JSON ; il est créé au premier besoin.</summary>
     private AssetSerializer AssetSerializer => _assetSerializer ??= new AssetSerializer(_assetViewModels.Catalog);
 
-    /// <summary>Ouvre un fichier de l'explorateur : asset, onglet de code, ou application de Windows.</summary>
+    /// <summary>Ouvre un fichier de l'explorateur : élément (son onglet d'édition), onglet de code, ou application de Windows.</summary>
     private void OpenFileFromExplorer(string fullPath)
     {
-        if (_project is null)
+        if (_project is null || _files is null)
         {
             return;
         }
 
         if (FindAssetForFile(fullPath) is { } asset && fullPath.EndsWith(AssetSerializer.FileExtension, StringComparison.OrdinalIgnoreCase))
         {
-            if (asset is GraphAsset graph)
-            {
-                OpenGraphDocument(graph);
-            }
-            else
-            {
-                OpenAssetDocument(asset);
-            }
-
+            OpenAsset(asset);
             return;
         }
 
@@ -263,9 +375,36 @@ public sealed partial class MainViewModel
         }
 
         string id = "file:" + Path.GetFullPath(fullPath).ToLowerInvariant();
-        DocumentViewModel document = Documents.FirstOrDefault(d => d.Id == id)
-                                         ?? AddDocument(new FileDocumentViewModel(fullPath, _project.Model.Layout));
+        DocumentViewModel? document = Documents.FirstOrDefault(d => d.Id == id);
+        if (document is null)
+        {
+            var file = new FileDocumentViewModel(fullPath, _files);
+            if (file.IsJava)
+            {
+                file.Completions = JavaCompletions();
+            }
+
+            file.Markers = MarkersFor(file);
+            document = AddDocument(file);
+        }
+
         Activate(document);
+    }
+
+    /// <summary>Ouvre un fichier du projet et place le curseur sur une ligne (erreur de compilation).</summary>
+    private void OpenFileAtLine(string fullPath, int line)
+    {
+        if (!File.Exists(fullPath))
+        {
+            StatusText = "Fichier introuvable : " + Path.GetFileName(fullPath);
+            return;
+        }
+
+        OpenFileFromExplorer(fullPath);
+        if (line > 0 && _activeDocument is CodeDocumentViewModel code)
+        {
+            code.GoToLine(line);
+        }
     }
 
     /// <summary>Un fichier d'asset, une texture ou un son sélectionné dans l'explorateur affiche l'asset.</summary>
@@ -360,6 +499,39 @@ public sealed partial class MainViewModel
         }
 
         return true;
+    }
+
+    /// <summary>Après une compilation : statut des fichiers relu, onglets non modifiés rechargés depuis le disque.</summary>
+    private void RefreshGeneratedDocuments()
+    {
+        _files?.Refresh();
+        foreach (FileDocumentViewModel file in Documents.OfType<FileDocumentViewModel>())
+        {
+            file.ReloadIfChangedOnDisk();
+            file.Markers = MarkersFor(file);
+        }
+    }
+
+    /// <summary>Erreurs et avertissements javac de la dernière compilation situés dans un fichier.</summary>
+    private IReadOnlyList<CodeMarker> MarkersFor(FileDocumentViewModel file) =>
+        [.. _buildDiagnostics
+            .Where(d => d.Line > 0 && d.FilePath is not null
+                        && string.Equals(d.FilePath, file.DisplayPath, StringComparison.OrdinalIgnoreCase))
+            .Select(d => new CodeMarker(d.Line, d.Severity, d.Message))];
+
+    /// <summary>Propositions de complétion Java, selon le loader du projet et les classes générées du mod.</summary>
+    private IReadOnlyList<JavaCompletionEntry> JavaCompletions()
+    {
+        if (_javaCompletions is null && _project is not null)
+        {
+            Project.ProjectSettings settings = _project.Model.Settings;
+            var naming = new JavaModNaming(new IRModInfo(
+                settings.ModId, settings.ModName, settings.ModVersion, settings.Authors, settings.Description,
+                settings.License, settings.Website, settings.MinecraftVersion, settings.LoaderId));
+            _javaCompletions = JavaCompletionData.For(ModLoaderKindExtensions.FromId(settings.LoaderId), JavaCompletionData.ModTypes(naming));
+        }
+
+        return _javaCompletions ?? [];
     }
 
     private int SaveDirtyDocuments() => Documents.Where(d => d.IsDirty).Count(d => d.Save());

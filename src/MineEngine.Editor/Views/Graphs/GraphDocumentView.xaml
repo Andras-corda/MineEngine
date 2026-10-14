@@ -67,6 +67,8 @@
                              Text="{Binding TextValue, UpdateSourceTrigger=PropertyChanged}" />
                     <CheckBox x:Name="Flag" Visibility="Collapsed" MinWidth="0" Margin="2,0,6,0" VerticalAlignment="Center"
                               IsChecked="{Binding BoolValue}" />
+                    <ComboBox x:Name="Choice" Visibility="Collapsed" Width="130" Margin="2,2,6,2" FontSize="12" MinHeight="0"
+                              ItemsSource="{Binding Choices}" SelectedItem="{Binding ChoiceValue}" DisplayMemberPath="Name" />
                     <ComboBox x:Name="Reference" Visibility="Collapsed" Width="170" Margin="2,2,6,2" FontSize="12"
                               IsEditable="True" IsTextSearchEnabled="False" FontFamily="Consolas"
                               ItemsSource="{Binding Picker.Suggestions}" ToolTip="{Binding Picker.Text}"
@@ -84,6 +86,9 @@
                     </DataTrigger>
                     <DataTrigger Binding="{Binding Editor}" Value="{x:Static graphs:PinEditorKind.Reference}">
                         <Setter TargetName="Reference" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Editor}" Value="{x:Static graphs:PinEditorKind.Choice}">
+                        <Setter TargetName="Choice" Property="Visibility" Value="Visible" />
                     </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>
@@ -181,7 +186,19 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid x:Name="Root" Background="{DynamicResource HubBackgroundBrush}" ClipToBounds="True"
+    <!-- Définition à gauche (pleine largeur pour une structure, une interface ou une énumération), corps en nœuds à droite. -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="DefinitionColumn" Width="320" MinWidth="220" />
+            <ColumnDefinition x:Name="SplitterColumn" Width="Auto" />
+            <ColumnDefinition x:Name="BodyColumn" Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <local:DefinitionPanel x:Name="DefinitionPane" DataContext="{Binding Definition}" />
+        <GridSplitter x:Name="DefinitionSplitter" Grid.Column="1" Width="4" HorizontalAlignment="Stretch" Background="{DynamicResource SplitterBrush}"
+                      ResizeBehavior="PreviousAndNext" />
+
+    <Grid x:Name="Root" Grid.Column="2" Background="{DynamicResource HubBackgroundBrush}" ClipToBounds="True"
           MouseLeftButtonDown="OnRootMouseLeftButtonDown" MouseRightButtonDown="OnRootMouseRightButtonDown"
           MouseDown="OnRootMouseDown" MouseMove="OnRootMouseMove" MouseUp="OnRootMouseUp" MouseWheel="OnRootMouseWheel"
           LostMouseCapture="OnRootLostMouseCapture" SizeChanged="OnRootSizeChanged">
@@ -239,6 +256,9 @@
         <!-- Barre d'outils -->
         <Border Style="{StaticResource Card}" Padding="6,4" Margin="12" HorizontalAlignment="Left" VerticalAlignment="Top">
             <StackPanel Orientation="Horizontal">
+                <Border Style="{StaticResource Badge}" VerticalAlignment="Center" Margin="4,0,8,0">
+                    <TextBlock Style="{StaticResource BadgeText}" Text="{Binding KindLabel}" />
+                </Border>
                 <Button Style="{StaticResource FlatButton}" Click="OnAddNodeClick" ToolTip="Ajouter un nœud (clic droit dans le graphe)">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE710;" />
@@ -263,7 +283,7 @@
                 <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" FontSize="12" MaxWidth="480" />
             </Border>
             <TextBlock FontSize="11" Foreground="{DynamicResource HintBrush}" TextWrapping="Wrap"
-                       Text="Clic droit : ajouter · Glisser une broche : relier · Alt+clic : débrancher · Clic droit glissé ou molette pressée : déplacer la vue · Molette : zoom · Suppr : effacer · Ctrl+D : dupliquer" />
+                       Text="Clic droit : ajouter · Glisser une broche : relier · Alt+clic : débrancher · Clic droit glissé ou molette pressée : déplacer la vue · Molette : zoom · Suppr ou Retour arrière : effacer · Ctrl+D : dupliquer" />
         </StackPanel>
 
         <!-- Menu d'ajout de nœud (placé au point du clic) -->
@@ -283,5 +303,6 @@
                 </DockPanel>
             </Border>
         </Canvas>
+    </Grid>
     </Grid>
 </UserControl>

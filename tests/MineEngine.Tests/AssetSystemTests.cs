@@ -72,6 +72,11 @@ public sealed class AssetSystemTests
         string root = created.Layout.RootDirectory;
         WritePng(created.Layout.TexturesDirectory, "ruby-0a1b2c3d.png");
 
+        // Projet d'avant la 0.4.2 : Project.json et assets à plat dans Content/.
+        File.Move(created.Layout.ProjectFile, Path.Combine(root, ProjectLayout.LegacyProjectFileName));
+        Directory.Delete(created.Layout.ElementsDirectory, recursive: true);
+        Directory.CreateDirectory(Path.Combine(root, "Content"));
+
         string ruby = Guid.NewGuid().ToString("D");
         WriteOldAsset(root, "ruby", $$$"""
             {"formatVersion":1,"guid":"{{{ruby}}}","type":"Item","resourceId":"ruby","displayName":"Rubis",
@@ -103,9 +108,13 @@ public sealed class AssetSystemTests
         var coal = (BlockAsset)project.Assets.FindByResourceId(ResourceId.Parse("coal_block"), AssetType.Block)!;
         Assert.Equal("minecraft:coal", coal.DropItem!.ToStorageText());
 
+        Assert.False(Directory.Exists(Path.Combine(root, "Content")));
+        Assert.True(File.Exists(project.Layout.ProjectFile));
+        Assert.Single(Directory.GetFiles(Path.Combine(project.Layout.CacheDirectory, "backups"), "avant-0.4.2-*.zip"));
+
         Repository.Save(project);
-        Assert.Empty(Directory.GetFiles(project.Layout.ContentDirectory, "*.json"));
-        Assert.True(File.Exists(Path.Combine(project.Layout.ContentDirectory, "Textures", "ruby.asset.json")));
+        Assert.Empty(Directory.GetFiles(project.Layout.ElementsDirectory, "*.json"));
+        Assert.True(File.Exists(Path.Combine(project.Layout.ElementsDirectory, "Textures", "ruby.asset.json")));
         Assert.Empty(Repository.Open(root).LoadNotes);
     }
 
@@ -395,8 +404,6 @@ public sealed class AssetSystemTests
         public MdkDescriptor Mdk { get; }
 
         public MinecraftVersion MinecraftVersion => Mdk.MinecraftVersion;
-
-        public IReadOnlyList<string> GeneratedSourceRoots => ["src/main/java", "src/main/resources"];
 
         public IReadOnlyList<string> BuildTasks => ["build"];
 

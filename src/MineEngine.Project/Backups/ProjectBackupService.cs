@@ -18,15 +18,15 @@ public sealed class ProjectBackup
 }
 
 /// <summary>
-/// Sauvegardes de secours : une archive .zip du projet (Project.json, Content/,
-/// Textures/, Scripts/, Graphs/) rangée dans .mineengine/backups. Seules les plus
+/// Sauvegardes de secours : une archive .zip du projet (fichier .mineengine, elements/,
+/// Textures/, Sounds/, src/) rangée dans .mineengine/backups. Seules les plus
 /// récentes sont conservées.
 /// </summary>
 public sealed class ProjectBackupService
 {
     private const string FilePrefix = "backup-";
     private const string DateFormat = "yyyyMMdd-HHmmss";
-    private static readonly string[] SavedFolders = ["Content", "Textures", "Scripts", "Graphs"];
+    private static readonly string[] SavedFolders = [ProjectLayout.ElementsFolder, "Textures", "Sounds", "src"];
 
     private readonly TimeProvider _clock;
 
@@ -99,7 +99,7 @@ public sealed class ProjectBackupService
             ProjectLayout layout = project.Layout;
             if (File.Exists(layout.ProjectFile))
             {
-                archive.CreateEntryFromFile(layout.ProjectFile, ProjectLayout.ProjectFileName);
+                archive.CreateEntryFromFile(layout.ProjectFile, layout.ProjectFileName);
             }
 
             foreach (string folder in SavedFolders)

@@ -24,6 +24,8 @@ public static class GraphBrushes
         [PinType.Item] = Create("#3EC1C9"),
         [PinType.Block] = Create("#B07A4F"),
         [PinType.Sound] = Create("#A88BE6"),
+        [PinType.Object] = Create("#7FA7FF"),
+        [PinType.Enum] = Create("#C9B458"),
     };
 
     private static readonly Dictionary<NodeCategory, Brush> Categories = new()
@@ -32,10 +34,12 @@ public static class GraphBrushes
         [NodeCategory.Condition] = Create("#3F7F4A"),
         [NodeCategory.Action] = Create("#3B6EA5"),
         [NodeCategory.Variable] = Create("#A8742A"),
+        [NodeCategory.Function] = Create("#6A4AAE"),
+        [NodeCategory.Object] = Create("#2D7D8C"),
     };
 
     /// <summary>Couleur d'un type de valeur. L'exécution utilise la couleur du texte du thème (voir la vue).</summary>
-    public static Brush ForPin(PinType type) => Pins.GetValueOrDefault(type, Brushes.Gray);
+    public static Brush ForPin(DataType type) => Pins.GetValueOrDefault(type.Kind, Brushes.Gray);
 
     public static Brush ForCategory(NodeCategory category) => Categories.GetValueOrDefault(category, Brushes.Gray);
 
@@ -47,11 +51,11 @@ public static class GraphBrushes
     }
 }
 
-/// <summary>Couleur d'une broche ou d'un fil selon son type (PinType).</summary>
+/// <summary>Couleur d'une broche ou d'un fil selon son type (DataType) : objets du projet en bleu clair, énumérations en ocre.</summary>
 public sealed class PinTypeBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
-        value is PinType type ? GraphBrushes.ForPin(type) : DependencyProperty.UnsetValue;
+        value is DataType type ? GraphBrushes.ForPin(type) : DependencyProperty.UnsetValue;
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }
@@ -61,6 +65,15 @@ public sealed class NodeCategoryBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
         value is NodeCategory category ? GraphBrushes.ForCategory(category) : DependencyProperty.UnsetValue;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+/// <summary>Libellé français d'une accessibilité ("Public", "Protégé", "Privé").</summary>
+public sealed class AccessLevelLabelConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is AccessLevel access ? access.Label() : DependencyProperty.UnsetValue;
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }

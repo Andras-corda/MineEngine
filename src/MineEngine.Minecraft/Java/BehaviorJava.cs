@@ -8,18 +8,24 @@ namespace MineEngine.Minecraft.Java;
 /// Traduction Java des nœuds d'un graphe : expressions, instructions et petites méthodes
 /// utilitaires (donner un item, faire apparaître un item...) ajoutées à la classe générée.
 /// Le code est le même pour Forge et NeoForge ; seuls les événements et le bus diffèrent
-/// (voir <see cref="ModJavaEmitter"/>).
+/// (voir <see cref="ModJavaEmitter"/>). Les appels, objets, champs et variables du
+/// programme sont nommés par <see cref="JavaProgramNames"/>.
 /// </summary>
 public sealed class BehaviorJava
 {
     private readonly JavaGameApi _api;
+    private readonly JavaProgramNames _names;
     private readonly SortedSet<string> _imports = new(StringComparer.Ordinal);
     private readonly SortedSet<string> _helpers = new(StringComparer.Ordinal);
 
-    public BehaviorJava(JavaGameApi api)
+    public BehaviorJava(JavaGameApi api, JavaProgramNames names)
     {
         _api = api ?? throw new ArgumentNullException(nameof(api));
+        _names = names ?? throw new ArgumentNullException(nameof(names));
     }
+
+    /// <summary>Fonction dont on écrit le corps (pour le type de ses valeurs renvoyées), ou null.</summary>
+    public IRFunction? CurrentFunction { get; set; }
 
     /// <summary>Imports nécessaires au code traduit jusqu'ici.</summary>
     public IReadOnlyCollection<string> Imports => _imports;
@@ -57,6 +63,56 @@ public sealed class BehaviorJava
         }
     }
 
+    /// <summary>Lignes Java d'une instruction autre qu'une condition (un bloc est indenté de quatre espaces).</summary>
+    public IReadOnlyList<string> Statement(IRStatement statement) => statement switch
+    {
+        IRActionStatement action => [Action(action)],
+        IRCallStatement call => CallStatement(call),
+        IRNewStatement created => [$"{created.Result} = {New(created.TypeId, created.Arguments)};"],
+        IRSetVariableStatement set => [$"{_names.Variable(set.VariableId)} = {Expression(set.Value)};"],
+        IRSetFieldStatement set => [$"{Owner(set.Target)}.{_names.Variable(set.FieldId)} = {Expression(set.Value)};"],
+        IRReturnStatement ret => [Return(ret.Values)],
+        IRSuperStatement super => [$"super({Arguments(super.Arguments, withLevel: true)});"],
+        _ => throw new NotSupportedException($"Instruction {statement.GetType().Name} non traduite en Java."),
+    };
+
+    /// <summary>Instruction "return" (valeurs par défaut si <paramref name="values"/> est vide pour une fonction).</summary>
+    public string Return(IReadOnlyList<IRExpression> values)
+    {
+        if (CurrentFunction is not { Returns.Count: > 0 } function)
+        {
+            return "return;";
+        }
+
+        IReadOnlyList<IRExpression> actual = values.Count == function.Returns.Count
+            ? values
+            : [.. function.Returns.Select(r => (IRExpression)new IRDefaultValue(r.Type))];
+        return function.Returns.Count == 1
+            ? $"return {Expression(actual[0])};"
+            : $"return new {_names.ResultRecordType(function)}({string.Join(", ", actual.Select(Expression))});";
+    }
+
+    /// <summary>Valeur Java par défaut d'un type (0, false, "", BlockPos.ZERO, première constante, null).</summary>
+    public string DefaultValue(DataType type)
+    {
+        switch (type.Kind)
+        {
+            case PinType.Boolean:
+                return "false";
+            case PinType.Number:
+                return "0";
+            case PinType.Text:
+                return "\"\"";
+            case PinType.Position:
+                Use("net.minecraft.core.BlockPos");
+                return "BlockPos.ZERO";
+            case PinType.Enum when type.Definition is { } id && _names.Find(id) is IREnum { Constants.Count: > 0 } type2:
+                return _names.Constant(id, type2.Constants[0].Id);
+            default:
+                return "null";
+        }
+    }
+
     /// <summary>Instruction Java d'une action (terminée par ';').</summary>
     public string Action(IRActionStatement action)
     {
@@ -86,6 +142,14 @@ public sealed class BehaviorJava
         IREventValue value => value.Name,
         IRToText toText => $"String.valueOf({Expression(toText.Value)})",
         IRCallExpression call => Call(call),
+        IRParameterValue parameter => _names.Variable(parameter.ParameterId),
+        IRLocalValue local => local.Name,
+        IRVariableValue variable => _names.Variable(variable.VariableId),
+        IRFieldValue field => $"{Owner(field.Target)}.{_names.Variable(field.FieldId)}",
+        IRSelfValue => "this",
+        IREnumValue constant => constant.EnumType.Definition is { } enumId ? _names.Constant(enumId, constant.ConstantId) : "null",
+        IRPureCall pure => PureCall(pure),
+        IRDefaultValue value => DefaultValue(value.ValueType),
         _ => throw new NotSupportedException($"Expression {expression.GetType().Name} non traduite en Java."),
     };
 
@@ -109,6 +173,11 @@ public sealed class BehaviorJava
             GraphNodeKind.GreaterThan => $"({a[0]} > {a[1]})",
             GraphNodeKind.NumbersEqual => $"({a[0]} == {a[1]})",
             GraphNodeKind.Not => $"!({a[0]})",
+            GraphNodeKind.EnumEquals => $"({a[0]} == {a[1]})",
+            GraphNodeKind.Add => $"({a[0]} + {a[1]})",
+            GraphNodeKind.Subtract => $"({a[0]} - {a[1]})",
+            GraphNodeKind.Multiply => $"({a[0]} * {a[1]})",
+            GraphNodeKind.LessThan => $"({a[0]} < {a[1]})",
             _ => throw new NotSupportedException($"Nœud {call.Kind} non traduit en Java."),
         };
     }
@@ -117,7 +186,7 @@ public sealed class BehaviorJava
     private string Content(IRContentLiteral content)
     {
         string id = JavaNames.StringLiteral(content.Id.ToString());
-        return content.ContentType switch
+        return content.ContentType.Kind switch
         {
             PinType.Item => Helper("item", $"item({id})"),
             PinType.Block => Helper("block", $"block({id})"),
@@ -125,6 +194,62 @@ public sealed class BehaviorJava
             _ => throw new NotSupportedException($"Contenu {content.ContentType} non traduit en Java."),
         };
     }
+
+    /// <summary>Objet d'un champ ou d'une méthode : l'expression, sinon "this".</summary>
+    private string Owner(IRExpression? target) => target is null ? "this" : Expression(target);
+
+    private string Arguments(IEnumerable<IRExpression> arguments, bool withLevel) =>
+        string.Join(", ", (withLevel ? [JavaProgramNames.LevelParameter] : Array.Empty<string>()).Concat(arguments.Select(Expression)));
+
+    /// <summary>Appel Java (sans point-virgule) d'une fonction, d'une méthode ou d'une méthode d'interface.</summary>
+    private string Invoke(IRCallee callee, IRExpression? target, IReadOnlyList<IRExpression> arguments)
+    {
+        string args = Arguments(arguments, withLevel: true);
+        if (callee.InterfaceMethod is { } method)
+        {
+            return $"{Owner(target)}.{_names.InterfaceMethod(callee.Definition, method)}({args})";
+        }
+
+        if (_names.Find(callee.Definition) is not IRFunction function)
+        {
+            throw new NotSupportedException("Appel d'une définition qui n'est pas une fonction.");
+        }
+
+        return $"{_names.CallPrefix(function, target is null ? null : Expression(target))}({args})";
+    }
+
+    private string PureCall(IRPureCall call)
+    {
+        string invocation = Invoke(call.Callee, call.Target, call.Arguments);
+        return call.Component is { } component ? $"{invocation}.{_names.Variable(component)}()" : invocation;
+    }
+
+    private IReadOnlyList<string> CallStatement(IRCallStatement call)
+    {
+        string invocation = Invoke(call.Callee, call.Target, call.Arguments);
+        IReadOnlyList<VariableDefinition> returns = call.Callee.InterfaceMethod is { } method
+            ? (_names.Find(call.Callee.Definition) as IRInterface)?.Methods.FirstOrDefault(m => m.Id == method)?.Returns ?? []
+            : (_names.Find(call.Callee.Definition) as IRFunction)?.Returns ?? [];
+
+        if (call.Results.Count == 0 || returns.Count == 0)
+        {
+            return [invocation + ";"];
+        }
+
+        if (returns.Count == 1)
+        {
+            return [$"{call.Results[0]} = {invocation};"];
+        }
+
+        // Plusieurs valeurs renvoyées : un record, dont chaque composant va dans sa variable locale.
+        var lines = new List<string> { "{", $"    var result = {invocation};" };
+        lines.AddRange(returns.Zip(call.Results).Select(pair => $"    {pair.Second} = result.{_names.Variable(pair.First.Id)}();"));
+        lines.Add("}");
+        return lines;
+    }
+
+    private string New(Guid typeId, IReadOnlyList<IRExpression> arguments) =>
+        $"new {_names.TypeName(typeId)}({Arguments(arguments, withLevel: _names.Find(typeId) is IRClass)})";
 
     private string Helper(string name, string code)
     {

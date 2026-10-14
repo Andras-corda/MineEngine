@@ -2,56 +2,131 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
-             xmlns:docs="clr-namespace:MineEngine.Editor.ViewModels.Documents">
+             xmlns:docs="clr-namespace:MineEngine.Editor.ViewModels.Documents"
+             xmlns:search="clr-namespace:ICSharpCode.AvalonEdit.Search;assembly=ICSharpCode.AvalonEdit">
 
-    <!-- Onglet de code : fil d'Ariane, bandeau éventuel, éditeur avec numéros de ligne. -->
+    <!--
+        Onglet de code : barre d'outils (fil d'Ariane, Enregistrer, Rechercher, Formater),
+        bandeau éventuel (code généré, verrouillé...), éditeur avec numéros de ligne,
+        blocs repliables et marques des erreurs de compilation.
+    -->
 
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Barre de recherche (Ctrl+F, F3) aux couleurs du thème ; celle d'AvalonEdit est blanche. -->
+            <Style TargetType="search:SearchPanel">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="search:SearchPanel">
+                            <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                                    CornerRadius="5" Padding="5" Margin="0,6,20,0" HorizontalAlignment="Right" VerticalAlignment="Top" Cursor="Arrow">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBox Name="PART_searchTextBox" Width="210" Padding="6,3"
+                                             Text="{Binding SearchPattern, RelativeSource={RelativeSource TemplatedParent}, UpdateSourceTrigger=PropertyChanged}" />
+                                    <CheckBox Content="Aa" MinWidth="0" Margin="8,0,0,0" ToolTip="Respecter la casse"
+                                              IsChecked="{Binding MatchCase, RelativeSource={RelativeSource TemplatedParent}}" />
+                                    <CheckBox Content="Mot" MinWidth="0" Margin="4,0,0,0" ToolTip="Mot entier"
+                                              IsChecked="{Binding WholeWords, RelativeSource={RelativeSource TemplatedParent}}" />
+                                    <Button Style="{StaticResource IconButton}" Content="&#xE70E;" Margin="4,0,0,0" ToolTip="Précédent (Maj+F3)"
+                                            Command="search:SearchCommands.FindPrevious" />
+                                    <Button Style="{StaticResource IconButton}" Content="&#xE70D;" ToolTip="Suivant (F3)"
+                                            Command="search:SearchCommands.FindNext" />
+                                    <Button Style="{StaticResource IconButton}" Content="&#xE711;" ToolTip="Fermer (Échap)"
+                                            Command="search:SearchCommands.CloseSearchPanel" />
+                                </StackPanel>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
 
     <DockPanel Background="{DynamicResource HubBackgroundBrush}">
-        <!-- Fil d'Ariane -->
-        <Border DockPanel.Dock="Top" Padding="12,5" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1">
-            <ItemsControl ItemsSource="{Binding Breadcrumb}" Focusable="False">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type docs:BreadcrumbSegment}">
+        <!-- Barre d'outils : fil d'Ariane à gauche, actions à droite -->
+        <Border DockPanel.Dock="Top" Padding="12,6" Background="{DynamicResource SidebarBrush}"
+                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Style="{StaticResource ToolbarButton}" Command="{Binding FormatCommand}" ToolTip="Réindenter le fichier (Ctrl+Maj+F)"
+                            Visibility="{Binding IsJava, Converter={StaticResource BoolToVisibility}}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="Name" Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource HintBrush}" />
-                            <TextBlock x:Name="Separator" Text="  &#x203A;  " FontSize="12" Foreground="{DynamicResource HintBrush}" />
+                            <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE8E4;" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Formater" />
                         </StackPanel>
-                        <DataTemplate.Triggers>
-                            <DataTrigger Binding="{Binding IsLast}" Value="True">
-                                <Setter TargetName="Separator" Property="Visibility" Value="Collapsed" />
-                                <Setter TargetName="Name" Property="Foreground" Value="{DynamicResource StrongTextBrush}" />
-                            </DataTrigger>
-                        </DataTemplate.Triggers>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                    </Button>
+                    <Button Style="{StaticResource ToolbarButton}" Click="OnFindClick" ToolTip="Rechercher et remplacer dans le fichier">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE721;" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Rechercher" />
+                            <TextBlock Style="{StaticResource ShortcutHint}" Text="Ctrl+F" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource PrimaryToolbarButton}" Command="{Binding SaveCommand}" ToolTip="Enregistrer ce fichier"
+                            Visibility="{Binding IsReadOnly, Converter={StaticResource InverseBoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE74E;" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Enregistrer" />
+                            <TextBlock Style="{StaticResource ShortcutHint}" Text="Ctrl+S" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <ItemsControl ItemsSource="{Binding Breadcrumb}" Focusable="False" VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type docs:BreadcrumbSegment}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="Name" Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource HintBrush}" />
+                                <TextBlock x:Name="Separator" Text="  &#x203A;  " FontSize="12" Foreground="{DynamicResource HintBrush}" />
+                            </StackPanel>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsLast}" Value="True">
+                                    <Setter TargetName="Separator" Property="Visibility" Value="Collapsed" />
+                                    <Setter TargetName="Name" Property="Foreground" Value="{DynamicResource StrongTextBrush}" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </DockPanel>
         </Border>
 
-        <!-- Bandeau : fichier généré, aperçu d'asset, erreur d'enregistrement -->
+        <!-- Bandeau : code généré (avec Verrouiller), code verrouillé (avec Déverrouiller), erreur d'enregistrement -->
         <Border DockPanel.Dock="Top" Style="{StaticResource InfoBanner}" Margin="10,8,10,2"
                 Visibility="{Binding Banner, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}">
             <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Command="{Binding LockCommand}" Margin="10,0,0,0"
+                        Visibility="{Binding CanLock, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"
+                        ToolTip="Mine Engine ne réécrira plus ce fichier : vous pourrez le modifier à la main">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE72E;" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
+                        <TextBlock Text="Verrouiller pour modifier" />
+                    </StackPanel>
+                </Button>
+                <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Command="{Binding UnlockCommand}" Margin="10,0,0,0"
+                        Visibility="{Binding CanUnlock, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"
+                        ToolTip="Rendre le fichier à Mine Engine : il sera régénéré à la prochaine compilation et les modifications faites à la main seront perdues">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE785;" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
+                        <TextBlock Text="Déverrouiller" />
+                    </StackPanel>
+                </Button>
                 <TextBlock DockPanel.Dock="Left" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE946;" Margin="0,2,8,0"
                            Foreground="{DynamicResource AccentLineBrush}" />
-                <TextBlock Text="{Binding Banner}" TextWrapping="Wrap" FontSize="12" />
+                <TextBlock Text="{Binding Banner}" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center" />
             </DockPanel>
         </Border>
 
         <avalonEdit:TextEditor x:Name="Editor"
-                               Document="{Binding Document}"
                                IsReadOnly="{Binding IsReadOnly}"
                                ShowLineNumbers="True"
                                FontFamily="Cascadia Mono, Consolas"
