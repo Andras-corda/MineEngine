@@ -1,12 +1,12 @@
 # Mine Engine
 
 <!-- Badges -->
-[![GitHub License](https://shields.io)](https://github.com)
-[![GitHub Repository Size](https://shields.io)](https://github.com/Andras-corda/MineEngine)
-[![GitHub Open Issues](https://shields.io)](https://github.com)
-[![GitHub Stars](https://shields.io)](https://github.com)
-![.NET Version](https://shields.io)
-![Platform](https://shields.io)
+[![GitHub License](https://img.shields.io/github/license/Andras-corda/MineEngine)](https://github.com/Andras-corda/MineEngine/blob/main/LICENSE)
+[![GitHub Repository Size](https://img.shields.io/github/repo-size/Andras-corda/MineEngine)](https://github.com/Andras-corda/MineEngine)
+[![GitHub Open Issues](https://img.shields.io/github/issues/Andras-corda/MineEngine)](https://github.com/Andras-corda/MineEngine/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/Andras-corda/MineEngine)](https://github.com/Andras-corda/MineEngine/stargazers)
+![.NET Version](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white)
+![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white)
 [![Architecture diagram](https://gitdiagram.com/diagram-badge.svg)](https://gitdiagram.com/andras-corda/mineengine?utm_source=readme&utm_medium=badge)
 
 Environnement de création de mods Minecraft, en C# / WPF. Version en cours : **V0.4, prototype nodal** (graphes de comportements façon Blueprints, traduits en Java pour Forge et NeoForge), après la V0.3 (textures et sons en assets référencés par guid, recettes, mobs avec IA) et la V0.2 (interface, panneaux ancrables, annuler/rétablir, diagnostics, sauvegardes).
