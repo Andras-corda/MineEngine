@@ -1,5 +1,11 @@
 # Mine Engine
 
+<!-- Badges -->
+[![GitHub License](https://shields.io)](https://github.com)
+[![GitHub Repository Size](https://shields.io)](https://github.com/Andras-corda/MineEngine)
+[![GitHub Open Issues](https://shields.io)](https://github.com)
+[![GitHub Stars](https://shields.io)](https://github.com)
+
 Environnement de création de mods Minecraft, en C# / WPF. Version en cours : **V0.4, prototype nodal** (graphes de comportements façon Blueprints, traduits en Java pour Forge et NeoForge), après la V0.3 (textures et sons en assets référencés par guid, recettes, mobs avec IA) et la V0.2 (interface, panneaux ancrables, annuler/rétablir, diagnostics, sauvegardes).
 
 Objectif de la V0.1 : créer un projet, ajouter un item ou un bloc, générer le projet Minecraft, compiler, puis voir l'item dans Minecraft.
