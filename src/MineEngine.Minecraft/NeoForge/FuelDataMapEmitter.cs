@@ -11,7 +11,7 @@ namespace MineEngine.Minecraft.NeoForge;
 /// </summary>
 public sealed class FuelDataMapEmitter : IFileEmitter
 {
-    public string Name => "Combustibles (data map NeoForge)";
+    public string Name => Tr.T("Combustibles (data map NeoForge)");
 
     public void Emit(GenerationContext context)
     {

@@ -97,7 +97,7 @@ public sealed class ItemEventViewModel : ObservableObject
         _owner = owner;
         Kind = kind;
         NodeInfo info = NodeCatalog.ForItemEvent(kind);
-        Title = info.Title.Replace("Item : ", string.Empty, StringComparison.Ordinal);
+        Title = info.Title.Replace(Tr.T("Item : "), string.Empty, StringComparison.Ordinal);
         Description = info.Description;
         AddCommand = new RelayCommand(() => _owner.AddItemEvent(Kind));
         OpenCommand = new RelayCommand(() => _owner.OpenItemEvent(_links[0].Graph, _links[0].Node), () => _links.Count > 0);
@@ -114,9 +114,9 @@ public sealed class ItemEventViewModel : ObservableObject
     /// <summary>"Relié au graphe « Événements de l'épée »" ou "Aucun graphe".</summary>
     public string Status => _links.Count switch
     {
-        0 => "Aucun graphe ne réagit à cet événement.",
-        1 => $"Relié au graphe « {Header(_links[0].Graph)} ».",
-        _ => $"Relié à {_links.Count} nœuds ({string.Join(", ", _links.Select(l => Header(l.Graph)).Distinct())}).",
+        0 => Tr.T("Aucun graphe ne réagit à cet événement."),
+        1 => Tr.F("Relié au graphe « {0} ».", Header(_links[0].Graph)),
+        _ => Tr.F("Relié à {0} nœuds ({1}).", _links.Count, string.Join(", ", _links.Select(l => Header(l.Graph)).Distinct())),
     };
 
     public ICommand AddCommand { get; }

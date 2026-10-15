@@ -9,6 +9,11 @@
         les couleurs viennent de la palette du thème (Themes/*Palette.xaml).
     -->
 
+    <!-- Icônes (glyphes, géométries et styles d'icônes), voir docs/ICONS.md -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/MineEngine.Editor;component/Themes/Icons.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     <conv:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibility" />
     <conv:InverseBooleanConverter x:Key="InverseBool" />
@@ -89,8 +94,6 @@
 
     <sys:Boolean x:Key="True">True</sys:Boolean>
 
-    <!-- Cube isométrique (icône par défaut d'un projet et aperçu). -->
-    <Geometry x:Key="CubeGeometry">M 12,2 L 22,7.5 L 22,18.5 L 12,24 L 2,18.5 L 2,7.5 Z M 2,7.5 L 12,13 L 22,7.5 M 12,13 L 12,24</Geometry>
 
     <!-- Entrée de la barre latérale ; Tag = vrai quand la page est affichée. -->
     <Style x:Key="NavButton" TargetType="Button">
@@ -182,14 +185,6 @@
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
 
-    <!-- Bouton d'en-tête : icône Segoe MDL2 + texte. -->
-    <Style x:Key="IconGlyph" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Margin" Value="0,0,8,0" />
-    </Style>
-
     <!-- Carte de projet dans la liste (élément de ListBox sans le style de sélection par défaut). -->
     <Style x:Key="ProjectItem" TargetType="ListBoxItem">
         <Setter Property="Margin" Value="0,0,0,8" />
@@ -207,34 +202,6 @@
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Card" Property="Background" Value="{DynamicResource CardSelectedBrush}" />
                             <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource CardSelectedBorderBrush}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!-- Bouton plat avec une icône Segoe MDL2 (barres des panneaux). Content = glyphe. -->
-    <Style x:Key="IconButton" TargetType="Button">
-        <Setter Property="Foreground" Value="{DynamicResource HintBrush}" />
-        <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="Width" Value="26" />
-        <Setter Property="Height" Value="24" />
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border x:Name="Back" CornerRadius="4" Background="Transparent">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Back" Property="Background" Value="{DynamicResource CardHoverBrush}" />
-                            <Setter Property="Foreground" Value="{DynamicResource StrongTextBrush}" />
-                        </Trigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Opacity" Value="0.4" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

@@ -121,13 +121,13 @@ public static class ProgramPalette
     /// <summary>Nom proposé pour un nouveau graphe ("Nouvelle fonction").</summary>
     public static string DefaultName(GraphKind kind) => kind switch
     {
-        GraphKind.Events => "Nouveau graphe",
-        GraphKind.Function => "Nouvelle fonction",
-        GraphKind.Procedure => "Nouvelle procédure",
-        GraphKind.Class => "Nouvelle classe",
-        GraphKind.Struct => "Nouvelle structure",
-        GraphKind.Interface => "Nouvelle interface",
-        _ => "Nouvelle énumération",
+        GraphKind.Events => Tr.T("Nouveau graphe"),
+        GraphKind.Function => Tr.T("Nouvelle fonction"),
+        GraphKind.Procedure => Tr.T("Nouvelle procédure"),
+        GraphKind.Class => Tr.T("Nouvelle classe"),
+        GraphKind.Struct => Tr.T("Nouvelle structure"),
+        GraphKind.Interface => Tr.T("Nouvelle interface"),
+        _ => Tr.T("Nouvelle énumération"),
     };
 
     /// <summary>
@@ -146,7 +146,7 @@ public static class ProgramPalette
             body = body.AddNode(entry);
             if (kind == GraphKind.Function)
             {
-                graph.Returns = [VariableDefinition.Create("résultat", DataType.Number)];
+                graph.Returns = [VariableDefinition.Create(Tr.T("résultat"), DataType.Number)];
                 var returnProbe = entryProbe with { Kind = GraphNodeKind.FunctionReturn };
                 GraphNode result = GraphNode.Create(program.Describe(returnProbe, graph), 420, 0);
                 body = body.AddNode(result).Connect(new GraphConnection(entry.Id, NodeInfo.ExecThen, result.Id, NodeInfo.ExecInput), program.ContextFor(graph));
@@ -155,7 +155,7 @@ public static class ProgramPalette
 
         if (kind == GraphKind.Enum)
         {
-            graph.Constants = [EnumConstant.Create("Valeur")];
+            graph.Constants = [EnumConstant.Create(Tr.T("Valeur"))];
         }
 
         graph.Graph = body;

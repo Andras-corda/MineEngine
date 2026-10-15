@@ -9,11 +9,11 @@ public sealed class RecipeAssetDefinition : AssetDefinition<RecipeAsset>
 {
     public override AssetType Type => AssetType.Recipe;
 
-    public override string Label => "Recette";
+    public override string Label => Tr.T("Recette");
 
     public override string DefaultResourceIdBase => "new_recipe";
 
-    public override string DefaultDisplayName => "Nouvelle recette";
+    public override string DefaultDisplayName => Tr.T("Nouvelle recette");
 
     protected override RecipeAsset Create(Guid id, ResourceId resourceId, string displayName) =>
         new(id, resourceId, displayName);

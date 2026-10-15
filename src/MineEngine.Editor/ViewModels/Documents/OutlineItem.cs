@@ -25,14 +25,14 @@ public enum OutlineKind
 /// <param name="Hint">Texte affiché à droite à la place du numéro de ligne.</param>
 public sealed record OutlineItem(string Name, OutlineKind Kind, int Line, int Depth, Guid? NodeId = null, string? Hint = null)
 {
-    /// <summary>Glyphe Segoe MDL2 Assets.</summary>
-    public string Glyph => Kind switch
+    /// <summary>Icône du symbole (clé de Themes/Icons.xaml).</summary>
+    public string Icon => Kind switch
     {
-        OutlineKind.Type => "\uE943",
-        OutlineKind.Method => "\uE8F4",
-        OutlineKind.Field or OutlineKind.Property => "\uE8EC",
-        OutlineKind.Event => "\uE945",
-        _ => "\uE8A5",
+        OutlineKind.Type => "ClassGeometry",
+        OutlineKind.Method => "FunctionGeometry",
+        OutlineKind.Field or OutlineKind.Property => "Glyph.Field",
+        OutlineKind.Event => "Glyph.Event",
+        _ => "Glyph.File",
     };
 
     public string LineLabel => Hint ?? Line.ToString(System.Globalization.CultureInfo.InvariantCulture);

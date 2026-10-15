@@ -47,7 +47,7 @@ public sealed record DataType(PinType Kind, Guid? Definition = null)
     public static DataType UserType(Guid definition, bool isEnum) => new(isEnum ? PinType.Enum : PinType.Object, definition);
 
     public static implicit operator DataType(PinType kind) => kind is PinType.Object or PinType.Enum
-        ? throw new ArgumentException("Un type du projet doit désigner sa définition.", nameof(kind))
+        ? throw new ArgumentException(Tr.T("Un type du projet doit désigner sa définition."), nameof(kind))
         : new DataType(kind);
 
     public bool IsExec => Kind == PinType.Exec;
@@ -64,17 +64,17 @@ public sealed record DataType(PinType Kind, Guid? Definition = null)
     /// <summary>Libellé d'un type intégré ; un type du projet est nommé par <see cref="IGraphContext.TypeLabel"/>.</summary>
     public string BuiltInLabel => Kind switch
     {
-        PinType.Exec => "Exécution",
-        PinType.Boolean => "Booléen",
-        PinType.Number => "Nombre",
-        PinType.Text => "Texte",
-        PinType.Player => "Joueur",
-        PinType.Position => "Position",
-        PinType.Item => "Item",
-        PinType.Block => "Bloc",
-        PinType.Sound => "Son",
-        PinType.Object => "Objet",
-        _ => "Énumération",
+        PinType.Exec => Tr.T("Exécution"),
+        PinType.Boolean => Tr.T("Booléen"),
+        PinType.Number => Tr.T("Nombre"),
+        PinType.Text => Tr.T("Texte"),
+        PinType.Player => Tr.T("Joueur"),
+        PinType.Position => Tr.T("Position"),
+        PinType.Item => Tr.T("Item"),
+        PinType.Block => Tr.T("Bloc"),
+        PinType.Sound => Tr.T("Son"),
+        PinType.Object => Tr.T("Objet"),
+        _ => Tr.T("Énumération"),
     };
 
     /// <summary>Texte enregistré dans les fichiers : "number", "object:guid", "enum:guid".</summary>

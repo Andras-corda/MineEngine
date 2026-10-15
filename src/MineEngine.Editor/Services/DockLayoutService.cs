@@ -40,7 +40,7 @@ public sealed class DockLayoutService
         }
         catch (Exception exception) when (exception is IOException or InvalidOperationException or System.Xml.XmlException)
         {
-            _log.Warning("Disposition des panneaux illisible, disposition par défaut utilisée : " + exception.Message);
+            _log.Warning(Tr.T("Disposition des panneaux illisible, disposition par défaut utilisée : ") + exception.Message);
             Reset(manager);
         }
     }
@@ -54,7 +54,7 @@ public sealed class DockLayoutService
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
-            _log.Warning("Impossible d'enregistrer la disposition des panneaux : " + exception.Message);
+            _log.Warning(Tr.T("Impossible d'enregistrer la disposition des panneaux : ") + exception.Message);
         }
     }
 

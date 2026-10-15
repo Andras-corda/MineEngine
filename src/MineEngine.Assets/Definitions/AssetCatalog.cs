@@ -35,14 +35,14 @@ public sealed class AssetCatalog
         ArgumentNullException.ThrowIfNull(definition);
         if (!_definitions.TryAdd(definition.Type, definition))
         {
-            throw new InvalidOperationException($"Le type d'asset {definition.Type} est déjà enregistré.");
+            throw new InvalidOperationException(Tr.F("Le type d'asset {0} est déjà enregistré.", definition.Type));
         }
     }
 
     public IAssetDefinition Get(AssetType type) =>
         _definitions.TryGetValue(type, out IAssetDefinition? definition)
             ? definition
-            : throw new KeyNotFoundException($"Aucune définition pour le type d'asset {type}.");
+            : throw new KeyNotFoundException(Tr.F("Aucune définition pour le type d'asset {0}.", type));
 
     public bool TryGet(string typeName, out IAssetDefinition? definition)
     {

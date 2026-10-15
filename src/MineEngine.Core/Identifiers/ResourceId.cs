@@ -8,7 +8,7 @@ public sealed class ResourceId : IEquatable<ResourceId>, IComparable<ResourceId>
 {
     public const int MinLength = 1;
     public const int MaxLength = 64;
-    public const string RuleDescription = IdentifierRules.Description;
+    public static string RuleDescription => IdentifierRules.Description;
 
     private ResourceId(string value)
     {
@@ -24,7 +24,7 @@ public sealed class ResourceId : IEquatable<ResourceId>, IComparable<ResourceId>
         if (!IsValid(candidate))
         {
             throw new ArgumentException(
-                $"Identifiant invalide : '{candidate}'. Attendu : {RuleDescription}.", nameof(candidate));
+                Tr.F("Identifiant invalide : '{0}'. Attendu : {1}.", candidate, RuleDescription), nameof(candidate));
         }
 
         return new ResourceId(candidate);

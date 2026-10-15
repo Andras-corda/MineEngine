@@ -9,7 +9,7 @@ public abstract class TexturedAssetViewModel : AssetViewModel
         : base(model, context, typeLabel)
     {
         MainTexture = new TextureSlotViewModel(
-            model, context, nameof(TexturedAsset.TextureId), "Texture", emptyTextureLabel,
+            model, context, nameof(TexturedAsset.TextureId), Tr.T("Texture"), emptyTextureLabel,
             () => model.TextureId, v => model.TextureId = v);
     }
 

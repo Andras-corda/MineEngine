@@ -9,8 +9,8 @@ namespace MineEngine.Core.Identifiers;
 /// </summary>
 internal static class IdentifierRules
 {
-    public const string Description =
-        "une lettre minuscule, puis uniquement des lettres minuscules (a-z), des chiffres ou '_'";
+    public static string Description =>
+        Tr.T("une lettre minuscule, puis uniquement des lettres minuscules (a-z), des chiffres ou '_'");
 
     public static bool IsValid(string? candidate, int minLength, int maxLength)
     {

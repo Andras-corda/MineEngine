@@ -33,7 +33,7 @@ public sealed class ProjectRepository
         string rootDirectory = GetProjectDirectory(parentDirectory, settings);
         if (Directory.Exists(rootDirectory) && Directory.EnumerateFileSystemEntries(rootDirectory).Any())
         {
-            throw new IOException($"Le dossier '{rootDirectory}' existe déjà et n'est pas vide.");
+            throw new IOException(Tr.F("Le dossier '{0}' existe déjà et n'est pas vide.", rootDirectory));
         }
 
         var layout = new ProjectLayout(rootDirectory, ProjectLayout.DefaultProjectFileName(Path.GetFileName(rootDirectory)));
@@ -70,7 +70,7 @@ public sealed class ProjectRepository
 
         if (!File.Exists(layout.ProjectFile))
         {
-            throw new FileNotFoundException($"Aucun projet Mine Engine (*{ProjectLayout.ProjectFileExtension}) dans '{rootDirectory}'.");
+            throw new FileNotFoundException(Tr.F("Aucun projet Mine Engine (*{0}) dans '{1}'.", ProjectLayout.ProjectFileExtension, rootDirectory));
         }
 
         ProjectSettings settings = _settingsSerializer.Deserialize(File.ReadAllText(layout.ProjectFile), layout.ProjectFileName);

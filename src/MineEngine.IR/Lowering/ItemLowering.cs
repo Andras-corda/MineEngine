@@ -40,7 +40,7 @@ public sealed class ItemLowering : AssetLowering<ItemAsset>
             AttackDamage = asset.AttackDamage,
             AttackSpeed = asset.AttackSpeed,
             Handheld = asset.Handheld,
-            CraftRemainder = context.ResolveItem(asset, asset.CraftRemainder, "Item rendu après fabrication"),
+            CraftRemainder = context.ResolveItem(asset, asset.CraftRemainder, Tr.T("Item rendu après fabrication")),
             NoRepair = asset.NoRepair,
             BurnTime = asset.BurnTime,
             Tags = asset.ItemTags,

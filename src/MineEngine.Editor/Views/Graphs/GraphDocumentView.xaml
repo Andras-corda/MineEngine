@@ -1,6 +1,7 @@
 <UserControl x:Class="MineEngine.Editor.Views.Graphs.GraphDocumentView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:MineEngine.Editor.Localization"
              xmlns:graphs="clr-namespace:MineEngine.Editor.ViewModels.Graphs"
              xmlns:assets="clr-namespace:MineEngine.Editor.ViewModels.Assets"
              xmlns:local="clr-namespace:MineEngine.Editor.Views.Graphs"
@@ -247,9 +248,9 @@
         <Border Style="{StaticResource Card}" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420" IsHitTestVisible="False"
                 Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
             <StackPanel>
-                <TextBlock Text="Graphe vide" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" />
+                <TextBlock Text="{l:Tr 'Graphe vide'}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" />
                 <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource HintBrush}"
-                           Text="Faites un clic droit pour ajouter un nœud. Commencez par un événement (« Clic droit sur un bloc »), puis reliez sa sortie blanche à une condition ou à une action." />
+                           Text="{l:Tr 'Faites un clic droit pour ajouter un nœud. Commencez par un événement (« Clic droit sur un bloc »), puis reliez sa sortie blanche à une condition ou à une action.'}" />
             </StackPanel>
         </Border>
 
@@ -259,16 +260,16 @@
                 <Border Style="{StaticResource Badge}" VerticalAlignment="Center" Margin="4,0,8,0">
                     <TextBlock Style="{StaticResource BadgeText}" Text="{Binding KindLabel}" />
                 </Border>
-                <Button Style="{StaticResource FlatButton}" Click="OnAddNodeClick" ToolTip="Ajouter un nœud (clic droit dans le graphe)">
+                <Button Style="{StaticResource FlatButton}" Click="OnAddNodeClick" ToolTip="{l:Tr 'Ajouter un nœud (clic droit dans le graphe)'}">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE710;" />
-                        <TextBlock Text="Ajouter un nœud" />
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" />
+                        <TextBlock Text="{l:Tr 'Ajouter un nœud'}" />
                     </StackPanel>
                 </Button>
-                <Button Style="{StaticResource FlatButton}" Click="OnFrameAllClick" ToolTip="Afficher tout le graphe (F)">
+                <Button Style="{StaticResource FlatButton}" Click="OnFrameAllClick" ToolTip="{l:Tr 'Afficher tout le graphe (F)'}">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Style="{StaticResource IconGlyph}" Text="&#xE9A6;" />
-                        <TextBlock Text="Tout afficher" />
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.FullScreen}" />
+                        <TextBlock Text="{l:Tr 'Tout afficher'}" />
                     </StackPanel>
                 </Button>
                 <TextBlock x:Name="ZoomLabel" Text="100 %" VerticalAlignment="Center" Margin="8,0,6,0" FontSize="12"
@@ -283,7 +284,7 @@
                 <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" FontSize="12" MaxWidth="480" />
             </Border>
             <TextBlock FontSize="11" Foreground="{DynamicResource HintBrush}" TextWrapping="Wrap"
-                       Text="Clic droit : ajouter · Glisser une broche : relier · Alt+clic : débrancher · Clic droit glissé ou molette pressée : déplacer la vue · Molette : zoom · Suppr ou Retour arrière : effacer · Ctrl+D : dupliquer" />
+                       Text="{l:Tr 'Clic droit : ajouter · Glisser une broche : relier · Alt+clic : débrancher · Clic droit glissé ou molette pressée : déplacer la vue · Molette : zoom · Suppr ou Retour arrière : effacer · Ctrl+D : dupliquer'}" />
         </StackPanel>
 
         <!-- Menu d'ajout de nœud (placé au point du clic) -->
@@ -294,7 +295,7 @@
                     <DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.4" />
                 </Border.Effect>
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelCaption}" Text="AJOUTER UN NŒUD" Margin="2,0,0,6" />
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelCaption}" Text="{l:Tr 'AJOUTER UN NŒUD'}" Margin="2,0,0,6" />
                     <TextBox x:Name="PaletteSearchBox" DockPanel.Dock="Top" Margin="0,0,0,6"
                              Text="{Binding PaletteSearch, UpdateSourceTrigger=PropertyChanged}" PreviewKeyDown="OnPaletteSearchKeyDown" />
                     <ListBox x:Name="PaletteList" MaxHeight="330" ItemsSource="{Binding PaletteChoices}" ItemTemplate="{StaticResource ChoiceTemplate}"

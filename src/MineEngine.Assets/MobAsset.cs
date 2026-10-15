@@ -67,7 +67,7 @@ public sealed class MobAsset : TexturedAsset
     public override AssetType Type => AssetType.Mob;
 
     protected override string MissingTextureMessage =>
-        "Aucune texture ; celle de la créature d'origine du modèle sera utilisée.";
+        Tr.T("Aucune texture ; celle de la créature d'origine du modèle sera utilisée.");
 
     // ----- Apparence -----
 
@@ -304,12 +304,12 @@ public sealed class MobAsset : TexturedAsset
 
         if (Kind == MobKind.Animal && BreedingItem is { Kind: ContentReferenceKind.Asset } breeding)
         {
-            yield return new AssetReference(breeding.AssetId, AssetReferenceKind.Item, "item de reproduction");
+            yield return new AssetReference(breeding.AssetId, AssetReferenceKind.Item, Tr.T("item de reproduction"));
         }
 
         foreach ((ContentReference? sound, string role) in new[]
                  {
-                     (AmbientSound, "son ambiant"), (HurtSound, "son de blessure"), (DeathSound, "son de mort"),
+                     (AmbientSound, Tr.T("son ambiant")), (HurtSound, Tr.T("son de blessure")), (DeathSound, Tr.T("son de mort")),
                  })
         {
             if (sound is { Kind: ContentReferenceKind.Asset })
@@ -334,23 +334,23 @@ public sealed class MobAsset : TexturedAsset
             MobGoalInfo info = goal.Info;
             if (info.RequiresAnimal && Kind != MobKind.Animal)
             {
-                diagnostics.Error($"Le comportement « {info.Label} » n'est possible que pour un mob de la famille Animal.", source, Id);
+                diagnostics.Error(Tr.F("Le comportement « {0} » n'est possible que pour un mob de la famille Animal.", info.Label), source, Id);
             }
 
             if (info.UsesItem && goal.Item is null)
             {
-                diagnostics.Error($"Le comportement « {info.Label} » n'a pas d'item.", source, Id);
+                diagnostics.Error(Tr.F("Le comportement « {0} » n'a pas d'item.", info.Label), source, Id);
             }
 
             if (info.UsesItem && goal.Item is { Kind: ContentReferenceKind.Tag })
             {
-                diagnostics.Error($"Le comportement « {info.Label} » doit utiliser un item précis, pas un tag.", source, Id);
+                diagnostics.Error(Tr.F("Le comportement « {0} » doit utiliser un item précis, pas un tag.", info.Label), source, Id);
             }
         }
 
         foreach (MobGoalKind kind in Goals.GroupBy(g => g.Kind).Where(g => g.Count() > 1).Select(g => g.Key))
         {
-            diagnostics.Info($"Le comportement « {MobGoalCatalog.Get(kind).Label} » apparaît plusieurs fois.", source, Id);
+            diagnostics.Info(Tr.F("Le comportement « {0} » apparaît plusieurs fois.", MobGoalCatalog.Get(kind).Label), source, Id);
         }
 
         bool attacks = Goals.Any(g => g.Kind == MobGoalKind.MeleeAttack);
@@ -358,60 +358,60 @@ public sealed class MobAsset : TexturedAsset
         if (attacks && !targets)
         {
             diagnostics.Warning(
-                "Le mob sait attaquer mais ne choisit jamais de cible : ajoutez « Riposter » ou « Cibler les créatures proches ».",
+                Tr.T("Le mob sait attaquer mais ne choisit jamais de cible : ajoutez « Riposter » ou « Cibler les créatures proches »."),
                 source,
                 Id);
         }
 
         if (targets && !attacks && Kind == MobKind.Monster)
         {
-            diagnostics.Info("Le mob choisit des cibles mais n'a aucun comportement d'attaque.", source, Id);
+            diagnostics.Info(Tr.T("Le mob choisit des cibles mais n'a aucun comportement d'attaque."), source, Id);
         }
 
         if (Kind == MobKind.Animal && BreedingItem is null && Goals.Any(g => g.Kind == MobGoalKind.Breed))
         {
-            diagnostics.Warning("Sans item de reproduction, le comportement « Se reproduire » ne se déclenchera jamais.", source, Id);
+            diagnostics.Warning(Tr.T("Sans item de reproduction, le comportement « Se reproduire » ne se déclenchera jamais."), source, Id);
         }
 
         if (Kind == MobKind.Animal && BreedingItem is { Kind: ContentReferenceKind.Tag })
         {
-            diagnostics.Error("L'item de reproduction doit être un item précis, pas un tag.", source, Id);
+            diagnostics.Error(Tr.T("L'item de reproduction doit être un item précis, pas un tag."), source, Id);
         }
 
         foreach ((ContentReference? sound, string label) in new[]
                  {
-                     (AmbientSound, "ambiant"), (HurtSound, "de blessure"), (DeathSound, "de mort"),
+                     (AmbientSound, "ambiant"), (HurtSound, Tr.T("de blessure")), (DeathSound, Tr.T("de mort")),
                  })
         {
             if (sound is { Kind: ContentReferenceKind.Tag })
             {
-                diagnostics.Error($"Le son {label} ne peut pas être un tag.", source, Id);
+                diagnostics.Error(Tr.F("Le son {0} ne peut pas être un tag.", label), source, Id);
             }
         }
 
         if (Drops.Any(d => d.Item.Kind == ContentReferenceKind.Tag))
         {
-            diagnostics.Error("Le butin doit être composé d'items précis, pas de tags.", source, Id);
+            diagnostics.Error(Tr.T("Le butin doit être composé d'items précis, pas de tags."), source, Id);
         }
 
         if (SpawnsNaturally && SpawnBiomes.Count == 0)
         {
-            diagnostics.Warning("L'apparition naturelle est activée mais aucun biome n'est choisi.", source, Id);
+            diagnostics.Warning(Tr.T("L'apparition naturelle est activée mais aucun biome n'est choisi."), source, Id);
         }
 
         if (SpawnMinGroup > SpawnMaxGroup)
         {
-            diagnostics.Warning("La taille de groupe minimale dépasse la maximale : elles seront inversées.", source, Id);
+            diagnostics.Warning(Tr.T("La taille de groupe minimale dépasse la maximale : elles seront inversées."), source, Id);
         }
 
         if (HasSpawnEgg && ResourceId.Value.Length + SpawnEggSuffixLength > ResourceId.MaxLength)
         {
-            diagnostics.Error("L'identifiant est trop long pour créer l'œuf d'apparition (« _spawn_egg » est ajouté).", source, Id);
+            diagnostics.Error(Tr.T("L'identifiant est trop long pour créer l'œuf d'apparition (« _spawn_egg » est ajouté)."), source, Id);
         }
 
         if (BurnsInDaylight && FireImmune)
         {
-            diagnostics.Info("Le mob résiste au feu : il ne brûlera pas au soleil.", source, Id);
+            diagnostics.Info(Tr.T("Le mob résiste au feu : il ne brûlera pas au soleil."), source, Id);
         }
     }
 

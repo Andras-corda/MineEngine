@@ -12,7 +12,7 @@ namespace MineEngine.Minecraft.Resources;
 /// </summary>
 public sealed class RecipesEmitter : IFileEmitter
 {
-    public string Name => "Recettes";
+    public string Name => Tr.T("Recettes");
 
     public void Emit(GenerationContext context)
     {
@@ -24,7 +24,7 @@ public sealed class RecipesEmitter : IFileEmitter
                 IRShapedRecipe shaped => Shaped(shaped, modern),
                 IRShapelessRecipe shapeless => Shapeless(shapeless, modern),
                 IRSmeltingRecipe smelting => Smelting(smelting, modern),
-                _ => throw new NotSupportedException($"Recette non prise en charge : {recipe.GetType().Name}."),
+                _ => throw new NotSupportedException(Tr.F("Recette non prise en charge : {0}.", recipe.GetType().Name)),
             };
 
             context.Files.WriteText(context.Paths.Recipe(recipe.Id), JsonFormatting.ToText(json));

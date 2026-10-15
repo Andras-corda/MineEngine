@@ -240,12 +240,12 @@ public sealed class BlockAsset : InventoryAsset
 
         foreach ((BlockTextureSlot slot, Guid texture) in _extraTextures.OrderBy(t => t.Key))
         {
-            yield return new AssetReference(texture, AssetReferenceKind.Texture, "texture " + slot.ToString().ToLowerInvariant());
+            yield return new AssetReference(texture, AssetReferenceKind.Texture, Tr.F("texture {0}", slot.ToString().ToLowerInvariant()));
         }
 
         if (DropKind == BlockDropKind.OtherItem && DropItem is { Kind: ContentReferenceKind.Asset } drop)
         {
-            yield return new AssetReference(drop.AssetId, AssetReferenceKind.Item, "item laissé");
+            yield return new AssetReference(drop.AssetId, AssetReferenceKind.Item, Tr.T("item laissé"));
         }
     }
 
@@ -258,47 +258,47 @@ public sealed class BlockAsset : InventoryAsset
 
         if (RequiresCorrectTool && HarvestTool == HarvestTool.None)
         {
-            diagnostics.Warning("« Outil requis » est coché mais aucun outil n'est choisi : le bloc ne laissera jamais rien tomber.", source, Id);
+            diagnostics.Warning(Tr.T("« Outil requis » est coché mais aucun outil n'est choisi : le bloc ne laissera jamais rien tomber."), source, Id);
         }
 
         if (ToolTier != ToolTier.Any && HarvestTool == HarvestTool.None)
         {
-            diagnostics.Warning("Un niveau d'outil est choisi sans outil : il sera ignoré.", source, Id);
+            diagnostics.Warning(Tr.T("Un niveau d'outil est choisi sans outil : il sera ignoré."), source, Id);
         }
 
         if (DropKind == BlockDropKind.OtherItem && DropItem is null)
         {
-            diagnostics.Error("Choisissez l'item laissé par le bloc (un item du projet ou du jeu, comme « diamond »).", source, Id);
+            diagnostics.Error(Tr.T("Choisissez l'item laissé par le bloc (un item du projet ou du jeu, comme « diamond »)."), source, Id);
         }
 
         if (DropKind == BlockDropKind.OtherItem && DropItem is { Kind: ContentReferenceKind.Tag })
         {
-            diagnostics.Error("Un bloc ne peut pas laisser un tag : choisissez un item précis.", source, Id);
+            diagnostics.Error(Tr.T("Un bloc ne peut pas laisser un tag : choisissez un item précis."), source, Id);
         }
 
         if (DropKind == BlockDropKind.Self && !HasItemForm)
         {
-            diagnostics.Warning("Le bloc se récupère lui-même mais n'a pas de forme item : il ne laissera rien tomber.", source, Id);
+            diagnostics.Warning(Tr.T("Le bloc se récupère lui-même mais n'a pas de forme item : il ne laissera rien tomber."), source, Id);
         }
 
         if (DropMin > DropMax)
         {
-            diagnostics.Warning("La quantité minimale laissée dépasse la maximale : elles seront inversées.", source, Id);
+            diagnostics.Warning(Tr.T("La quantité minimale laissée dépasse la maximale : elles seront inversées."), source, Id);
         }
 
         if (ExperienceMin > ExperienceMax)
         {
-            diagnostics.Warning("L'expérience minimale dépasse la maximale : elles seront inversées.", source, Id);
+            diagnostics.Warning(Tr.T("L'expérience minimale dépasse la maximale : elles seront inversées."), source, Id);
         }
 
         if (DropsExperience && Model == BlockModelKind.Column)
         {
-            diagnostics.Warning("Un bloc colonne ne peut pas donner d'expérience : elle sera ignorée.", source, Id);
+            diagnostics.Warning(Tr.T("Un bloc colonne ne peut pas donner d'expérience : elle sera ignorée."), source, Id);
         }
 
         if (Model == BlockModelKind.Cross && RenderType == BlockRenderType.Solid)
         {
-            diagnostics.Info("Un bloc en croix est presque toujours transparent : choisissez « Découpe » pour sa texture.", source, Id);
+            diagnostics.Info(Tr.T("Un bloc en croix est presque toujours transparent : choisissez « Découpe » pour sa texture."), source, Id);
         }
     }
 
@@ -306,7 +306,7 @@ public sealed class BlockAsset : InventoryAsset
     {
         if (!IsValidStrength(value))
         {
-            throw new ArgumentOutOfRangeException(nameof(value), value, $"La valeur doit être comprise entre 0 et {MaxStrength}.");
+            throw new ArgumentOutOfRangeException(nameof(value), value, Tr.F("La valeur doit être comprise entre 0 et {0}.", MaxStrength));
         }
 
         return value;

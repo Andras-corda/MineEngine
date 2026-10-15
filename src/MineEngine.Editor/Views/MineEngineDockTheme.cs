@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Media;
+using AvalonDock.Controls;
 using AvalonDock.Themes;
 using Keys = AvalonDock.Themes.VS2013.Themes.ResourceKeys;
 
@@ -13,9 +14,28 @@ namespace MineEngine.Editor.Views;
 /// </summary>
 public sealed class MineEngineDockTheme : DictionaryTheme
 {
+    static MineEngineDockTheme()
+    {
+        // Le bouton menu en haut à droite des onglets (liste des documents) n'est pas gardé :
+        // les onglets restent accessibles par leur en-tête et par Ctrl+Tab.
+        EventManager.RegisterClassHandler(typeof(DropDownButton), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnDropDownLoaded));
+    }
+
     public MineEngineDockTheme(bool isDark, Func<string, Brush> palette)
         : base(Build(isDark, palette ?? throw new ArgumentNullException(nameof(palette))))
     {
+    }
+
+    private static void OnDropDownLoaded(object sender, RoutedEventArgs e)
+    {
+        for (DependencyObject? parent = sender as DependencyObject; parent is not null; parent = VisualTreeHelper.GetParent(parent))
+        {
+            if (parent is LayoutDocumentPaneControl)
+            {
+                ((UIElement)sender).Visibility = Visibility.Collapsed;
+                return;
+            }
+        }
     }
 
     private static ResourceDictionary Build(bool isDark, Func<string, Brush> palette)

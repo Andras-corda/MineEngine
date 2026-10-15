@@ -80,13 +80,13 @@ public static class GraphKindExtensions
 {
     public static string Label(this GraphKind kind) => kind switch
     {
-        GraphKind.Events => "Graphe d'événements",
-        GraphKind.Function => "Fonction",
-        GraphKind.Procedure => "Procédure",
-        GraphKind.Class => "Classe",
-        GraphKind.Struct => "Structure",
-        GraphKind.Interface => "Interface",
-        _ => "Énumération",
+        GraphKind.Events => Tr.T("Graphe d'événements"),
+        GraphKind.Function => Tr.T("Fonction"),
+        GraphKind.Procedure => Tr.T("Procédure"),
+        GraphKind.Class => Tr.T("Classe"),
+        GraphKind.Struct => Tr.T("Structure"),
+        GraphKind.Interface => Tr.T("Interface"),
+        _ => Tr.T("Énumération"),
     };
 
     /// <summary>Le graphe a un canevas de nœuds (corps d'une fonction, constructeur d'une classe, événements).</summary>
@@ -100,8 +100,8 @@ public static class GraphKindExtensions
 
     public static string Label(this AccessLevel access) => access switch
     {
-        AccessLevel.Public => "Public",
-        AccessLevel.Protected => "Protégé",
-        _ => "Privé",
+        AccessLevel.Public => Tr.T("Public"),
+        AccessLevel.Protected => Tr.T("Protégé"),
+        _ => Tr.T("Privé"),
     };
 }

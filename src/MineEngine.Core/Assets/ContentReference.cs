@@ -39,7 +39,7 @@ public sealed class ContentReference : IEquatable<ContentReference>
 
     public static ContentReference ToAsset(Guid assetId) =>
         assetId == Guid.Empty
-            ? throw new ArgumentException("L'identifiant de l'asset ne peut pas être vide.", nameof(assetId))
+            ? throw new ArgumentException(Tr.T("L'identifiant de l'asset ne peut pas être vide."), nameof(assetId))
             : new ContentReference(ContentReferenceKind.Asset, assetId, null);
 
     public static ContentReference ToId(NamespacedId id) =>

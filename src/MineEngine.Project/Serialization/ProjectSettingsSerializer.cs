@@ -38,14 +38,14 @@ public sealed class ProjectSettingsSerializer
         if (version > ProjectSettings.CurrentFormatVersion)
         {
             throw new InvalidDataException(
-                $"Ce projet a été créé par une version plus récente de Mine Engine (format {version}).");
+                Tr.F("Ce projet a été créé par une version plus récente de Mine Engine (format {0}).", version));
         }
 
         string modIdText = root["modId"]?.GetValue<string>()
-            ?? throw new InvalidDataException($"{sourceName} : la propriété 'modId' est obligatoire.");
+            ?? throw new InvalidDataException(Tr.F("{0} : la propriété 'modId' est obligatoire.", sourceName));
         if (!ModId.TryParse(modIdText, out ModId? modId))
         {
-            throw new InvalidDataException($"{sourceName} : identifiant de mod '{modIdText}' invalide.");
+            throw new InvalidDataException(Tr.F("{0} : identifiant de mod '{1}' invalide.", sourceName, modIdText));
         }
 
         var settings = new ProjectSettings(modId!, ReadString(root, "modName", modIdText));

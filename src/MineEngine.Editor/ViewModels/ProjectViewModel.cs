@@ -74,8 +74,8 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
 
         TypeFilters =
         [
-            new AssetTypeFilter("Tout", null),
-            .. factory.Catalog.Definitions.Select(d => new AssetTypeFilter(PluralLabel(d.Label), d.Type)),
+            new AssetTypeFilter(Tr.T("Tout"), null),
+            .. factory.Catalog.Definitions.Select(d => new AssetTypeFilter(PluralLabel(d), d.Type)),
         ];
         _typeFilter = TypeFilters[0];
         _typeFilter.IsActive = true;
@@ -108,7 +108,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
     public bool IsDirty => Model.IsDirty;
 
     public string TargetDescription =>
-        $"{Model.Settings.ModId}  |  Minecraft {Model.Settings.MinecraftVersion}  |  {Model.Settings.LoaderId}  |  MDK {Model.Settings.MdkId ?? "non choisi"}";
+        Tr.F("{0}  |  Minecraft {1}  |  {2}  |  MDK {3}", Model.Settings.ModId, Model.Settings.MinecraftVersion, Model.Settings.LoaderId, Model.Settings.MdkId ?? Tr.T("non choisi"));
 
     public ObservableCollection<AssetViewModel> Assets { get; } = [];
 
@@ -257,12 +257,12 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         string[] segments = _currentFolder.Length == 0 ? [] : _currentFolder.Split(AssetFolders.Separator);
         Breadcrumb =
         [
-            new FolderCrumb("Contenu du mod", string.Empty, segments.Length == 0),
+            new FolderCrumb(Tr.T("Contenu du mod"), string.Empty, segments.Length == 0),
             .. segments.Select((s, i) => new FolderCrumb(s, string.Join(AssetFolders.Separator, segments[..(i + 1)]), i == segments.Length - 1)),
         ];
         FolderChoices =
         [
-            new FolderChoice(string.Empty, "Contenu du mod (racine)"),
+            new FolderChoice(string.Empty, Tr.T("Contenu du mod (racine)")),
             .. all.Where(f => f.Length > 0).Select(f => new FolderChoice(f, new string(' ', 4 * f.Count(c => c == AssetFolders.Separator)) + AssetFolders.Name(f))),
         ];
         OnPropertyChanged(nameof(ShowFolders));
@@ -311,7 +311,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
     {
         GraphAsset? ownerGraph = owner is { } id ? Model.Assets.Find(id) as GraphAsset : null;
         string baseId = ownerGraph is null ? ProgramPalette.ResourceIdBase(kind) : $"{ownerGraph.ResourceId}_{kind.ToString().ToLowerInvariant()}";
-        string name = kind is GraphKind.Function or GraphKind.Procedure && ownerGraph is not null ? "nouvelle méthode" : ProgramPalette.DefaultName(kind);
+        string name = kind is GraphKind.Function or GraphKind.Procedure && ownerGraph is not null ? Tr.T("nouvelle méthode") : ProgramPalette.DefaultName(kind);
         GraphAsset graph = ProgramPalette.CreateGraph(kind, Model.Assets.CreateUniqueResourceId(baseId, AssetType.Graph), name, owner);
         graph.Folder = ownerGraph?.Folder ?? _currentFolder;
         History.Execute(new AddAssetCommand(Model.Assets, graph, kind.Label()));
@@ -340,13 +340,13 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
             }
             catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
             {
-                errors.Add($"{Path.GetFileName(file)} : {exception.Message}");
+                errors.Add(Tr.F("{0} : {1}", Path.GetFileName(file), exception.Message));
             }
         }
 
         if (commands.Count > 0)
         {
-            History.Execute(new CompositeCommand(commands.Count == 1 ? commands[0].Description : $"Importer {commands.Count} fichiers", commands));
+            History.Execute(new CompositeCommand(commands.Count == 1 ? commands[0].Description : Tr.F("Importer {0} fichiers", commands.Count), commands));
             SelectAsset(last!.Id);
         }
 
@@ -473,16 +473,16 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         }
     }
 
-    private static string PluralLabel(string label) => label switch
+    private static string PluralLabel(IAssetDefinition definition) => definition.Type switch
     {
-        "Bloc" => "Blocs",
-        "Item" => "Items",
-        "Mob" => "Mobs",
-        "Recette" => "Recettes",
-        "Texture" => "Textures",
-        "Son" => "Sons",
-        "Graphe" => "Graphes",
-        _ => label,
+        AssetType.Block => Tr.T("Blocs"),
+        AssetType.Item => Tr.T("Items"),
+        AssetType.Mob => Tr.T("Mobs"),
+        AssetType.Recipe => Tr.T("Recettes"),
+        AssetType.Texture => Tr.T("Textures"),
+        AssetType.Sound => Tr.T("Sons"),
+        AssetType.Graph => Tr.T("Graphes"),
+        _ => definition.Label,
     };
 
     /// <summary>Les dossiers déclarés font partie des paramètres : une annulation peut les changer.</summary>

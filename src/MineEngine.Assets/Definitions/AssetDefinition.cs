@@ -30,7 +30,7 @@ public abstract class AssetDefinition<TAsset> : IAssetDefinition
     {
         if (asset is not TAsset typed)
         {
-            throw new ArgumentException($"{asset} n'est pas un asset de type {Type}.", nameof(asset));
+            throw new ArgumentException(Tr.F("{0} n'est pas un asset de type {1}.", asset, Type), nameof(asset));
         }
 
         var properties = new JsonObject();

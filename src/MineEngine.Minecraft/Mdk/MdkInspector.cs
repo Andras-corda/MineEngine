@@ -56,7 +56,7 @@ public sealed class MdkInspector
         if (!LooksLikeMdk(directory))
         {
             throw new InvalidDataException(
-                $"'{directory}' n'est pas un MDK : les fichiers {MarkerFile} et gradle.properties sont introuvables.");
+                Tr.F("'{0}' n'est pas un MDK : les fichiers {1} et gradle.properties sont introuvables.", directory, MarkerFile));
         }
 
         Dictionary<string, string> properties = ReadProperties(Path.Combine(directory, "gradle.properties"));
@@ -80,13 +80,13 @@ public sealed class MdkInspector
         }
         else
         {
-            throw new InvalidDataException("Loader non reconnu : gradle.properties ne contient ni neo_version, ni forge_version, ni loader_version.");
+            throw new InvalidDataException(Tr.T("Loader non reconnu : gradle.properties ne contient ni neo_version, ni forge_version, ni loader_version."));
         }
 
         if (!properties.TryGetValue("minecraft_version", out string? minecraftText)
             || !MinecraftVersion.TryParse(minecraftText, out MinecraftVersion? minecraftVersion))
         {
-            throw new InvalidDataException("gradle.properties ne contient pas de minecraft_version valide.");
+            throw new InvalidDataException(Tr.T("gradle.properties ne contient pas de minecraft_version valide."));
         }
 
         int javaVersion = ReadJavaVersion(directory) ?? minecraftVersion!.RequiredJavaVersion;

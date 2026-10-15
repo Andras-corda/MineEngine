@@ -24,6 +24,12 @@
     <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
   </ItemGroup>
 
+  <!-- Police de l'interface : Roboto (Apache 2.0, voir Fonts/LICENSE-Roboto.txt), intégrée à l'application. -->
+  <ItemGroup>
+    <Resource Include="Fonts\*.ttf" />
+    <None Include="Fonts\LICENSE-Roboto.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\MineEngine.Core\MineEngine.Core.csproj" />
     <ProjectReference Include="..\MineEngine.Assets\MineEngine.Assets.csproj" />

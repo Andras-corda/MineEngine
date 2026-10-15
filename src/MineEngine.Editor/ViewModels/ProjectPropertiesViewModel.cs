@@ -39,7 +39,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
         _openMdkManager = openMdkManager ?? throw new ArgumentNullException(nameof(openMdkManager));
         _parentDirectory = parentDirectory;
 
-        _modName = "Mon mod";
+        _modName = Tr.T("Mon mod");
         _modIdText = ModId.FromText(_modName).Value;
         _modVersion = "1.0.0";
         _authors = Environment.UserName;
@@ -64,13 +64,13 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
 
     public bool IsNewProject => _isNewProject;
 
-    public string Title => IsNewProject ? "Nouveau projet" : "Paramètres du projet";
+    public string Title => IsNewProject ? Tr.T("Nouveau projet") : Tr.T("Paramètres du projet");
 
-    public string ConfirmLabel => IsNewProject ? "Créer" : "Enregistrer";
+    public string ConfirmLabel => IsNewProject ? Tr.T("Créer") : Tr.T("Enregistrer");
 
     public string ModIdRule => IsNewProject
-        ? $"Définitif après la création : {ModId.RuleDescription}."
-        : "L'identifiant du mod ne peut plus être modifié.";
+        ? Tr.F("Définitif après la création : {0}.", ModId.RuleDescription)
+        : Tr.T("L'identifiant du mod ne peut plus être modifié.");
 
     /// <summary>Licences proposées ; toute autre valeur peut être saisie.</summary>
     public IReadOnlyList<string> LicenseOptions { get; } =
@@ -84,8 +84,8 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
     public bool HasMdks => AvailableMdks.Count > 0;
 
     public string MdkHint => HasMdks
-        ? $"Le MDK fixe le loader et la version de Minecraft. Versions prises en charge : {_mdks.Backends.SupportDescription}."
-        : "Aucun MDK utilisable n'est installé. Cliquez sur « Gérer les MDK... » pour en télécharger ou en importer un.";
+        ? Tr.F("Le MDK fixe le loader et la version de Minecraft. Versions prises en charge : {0}.", _mdks.Backends.SupportDescription)
+        : Tr.T("Aucun MDK utilisable n'est installé. Cliquez sur « Gérer les MDK... » pour en télécharger ou en importer un.");
 
     public string ModName
     {
@@ -97,7 +97,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
                 return;
             }
 
-            Require(nameof(ModName), _modName, "Le nom du mod est obligatoire.");
+            Require(nameof(ModName), _modName, Tr.T("Le nom du mod est obligatoire."));
             if (IsNewProject && !_modIdEditedByUser)
             {
                 UpdateModId(ModId.FromText(_modName).Value);
@@ -131,7 +131,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
             {
                 if (_modVersion.Length == 0 || _modVersion.Any(char.IsWhiteSpace))
                 {
-                    SetError(nameof(ModVersion), "Version obligatoire, sans espace (par exemple 1.0.0).");
+                    SetError(nameof(ModVersion), Tr.T("Version obligatoire, sans espace (par exemple 1.0.0)."));
                 }
                 else
                 {
@@ -165,7 +165,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
             }
             else
             {
-                SetError(nameof(Website), "Adresse invalide : elle doit commencer par https:// (ou laissez le champ vide).");
+                SetError(nameof(Website), Tr.T("Adresse invalide : elle doit commencer par https:// (ou laissez le champ vide)."));
             }
         }
     }
@@ -183,7 +183,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
         {
             if (SetProperty(ref _license, value ?? string.Empty))
             {
-                Require(nameof(License), _license, "Indiquez une licence (All Rights Reserved si vous ne savez pas).");
+                Require(nameof(License), _license, Tr.T("Indiquez une licence (All Rights Reserved si vous ne savez pas)."));
             }
         }
     }
@@ -211,7 +211,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
         {
             if (SetProperty(ref _parentDirectory, value ?? string.Empty))
             {
-                Require(nameof(ParentDirectory), _parentDirectory, "Choisissez un dossier.");
+                Require(nameof(ParentDirectory), _parentDirectory, Tr.T("Choisissez un dossier."));
                 OnPropertyChanged(nameof(TargetDirectory));
             }
         }
@@ -319,7 +319,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
         }
         else
         {
-            SetError(nameof(ModIdText), $"Identifiant invalide : {ModId.RuleDescription}.");
+            SetError(nameof(ModIdText), Tr.F("Identifiant invalide : {0}.", ModId.RuleDescription));
         }
 
         OnPropertyChanged(nameof(TargetDirectory));

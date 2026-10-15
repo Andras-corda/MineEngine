@@ -17,7 +17,7 @@ public sealed class ModIRBuilder
         {
             if (!_lowerings.TryAdd(lowering.AssetType, lowering))
             {
-                throw new ArgumentException($"Deux traductions sont déclarées pour le type {lowering.AssetType}.");
+                throw new ArgumentException(Tr.F("Deux traductions sont déclarées pour le type {0}.", lowering.AssetType));
             }
         }
     }
@@ -52,7 +52,7 @@ public sealed class ModIRBuilder
             }
             else
             {
-                diagnostics.Warning("Ce type d'asset n'est pas encore pris en charge par le générateur ; il est ignoré.", asset.ToString());
+                diagnostics.Warning(Tr.T("Ce type d'asset n'est pas encore pris en charge par le générateur ; il est ignoré."), asset.ToString());
             }
         }
 

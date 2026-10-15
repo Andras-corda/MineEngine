@@ -20,6 +20,9 @@ public sealed class EditorSettings
 
     public AppTheme Theme { get; set; } = AppTheme.System;
 
+    /// <summary>Langue de l'interface (anglais par défaut), appliquée au démarrage.</summary>
+    public UiLanguage Language { get; set; } = UiLanguage.Default;
+
     /// <summary>Intervalle de la sauvegarde automatique, en minutes ; 0 la désactive.</summary>
     public int AutoSaveMinutes
     {
@@ -37,6 +40,7 @@ public sealed class EditorSettings
     public EditorSettings Clone() => new()
     {
         Theme = Theme,
+        Language = Language,
         AutoSaveMinutes = AutoSaveMinutes,
         BackupsToKeep = BackupsToKeep,
     };

@@ -20,9 +20,9 @@ public sealed class DiagnosticItemViewModel
 
     public string SeverityLabel => Severity switch
     {
-        DiagnosticSeverity.Error => "Erreur",
-        DiagnosticSeverity.Warning => "Avertissement",
-        _ => "Info",
+        DiagnosticSeverity.Error => Tr.T("Erreur"),
+        DiagnosticSeverity.Warning => Tr.T("Avertissement"),
+        _ => Tr.T("Info"),
     };
 
     public string Message => Diagnostic.Message;
@@ -31,6 +31,9 @@ public sealed class DiagnosticItemViewModel
 
     /// <summary>"Validation" ou "Build".</summary>
     public string Origin { get; }
+
+    /// <summary>Origine affichée (Validation, Build) dans la langue de l'interface.</summary>
+    public string OriginLabel => Tr.T(Origin);
 
     public bool CanNavigate => Diagnostic.AssetId is not null || Diagnostic.FilePath is not null;
 }
@@ -75,13 +78,15 @@ public sealed class DiagnosticsViewModel : ObservableObject
         {
             int errors = ErrorCount;
             int warnings = WarningCount;
-            return $"{errors} erreur{(errors > 1 ? "s" : string.Empty)} · {warnings} avertissement{(warnings > 1 ? "s" : string.Empty)}";
+            return (errors > 1 ? Tr.F("{0} erreurs", errors) : Tr.F("{0} erreur", errors))
+                + " · "
+                + (warnings > 1 ? Tr.F("{0} avertissements", warnings) : Tr.F("{0} avertissement", warnings));
         }
     }
 
     public string Summary => Items.Count == 0
-        ? "Aucun problème"
-        : $"{ErrorCount} erreur(s), {WarningCount} avertissement(s)";
+        ? Tr.T("Aucun problème")
+        : Tr.F("{0} erreur(s), {1} avertissement(s)", ErrorCount, WarningCount);
 
     /// <summary>Remplace les résultats de validation (les résultats du dernier build sont conservés).</summary>
     public void SetValidationResults(IEnumerable<Diagnostic> diagnostics) => Replace(ValidationOrigin, diagnostics);

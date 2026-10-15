@@ -100,7 +100,7 @@ public sealed class JsonPropertyReader
         catch (Exception exception) when (exception is InvalidOperationException or FormatException or JsonException)
         {
             throw new InvalidDataException(
-                $"{_sourceName} : la propriété '{name}' a une valeur invalide ({node.ToJsonString()}).", exception);
+                Tr.F("{0} : la propriété '{1}' a une valeur invalide ({2}).", _sourceName, name, node.ToJsonString()), exception);
         }
     }
 }

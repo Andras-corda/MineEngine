@@ -56,28 +56,28 @@ public sealed class FileDocumentViewModel : CodeDocumentViewModel, IDisposable
 
     public override string? Banner => _saveError ?? _kind switch
     {
-        ProjectFileKind.Generated => "Code généré par Mine Engine : il est réécrit à chaque compilation. Verrouillez-le pour le modifier à la main.",
-        ProjectFileKind.Locked => "Code verrouillé : Mine Engine ne réécrit plus ce fichier. Les changements faits dans les éléments ne s'y appliquent plus.",
-        ProjectFileKind.ProjectFile => "Fichier du projet : modifiez-le dans Projet > Paramètres du projet.",
-        ProjectFileKind.BuildOutput => "Fichier produit par la compilation ou par le jeu.",
+        ProjectFileKind.Generated => Tr.T("Code généré par Mine Engine : il est réécrit à chaque compilation. Verrouillez-le pour le modifier à la main."),
+        ProjectFileKind.Locked => Tr.T("Code verrouillé : Mine Engine ne réécrit plus ce fichier. Les changements faits dans les éléments ne s'y appliquent plus."),
+        ProjectFileKind.ProjectFile => Tr.T("Fichier du projet : modifiez-le dans Projet > Paramètres du projet."),
+        ProjectFileKind.BuildOutput => Tr.T("Fichier produit par la compilation ou par le jeu."),
         _ => null,
     };
 
     public override string DetailsBadge => _kind switch
     {
-        ProjectFileKind.Generated => "GÉNÉRÉ",
-        ProjectFileKind.Locked => "VERROUILLÉ",
+        ProjectFileKind.Generated => Tr.T("GÉNÉRÉ"),
+        ProjectFileKind.Locked => Tr.T("VERROUILLÉ"),
         _ => base.DetailsBadge,
     };
 
-    public override string EncodingLabel => _encoding.GetPreamble().Length > 0 ? $"{_encoding.WebName.ToUpperInvariant()} avec BOM" : _encoding.WebName.ToUpperInvariant();
+    public override string EncodingLabel => _encoding.GetPreamble().Length > 0 ? Tr.F("{0} avec BOM", _encoding.WebName.ToUpperInvariant()) : _encoding.WebName.ToUpperInvariant();
 
     public string SizeLabel
     {
         get
         {
             long bytes = File.Exists(FullPath) ? new FileInfo(FullPath).Length : 0;
-            return bytes < 1024 ? $"{bytes} octets" : $"{bytes / 1024.0:0.#} Ko";
+            return bytes < 1024 ? Tr.F("{0} octets", bytes) : Tr.F("{0:0.#} Ko", bytes / 1024.0);
         }
     }
 
@@ -143,7 +143,7 @@ public sealed class FileDocumentViewModel : CodeDocumentViewModel, IDisposable
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            _saveError = "Impossible d'enregistrer : " + exception.Message;
+            _saveError = Tr.T("Impossible d'enregistrer : ") + exception.Message;
         }
 
         OnPropertyChanged(nameof(Banner));
@@ -210,9 +210,9 @@ public sealed class AssetDocumentViewModel : CodeDocumentViewModel, IDisposable
 
     public override bool IsReadOnly => true;
 
-    public override string? Banner => "Aperçu de l'asset tel qu'il sera enregistré. Modifiez-le dans son onglet d'édition ; ce texte suit les modifications.";
+    public override string? Banner => Tr.T("Aperçu de l'asset tel qu'il sera enregistré. Modifiez-le dans son onglet d'édition ; ce texte suit les modifications.");
 
-    public override string DetailsBadge => "APERÇU";
+    public override string DetailsBadge => Tr.T("APERÇU");
 
     public override bool Save() => false;
 

@@ -12,11 +12,11 @@ public sealed class TextureAssetDefinition : AssetDefinition<TextureAsset>
 {
     public override AssetType Type => AssetType.Texture;
 
-    public override string Label => "Texture";
+    public override string Label => Tr.T("Texture");
 
     public override string DefaultResourceIdBase => "texture";
 
-    public override string DefaultDisplayName => "Texture";
+    public override string DefaultDisplayName => Tr.T("Texture");
 
     protected override TextureAsset Create(Guid id, ResourceId resourceId, string displayName) =>
         new(id, resourceId, displayName, string.Empty);
@@ -33,11 +33,11 @@ public sealed class SoundAssetDefinition : AssetDefinition<SoundAsset>
 {
     public override AssetType Type => AssetType.Sound;
 
-    public override string Label => "Son";
+    public override string Label => Tr.T("Son");
 
     public override string DefaultResourceIdBase => "sound";
 
-    public override string DefaultDisplayName => "Son";
+    public override string DefaultDisplayName => Tr.T("Son");
 
     protected override SoundAsset Create(Guid id, ResourceId resourceId, string displayName) =>
         new(id, resourceId, displayName, string.Empty);

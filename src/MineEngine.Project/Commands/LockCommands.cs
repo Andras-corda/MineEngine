@@ -23,12 +23,12 @@ public sealed class ChangeLockedFilesCommand : IUndoableCommand
     public string Description { get; }
 
     public static ChangeLockedFilesCommand Lock(ProjectSettings settings, string projectRelativePath) =>
-        new(settings, settings.LockedFiles.Append(projectRelativePath), $"Verrouiller {Path.GetFileName(projectRelativePath)}");
+        new(settings, settings.LockedFiles.Append(projectRelativePath), Tr.F("Verrouiller {0}", Path.GetFileName(projectRelativePath)));
 
     public static ChangeLockedFilesCommand Unlock(ProjectSettings settings, string projectRelativePath) =>
         new(settings,
             settings.LockedFiles.Where(f => !string.Equals(f, projectRelativePath.Replace('\\', '/'), StringComparison.OrdinalIgnoreCase)),
-            $"Déverrouiller {Path.GetFileName(projectRelativePath)}");
+            Tr.F("Déverrouiller {0}", Path.GetFileName(projectRelativePath)));
 
     public void Execute() => _settings.LockedFiles = _after;
 

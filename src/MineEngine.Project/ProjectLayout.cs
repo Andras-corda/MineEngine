@@ -107,7 +107,7 @@ public sealed class ProjectLayout
     {
         char[] invalid = Path.GetInvalidFileNameChars();
         string cleaned = new string((projectName ?? string.Empty).Where(c => !invalid.Contains(c)).ToArray()).Trim().TrimEnd('.');
-        return (cleaned.Length > 0 ? cleaned : "Projet") + ProjectFileExtension;
+        return (cleaned.Length > 0 ? cleaned : Tr.T("Projet")) + ProjectFileExtension;
     }
 
     public void EnsureDirectories()

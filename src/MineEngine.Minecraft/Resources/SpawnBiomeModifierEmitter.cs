@@ -22,7 +22,7 @@ public sealed class SpawnBiomeModifierEmitter : IFileEmitter
         _loaderNamespace = loaderNamespace;
     }
 
-    public string Name => "Apparition naturelle des mobs";
+    public string Name => Tr.T("Apparition naturelle des mobs");
 
     public void Emit(GenerationContext context)
     {

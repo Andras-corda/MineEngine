@@ -13,7 +13,7 @@ public sealed class ItemResourcesEmitter : ResourceEmitter
     {
     }
 
-    public override string Name => "Ressources des items";
+    public override string Name => Tr.T("Ressources des items");
 
     public override void Emit(GenerationContext context)
     {

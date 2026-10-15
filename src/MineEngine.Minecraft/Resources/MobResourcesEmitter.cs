@@ -13,7 +13,7 @@ public sealed class MobResourcesEmitter : ResourceEmitter
     {
     }
 
-    public override string Name => "Ressources des mobs";
+    public override string Name => Tr.T("Ressources des mobs");
 
     public override void Emit(GenerationContext context)
     {

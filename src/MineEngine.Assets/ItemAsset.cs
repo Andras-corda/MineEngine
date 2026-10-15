@@ -209,7 +209,7 @@ public sealed class ItemAsset : InventoryAsset
 
         if (CraftRemainder is { Kind: ContentReferenceKind.Asset } remainder)
         {
-            yield return new AssetReference(remainder.AssetId, AssetReferenceKind.Item, "item rendu après fabrication");
+            yield return new AssetReference(remainder.AssetId, AssetReferenceKind.Item, Tr.T("item rendu après fabrication"));
         }
     }
 
@@ -221,27 +221,27 @@ public sealed class ItemAsset : InventoryAsset
         {
             if (HasDurability)
             {
-                diagnostics.Info("La durabilité d'un outil ou d'une armure vient de son matériau : la valeur saisie est ignorée.", source, Id);
+                diagnostics.Info(Tr.T("La durabilité d'un outil ou d'une armure vient de son matériau : la valeur saisie est ignorée."), source, Id);
             }
 
             if (MaxStackSize > 1)
             {
-                diagnostics.Info("Un outil ou une armure ne s'empile pas : la taille de pile sera 1.", source, Id);
+                diagnostics.Info(Tr.T("Un outil ou une armure ne s'empile pas : la taille de pile sera 1."), source, Id);
             }
         }
         else if (HasDurability && MaxStackSize > 1)
         {
-            diagnostics.Warning("Un item avec durabilité ne s'empile pas : la taille de pile sera 1.", source, Id);
+            diagnostics.Warning(Tr.T("Un item avec durabilité ne s'empile pas : la taille de pile sera 1."), source, Id);
         }
 
         if (CraftRemainder is { Kind: ContentReferenceKind.Tag })
         {
-            diagnostics.Error("L'item rendu après fabrication doit être un item précis, pas un tag.", source, Id);
+            diagnostics.Error(Tr.T("L'item rendu après fabrication doit être un item précis, pas un tag."), source, Id);
         }
 
         if (IsFood && FoodEffects.Count > 0 && FoodEffects.GroupBy(e => e.Effect).Any(g => g.Count() > 1))
         {
-            diagnostics.Info("Un même effet est donné plusieurs fois en mangeant ; Minecraft n'applique que le plus fort.", source, Id);
+            diagnostics.Info(Tr.T("Un même effet est donné plusieurs fois en mangeant ; Minecraft n'applique que le plus fort."), source, Id);
         }
     }
 }

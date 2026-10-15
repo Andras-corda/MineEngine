@@ -138,7 +138,7 @@ public static class MobJava
             MobGoalKind.AttackNearest => (
                 $"new NearestAttackableTargetGoal<>(this, {targetClass}.class, {Flag()})",
                 ["net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal", targetImport]),
-            _ => throw new ArgumentOutOfRangeException(nameof(goal), goal.Kind, "Comportement inconnu."),
+            _ => throw new ArgumentOutOfRangeException(nameof(goal), goal.Kind, Tr.T("Comportement inconnu.")),
         };
     }
 

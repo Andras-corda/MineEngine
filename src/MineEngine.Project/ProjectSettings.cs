@@ -89,7 +89,7 @@ public sealed class ProjectSettings
         ArgumentNullException.ThrowIfNull(other);
         if (other.ModId != ModId)
         {
-            throw new ArgumentException("Les paramètres d'un autre mod ne peuvent pas être recopiés.", nameof(other));
+            throw new ArgumentException(Tr.T("Les paramètres d'un autre mod ne peuvent pas être recopiés."), nameof(other));
         }
 
         ModName = other.ModName;

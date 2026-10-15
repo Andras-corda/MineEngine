@@ -156,7 +156,7 @@ public sealed class ReferencePickerViewModel : ValidatingObservableObject
     private string ToText(ContentReference? reference) => reference?.Kind switch
     {
         null => string.Empty,
-        ContentReferenceKind.Asset => _context.Project.Assets.Find(reference.AssetId)?.ResourceId.Value ?? "(asset supprimé)",
+        ContentReferenceKind.Asset => _context.Project.Assets.Find(reference.AssetId)?.ResourceId.Value ?? Tr.T("(asset supprimé)"),
         _ => reference.ToStorageText(),
     };
 
@@ -174,13 +174,13 @@ public sealed class ReferencePickerViewModel : ValidatingObservableObject
         {
             if (_domain != ReferenceDomain.Ingredient)
             {
-                error = "Un tag n'est accepté que comme ingrédient de recette.";
+                error = Tr.T("Un tag n'est accepté que comme ingrédient de recette.");
                 return false;
             }
 
             if (!NamespacedId.TryParse(trimmed[1..], out NamespacedId? tag))
             {
-                error = "Tag invalide (exemple : #minecraft:planks).";
+                error = Tr.T("Tag invalide (exemple : #minecraft:planks).");
                 return false;
             }
 
@@ -190,7 +190,7 @@ public sealed class ReferencePickerViewModel : ValidatingObservableObject
 
         if (!NamespacedId.TryParse(trimmed, out NamespacedId? id))
         {
-            error = "Identifiant invalide : minuscules, chiffres et '_' (exemple : minecraft:diamond).";
+            error = Tr.T("Identifiant invalide : minuscules, chiffres et '_' (exemple : minecraft:diamond).");
             return false;
         }
 

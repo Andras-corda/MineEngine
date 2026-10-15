@@ -57,7 +57,7 @@ public abstract class DocumentViewModel : ObservableObject, IDetailsTarget
 
     public virtual string DetailsTitle => FileName;
 
-    public virtual string DetailsBadge => IsReadOnly ? "LECTURE SEULE" : "FICHIER";
+    public virtual string DetailsBadge => IsReadOnly ? Tr.T("LECTURE SEULE") : Tr.T("FICHIER");
 
     public string DetailsSubtitle => DisplayPath;
 

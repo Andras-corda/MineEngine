@@ -47,12 +47,12 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         if (Find(asset.Id) is not null)
         {
-            throw new InvalidOperationException($"L'asset {asset} est déjà présent dans le projet.");
+            throw new InvalidOperationException(Tr.F("L'asset {0} est déjà présent dans le projet.", asset));
         }
 
         if (!IsResourceIdAvailable(asset.ResourceId, asset.Type))
         {
-            throw new InvalidOperationException($"L'identifiant '{asset.ResourceId}' est déjà utilisé.");
+            throw new InvalidOperationException(Tr.F("L'identifiant '{0}' est déjà utilisé.", asset.ResourceId));
         }
 
         _assets.Insert(Math.Min(index, _assets.Count), asset);
@@ -118,7 +118,7 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
                      .Where(g => g.Count() > 1))
         {
             ResourceId id = group.Key.Item2;
-            diagnostics.Error($"L'identifiant '{id}' est utilisé par {group.Count()} assets.", id.Value, group.First().Id);
+            diagnostics.Error(Tr.F("L'identifiant '{0}' est utilisé par {1} assets.", id, group.Count()), id.Value, group.First().Id);
         }
 
         ValidateSpawnEggIds(diagnostics);
@@ -146,23 +146,23 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
         Asset? target = Find(reference.TargetId);
         if (target is null)
         {
-            return $"{Capitalize(reference.Role)} : l'asset visé a été supprimé.";
+            return Tr.F("{0} : l'asset visé a été supprimé.", Capitalize(reference.Role));
         }
 
         return reference.Kind switch
         {
             AssetReferenceKind.Texture when target is not TextureAsset =>
-                $"{Capitalize(reference.Role)} : {target} n'est pas une texture.",
+                Tr.F("{0} : {1} n'est pas une texture.", Capitalize(reference.Role), target),
             AssetReferenceKind.Sound when target is not SoundAsset =>
-                $"{Capitalize(reference.Role)} : {target} n'est pas un son.",
+                Tr.F("{0} : {1} n'est pas un son.", Capitalize(reference.Role), target),
             AssetReferenceKind.Block when target is not BlockAsset =>
-                $"{Capitalize(reference.Role)} : {target} n'est pas un bloc.",
+                Tr.F("{0} : {1} n'est pas un bloc.", Capitalize(reference.Role), target),
             AssetReferenceKind.Item when target is BlockAsset { HasItemForm: false } =>
-                $"{Capitalize(reference.Role)} : le bloc {target.ResourceId} n'a pas de forme item.",
+                Tr.F("{0} : le bloc {1} n'a pas de forme item.", Capitalize(reference.Role), target.ResourceId),
             AssetReferenceKind.Definition when target is not GraphAsset =>
-                $"{Capitalize(reference.Role)} : {target} n'est pas une définition.",
+                Tr.F("{0} : {1} n'est pas une définition.", Capitalize(reference.Role), target),
             AssetReferenceKind.Item when target is not (ItemAsset or BlockAsset) =>
-                $"{Capitalize(reference.Role)} : {target} n'est pas un item.",
+                Tr.F("{0} : {1} n'est pas un item.", Capitalize(reference.Role), target),
             _ => null,
         };
     }
@@ -179,7 +179,7 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
             // Une texture manquante est remplacée à la génération ; le reste empêche de générer.
             if (reference.Kind == AssetReferenceKind.Texture)
             {
-                diagnostics.Warning(problem + " Une texture de remplacement sera utilisée.", asset.ToString(), asset.Id);
+                diagnostics.Warning(problem + Tr.T(" Une texture de remplacement sera utilisée."), asset.ToString(), asset.Id);
             }
             else
             {
@@ -195,7 +195,7 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
         {
             if (_assets.Exists(a => a.Type.IdScope() == AssetIdScope.GameContent && a.ResourceId.Value == mob.SpawnEggId))
             {
-                diagnostics.Error($"L'œuf d'apparition '{mob.SpawnEggId}' porte le même identifiant qu'un autre asset.", mob.ToString(), mob.Id);
+                diagnostics.Error(Tr.F("L'œuf d'apparition '{0}' porte le même identifiant qu'un autre asset.", mob.SpawnEggId), mob.ToString(), mob.Id);
             }
         }
     }

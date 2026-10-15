@@ -58,7 +58,7 @@ public abstract class FileAssetViewModel : AssetViewModel
         try
         {
             string path = CopyIntoProject(source);
-            Change("Remplacer le fichier", nameof(FileAsset.FilePath), () => _file.FilePath, v => _file.FilePath = v, path);
+            Change(Tr.T("Remplacer le fichier"), nameof(FileAsset.FilePath), () => _file.FilePath, v => _file.FilePath = v, path);
             Context.History.Seal();
         }
         catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
@@ -84,7 +84,7 @@ public sealed class TextureAssetViewModel : FileAssetViewModel
     /// <summary>Dimensions lues dans l'en-tête PNG ("16 x 16 pixels").</summary>
     public string SizeLabel => FullPath is { } path && TryReadPngSize(path, out int width, out int height)
         ? $"{width} x {height} pixels"
-        : "Fichier introuvable";
+        : Tr.T("Fichier introuvable");
 
     protected override string? AskReplacementFile() => Context.Dialogs.AskTextureFile();
 
@@ -143,7 +143,7 @@ public sealed class SoundAssetViewModel : FileAssetViewModel
             string text = value ?? string.Empty;
             if (text.Trim() != _sound.Subtitle)
             {
-                Change("Modifier le sous-titre", nameof(SoundAsset.Subtitle), () => _sound.Subtitle, v => _sound.Subtitle = v, text);
+                Change(Tr.T("Modifier le sous-titre"), nameof(SoundAsset.Subtitle), () => _sound.Subtitle, v => _sound.Subtitle = v, text);
             }
         }
     }

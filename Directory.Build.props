@@ -7,8 +7,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Company>Mine Engine</Company>
     <Product>Mine Engine</Product>
-    <Version>0.4.3</Version>
+    <Version>0.4.5</Version>
     <NeutralLanguage>fr</NeutralLanguage>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <!-- Traductions de l'interface : Tr.T("...") et Tr.F("...", ...) sont disponibles partout. -->
+  <ItemGroup>
+    <Using Include="MineEngine.Core.Localization" />
+  </ItemGroup>
 </Project>

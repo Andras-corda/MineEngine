@@ -13,11 +13,11 @@ public sealed class ItemAssetDefinition : InventoryAssetDefinition<ItemAsset>
 
     public override AssetType Type => AssetType.Item;
 
-    public override string Label => "Item";
+    public override string Label => Tr.T("Item");
 
     public override string DefaultResourceIdBase => "new_item";
 
-    public override string DefaultDisplayName => "Nouvel item";
+    public override string DefaultDisplayName => Tr.T("Nouvel item");
 
     protected override ItemAsset Create(Guid id, ResourceId resourceId, string displayName) =>
         new(id, resourceId, displayName);

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Windows.Input;
 using System.Windows.Threading;
 using ICSharpCode.AvalonEdit.Document;
@@ -97,12 +96,12 @@ public abstract class CodeDocumentViewModel : DocumentViewModel
         ".mcmeta" => "JSON (mcmeta)",
         ".md" => "Markdown",
         ".toml" => "TOML",
-        ".properties" => "Propriétés",
+        ".properties" => Tr.T("Propriétés"),
         ".gradle" => "Gradle",
-        ".txt" or "" => "Texte",
+        ".txt" or "" => Tr.T("Texte"),
         ".xml" => "XML",
-        ".bat" or ".cmd" => "Script Windows",
-        ".sh" => "Script shell",
+        ".bat" or ".cmd" => Tr.T("Script Windows"),
+        ".sh" => Tr.T("Script shell"),
         _ => Extension.TrimStart('.').ToUpperInvariant(),
     };
 
@@ -128,7 +127,7 @@ public abstract class CodeDocumentViewModel : DocumentViewModel
             string text = Document.Text;
             if (text.Contains("\n\t", StringComparison.Ordinal))
             {
-                return "Tabulations";
+                return Tr.T("Tabulations");
             }
 
             // Les lignes de commentaire " * " (javadoc) ne comptent pas.
@@ -138,7 +137,7 @@ public abstract class CodeDocumentViewModel : DocumentViewModel
                 .Where(n => n > 1)
                 .DefaultIfEmpty(4)
                 .Min();
-            return $"{smallest} espaces";
+            return Tr.F("{0} espaces", smallest);
         }
     }
 
@@ -166,7 +165,7 @@ public abstract class CodeDocumentViewModel : DocumentViewModel
         }
     }
 
-    public string CaretLabel => string.Create(CultureInfo.CurrentCulture, $"Ln {_line}, Col {_column}");
+    public string CaretLabel => Tr.F("Ln {0}, Col {1}", _line, _column);
 
     public int LineCount => Document.LineCount;
 

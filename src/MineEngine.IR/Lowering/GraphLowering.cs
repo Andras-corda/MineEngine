@@ -17,7 +17,7 @@ public sealed class GraphLowering : AssetLowering<GraphAsset>
     protected override void Lower(GraphAsset asset, LoweringContext context)
     {
         var compiler = new GraphCompiler(asset, context.Program, (reference, type) =>
-            context.ResolveItem(asset, reference, $"Nœud {type.BuiltInLabel.ToLowerInvariant()}"));
+            context.ResolveItem(asset, reference, Tr.F("Nœud {0}", type.BuiltInLabel.ToLowerInvariant())));
         try
         {
             switch (asset.Kind)
@@ -73,7 +73,7 @@ public sealed class GraphLowering : AssetLowering<GraphAsset>
                 && reference!.Kind == ContentReferenceKind.Asset
                 && context.Project.Assets.Find(reference.AssetId) is not null and not ItemAsset)
             {
-                context.Diagnostics.Error($"« {node} » : seul un item (pas un bloc) peut avoir des événements d'item.", asset.ToString(), asset.Id);
+                context.Diagnostics.Error(Tr.F("« {0} » : seul un item (pas un bloc) peut avoir des événements d'item.", node), asset.ToString(), asset.Id);
                 return;
             }
         }

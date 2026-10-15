@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -12,39 +13,60 @@ namespace MineEngine.Editor.Views.Hub;
 /// </summary>
 public partial class ProjectHubView : UserControl
 {
-    /// <summary>En dessous, la colonne "Projet sélectionné" passe sous la liste.</summary>
-    private const double TwoColumnWidth = 1000;
-
     /// <summary>En dessous, la barre latérale ne garde que ses icônes.</summary>
     private const double FullSidebarWidth = 760;
+
+    private ProjectHubViewModel? _hub;
 
     public ProjectHubView()
     {
         InitializeComponent();
-        SizeChanged += (_, e) => AdaptToWidth(e.NewSize.Width);
-    }
-
-    /// <summary>Mise en page adaptée à la largeur : deux colonnes, une colonne, barre latérale réduite.</summary>
-    private void AdaptToWidth(double width)
-    {
-        bool twoColumns = width >= TwoColumnWidth;
-        Grid.SetRow(SideColumn, twoColumns ? 0 : 1);
-        Grid.SetColumn(SideColumn, twoColumns ? 2 : 0);
-        Grid.SetColumnSpan(SideColumn, twoColumns ? 1 : 3);
-        SideColumn.Margin = twoColumns ? new Thickness(0) : new Thickness(0, 20, 0, 0);
-        SideColumn.MaxWidth = twoColumns ? double.PositiveInfinity : 520;
-        SideColumn.HorizontalAlignment = twoColumns ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
-        ProjectsGrid.ColumnDefinitions[1].Width = new GridLength(twoColumns ? 24 : 0);
-        ProjectsGrid.ColumnDefinitions[2].Width = new GridLength(twoColumns ? 300 : 0);
-
-        bool fullSidebar = width >= FullSidebarWidth;
-        Sidebar.Width = fullSidebar ? 220 : 58;
-        SidebarCaption.Visibility = fullSidebar ? Visibility.Visible : Visibility.Collapsed;
-        SidebarFooter.Visibility = fullSidebar ? Visibility.Visible : Visibility.Collapsed;
-        PageGrid.Margin = fullSidebar ? new Thickness(36, 28, 36, 24) : new Thickness(18, 18, 18, 16);
+        SizeChanged += (_, _) => UpdateSidebar();
+        DataContextChanged += (_, _) => WatchHub();
     }
 
     private ProjectHubViewModel? Hub => (DataContext as MainViewModel)?.Hub;
+
+    private void WatchHub()
+    {
+        if (_hub is not null)
+        {
+            _hub.PropertyChanged -= OnHubPropertyChanged;
+        }
+
+        _hub = Hub;
+        if (_hub is not null)
+        {
+            _hub.PropertyChanged += OnHubPropertyChanged;
+        }
+
+        UpdateSidebar();
+    }
+
+    private void OnHubPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ProjectHubViewModel.IsSidebarCollapsed))
+        {
+            UpdateSidebar();
+        }
+    }
+
+    /// <summary>
+    /// Barre latérale complète, ou seulement ses icônes (comme VS Code) : au choix de l'utilisateur,
+    /// et d'office quand la fenêtre est trop étroite.
+    /// </summary>
+    private void UpdateSidebar()
+    {
+        bool narrow = ActualWidth > 0 && ActualWidth < FullSidebarWidth;
+        bool compact = narrow || _hub?.IsSidebarCollapsed == true;
+        Sidebar.Width = compact ? 58 : 220;
+        Sidebar.Tag = compact;
+        SidebarCaption.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+        SidebarFooter.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+        SidebarToggle.ToolTip = compact ? Tr.T("Agrandir la barre latérale") : Tr.T("Réduire la barre latérale");
+        SidebarToggle.IsEnabled = !narrow;
+        PageGrid.Margin = narrow ? new Thickness(18, 18, 18, 16) : new Thickness(36, 28, 36, 24);
+    }
 
     private static void Run(ICommand? command, object? parameter)
     {
@@ -69,22 +91,6 @@ public partial class ProjectHubView : UserControl
 
     private void OnRemoveMenuClick(object sender, RoutedEventArgs e) => Run(Hub?.RemoveCommand, CardOf(sender));
 
-    /// <summary>Bouton "..." du projet sélectionné : mêmes actions que le clic droit.</summary>
-    private void OnMoreClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is not FrameworkElement button || Hub?.SelectedProject is not { } card)
-        {
-            return;
-        }
-
-        var menu = new ContextMenu { PlacementTarget = button, DataContext = card };
-        menu.Items.Add(CreateItem("Ouvrir le dossier", () => Run(Hub.OpenFolderCommand, card)));
-        menu.Items.Add(CreateItem("Actualiser l'aperçu", () => Run(Hub.RefreshCommand, null)));
-        menu.Items.Add(new Separator());
-        menu.Items.Add(CreateItem("Retirer de la liste", () => Run(Hub.RemoveCommand, card)));
-        menu.IsOpen = true;
-    }
-
     /// <summary>La liste ne défile pas elle-même : la molette fait défiler toute la page.</summary>
     private void OnListMouseWheel(object sender, MouseWheelEventArgs e)
     {
@@ -101,11 +107,4 @@ public partial class ProjectHubView : UserControl
     private static DependencyObject? VisualParentOf(DependencyObject element) => System.Windows.Media.VisualTreeHelper.GetParent(element);
 
     private static ProjectCardViewModel? CardOf(object sender) => (sender as FrameworkElement)?.DataContext as ProjectCardViewModel;
-
-    private static MenuItem CreateItem(string header, Action action)
-    {
-        var item = new MenuItem { Header = header };
-        item.Click += (_, _) => action();
-        return item;
-    }
 }

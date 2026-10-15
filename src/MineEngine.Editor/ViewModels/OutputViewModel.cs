@@ -19,7 +19,7 @@ public sealed class OutputViewModel : ObservableObject, ILog
     public OutputViewModel()
     {
         _uiContext = SynchronizationContext.Current
-            ?? throw new InvalidOperationException("La console doit être créée sur le thread de l'interface.");
+            ?? throw new InvalidOperationException(Tr.T("La console doit être créée sur le thread de l'interface."));
         _uiThreadId = Environment.CurrentManagedThreadId;
         ClearCommand = new RelayCommand(Entries.Clear, () => Entries.Count > 0);
     }

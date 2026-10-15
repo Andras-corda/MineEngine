@@ -20,7 +20,7 @@ public sealed class LanguageEmitter : IFileEmitter
         _locales = locales;
     }
 
-    public string Name => "Fichiers de langue";
+    public string Name => Tr.T("Fichiers de langue");
 
     private static string SpawnEggName(string locale, string mobName) =>
         locale.StartsWith("fr", StringComparison.OrdinalIgnoreCase)

@@ -88,7 +88,7 @@ public sealed class GraphCompiler
         {
             if (!path.Add(node.Id))
             {
-                throw new InvalidOperationException($"Boucle d'exécution sur « {Info(node).Title} ».");
+                throw new InvalidOperationException(Tr.F("Boucle d'exécution sur « {0} ».", Info(node).Title));
             }
 
             NodeInfo info = Info(node);
@@ -157,7 +157,7 @@ public sealed class GraphCompiler
 
         NodeInfo sourceInfo = Info(source);
         PinInfo output = sourceInfo.FindOutput(connection.FromPin)
-                         ?? throw new InvalidOperationException($"Sortie « {connection.FromPin} » inconnue sur « {sourceInfo.Title} ».");
+                         ?? throw new InvalidOperationException(Tr.F("Sortie « {0} » inconnue sur « {1} ».", connection.FromPin, sourceInfo.Title));
         IRExpression value = sourceInfo switch
         {
             { IsEntryPoint: true } when source.Kind == GraphNodeKind.FunctionEntry => new IRParameterValue(output.Type, Guid.Parse(output.Name)),
@@ -201,11 +201,11 @@ public sealed class GraphCompiler
         PinType.Boolean => new IRBooleanLiteral(bool.TryParse(text, out bool flag) && flag),
         PinType.Enum => Guid.TryParse(text, out Guid constant)
             ? new IREnumValue(pin.Type, constant)
-            : throw new InvalidOperationException($"« {pin.Label} » : choisissez une valeur."),
+            : throw new InvalidOperationException(Tr.F("« {0} » : choisissez une valeur.", pin.Label)),
         PinType.Item or PinType.Block or PinType.Sound =>
             ContentReference.TryParseStorageText(text, out ContentReference? reference) && _resolveContent(reference!, pin.Type) is { } id
                 ? new IRContentLiteral(pin.Type, id)
-                : throw new InvalidOperationException($"« {pin.Label} » ne désigne aucun {pin.Type.BuiltInLabel.ToLowerInvariant()}."),
-        _ => pin.Optional ? new IRDefaultValue(pin.Type) : throw new InvalidOperationException($"L'entrée « {pin.Label} » doit être reliée."),
+                : throw new InvalidOperationException(Tr.F("« {0} » ne désigne aucun {1}.", pin.Label, pin.Type.BuiltInLabel.ToLowerInvariant())),
+        _ => pin.Optional ? new IRDefaultValue(pin.Type) : throw new InvalidOperationException(Tr.F("L'entrée « {0} » doit être reliée.", pin.Label)),
     };
 }

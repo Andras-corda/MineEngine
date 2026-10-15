@@ -8,7 +8,7 @@ public sealed class ModId : IEquatable<ModId>
 {
     public const int MinLength = 2;
     public const int MaxLength = 64;
-    public const string RuleDescription = IdentifierRules.Description + ", 2 caractères minimum";
+    public static string RuleDescription => IdentifierRules.Description + Tr.T(", 2 caractères minimum");
 
     private ModId(string value)
     {
@@ -24,7 +24,7 @@ public sealed class ModId : IEquatable<ModId>
         if (!IsValid(candidate))
         {
             throw new ArgumentException(
-                $"Identifiant de mod invalide : '{candidate}'. Attendu : {RuleDescription}.", nameof(candidate));
+                Tr.F("Identifiant de mod invalide : '{0}'. Attendu : {1}.", candidate, RuleDescription), nameof(candidate));
         }
 
         return new ModId(candidate);

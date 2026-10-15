@@ -35,6 +35,7 @@ public sealed class EditorSettingsStore
                 settings.Theme = theme;
             }
 
+            settings.Language = UiLanguage.FromCode(root["language"]?.GetValue<string>());
             settings.AutoSaveMinutes = root["autoSaveMinutes"]?.GetValue<int>() ?? settings.AutoSaveMinutes;
             settings.BackupsToKeep = root["backupsToKeep"]?.GetValue<int>() ?? settings.BackupsToKeep;
         }
@@ -52,6 +53,7 @@ public sealed class EditorSettingsStore
         var root = new JsonObject
         {
             ["theme"] = settings.Theme.ToString(),
+            ["language"] = settings.Language.Code,
             ["autoSaveMinutes"] = settings.AutoSaveMinutes,
             ["backupsToKeep"] = settings.BackupsToKeep,
         };

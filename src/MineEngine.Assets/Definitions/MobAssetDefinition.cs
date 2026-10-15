@@ -10,11 +10,11 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
 {
     public override AssetType Type => AssetType.Mob;
 
-    public override string Label => "Mob";
+    public override string Label => Tr.T("Mob");
 
     public override string DefaultResourceIdBase => "new_mob";
 
-    public override string DefaultDisplayName => "Nouveau mob";
+    public override string DefaultDisplayName => Tr.T("Nouveau mob");
 
     protected override MobAsset Create(Guid id, ResourceId resourceId, string displayName) =>
         new(id, resourceId, displayName);

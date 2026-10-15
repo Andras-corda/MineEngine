@@ -20,10 +20,14 @@ public sealed class EditorPreferences
 
     public IThemeService Themes { get; }
 
-    /// <summary>Charge les préférences enregistrées et applique le thème.</summary>
+    /// <summary>
+    /// Charge les préférences enregistrées, choisit la langue de l'interface et applique le thème.
+    /// À appeler avant de créer les fenêtres : la langue ne change plus jusqu'au prochain démarrage.
+    /// </summary>
     public void Load()
     {
         Current = _store.Load();
+        Tr.Use(Current.Language);
         Themes.Apply(Current.Theme);
     }
 

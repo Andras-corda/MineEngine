@@ -15,7 +15,7 @@ namespace MineEngine.Minecraft.Resources;
 /// </summary>
 public sealed class TagsEmitter : IFileEmitter
 {
-    public string Name => "Tags";
+    public string Name => Tr.T("Tags");
 
     public void Emit(GenerationContext context)
     {

@@ -48,7 +48,7 @@ public sealed class AssetViewModelFactory
             TextureAsset texture => new TextureAssetViewModel(texture, context, label),
             SoundAsset sound => new SoundAssetViewModel(sound, context, label),
             GraphAsset graph => new GraphAssetViewModel(graph, context, label),
-            _ => throw new NotSupportedException($"L'éditeur ne sait pas encore afficher les assets de type {asset.Type}."),
+            _ => throw new NotSupportedException(Tr.F("L'éditeur ne sait pas encore afficher les assets de type {0}.", asset.Type)),
         };
     }
 }

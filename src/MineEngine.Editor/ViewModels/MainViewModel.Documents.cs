@@ -180,7 +180,7 @@ public sealed partial class MainViewModel
         if (moved.Count > 0)
         {
             _project.History.Execute(FolderOperations.MoveAssets(moved, folder));
-            StatusText = moved.Count == 1 ? $"« {moved[0].DisplayName} » déplacé" : $"{moved.Count} éléments déplacés";
+            StatusText = moved.Count == 1 ? Tr.F("« {0} » déplacé", moved[0].DisplayName) : Tr.F("{0} éléments déplacés", moved.Count);
         }
     }
 
@@ -197,7 +197,7 @@ public sealed partial class MainViewModel
     private void NewFolder()
     {
         string parent = _project!.CurrentFolder;
-        string? name = AskFolderName("Nouveau dossier", "Nom du dossier :", "Nouveau dossier", parent);
+        string? name = AskFolderName(Tr.T("Nouveau dossier"), Tr.T("Nom du dossier :"), Tr.T("Nouveau dossier"), parent);
         if (name is null)
         {
             return;
@@ -211,21 +211,21 @@ public sealed partial class MainViewModel
     private void RenameFolder(FolderItemViewModel folder)
     {
         string parent = AssetFolders.Parent(folder.Path);
-        string? name = AskFolderName("Renommer le dossier", $"Nouveau nom de « {folder.Name} » :", folder.Name, parent, folder.Name);
+        string? name = AskFolderName(Tr.T("Renommer le dossier"), Tr.F("Nouveau nom de « {0} » :", folder.Name), folder.Name, parent, folder.Name);
         if (name is null || name == folder.Name)
         {
             return;
         }
 
         _project!.History.Execute(FolderOperations.Move(
-            _project.Model, folder.Path, AssetFolders.Combine(parent, name), $"Renommer le dossier « {folder.Name} »"));
+            _project.Model, folder.Path, AssetFolders.Combine(parent, name), Tr.F("Renommer le dossier « {0} »", folder.Name)));
     }
 
     private void DeleteFolder(FolderItemViewModel folder)
     {
-        string where = AssetFolders.Parent(folder.Path) is { Length: > 0 } parent ? $"« {AssetFolders.Name(parent)} »" : "la racine";
+        string where = AssetFolders.Parent(folder.Path) is { Length: > 0 } parent ? Tr.F("« {0} »", AssetFolders.Name(parent)) : Tr.T("la racine");
         if (folder.AssetCount + folder.FolderCount > 0
-            && !_dialogs.Confirm("Supprimer le dossier", $"Supprimer le dossier « {folder.Name} » ? Son contenu ({folder.ContentLabel.ToLowerInvariant()}) remonte dans {where}."))
+            && !_dialogs.Confirm(Tr.T("Supprimer le dossier"), Tr.F("Supprimer le dossier « {0} » ? Son contenu ({1}) remonte dans {2}.", folder.Name, folder.ContentLabel.ToLowerInvariant(), where)))
         {
             return;
         }
@@ -246,11 +246,11 @@ public sealed partial class MainViewModel
 
             if (!AssetFolders.IsValidName(name))
             {
-                _dialogs.ShowError(title, "Nom invalide : pas de « / », de « \\ » ni de caractère interdit par Windows (64 caractères au plus).");
+                _dialogs.ShowError(title, Tr.T("Nom invalide : pas de « / », de « \\ » ni de caractère interdit par Windows (64 caractères au plus)."));
             }
             else if (name != current && FolderOperations.Exists(_project!.Model, AssetFolders.Combine(parent, name)))
             {
-                _dialogs.ShowError(title, $"Un dossier « {name} » existe déjà ici.");
+                _dialogs.ShowError(title, Tr.F("Un dossier « {0} » existe déjà ici.", name));
             }
             else
             {
@@ -396,7 +396,7 @@ public sealed partial class MainViewModel
     {
         if (!File.Exists(fullPath))
         {
-            StatusText = "Fichier introuvable : " + Path.GetFileName(fullPath);
+            StatusText = Tr.T("Fichier introuvable : ") + Path.GetFileName(fullPath);
             return;
         }
 

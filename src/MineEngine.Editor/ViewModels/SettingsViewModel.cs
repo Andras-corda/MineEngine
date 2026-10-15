@@ -65,6 +65,23 @@ public sealed class SettingsViewModel : ObservableObject
         }
     }
 
+    public IReadOnlyList<UiLanguage> Languages => UiLanguage.All;
+
+    /// <summary>Langue de l'interface ; elle s'applique au prochain démarrage.</summary>
+    public UiLanguage Language
+    {
+        get => _draft.Language;
+        set
+        {
+            _draft.Language = value ?? UiLanguage.Default;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(NeedsRestart));
+        }
+    }
+
+    /// <summary>Vrai si la langue choisie n'est pas celle de l'interface affichée.</summary>
+    public bool NeedsRestart => _draft.Language != Tr.Language;
+
     public int MaxAutoSaveMinutes => EditorSettings.MaxAutoSaveMinutes;
 
     public int MaxBackupsToKeep => EditorSettings.MaxBackupsToKeep;

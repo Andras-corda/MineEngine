@@ -32,7 +32,7 @@ public sealed class CatalogGraphContext : IGraphContext
 
     public GraphKind Kind => GraphKind.Events;
 
-    public NodeInfo Describe(GraphNode node) => NodeCatalog.Find(node.Kind) ?? NodeCatalog.Missing(node.Kind, "Définition introuvable");
+    public NodeInfo Describe(GraphNode node) => NodeCatalog.Find(node.Kind) ?? NodeCatalog.Missing(node.Kind, Tr.T("Définition introuvable"));
 
     public bool CanFeed(DataType from, DataType to) => TypeRules.CanFeedBuiltIn(from, to);
 

@@ -13,7 +13,7 @@ public sealed class AddAssetCommand : IUndoableCommand
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _asset = asset ?? throw new ArgumentNullException(nameof(asset));
-        Description = $"Ajouter {typeLabel.ToLowerInvariant()} '{asset.ResourceId}'";
+        Description = Tr.F("Ajouter {0} '{1}'", typeLabel.ToLowerInvariant(), asset.ResourceId);
     }
 
     public string Description { get; }
@@ -36,7 +36,7 @@ public sealed class RemoveAssetCommand : IUndoableCommand
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _asset = asset ?? throw new ArgumentNullException(nameof(asset));
-        Description = $"Supprimer {typeLabel.ToLowerInvariant()} '{asset.ResourceId}'";
+        Description = Tr.F("Supprimer {0} '{1}'", typeLabel.ToLowerInvariant(), asset.ResourceId);
     }
 
     public string Description { get; }

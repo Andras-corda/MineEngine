@@ -31,14 +31,15 @@ public sealed class GraphAssetViewModel : AssetViewModel
     /// <summary>Dans le Dashboard : "Graphe" pour les événements, sinon ce que définit le graphe.</summary>
     public override string TypeLabel => Graph.Kind == GraphKind.Events ? base.TypeLabel : Graph.Kind.Label();
 
-    public override string TypeGlyph => Graph.Kind switch
+    public override string TypeIcon => Graph.Kind switch
     {
-        GraphKind.Function or GraphKind.Procedure => "",
-        GraphKind.Class => "",
-        GraphKind.Struct => "",
-        GraphKind.Interface => "",
-        GraphKind.Enum => "",
-        _ => base.TypeGlyph,
+        GraphKind.Function => "FunctionGeometry",
+        GraphKind.Procedure => "ProcedureGeometry",
+        GraphKind.Class => "ClassGeometry",
+        GraphKind.Struct => "StructGeometry",
+        GraphKind.Interface => "InterfaceGeometry",
+        GraphKind.Enum => "EnumGeometry",
+        _ => base.TypeIcon,
     };
 
     /// <summary>Événements auxquels réagit le graphe ("Clic droit sur un bloc", ...).</summary>

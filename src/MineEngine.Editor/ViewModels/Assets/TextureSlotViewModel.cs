@@ -44,7 +44,7 @@ public sealed class TextureSlotViewModel : ObservableObject
         _getter = getter ?? throw new ArgumentNullException(nameof(getter));
         _setter = setter ?? throw new ArgumentNullException(nameof(setter));
         ImportCommand = new RelayCommand(Import);
-        ClearCommand = new RelayCommand(() => Set("Retirer une texture", null), () => _getter() is not null);
+        ClearCommand = new RelayCommand(() => Set(Tr.T("Retirer une texture"), null), () => _getter() is not null);
         OpenCommand = new RelayCommand(() => _context.SelectAsset(_getter()!.Value), () => Texture is not null);
     }
 
@@ -74,7 +74,7 @@ public sealed class TextureSlotViewModel : ObservableObject
             Guid? id = value == Guid.Empty ? null : value;
             if (id != _getter())
             {
-                Set("Changer une texture", id);
+                Set(Tr.T("Changer une texture"), id);
             }
         }
     }
@@ -86,7 +86,7 @@ public sealed class TextureSlotViewModel : ObservableObject
     {
         null => _emptyLabel,
         _ when Texture is { } texture => texture.FilePath,
-        _ => "Texture supprimée : choisissez-en une autre",
+        _ => Tr.T("Texture supprimée : choisissez-en une autre"),
     };
 
     public ICommand ImportCommand { get; }
@@ -121,16 +121,16 @@ public sealed class TextureSlotViewModel : ObservableObject
             ModProject project = _context.Project;
             TextureAsset texture = _context.Importer.ImportTexture(project, file);
             _context.History.Execute(new CompositeCommand(
-                "Importer une texture",
+                Tr.T("Importer une texture"),
                 [
-                    new AddAssetCommand(project.Assets, texture, "Texture"),
-                    new PropertyChangeCommand<Guid?>("Changer une texture", _asset, PropertyName, _getter, _setter, texture.Id),
+                    new AddAssetCommand(project.Assets, texture, Tr.T("Texture")),
+                    new PropertyChangeCommand<Guid?>(Tr.T("Changer une texture"), _asset, PropertyName, _getter, _setter, texture.Id),
                 ]));
             _context.History.Seal();
         }
         catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
         {
-            _context.Dialogs.ShowError("Texture", exception.Message);
+            _context.Dialogs.ShowError(Tr.T("Texture"), exception.Message);
         }
     }
 

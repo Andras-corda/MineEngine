@@ -16,7 +16,7 @@ public sealed class ChangeProjectSettingsCommand : IUndoableCommand
         _after = (newValues ?? throw new ArgumentNullException(nameof(newValues))).Clone();
     }
 
-    public string Description => "Modifier les paramètres du projet";
+    public string Description => Tr.T("Modifier les paramètres du projet");
 
     public void Execute() => _target.CopyFrom(_after);
 

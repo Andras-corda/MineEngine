@@ -31,7 +31,7 @@ public sealed class UndoHistory
         ArgumentNullException.ThrowIfNull(command);
         if (_isApplying)
         {
-            throw new InvalidOperationException("Une commande ne peut pas en exécuter une autre pendant une annulation.");
+            throw new InvalidOperationException(Tr.T("Une commande ne peut pas en exécuter une autre pendant une annulation."));
         }
 
         Apply(command.Execute);

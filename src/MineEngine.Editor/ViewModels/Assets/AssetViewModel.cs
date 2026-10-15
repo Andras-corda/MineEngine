@@ -51,7 +51,7 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
             string newValue = value ?? string.Empty;
             if (Model.DisplayName != newValue)
             {
-                Change("Modifier le nom affiché", nameof(Asset.DisplayName), () => Model.DisplayName, v => Model.DisplayName = v, newValue);
+                Change(Tr.T("Modifier le nom affiché"), nameof(Asset.DisplayName), () => Model.DisplayName, v => Model.DisplayName = v, newValue);
             }
         }
     }
@@ -77,21 +77,21 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
     public string DetailsBadge => TypeLabel.ToUpperInvariant();
 
     /// <summary>Dossier du Dashboard qui contient l'élément ("Armes/Épées"), ou "Racine".</summary>
-    public string FolderLabel => Model.Folder.Length == 0 ? "Racine" : Model.Folder;
+    public string FolderLabel => Model.Folder.Length == 0 ? Tr.T("Racine") : Model.Folder;
 
     public string DetailsSubtitle => HasGameId ? FullResourceId : Model.ResourceId.Value;
 
-    /// <summary>Glyphe Segoe MDL2 Assets du type, affiché quand l'asset n'a pas d'image.</summary>
-    public virtual string TypeGlyph => Model.Type switch
+    /// <summary>Icône du type (clé de Themes/Icons.xaml), affichée quand l'asset n'a pas d'image.</summary>
+    public virtual string TypeIcon => Model.Type switch
     {
-        AssetType.Item => "\uE8EC",
-        AssetType.Block => "\uE80A",
-        AssetType.Mob => "\uE77B",
-        AssetType.Recipe => "\uE8FD",
-        AssetType.Texture => "\uEB9F",
-        AssetType.Sound => "\uE8D6",
-        AssetType.Graph => "\uEA86",
-        _ => "\uE8A5",
+        AssetType.Item => "ItemGeometry",
+        AssetType.Block => "BlockGeometry",
+        AssetType.Mob => "MobGeometry",
+        AssetType.Recipe => "RecipeGeometry",
+        AssetType.Texture => "Glyph.Texture",
+        AssetType.Sound => "Glyph.Sound",
+        AssetType.Graph => "NodeGraphGeometry",
+        _ => "Glyph.File",
     };
 
     /// <summary>Image représentant l'asset dans le Dashboard (sa texture), ou null.</summary>
@@ -103,8 +103,8 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
     public string IssueLabel => (_errorCount, _warningCount) switch
     {
         (0, 0) => "OK",
-        (> 0, _) => _errorCount == 1 ? "1 erreur" : $"{_errorCount} erreurs",
-        _ => _warningCount == 1 ? "1 avertissement" : $"{_warningCount} avertissements",
+        (> 0, _) => _errorCount == 1 ? Tr.T("1 erreur") : Tr.F("{0} erreurs", _errorCount),
+        _ => _warningCount == 1 ? Tr.T("1 avertissement") : Tr.F("{0} avertissements", _warningCount),
     };
 
     public bool HasIssueErrors => _errorCount > 0;
@@ -131,13 +131,13 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
     /// <summary>Faux pour les assets qui n'existent pas en jeu sous leur identifiant (textures).</summary>
     public virtual bool HasGameId => true;
 
-    public string ResourceIdRule => "Minuscules, chiffres et '_' ; commence par une lettre.";
+    public string ResourceIdRule => Tr.T("Minuscules, chiffres et '_' ; commence par une lettre.");
 
     /// <summary>Assets qui utilisent celui-ci : renommer cet asset ne casse pas ces liens.</summary>
     public IReadOnlyList<AssetLinkViewModel> UsedBy =>
         Context.Project.Assets.FindReferencesTo(Model.Id)
             .GroupBy(r => r.Source)
-            .Select(g => new AssetLinkViewModel(g.Key.Id, $"{DisplayLabel(g.Key)} : {string.Join(", ", g.Select(r => r.Reference.Role).Distinct())}"))
+            .Select(g => new AssetLinkViewModel(g.Key.Id, Tr.F("{0} : {1}", DisplayLabel(g.Key), string.Join(", ", g.Select(r => r.Reference.Role).Distinct()))))
             .ToList();
 
     public bool IsUsed => UsedBy.Count > 0;
@@ -236,20 +236,20 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
     {
         if (!ResourceId.TryParse(text, out ResourceId? id))
         {
-            SetError(nameof(ResourceIdText), $"Identifiant invalide : {ResourceId.RuleDescription}.");
+            SetError(nameof(ResourceIdText), Tr.F("Identifiant invalide : {0}.", ResourceId.RuleDescription));
             return;
         }
 
         if (!Context.Project.Assets.IsResourceIdAvailable(id!, Model.Type, Model))
         {
-            SetError(nameof(ResourceIdText), $"L'identifiant '{id}' est déjà utilisé par un autre asset.");
+            SetError(nameof(ResourceIdText), Tr.F("L'identifiant '{0}' est déjà utilisé par un autre asset.", id));
             return;
         }
 
         ClearErrors(nameof(ResourceIdText));
         if (Model.ResourceId != id)
         {
-            Change("Modifier l'identifiant", nameof(Asset.ResourceId), () => Model.ResourceId, v => Model.ResourceId = v, id!);
+            Change(Tr.T("Modifier l'identifiant"), nameof(Asset.ResourceId), () => Model.ResourceId, v => Model.ResourceId = v, id!);
         }
     }
 }

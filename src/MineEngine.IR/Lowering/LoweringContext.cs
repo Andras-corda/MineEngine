@@ -71,7 +71,7 @@ public sealed class LoweringContext
 
         if (reference.Kind == ContentReferenceKind.Tag)
         {
-            Diagnostics.Error($"{role} : un tag n'est pas accepté ici.", owner.ToString(), owner.Id);
+            Diagnostics.Error(Tr.F("{0} : un tag n'est pas accepté ici.", role), owner.ToString(), owner.Id);
             return null;
         }
 
@@ -114,7 +114,7 @@ public sealed class LoweringContext
         Asset? target = Project.Assets.Find(assetId);
         if (target is null)
         {
-            Diagnostics.Error($"{role} : l'asset visé a été supprimé.", owner.ToString(), owner.Id);
+            Diagnostics.Error(Tr.F("{0} : l'asset visé a été supprimé.", role), owner.ToString(), owner.Id);
             return null;
         }
 
@@ -132,7 +132,7 @@ public sealed class LoweringContext
         if (file is null)
         {
             Diagnostics.Warning(
-                $"Le fichier de la texture '{texture.ResourceId}' ({texture.FilePath}) est introuvable ; une texture de remplacement sera utilisée.",
+                Tr.F("Le fichier de la texture '{0}' ({1}) est introuvable ; une texture de remplacement sera utilisée.", texture.ResourceId, texture.FilePath),
                 owner.ToString(),
                 owner.Id);
         }

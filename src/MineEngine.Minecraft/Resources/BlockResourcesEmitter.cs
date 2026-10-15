@@ -17,7 +17,7 @@ public sealed class BlockResourcesEmitter : ResourceEmitter
     {
     }
 
-    public override string Name => "Ressources des blocs";
+    public override string Name => Tr.T("Ressources des blocs");
 
     public override void Emit(GenerationContext context)
     {

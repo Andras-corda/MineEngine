@@ -46,6 +46,7 @@ public sealed class ProjectHubViewModel : ObservableObject
     private ProjectSort _sort = ProjectSort.Name;
     private bool _showRecentOnly;
     private ProjectCardViewModel? _selectedProject;
+    private bool _isSidebarCollapsed;
 
     /// <param name="defaultProjectsDirectory">Dossier exploré au premier lancement pour remplir la liste.</param>
     /// <param name="openProject">Ouvre un projet à partir de son dossier.</param>
@@ -69,7 +70,7 @@ public sealed class ProjectHubViewModel : ObservableObject
         NavigateCommand = new RelayCommand<HubPage>(page => Page = page);
         ShowAllCommand = new RelayCommand(() => ShowRecentOnly = false);
         ShowRecentCommand = new RelayCommand(() => ShowRecentOnly = true);
-        OpenSelectedCommand = new RelayCommand(() => Open(_selectedProject!), () => _selectedProject is { IsMissing: false });
+        ToggleSidebarCommand = new RelayCommand(() => IsSidebarCollapsed = !IsSidebarCollapsed);
         OpenProjectCommand = new RelayCommand<ProjectCardViewModel>(Open, card => !card.IsMissing);
         AddExistingCommand = new RelayCommand(AddExisting);
         RemoveCommand = new RelayCommand<ProjectCardViewModel>(Remove);
@@ -94,7 +95,6 @@ public sealed class ProjectHubViewModel : ObservableObject
                 OnPropertyChanged(nameof(IsHomePage));
                 OnPropertyChanged(nameof(IsProjectsPage));
                 OnPropertyChanged(nameof(IsHelpPage));
-                OnPropertyChanged(nameof(ShowsProjectList));
             }
         }
     }
@@ -105,7 +105,12 @@ public sealed class ProjectHubViewModel : ObservableObject
 
     public bool IsHelpPage => _page == HubPage.Help;
 
-    public bool ShowsProjectList => _page != HubPage.Help;
+    /// <summary>Barre latérale réduite à ses icônes.</summary>
+    public bool IsSidebarCollapsed
+    {
+        get => _isSidebarCollapsed;
+        set => SetProperty(ref _isSidebarCollapsed, value);
+    }
 
     public string SearchText
     {
@@ -122,9 +127,9 @@ public sealed class ProjectHubViewModel : ObservableObject
 
     public IReadOnlyList<Assets.Choice<ProjectSort>> SortChoices { get; } =
     [
-        new(ProjectSort.Name, "Nom du projet"),
-        new(ProjectSort.LastOpened, "Ouvert récemment"),
-        new(ProjectSort.MinecraftVersion, "Version de Minecraft"),
+        new(ProjectSort.Name, Tr.T("Nom du projet")),
+        new(ProjectSort.LastOpened, Tr.T("Ouvert récemment")),
+        new(ProjectSort.MinecraftVersion, Tr.T("Version de Minecraft")),
     ];
 
     public ProjectSort Sort
@@ -169,18 +174,18 @@ public sealed class ProjectHubViewModel : ObservableObject
 
     public string CountLabel => Projects.Count switch
     {
-        0 => "aucun projet",
-        1 => "1 projet",
-        int count => $"{count} projets",
+        0 => Tr.T("aucun projet"),
+        1 => Tr.T("1 projet"),
+        int count => Tr.F("{0} projets", count),
     };
 
     public bool IsListEmpty => _view.IsEmpty;
 
     public string EmptyListMessage => Projects.Count == 0
-        ? "Aucun projet pour l'instant. Créez-en un, ou ajoutez un projet existant."
+        ? Tr.T("Aucun projet pour l'instant. Créez-en un, ou ajoutez un projet existant.")
         : ShowRecentOnly && _searchText.Length == 0
-            ? "Aucun projet ouvert récemment."
-            : "Aucun projet ne correspond à la recherche.";
+            ? Tr.T("Aucun projet ouvert récemment.")
+            : Tr.T("Aucun projet ne correspond à la recherche.");
 
     public ICommand NavigateCommand { get; }
 
@@ -188,7 +193,7 @@ public sealed class ProjectHubViewModel : ObservableObject
 
     public ICommand ShowRecentCommand { get; }
 
-    public ICommand OpenSelectedCommand { get; }
+    public ICommand ToggleSidebarCommand { get; }
 
     /// <summary>Ouvre le projet passé en paramètre (double-clic sur une carte).</summary>
     public ICommand OpenProjectCommand { get; }
@@ -254,7 +259,7 @@ public sealed class ProjectHubViewModel : ObservableObject
 
     private void AddExisting()
     {
-        string? directory = _dialogs.AskFolder("Choisir le dossier d'un projet Mine Engine");
+        string? directory = _dialogs.AskFolder(Tr.T("Choisir le dossier d'un projet Mine Engine"));
         if (directory is null)
         {
             return;
@@ -262,7 +267,7 @@ public sealed class ProjectHubViewModel : ObservableObject
 
         if (ProjectSummary.TryRead(directory, _settingsSerializer) is null)
         {
-            _dialogs.ShowError("Ajouter un projet", $"Le dossier '{directory}' ne contient pas de projet Mine Engine (*{ProjectLayout.ProjectFileExtension}).");
+            _dialogs.ShowError(Tr.T("Ajouter un projet"), Tr.F("Le dossier '{0}' ne contient pas de projet Mine Engine (*{1}).", directory, ProjectLayout.ProjectFileExtension));
             return;
         }
 
@@ -276,7 +281,7 @@ public sealed class ProjectHubViewModel : ObservableObject
 
     private void Remove(ProjectCardViewModel card)
     {
-        if (!_dialogs.Confirm("Retirer de la liste", $"Retirer '{card.Name}' de la liste ? Le dossier du projet n'est pas supprimé."))
+        if (!_dialogs.Confirm(Tr.T("Retirer de la liste"), Tr.F("Retirer '{0}' de la liste ? Le dossier du projet n'est pas supprimé.", card.Name)))
         {
             return;
         }

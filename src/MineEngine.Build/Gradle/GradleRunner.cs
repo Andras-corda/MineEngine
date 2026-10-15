@@ -31,7 +31,7 @@ public sealed class GradleRunner
         string wrapper = Path.Combine(workspaceDirectory, WrapperScript);
         if (!File.Exists(wrapper))
         {
-            throw new FileNotFoundException("Gradle wrapper introuvable dans le workspace.", wrapper);
+            throw new FileNotFoundException(Tr.T("Gradle wrapper introuvable dans le workspace."), wrapper);
         }
 
         var startInfo = new ProcessStartInfo
@@ -59,7 +59,7 @@ public sealed class GradleRunner
 
         if (!process.Start())
         {
-            throw new InvalidOperationException("Impossible de démarrer Gradle.");
+            throw new InvalidOperationException(Tr.T("Impossible de démarrer Gradle."));
         }
 
         process.BeginOutputReadLine();
@@ -100,7 +100,7 @@ public sealed class GradleRunner
         {
             if (!process.HasExited)
             {
-                log.Warning("Arrêt de Gradle demandé.");
+                log.Warning(Tr.T("Arrêt de Gradle demandé."));
                 process.Kill(entireProcessTree: true);
             }
         }

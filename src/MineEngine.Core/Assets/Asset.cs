@@ -19,7 +19,7 @@ public abstract class Asset
     {
         if (id == Guid.Empty)
         {
-            throw new ArgumentException("L'identifiant interne d'un asset ne peut pas être vide.", nameof(id));
+            throw new ArgumentException(Tr.T("L'identifiant interne d'un asset ne peut pas être vide."), nameof(id));
         }
 
         Id = id;
@@ -50,7 +50,7 @@ public abstract class Asset
     public string Folder
     {
         get => _folder;
-        set => SetField(ref _folder, AssetFolders.Normalize(value) ?? throw new ArgumentException($"Chemin de dossier invalide : '{value}'.", nameof(value)));
+        set => SetField(ref _folder, AssetFolders.Normalize(value) ?? throw new ArgumentException(Tr.F("Chemin de dossier invalide : '{0}'.", value), nameof(value)));
     }
 
     /// <summary>Vérifie la cohérence de l'asset et ajoute les problèmes trouvés.</summary>
@@ -58,7 +58,7 @@ public abstract class Asset
     {
         if (string.IsNullOrWhiteSpace(DisplayName))
         {
-            diagnostics.Warning("Le nom affiché est vide ; l'identifiant sera utilisé en jeu.", ToString(), Id);
+            diagnostics.Warning(Tr.T("Le nom affiché est vide ; l'identifiant sera utilisé en jeu."), ToString(), Id);
         }
     }
 

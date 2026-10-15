@@ -80,8 +80,8 @@ public sealed class WpfDialogService : IDialogService
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Ouvrir un projet Mine Engine",
-            Filter = $"Projet Mine Engine (*{ProjectLayout.ProjectFileExtension})|*{ProjectLayout.ProjectFileExtension};{ProjectLayout.LegacyProjectFileName}|Tous les fichiers (*.*)|*.*",
+            Title = Tr.T("Ouvrir un projet Mine Engine"),
+            Filter = Tr.F("Projet Mine Engine (*{0})|*{1};{2}|Tous les fichiers (*.*)|*.*", ProjectLayout.ProjectFileExtension, ProjectLayout.ProjectFileExtension, ProjectLayout.LegacyProjectFileName),
             InitialDirectory = Directory.Exists(_defaultProjectsDirectory) ? _defaultProjectsDirectory : string.Empty,
         };
         return ShowDialog(dialog) ? dialog.FileName : null;
@@ -91,8 +91,8 @@ public sealed class WpfDialogService : IDialogService
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Choisir une texture",
-            Filter = "Images PNG (*.png)|*.png",
+            Title = Tr.T("Choisir une texture"),
+            Filter = Tr.T("Images PNG (*.png)|*.png"),
         };
         return ShowDialog(dialog) ? dialog.FileName : null;
     }
@@ -101,8 +101,8 @@ public sealed class WpfDialogService : IDialogService
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Importer des textures",
-            Filter = "Images PNG (*.png)|*.png",
+            Title = Tr.T("Importer des textures"),
+            Filter = Tr.T("Images PNG (*.png)|*.png"),
             Multiselect = true,
         };
         return ShowDialog(dialog) ? dialog.FileNames : [];
@@ -112,8 +112,8 @@ public sealed class WpfDialogService : IDialogService
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Importer des sons",
-            Filter = "Sons OGG Vorbis (*.ogg)|*.ogg",
+            Title = Tr.T("Importer des sons"),
+            Filter = Tr.T("Sons OGG Vorbis (*.ogg)|*.ogg"),
             Multiselect = true,
         };
         return ShowDialog(dialog) ? dialog.FileNames : [];
@@ -123,8 +123,8 @@ public sealed class WpfDialogService : IDialogService
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Importer un MDK",
-            Filter = "Archive de MDK (*.zip)|*.zip",
+            Title = Tr.T("Importer un MDK"),
+            Filter = Tr.T("Archive de MDK (*.zip)|*.zip"),
         };
         return ShowDialog(dialog) ? dialog.FileName : null;
     }
@@ -138,7 +138,7 @@ public sealed class WpfDialogService : IDialogService
     public UnsavedChangesChoice AskUnsavedChanges(string projectName)
     {
         MessageBoxResult result = ShowMessage(
-            $"Le projet '{projectName}' contient des modifications non enregistrées.\n\nVoulez-vous les enregistrer ?",
+            Tr.F("Le projet '{0}' contient des modifications non enregistrées.\n\nVoulez-vous les enregistrer ?", projectName),
             ApplicationTitle,
             MessageBoxButton.YesNoCancel,
             MessageBoxImage.Warning);
@@ -166,7 +166,7 @@ public sealed class WpfDialogService : IDialogService
     public UnsavedChangesChoice AskUnsavedFile(string fileName)
     {
         MessageBoxResult result = ShowMessage(
-            $"Le fichier '{fileName}' contient des modifications non enregistrées.\n\nVoulez-vous les enregistrer ?",
+            Tr.F("Le fichier '{0}' contient des modifications non enregistrées.\n\nVoulez-vous les enregistrer ?", fileName),
             ApplicationTitle,
             MessageBoxButton.YesNoCancel,
             MessageBoxImage.Warning);
@@ -187,7 +187,7 @@ public sealed class WpfDialogService : IDialogService
     {
         var dialog = new OpenFolderDialog
         {
-            Title = "Dossier dans lequel créer le projet",
+            Title = Tr.T("Dossier dans lequel créer le projet"),
             InitialDirectory = Directory.Exists(_defaultProjectsDirectory) ? _defaultProjectsDirectory : string.Empty,
         };
         return ShowDialog(dialog) ? dialog.FolderName : null;

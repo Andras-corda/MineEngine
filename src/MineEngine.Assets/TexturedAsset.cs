@@ -28,7 +28,7 @@ public abstract class TexturedAsset : Asset
     public bool HasTexture => TextureId is not null;
 
     /// <summary>Message affiché quand aucune texture n'est choisie.</summary>
-    protected virtual string MissingTextureMessage => "Aucune texture ; une texture de remplacement sera utilisée.";
+    protected virtual string MissingTextureMessage => Tr.T("Aucune texture ; une texture de remplacement sera utilisée.");
 
     public override IEnumerable<AssetReference> GetReferences()
     {

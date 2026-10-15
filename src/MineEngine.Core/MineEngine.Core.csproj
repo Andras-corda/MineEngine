@@ -5,4 +5,9 @@
     <RootNamespace>MineEngine.Core</RootNamespace>
   </PropertyGroup>
 
+  <!-- Traductions de l'interface (texte français vers une autre langue), voir Localization/TextCatalog.cs. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Localization\*.json" LogicalName="MineEngine.Core.Localization.%(Filename).json" />
+  </ItemGroup>
+
 </Project>

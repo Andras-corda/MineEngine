@@ -22,7 +22,7 @@ public sealed class MinecraftVersion : IComparable<MinecraftVersion>, IEquatable
     public static MinecraftVersion Parse(string id) =>
         TryParse(id, out MinecraftVersion? version)
             ? version!
-            : throw new FormatException($"Version de Minecraft invalide : '{id}'.");
+            : throw new FormatException(Tr.F("Version de Minecraft invalide : '{0}'.", id));
 
     public static bool TryParse(string? id, out MinecraftVersion? version)
     {

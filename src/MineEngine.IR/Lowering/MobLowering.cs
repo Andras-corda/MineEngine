@@ -34,10 +34,10 @@ public sealed class MobLowering : AssetLowering<MobAsset>
             BurnsInDaylight = asset.BurnsInDaylight,
             Persistent = asset.Persistent,
             Goals = [.. asset.Goals.Where(g => isAnimal || !g.Info.RequiresAnimal).Select(g => LowerGoal(asset, g, context)).OfType<IRMobGoal>()],
-            BreedingItem = isAnimal ? context.ResolveItem(asset, asset.BreedingItem, "Item de reproduction") : null,
-            AmbientSound = context.ResolveSound(asset, asset.AmbientSound, "Son ambiant"),
-            HurtSound = context.ResolveSound(asset, asset.HurtSound, "Son de blessure"),
-            DeathSound = context.ResolveSound(asset, asset.DeathSound, "Son de mort"),
+            BreedingItem = isAnimal ? context.ResolveItem(asset, asset.BreedingItem, Tr.T("Item de reproduction")) : null,
+            AmbientSound = context.ResolveSound(asset, asset.AmbientSound, Tr.T("Son ambiant")),
+            HurtSound = context.ResolveSound(asset, asset.HurtSound, Tr.T("Son de blessure")),
+            DeathSound = context.ResolveSound(asset, asset.DeathSound, Tr.T("Son de mort")),
             Drops = [.. asset.Drops.Select(d => LowerDrop(asset, d, context)).OfType<IRMobDrop>()],
             SpawnEgg = asset.HasSpawnEgg ? new IRSpawnEgg(asset.SpawnEggId, asset.EggPrimaryColor, asset.EggSecondaryColor) : null,
             Spawning = asset.SpawnsNaturally && asset.SpawnBiomes.Count > 0
@@ -55,7 +55,7 @@ public sealed class MobLowering : AssetLowering<MobAsset>
         NamespacedId? item = null;
         if (goal.Info.UsesItem)
         {
-            item = context.ResolveItem(asset, goal.Item, $"IA « {goal.Info.Label} »");
+            item = context.ResolveItem(asset, goal.Item, Tr.F("IA « {0} »", goal.Info.Label));
             if (item is null)
             {
                 return null;
@@ -66,7 +66,7 @@ public sealed class MobLowering : AssetLowering<MobAsset>
     }
 
     private static IRMobDrop? LowerDrop(MobAsset asset, MobDrop drop, LoweringContext context) =>
-        context.ResolveItem(asset, drop.Item, "Butin") is { } item
+        context.ResolveItem(asset, drop.Item, Tr.T("Butin")) is { } item
             ? new IRMobDrop(item, Math.Min(drop.Min, drop.Max), Math.Max(drop.Min, drop.Max))
             : null;
 }

@@ -23,7 +23,7 @@ public abstract class AssetLowering<TAsset> : IAssetLowering
     {
         if (asset is not TAsset typed)
         {
-            throw new ArgumentException($"{asset} ne peut pas être traduit par {GetType().Name}.", nameof(asset));
+            throw new ArgumentException(Tr.F("{0} ne peut pas être traduit par {1}.", asset, GetType().Name), nameof(asset));
         }
 
         Lower(typed, context);

@@ -52,7 +52,7 @@ public sealed class RecipeAsset : Asset
             ArgumentNullException.ThrowIfNull(value);
             if (value.Count != GridSize)
             {
-                throw new ArgumentException($"La grille doit contenir {GridSize} cases.", nameof(value));
+                throw new ArgumentException(Tr.F("La grille doit contenir {0} cases.", GridSize), nameof(value));
             }
 
             if (!value.SequenceEqual(_grid))
@@ -116,12 +116,12 @@ public sealed class RecipeAsset : Asset
     {
         foreach (ContentReference ingredient in Ingredients.Where(i => i.Kind == ContentReferenceKind.Asset))
         {
-            yield return new AssetReference(ingredient.AssetId, AssetReferenceKind.Item, "ingrédient");
+            yield return new AssetReference(ingredient.AssetId, AssetReferenceKind.Item, Tr.T("ingrédient"));
         }
 
         if (Result is { Kind: ContentReferenceKind.Asset } result)
         {
-            yield return new AssetReference(result.AssetId, AssetReferenceKind.Item, "résultat");
+            yield return new AssetReference(result.AssetId, AssetReferenceKind.Item, Tr.T("résultat"));
         }
     }
 
@@ -130,17 +130,17 @@ public sealed class RecipeAsset : Asset
         string source = ToString();
         if (Result is null)
         {
-            diagnostics.Error("La recette n'a pas de résultat.", source, Id);
+            diagnostics.Error(Tr.T("La recette n'a pas de résultat."), source, Id);
         }
         else if (Result.Kind == ContentReferenceKind.Tag)
         {
-            diagnostics.Error("Le résultat d'une recette doit être un item précis, pas un tag.", source, Id);
+            diagnostics.Error(Tr.T("Le résultat d'une recette doit être un item précis, pas un tag."), source, Id);
         }
 
         if (!Ingredients.Any())
         {
             diagnostics.Error(
-                Kind == RecipeKind.Smelting ? "Choisissez l'ingrédient à cuire." : "La grille de l'établi est vide.",
+                Kind == RecipeKind.Smelting ? Tr.T("Choisissez l'ingrédient à cuire.") : Tr.T("La grille de l'établi est vide."),
                 source,
                 Id);
         }

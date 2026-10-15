@@ -9,11 +9,11 @@ public sealed class BlockAssetDefinition : InventoryAssetDefinition<BlockAsset>
 {
     public override AssetType Type => AssetType.Block;
 
-    public override string Label => "Bloc";
+    public override string Label => Tr.T("Bloc");
 
     public override string DefaultResourceIdBase => "new_block";
 
-    public override string DefaultDisplayName => "Nouveau bloc";
+    public override string DefaultDisplayName => Tr.T("Nouveau bloc");
 
     protected override BlockAsset Create(Guid id, ResourceId resourceId, string displayName) =>
         new(id, resourceId, displayName);

@@ -57,7 +57,7 @@ public abstract class MdkBackend : IModLoaderBackend
         if (!Directory.Exists(Mdk.Directory))
         {
             throw new DirectoryNotFoundException(
-                $"Le MDK {Mdk.DisplayName} est introuvable ({Mdk.Directory}). Réinstallez-le depuis le gestionnaire de MDK.");
+                Tr.F("Le MDK {0} est introuvable ({1}). Réinstallez-le depuis le gestionnaire de MDK.", Mdk.DisplayName, Mdk.Directory));
         }
 
         ResetWorkspaceIfMdkChanged(context);
@@ -103,7 +103,7 @@ public abstract class MdkBackend : IModLoaderBackend
         string file = Path.Combine(Mdk.Directory, relativePath.Replace('/', Path.DirectorySeparatorChar));
         if (!File.Exists(file))
         {
-            throw new FileNotFoundException($"Le MDK {Mdk.DisplayName} ne contient pas le fichier attendu '{relativePath}'.", file);
+            throw new FileNotFoundException(Tr.F("Le MDK {0} ne contient pas le fichier attendu '{1}'.", Mdk.DisplayName, relativePath), file);
         }
 
         return File.ReadAllTextAsync(file, cancellationToken);
@@ -152,7 +152,7 @@ public abstract class MdkBackend : IModLoaderBackend
             return;
         }
 
-        context.Log.Info($"Le MDK a changé ({previous} vers {Mdk.Id}) : les dossiers de travail de Gradle sont vidés.");
+        context.Log.Info(Tr.F("Le MDK a changé ({0} vers {1}) : les dossiers de travail de Gradle sont vidés.", previous, Mdk.Id));
         foreach (string name in ClearedOnMdkChange)
         {
             string directory = Path.Combine(context.WorkspaceDirectory, name);

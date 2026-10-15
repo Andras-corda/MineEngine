@@ -60,8 +60,8 @@ public sealed class ModGenerator
             || !target!.Equals(Backend.MinecraftVersion))
         {
             context.Diagnostics.Error(
-                $"Le projet cible {ir.Mod.LoaderId} {ir.Mod.MinecraftVersion}, mais le MDK choisi est {Backend.DisplayName}. " +
-                "Choisissez un MDK correspondant dans Projet > Paramètres du projet.");
+                Tr.F("Le projet cible {0} {1}, mais le MDK choisi est {2}. ", ir.Mod.LoaderId, ir.Mod.MinecraftVersion, Backend.DisplayName) +
+                Tr.T("Choisissez un MDK correspondant dans Projet > Paramètres du projet."));
             return CreateResult(context);
         }
 
@@ -71,7 +71,7 @@ public sealed class ModGenerator
         foreach (IFileEmitter emitter in _commonEmitters.Concat(Backend.CreateEmitters()))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            log.Debug("Génération : " + emitter.Name);
+            log.Debug(Tr.T("Génération : ") + emitter.Name);
             emitter.Emit(context);
         }
 
@@ -93,7 +93,7 @@ public sealed class ModGenerator
             }
 
             File.Delete(file);
-            context.Log.Debug("Fichier généré supprimé : " + stale);
+            context.Log.Debug(Tr.T("Fichier généré supprimé : ") + stale);
 
             // Les dossiers devenus vides disparaissent aussi (package d'un graphe supprimé...).
             for (string? directory = Path.GetDirectoryName(file);

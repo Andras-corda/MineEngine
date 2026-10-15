@@ -35,7 +35,7 @@ public abstract class InventoryAsset : TexturedAsset
             if (!IsValidStackSize(value))
             {
                 throw new ArgumentOutOfRangeException(
-                    nameof(value), value, $"La taille de pile doit être comprise entre {MinStackSize} et {MaxStackSizeLimit}.");
+                    nameof(value), value, Tr.F("La taille de pile doit être comprise entre {0} et {1}.", MinStackSize, MaxStackSizeLimit));
             }
 
             SetField(ref _maxStackSize, value);
@@ -87,7 +87,7 @@ public abstract class InventoryAsset : TexturedAsset
         base.Validate(diagnostics);
         if (HasItemForm && !InModCreativeTab && CreativeTabs.Count == 0)
         {
-            diagnostics.Info("N'apparaît dans aucun onglet créatif : il ne sera accessible que par commande ou recette.", ToString(), Id);
+            diagnostics.Info(Tr.T("N'apparaît dans aucun onglet créatif : il ne sera accessible que par commande ou recette."), ToString(), Id);
         }
     }
 }

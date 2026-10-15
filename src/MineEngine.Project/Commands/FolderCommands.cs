@@ -45,14 +45,14 @@ public static class FolderOperations
         path.Length == 0 || AllFolders(project).Contains(path, StringComparer.Ordinal);
 
     public static IUndoableCommand Create(ModProject project, string path) =>
-        new ChangeFoldersCommand(project.Settings, project.Settings.Folders.Append(path), $"Créer le dossier « {AssetFolders.Name(path)} »");
+        new ChangeFoldersCommand(project.Settings, project.Settings.Folders.Append(path), Tr.F("Créer le dossier « {0} »", AssetFolders.Name(path)));
 
     /// <summary>Renomme ou déplace un dossier : ses sous-dossiers et ses assets suivent.</summary>
     public static IUndoableCommand Move(ModProject project, string path, string newPath, string description)
     {
         if (AssetFolders.IsWithin(newPath, path))
         {
-            throw new InvalidOperationException("Un dossier ne peut pas être déplacé dans lui-même.");
+            throw new InvalidOperationException(Tr.T("Un dossier ne peut pas être déplacé dans lui-même."));
         }
 
         IEnumerable<string> folders = AllFolders(project)
@@ -74,7 +74,7 @@ public static class FolderOperations
             .Where(f => AssetFolders.IsWithin(f, path) && f != path)
             .Select(f => AssetFolders.Rebase(f, path, parent))
             .Concat(project.Settings.Folders.Where(f => !AssetFolders.IsWithin(f, path)));
-        string description = $"Supprimer le dossier « {AssetFolders.Name(path)} »";
+        string description = Tr.F("Supprimer le dossier « {0} »", AssetFolders.Name(path));
         var commands = new List<IUndoableCommand> { new ChangeFoldersCommand(project.Settings, folders, description) };
         commands.AddRange(project.Assets
             .Where(a => AssetFolders.IsWithin(a.Folder, path))
@@ -85,10 +85,10 @@ public static class FolderOperations
     public static IUndoableCommand MoveAssets(IEnumerable<Asset> assets, string folder)
     {
         List<IUndoableCommand> commands = [.. assets.Where(a => a.Folder != folder).Select(a => SetFolder(a, folder))];
-        string target = folder.Length == 0 ? "la racine" : $"« {AssetFolders.Name(folder)} »";
-        return new CompositeCommand(commands.Count == 1 ? $"Déplacer vers {target}" : $"Déplacer {commands.Count} éléments vers {target}", commands);
+        string target = folder.Length == 0 ? Tr.T("la racine") : Tr.F("« {0} »", AssetFolders.Name(folder));
+        return new CompositeCommand(commands.Count == 1 ? Tr.F("Déplacer vers {0}", target) : Tr.F("Déplacer {0} éléments vers {1}", commands.Count, target), commands);
     }
 
     private static PropertyChangeCommand<string> SetFolder(Asset asset, string folder) =>
-        new("Changer de dossier", asset, nameof(Asset.Folder), () => asset.Folder, v => asset.Folder = v, folder);
+        new(Tr.T("Changer de dossier"), asset, nameof(Asset.Folder), () => asset.Folder, v => asset.Folder = v, folder);
 }

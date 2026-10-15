@@ -39,11 +39,11 @@ public sealed class AssetFileImporter
 
     /// <summary>Copie une nouvelle image pour une texture existante et retourne son chemin relatif.</summary>
     public string CopyTexture(ModProject project, string sourceFile, string baseName) =>
-        CopyIntoProject(project, sourceFile, project.Layout.TexturesDirectory, baseName, ".png", PngSignature, "une image PNG");
+        CopyIntoProject(project, sourceFile, project.Layout.TexturesDirectory, baseName, ".png", PngSignature, Tr.T("une image PNG"));
 
     /// <summary>Copie un nouveau fichier pour un son existant et retourne son chemin relatif.</summary>
     public string CopySound(ModProject project, string sourceFile, string baseName) =>
-        CopyIntoProject(project, sourceFile, project.Layout.SoundsDirectory, baseName, ".ogg", OggSignature, "un son OGG");
+        CopyIntoProject(project, sourceFile, project.Layout.SoundsDirectory, baseName, ".ogg", OggSignature, Tr.T("un son OGG"));
 
     /// <summary>Chemin absolu du fichier d'un asset, ou null s'il n'existe pas.</summary>
     public static string? GetExistingFile(ModProject project, FileAsset asset)
@@ -80,7 +80,7 @@ public sealed class AssetFileImporter
 
         if (!HasSignature(sourceFile, signature))
         {
-            throw new InvalidDataException($"'{Path.GetFileName(sourceFile)}' n'est pas {expected} valide.");
+            throw new InvalidDataException(Tr.F("'{0}' n'est pas {1} valide.", Path.GetFileName(sourceFile), expected));
         }
 
         // Le nom contient une empreinte du contenu : un nouveau fichier n'écrase jamais

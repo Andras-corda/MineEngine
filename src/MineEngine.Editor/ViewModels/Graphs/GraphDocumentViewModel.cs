@@ -116,11 +116,11 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
             int warnings = _issues.Count - errors;
             return (errors, warnings) switch
             {
-                (0, 0) => "Aucun problème",
+                (0, 0) => Tr.T("Aucun problème"),
                 _ => string.Join(", ", new[]
                 {
-                    errors > 0 ? Plural(errors, "erreur", "erreurs") : null,
-                    warnings > 0 ? Plural(warnings, "avertissement", "avertissements") : null,
+                    errors > 0 ? (errors == 1 ? Tr.T("1 erreur") : Tr.F("{0} erreurs", errors)) : null,
+                    warnings > 0 ? (warnings == 1 ? Tr.T("1 avertissement") : Tr.F("{0} avertissements", warnings)) : null,
                 }.OfType<string>()),
             };
         }
@@ -208,7 +208,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         }
 
         PendingSource = null;
-        Apply(graph, $"Ajouter « {info.Title} »");
+        Apply(graph, Tr.F("Ajouter « {0} »", info.Title));
         GraphNodeViewModel added = _nodes[node.Id];
         SelectOnly(added);
         return added;
@@ -219,7 +219,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
     {
         if (first.IsInput == second.IsInput)
         {
-            StatusText = "Reliez une sortie (à droite d'un nœud) à une entrée (à gauche).";
+            StatusText = Tr.T("Reliez une sortie (à droite d'un nœud) à une entrée (à gauche).");
             return false;
         }
 
@@ -233,7 +233,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         }
 
         StatusText = null;
-        Apply(_asset.Graph.Connect(connection, context), "Relier des nœuds");
+        Apply(_asset.Graph.Connect(connection, context), Tr.T("Relier des nœuds"));
         return true;
     }
 
@@ -243,7 +243,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         NodeGraph graph = _asset.Graph.DisconnectPin(pin.Node.Id, pin.Name);
         if (graph.Connections.Length != _asset.Graph.Connections.Length)
         {
-            Apply(graph, "Débrancher une broche");
+            Apply(graph, Tr.T("Débrancher une broche"));
         }
     }
 
@@ -252,13 +252,13 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
     {
         if (SelectedNodes.Any(n => n.IsEntry))
         {
-            StatusText = "Le nœud d'entrée ne se supprime pas : c'est le début de la fonction.";
+            StatusText = Tr.T("Le nœud d'entrée ne se supprime pas : c'est le début de la fonction.");
         }
 
         List<Guid> ids = [.. SelectedNodes.Where(n => !n.IsEntry).Select(n => n.Id)];
         if (ids.Count > 0)
         {
-            Apply(_asset.Graph.RemoveNodes(ids), ids.Count == 1 ? "Supprimer un nœud" : $"Supprimer {ids.Count} nœuds");
+            Apply(_asset.Graph.RemoveNodes(ids), ids.Count == 1 ? Tr.T("Supprimer un nœud") : Tr.F("Supprimer {0} nœuds", ids.Count));
         }
     }
 
@@ -276,7 +276,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         IEnumerable<GraphConnection> links = _asset.Graph.Connections
             .Where(c => map.ContainsKey(c.FromNode) && map.ContainsKey(c.ToNode))
             .Select(c => c with { FromNode = map[c.FromNode], ToNode = map[c.ToNode] });
-        Apply(_asset.Graph.Merge(copies, links), originals.Count == 1 ? "Dupliquer un nœud" : $"Dupliquer {originals.Count} nœuds");
+        Apply(_asset.Graph.Merge(copies, links), originals.Count == 1 ? Tr.T("Dupliquer un nœud") : Tr.F("Dupliquer {0} nœuds", originals.Count));
 
         foreach (GraphNodeViewModel node in Nodes)
         {
@@ -294,7 +294,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
             .ToDictionary(n => n.Id, n => (Math.Round(n.X), Math.Round(n.Y)));
         if (moved.Count > 0)
         {
-            Apply(_asset.Graph.MoveNodes(moved), moved.Count == 1 ? "Déplacer un nœud" : $"Déplacer {moved.Count} nœuds");
+            Apply(_asset.Graph.MoveNodes(moved), moved.Count == 1 ? Tr.T("Déplacer un nœud") : Tr.F("Déplacer {0} nœuds", moved.Count));
         }
     }
 
@@ -307,7 +307,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         }
 
         bool sameField = _lastValueEdit == (node.Id, pin);
-        Apply(_asset.Graph.ReplaceNode(current.WithValue(pin, value)), $"Modifier « {node.Title} »", merge: sameField);
+        Apply(_asset.Graph.ReplaceNode(current.WithValue(pin, value)), Tr.F("Modifier « {0} »", node.Title), merge: sameField);
         _lastValueEdit = (node.Id, pin);
     }
 
@@ -507,7 +507,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
             .Select(i => new GraphIssueItem(i.Message, i.NodeId, i.Severity == DiagnosticSeverity.Error))];
         Outline = [.. Nodes.Where(n => n.Info.IsEntryPoint)
             .OrderBy(n => n.Y).ThenBy(n => n.X)
-            .Select(n => new OutlineItem(n.Title, OutlineKind.Event, 0, 0, n.Id, n.IsEntry ? "entrée" : "événement"))];
+            .Select(n => new OutlineItem(n.Title, OutlineKind.Event, 0, 0, n.Id, n.IsEntry ? Tr.T("entrée") : Tr.T("événement")))];
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(EventCount));
         OnPropertyChanged(nameof(SelectedNode));
@@ -527,9 +527,6 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
             ? info.Outputs.FirstOrDefault(o => context.CanFeed(o.Type, source.Type))
             : info.Inputs.FirstOrDefault(i => i.Connectable && context.CanFeed(source.Type, i.Type));
     }
-
-    private static string Plural(int count, string one, string many) =>
-        string.Create(CultureInfo.CurrentCulture, $"{count} {(count == 1 ? one : many)}");
 
     /// <summary>Minuscules sans accents, pour une recherche tolérante.</summary>
     private static string Normalize(string text)

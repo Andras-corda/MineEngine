@@ -178,7 +178,7 @@ public sealed class NodeInfo
         ExecOutputs = Flow switch
         {
             NodeFlow.Start or NodeFlow.Step => [ThenPin],
-            NodeFlow.Branch => [new PinInfo(ExecTrue, "Vrai", DataType.Exec), new PinInfo(ExecFalse, "Faux", DataType.Exec)],
+            NodeFlow.Branch => [new PinInfo(ExecTrue, Tr.T("Vrai"), DataType.Exec), new PinInfo(ExecFalse, Tr.T("Faux"), DataType.Exec)],
             _ => [],
         };
     }

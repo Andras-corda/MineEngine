@@ -21,7 +21,7 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
     private string _eggSecondaryText;
 
     public MobAssetViewModel(MobAsset model, AssetEditingContext context, string typeLabel)
-        : base(model, context, typeLabel, "Aucune (texture de la créature d'origine)")
+        : base(model, context, typeLabel, Tr.T("Aucune (texture de la créature d'origine)"))
     {
         _mob = model;
         _eggPrimaryText = ColorText(model.EggPrimaryColor);
@@ -29,7 +29,7 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
 
         BreedingItem = new ReferencePickerViewModel(
             context, ReferenceDomain.Item, () => _mob.BreedingItem,
-            v => Change("Modifier l'item de reproduction", nameof(MobAsset.BreedingItem), () => _mob.BreedingItem, r => _mob.BreedingItem = r, v));
+            v => Change(Tr.T("Modifier l'item de reproduction"), nameof(MobAsset.BreedingItem), () => _mob.BreedingItem, r => _mob.BreedingItem = r, v));
         AmbientSound = SoundPicker(nameof(MobAsset.AmbientSound), () => _mob.AmbientSound, v => _mob.AmbientSound = v);
         HurtSound = SoundPicker(nameof(MobAsset.HurtSound), () => _mob.HurtSound, v => _mob.HurtSound = v);
         DeathSound = SoundPicker(nameof(MobAsset.DeathSound), () => _mob.DeathSound, v => _mob.DeathSound = v);
@@ -54,7 +54,7 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
 
     public IReadOnlyList<GoalKindOption> GoalKindChoices { get; } =
     [
-        .. MobGoalCatalog.All.Select(i => new GoalKindOption(i.Kind, i.RequiresAnimal ? i.Label + " (Animal)" : i.Label)),
+        .. MobGoalCatalog.All.Select(i => new GoalKindOption(i.Kind, i.RequiresAnimal ? i.Label + Tr.T(" (Animal)") : i.Label)),
     ];
 
     public double MaxHealth => MobAsset.MaxHealth;
@@ -81,33 +81,33 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
     public MobModel MobModel
     {
         get => _mob.Model;
-        set => ChangeIfDifferent("Modifier le modèle", nameof(MobAsset.Model), () => _mob.Model, v => _mob.Model = v, value);
+        set => ChangeIfDifferent(Tr.T("Modifier le modèle"), nameof(MobAsset.Model), () => _mob.Model, v => _mob.Model = v, value);
     }
 
     public string TextureHint => _mob.Model switch
     {
         MobModel.Zombie or MobModel.Skeleton or MobModel.Villager or MobModel.Witch or MobModel.Blaze =>
-            "Image au format de la créature d'origine (64 x 64 pour un zombie), sinon elle s'affichera mal.",
-        _ => "Image au format de la texture de la créature d'origine (souvent 64 x 32), sinon elle s'affichera mal.",
+            Tr.T("Image au format de la créature d'origine (64 x 64 pour un zombie), sinon elle s'affichera mal."),
+        _ => Tr.T("Image au format de la texture de la créature d'origine (souvent 64 x 32), sinon elle s'affichera mal."),
     };
 
     public bool UseCustomHitbox
     {
         get => _mob.UseCustomHitbox;
-        set => ChangeIfDifferent("Modifier la taille", nameof(MobAsset.UseCustomHitbox), () => _mob.UseCustomHitbox, v => _mob.UseCustomHitbox = v, value);
+        set => ChangeIfDifferent(Tr.T("Modifier la taille"), nameof(MobAsset.UseCustomHitbox), () => _mob.UseCustomHitbox, v => _mob.UseCustomHitbox = v, value);
     }
 
     public double Width
     {
         get => _mob.Width;
-        set => ChangeNumber("Modifier la largeur", nameof(MobAsset.Width), value, () => _mob.Width, v => _mob.Width = v,
+        set => ChangeNumber(Tr.T("Modifier la largeur"), nameof(MobAsset.Width), value, () => _mob.Width, v => _mob.Width = v,
             v => (float)Math.Clamp(v, MobAsset.MinHitbox, MobAsset.MaxHitbox));
     }
 
     public double Height
     {
         get => _mob.Height;
-        set => ChangeNumber("Modifier la hauteur", nameof(MobAsset.Height), value, () => _mob.Height, v => _mob.Height = v,
+        set => ChangeNumber(Tr.T("Modifier la hauteur"), nameof(MobAsset.Height), value, () => _mob.Height, v => _mob.Height = v,
             v => (float)Math.Clamp(v, MobAsset.MinHitbox, MobAsset.MaxHitbox));
     }
 
@@ -116,7 +116,7 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
         get
         {
             (float width, float height) = MobModelInfo.DefaultHitbox(_mob.Model);
-            return string.Create(CultureInfo.CurrentCulture, $"Taille d'origine du modèle : {width:0.##} x {height:0.##} blocs (largeur x hauteur).");
+            return Tr.F("Taille d'origine du modèle : {0:0.##} x {1:0.##} blocs (largeur x hauteur).", width, height);
         }
     }
 
@@ -125,7 +125,7 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
     public MobKind Kind
     {
         get => _mob.Kind;
-        set => ChangeIfDifferent("Modifier la famille", nameof(MobAsset.Kind), () => _mob.Kind, v => _mob.Kind = v, value);
+        set => ChangeIfDifferent(Tr.T("Modifier la famille"), nameof(MobAsset.Kind), () => _mob.Kind, v => _mob.Kind = v, value);
     }
 
     public bool IsAnimal => _mob.Kind == MobKind.Animal;
@@ -133,68 +133,68 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
     public double Health
     {
         get => _mob.Health;
-        set => ChangeNumber("Modifier la vie", nameof(MobAsset.Health), value, () => _mob.Health, v => _mob.Health = v,
+        set => ChangeNumber(Tr.T("Modifier la vie"), nameof(MobAsset.Health), value, () => _mob.Health, v => _mob.Health = v,
             v => Math.Clamp(v, 1, MobAsset.MaxHealth));
     }
 
     public double Armor
     {
         get => _mob.Armor;
-        set => ChangeNumber("Modifier l'armure", nameof(MobAsset.Armor), value, () => _mob.Armor, v => _mob.Armor = v,
+        set => ChangeNumber(Tr.T("Modifier l'armure"), nameof(MobAsset.Armor), value, () => _mob.Armor, v => _mob.Armor = v,
             v => Math.Clamp(v, 0, MobAsset.MaxArmor));
     }
 
     public double MovementSpeed
     {
         get => _mob.MovementSpeed;
-        set => ChangeNumber("Modifier la vitesse", nameof(MobAsset.MovementSpeed), value, () => _mob.MovementSpeed, v => _mob.MovementSpeed = v,
+        set => ChangeNumber(Tr.T("Modifier la vitesse"), nameof(MobAsset.MovementSpeed), value, () => _mob.MovementSpeed, v => _mob.MovementSpeed = v,
             v => Math.Clamp(v, 0, MobAsset.MaxMovementSpeed));
     }
 
     public double AttackDamage
     {
         get => _mob.AttackDamage;
-        set => ChangeNumber("Modifier les dégâts", nameof(MobAsset.AttackDamage), value, () => _mob.AttackDamage, v => _mob.AttackDamage = v,
+        set => ChangeNumber(Tr.T("Modifier les dégâts"), nameof(MobAsset.AttackDamage), value, () => _mob.AttackDamage, v => _mob.AttackDamage = v,
             v => Math.Clamp(v, 0, MobAsset.MaxAttackDamage));
     }
 
     public double FollowRange
     {
         get => _mob.FollowRange;
-        set => ChangeNumber("Modifier la portée de suivi", nameof(MobAsset.FollowRange), value, () => _mob.FollowRange, v => _mob.FollowRange = v,
+        set => ChangeNumber(Tr.T("Modifier la portée de suivi"), nameof(MobAsset.FollowRange), value, () => _mob.FollowRange, v => _mob.FollowRange = v,
             v => Math.Clamp(v, 1, MobAsset.MaxFollowRange));
     }
 
     public double KnockbackResistance
     {
         get => _mob.KnockbackResistance;
-        set => ChangeNumber("Modifier la résistance au recul", nameof(MobAsset.KnockbackResistance), value, () => _mob.KnockbackResistance,
+        set => ChangeNumber(Tr.T("Modifier la résistance au recul"), nameof(MobAsset.KnockbackResistance), value, () => _mob.KnockbackResistance,
             v => _mob.KnockbackResistance = v, v => Math.Clamp(v, 0, 1));
     }
 
     public double Experience
     {
         get => _mob.Experience;
-        set => ChangeNumber("Modifier l'expérience", nameof(MobAsset.Experience), value, () => _mob.Experience, v => _mob.Experience = v,
+        set => ChangeNumber(Tr.T("Modifier l'expérience"), nameof(MobAsset.Experience), value, () => _mob.Experience, v => _mob.Experience = v,
             v => Math.Clamp((int)Math.Round(v), 0, MobAsset.MaxExperience));
     }
 
     public bool FireImmune
     {
         get => _mob.FireImmune;
-        set => ChangeIfDifferent("Modifier la résistance au feu", nameof(MobAsset.FireImmune), () => _mob.FireImmune, v => _mob.FireImmune = v, value);
+        set => ChangeIfDifferent(Tr.T("Modifier la résistance au feu"), nameof(MobAsset.FireImmune), () => _mob.FireImmune, v => _mob.FireImmune = v, value);
     }
 
     public bool BurnsInDaylight
     {
         get => _mob.BurnsInDaylight;
-        set => ChangeIfDifferent("Modifier « brûle au soleil »", nameof(MobAsset.BurnsInDaylight), () => _mob.BurnsInDaylight, v => _mob.BurnsInDaylight = v, value);
+        set => ChangeIfDifferent(Tr.T("Modifier « brûle au soleil »"), nameof(MobAsset.BurnsInDaylight), () => _mob.BurnsInDaylight, v => _mob.BurnsInDaylight = v, value);
     }
 
     public bool Persistent
     {
         get => _mob.Persistent;
-        set => ChangeIfDifferent("Modifier « ne disparaît jamais »", nameof(MobAsset.Persistent), () => _mob.Persistent, v => _mob.Persistent = v, value);
+        set => ChangeIfDifferent(Tr.T("Modifier « ne disparaît jamais »"), nameof(MobAsset.Persistent), () => _mob.Persistent, v => _mob.Persistent = v, value);
     }
 
     // ----- IA -----
@@ -220,7 +220,7 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
     {
         var goals = _mob.Goals.ToList();
         goals[index] = update(goals[index]);
-        SetGoals("Modifier l'IA", goals, seal);
+        SetGoals(Tr.T("Modifier l'IA"), goals, seal);
     }
 
     public void MoveGoal(int index, int offset)
@@ -233,14 +233,14 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
 
         var goals = _mob.Goals.ToList();
         (goals[index], goals[target]) = (goals[target], goals[index]);
-        SetGoals("Changer la priorité d'un comportement", goals, seal: true);
+        SetGoals(Tr.T("Changer la priorité d'un comportement"), goals, seal: true);
     }
 
     public void RemoveGoal(int index)
     {
         var goals = _mob.Goals.ToList();
         goals.RemoveAt(index);
-        SetGoals("Retirer un comportement", goals, seal: true);
+        SetGoals(Tr.T("Retirer un comportement"), goals, seal: true);
     }
 
     // ----- Sons et butin -----
@@ -261,14 +261,14 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
     {
         var drops = _mob.Drops.ToList();
         drops[index] = update(drops[index]);
-        Change("Modifier le butin", nameof(MobAsset.Drops), () => _mob.Drops, v => _mob.Drops = v, drops);
+        Change(Tr.T("Modifier le butin"), nameof(MobAsset.Drops), () => _mob.Drops, v => _mob.Drops = v, drops);
     }
 
     public void RemoveDrop(int index)
     {
         var drops = _mob.Drops.ToList();
         drops.RemoveAt(index);
-        Change("Retirer un butin", nameof(MobAsset.Drops), () => _mob.Drops, v => _mob.Drops = v, drops);
+        Change(Tr.T("Retirer un butin"), nameof(MobAsset.Drops), () => _mob.Drops, v => _mob.Drops = v, drops);
         Context.History.Seal();
     }
 
@@ -277,7 +277,7 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
     public bool HasSpawnEgg
     {
         get => _mob.HasSpawnEgg;
-        set => ChangeIfDifferent("Modifier l'œuf d'apparition", nameof(MobAsset.HasSpawnEgg), () => _mob.HasSpawnEgg, v => _mob.HasSpawnEgg = v, value);
+        set => ChangeIfDifferent(Tr.T("Modifier l'œuf d'apparition"), nameof(MobAsset.HasSpawnEgg), () => _mob.HasSpawnEgg, v => _mob.HasSpawnEgg = v, value);
     }
 
     /// <summary>Couleur de fond de l'œuf, saisie en hexadécimal ("#3A6B1F").</summary>
@@ -303,7 +303,7 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
     public bool SpawnsNaturally
     {
         get => _mob.SpawnsNaturally;
-        set => ChangeIfDifferent("Modifier l'apparition naturelle", nameof(MobAsset.SpawnsNaturally), () => _mob.SpawnsNaturally, v => _mob.SpawnsNaturally = v, value);
+        set => ChangeIfDifferent(Tr.T("Modifier l'apparition naturelle"), nameof(MobAsset.SpawnsNaturally), () => _mob.SpawnsNaturally, v => _mob.SpawnsNaturally = v, value);
     }
 
     public IReadOnlyList<ToggleOptionViewModel> BiomeOptions { get; }
@@ -311,21 +311,21 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
     public double SpawnWeight
     {
         get => _mob.SpawnWeight;
-        set => ChangeNumber("Modifier la fréquence d'apparition", nameof(MobAsset.SpawnWeight), value, () => _mob.SpawnWeight, v => _mob.SpawnWeight = v,
+        set => ChangeNumber(Tr.T("Modifier la fréquence d'apparition"), nameof(MobAsset.SpawnWeight), value, () => _mob.SpawnWeight, v => _mob.SpawnWeight = v,
             v => Math.Clamp((int)Math.Round(v), 1, MobAsset.MaxSpawnWeight));
     }
 
     public double SpawnMinGroup
     {
         get => _mob.SpawnMinGroup;
-        set => ChangeNumber("Modifier la taille des groupes", nameof(MobAsset.SpawnMinGroup), value, () => _mob.SpawnMinGroup, v => _mob.SpawnMinGroup = v,
+        set => ChangeNumber(Tr.T("Modifier la taille des groupes"), nameof(MobAsset.SpawnMinGroup), value, () => _mob.SpawnMinGroup, v => _mob.SpawnMinGroup = v,
             v => Math.Clamp((int)Math.Round(v), 1, MobAsset.MaxGroupSize));
     }
 
     public double SpawnMaxGroup
     {
         get => _mob.SpawnMaxGroup;
-        set => ChangeNumber("Modifier la taille des groupes", nameof(MobAsset.SpawnMaxGroup), value, () => _mob.SpawnMaxGroup, v => _mob.SpawnMaxGroup = v,
+        set => ChangeNumber(Tr.T("Modifier la taille des groupes"), nameof(MobAsset.SpawnMaxGroup), value, () => _mob.SpawnMaxGroup, v => _mob.SpawnMaxGroup = v,
             v => Math.Clamp((int)Math.Round(v), 1, MobAsset.MaxGroupSize));
     }
 
@@ -424,7 +424,7 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
     }
 
     private ReferencePickerViewModel SoundPicker(string propertyName, Func<ContentReference?> getter, Action<ContentReference?> setter) =>
-        new(Context, ReferenceDomain.Sound, getter, v => Change("Modifier un son", propertyName, getter, setter, v));
+        new(Context, ReferenceDomain.Sound, getter, v => Change(Tr.T("Modifier un son"), propertyName, getter, setter, v));
 
     private void SetBiome(SpawnBiome biome, bool included)
     {
@@ -443,7 +443,7 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
             biomes.Remove(biome);
         }
 
-        Change("Modifier les biomes", nameof(MobAsset.SpawnBiomes), () => _mob.SpawnBiomes, v => _mob.SpawnBiomes = v, biomes);
+        Change(Tr.T("Modifier les biomes"), nameof(MobAsset.SpawnBiomes), () => _mob.SpawnBiomes, v => _mob.SpawnBiomes = v, biomes);
         Context.History.Seal();
     }
 
@@ -456,14 +456,14 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
 
         if (!TryParseColor(field, out int rgb))
         {
-            SetError(viewProperty, "Couleur hexadécimale attendue, par exemple #3A6B1F.");
+            SetError(viewProperty, Tr.T("Couleur hexadécimale attendue, par exemple #3A6B1F."));
             return;
         }
 
         ClearErrors(viewProperty);
         if (rgb != getter())
         {
-            Change("Modifier une couleur de l'œuf", modelProperty, getter, setter, rgb);
+            Change(Tr.T("Modifier une couleur de l'œuf"), modelProperty, getter, setter, rgb);
         }
     }
 
@@ -479,12 +479,12 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
 
     private void AddGoal()
     {
-        SetGoals("Ajouter un comportement", [.. _mob.Goals, MobGoal.Create(NewGoalKind)], seal: true);
+        SetGoals(Tr.T("Ajouter un comportement"), [.. _mob.Goals, MobGoal.Create(NewGoalKind)], seal: true);
     }
 
     private void AddDrop()
     {
-        Change("Ajouter un butin", nameof(MobAsset.Drops), () => _mob.Drops, v => _mob.Drops = v,
+        Change(Tr.T("Ajouter un butin"), nameof(MobAsset.Drops), () => _mob.Drops, v => _mob.Drops = v,
             [.. _mob.Drops, new MobDrop(DefaultReferences.Bone, 1, 1)]);
         Context.History.Seal();
     }

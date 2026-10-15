@@ -49,7 +49,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private ProjectViewModel? _project;
     private CancellationTokenSource? _buildCancellation;
-    private string _statusText = "Prêt";
+    private string _statusText = Tr.T("Prêt");
     private string? _lastBuildSummary;
 
     public MainViewModel(
@@ -197,14 +197,14 @@ public sealed partial class MainViewModel : ObservableObject
     public string VersionLabel => EditorInfo.VersionLabel;
 
     /// <summary>Deuxième partie de la barre de statut : projet ouvert ou "Aucun projet ouvert".</summary>
-    public string ProjectStatus => _project is null ? "Aucun projet ouvert" : _project.Name;
+    public string ProjectStatus => _project is null ? Tr.T("Aucun projet ouvert") : _project.Name;
 
     public bool IsBusy => _buildCancellation is not null;
 
     public bool CanEdit => HasProject && !IsBusy;
 
     public string WindowTitle => _project is null
-        ? $"{ApplicationName} — Sélection de projet"
+        ? Tr.F("{0} — Sélection de projet", ApplicationName)
         : $"{_project.Name}{(_project.IsDirty || HasDirtyDocuments ? " *" : string.Empty)} — {ApplicationName}";
 
     public string StatusText
@@ -213,11 +213,11 @@ public sealed partial class MainViewModel : ObservableObject
         private set => SetProperty(ref _statusText, value);
     }
 
-    public string LastBuildSummary => _lastBuildSummary ?? "Aucun build depuis l'ouverture du projet.";
+    public string LastBuildSummary => _lastBuildSummary ?? Tr.T("Aucun build depuis l'ouverture du projet.");
 
-    public string UndoLabel => _project?.History.UndoDescription is { } description ? $"Annuler : {description}" : "Annuler";
+    public string UndoLabel => _project?.History.UndoDescription is { } description ? Tr.F("_Annuler : {0}", description) : Tr.T("_Annuler");
 
-    public string RedoLabel => _project?.History.RedoDescription is { } description ? $"Rétablir : {description}" : "Rétablir";
+    public string RedoLabel => _project?.History.RedoDescription is { } description ? Tr.F("_Rétablir : {0}", description) : Tr.T("_Rétablir");
 
     public ICommand NewProjectCommand { get; }
 
@@ -278,7 +278,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (IsBusy)
         {
-            if (!_dialogs.Confirm(ApplicationName, "Un build est en cours. Voulez-vous l'arrêter et quitter ?"))
+            if (!_dialogs.Confirm(ApplicationName, Tr.T("Un build est en cours. Voulez-vous l'arrêter et quitter ?")))
             {
                 return false;
             }
@@ -302,13 +302,13 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        Execute("Création du projet", () =>
+        Execute(Tr.T("Création du projet"), () =>
         {
             ModProject model = _repository.Create(request.ParentDirectory, request.Settings);
             Project = new ProjectViewModel(model, _assetViewModels);
             Hub.Remember(model.Layout.RootDirectory);
-            _log.Info($"Projet créé : {model.Layout.RootDirectory} (MDK {model.Settings.MdkId})");
-            StatusText = "Projet créé";
+            _log.Info(Tr.F("Projet créé : {0} (MDK {1})", model.Layout.RootDirectory, model.Settings.MdkId));
+            StatusText = Tr.T("Projet créé");
         });
     }
 
@@ -328,18 +328,18 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void TryOpen(string path)
     {
-        Execute("Ouverture du projet", () =>
+        Execute(Tr.T("Ouverture du projet"), () =>
         {
             ModProject model = _repository.Open(path);
             Project = new ProjectViewModel(model, _assetViewModels);
             Hub.Remember(model.Layout.RootDirectory);
-            _log.Info($"Projet ouvert : {model.Layout.RootDirectory} ({model.Assets.Count} assets)");
+            _log.Info(Tr.F("Projet ouvert : {0} ({1} assets)", model.Layout.RootDirectory, model.Assets.Count));
             foreach (string note in model.LoadNotes)
             {
-                _log.Warning("Conversion du projet : " + note + " Enregistrez pour écrire le nouveau format.");
+                _log.Warning(Tr.T("Conversion du projet : ") + note + Tr.T(" Enregistrez pour écrire le nouveau format."));
             }
 
-            StatusText = model.LoadNotes.Count > 0 ? "Projet converti au format de la V0.3 (à enregistrer)" : "Projet ouvert";
+            StatusText = model.LoadNotes.Count > 0 ? Tr.T("Projet converti au format de la V0.3 (à enregistrer)") : Tr.T("Projet ouvert");
         });
     }
 
@@ -351,7 +351,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         ModProject model = _project.Model;
-        bool saved = Execute("Enregistrement", () =>
+        bool saved = Execute(Tr.T("Enregistrement"), () =>
         {
             _repository.Save(model);
             if (!isAutoSave)
@@ -360,8 +360,8 @@ public sealed partial class MainViewModel : ObservableObject
             }
 
             StatusText = isAutoSave
-                ? $"Enregistrement automatique à {DateTime.Now:HH:mm:ss}"
-                : $"Enregistré à {DateTime.Now:HH:mm:ss}";
+                ? Tr.F("Enregistrement automatique à {0:HH:mm:ss}", DateTime.Now)
+                : Tr.F("Enregistré à {0:HH:mm:ss}", DateTime.Now);
         });
 
         if (saved)
@@ -371,7 +371,7 @@ public sealed partial class MainViewModel : ObservableObject
             Explorer.Refresh();
             if (isAutoSave)
             {
-                _log.Info("Projet enregistré automatiquement.");
+                _log.Info(Tr.T("Projet enregistré automatiquement."));
             }
         }
 
@@ -385,12 +385,12 @@ public sealed partial class MainViewModel : ObservableObject
             ProjectBackup? backup = _backups.CreateIfDue(model, BackupInterval, _preferences.Current.BackupsToKeep);
             if (backup is not null)
             {
-                _log.Debug("Sauvegarde de secours créée : " + backup.File);
+                _log.Debug(Tr.T("Sauvegarde de secours créée : ") + backup.File);
             }
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
         {
-            _log.Warning("La sauvegarde de secours a échoué : " + exception.Message);
+            _log.Warning(Tr.T("La sauvegarde de secours a échoué : ") + exception.Message);
         }
     }
 
@@ -421,7 +421,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         Project = null;
-        StatusText = "Prêt";
+        StatusText = Tr.T("Prêt");
         Hub.Refresh();
         return true;
     }
@@ -447,22 +447,22 @@ public sealed partial class MainViewModel : ObservableObject
         IReadOnlyList<AssetLinkViewModel> usedBy = selected.UsedBy;
         if (usedBy.Count > 0
             && !_dialogs.Confirm(
-                "Supprimer un asset utilisé",
-                $"'{selected.Header}' est utilisé par :\n{string.Join("\n", usedBy.Select(l => "  - " + l.Label))}\n\n" +
-                "Le supprimer quand même ? Ces liens seront signalés dans Diagnostics (Ctrl+Z pour annuler)."))
+                Tr.T("Supprimer un asset utilisé"),
+                Tr.F("'{0}' est utilisé par :\n{1}\n\n", selected.Header, string.Join("\n", usedBy.Select(l => "  - " + l.Label))) +
+                Tr.T("Le supprimer quand même ? Ces liens seront signalés dans Diagnostics (Ctrl+Z pour annuler).")))
         {
             return;
         }
 
         _project!.RemoveAsset(selected);
-        StatusText = $"'{selected.Header}' supprimé (Ctrl+Z pour annuler)";
+        StatusText = Tr.F("'{0}' supprimé (Ctrl+Z pour annuler)", selected.Header);
     }
 
     private void ImportTextures() =>
-        ImportFiles(_dialogs.AskTextureFiles(), (project, file, reserved) => _assetViewModels.Importer.ImportTexture(project, file, reserved), "Texture");
+        ImportFiles(_dialogs.AskTextureFiles(), (project, file, reserved) => _assetViewModels.Importer.ImportTexture(project, file, reserved), Tr.T("Texture"));
 
     private void ImportSounds() =>
-        ImportFiles(_dialogs.AskSoundFiles(), (project, file, reserved) => _assetViewModels.Importer.ImportSound(project, file, reserved), "Son");
+        ImportFiles(_dialogs.AskSoundFiles(), (project, file, reserved) => _assetViewModels.Importer.ImportSound(project, file, reserved), Tr.T("Son"));
 
     private void ImportFiles(IReadOnlyList<string> files, Func<ModProject, string, ISet<ResourceId>, Asset> import, string label)
     {
@@ -475,12 +475,12 @@ public sealed partial class MainViewModel : ObservableObject
         int imported = files.Count - errors.Count;
         if (imported > 0)
         {
-            StatusText = $"{imported} fichier(s) importé(s)";
+            StatusText = Tr.F("{0} fichier(s) importé(s)", imported);
         }
 
         if (errors.Count > 0)
         {
-            _dialogs.ShowError("Import", string.Join("\n", errors));
+            _dialogs.ShowError(Tr.T("Import"), string.Join("\n", errors));
         }
     }
 
@@ -500,7 +500,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         _project.History.Execute(new ChangeProjectSettingsCommand(current, draft));
         _project.RefreshSettings();
-        _log.Info($"Paramètres du projet modifiés (MDK {current.MdkId}).");
+        _log.Info(Tr.F("Paramètres du projet modifiés (MDK {0}).", current.MdkId));
     }
 
     /// <summary>Valide le projet et met à jour le panneau Diagnostics.</summary>
@@ -516,8 +516,8 @@ public sealed partial class MainViewModel : ObservableObject
         if (_mdks.Library.Find(settings.MdkId) is null)
         {
             diagnostics.Warning(
-                $"Le MDK '{settings.MdkId ?? "aucun"}' n'est pas installé. Choisissez-en un dans Projet > Paramètres du projet.",
-                "Projet");
+                Tr.F("Le MDK '{0}' n'est pas installé. Choisissez-en un dans Projet > Paramètres du projet.", settings.MdkId ?? Tr.T("aucun")),
+                Tr.T("Projet"));
         }
 
         _project.Model.Assets.Validate(diagnostics);
@@ -535,7 +535,7 @@ public sealed partial class MainViewModel : ObservableObject
     private void ValidateAndShow()
     {
         Validate();
-        StatusText = "Validation : " + Diagnostics.Summary;
+        StatusText = Tr.T("Validation : ") + Diagnostics.Summary;
         PanelRequested?.Invoke(this, DiagnosticsPanelId);
     }
 
@@ -550,7 +550,7 @@ public sealed partial class MainViewModel : ObservableObject
         SaveDirtyDocuments();
         ModProject project = _project.Model;
         SetBusy(new CancellationTokenSource());
-        StatusText = runClient ? "Lancement de Minecraft..." : "Build en cours...";
+        StatusText = runClient ? Tr.T("Lancement de Minecraft...") : Tr.T("Build en cours...");
         _log.Info(new string('-', 60));
 
         try
@@ -561,11 +561,12 @@ public sealed partial class MainViewModel : ObservableObject
 
             Diagnostics.SetBuildResults(result.Diagnostics.Where(d => d.Severity != DiagnosticSeverity.Info));
             _buildDiagnostics = [.. result.Diagnostics];
-            StatusText = result.Success ? (runClient ? "Minecraft fermé" : "Build réussi") : "Échec du build";
+            StatusText = result.Success ? (runClient ? Tr.T("Minecraft fermé") : Tr.T("Build réussi")) : Tr.T("Échec du build");
             _lastBuildSummary = result.Success
-                ? $"{(runClient ? "Lancement" : "Build")} réussi le {DateTime.Now:dd/MM à HH:mm} en {result.Duration:mm\\:ss}"
+                ? (runClient ? Tr.F("Lancement réussi le {0:g} en {1:mm\\:ss}", DateTime.Now, result.Duration)
+                             : Tr.F("Build réussi le {0:g} en {1:mm\\:ss}", DateTime.Now, result.Duration))
                   + (result.JarPath is null ? string.Empty : $" : {Path.GetFileName(result.JarPath)}")
-                : $"Échec du {(runClient ? "lancement" : "build")} le {DateTime.Now:dd/MM à HH:mm}";
+                : runClient ? Tr.F("Échec du lancement le {0:g}", DateTime.Now) : Tr.F("Échec du build le {0:g}", DateTime.Now);
             OnPropertyChanged(nameof(LastBuildSummary));
 
             if (!result.Success)
@@ -575,13 +576,13 @@ public sealed partial class MainViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            _log.Warning("Opération annulée.");
-            StatusText = "Build annulé";
+            _log.Warning(Tr.T("Opération annulée."));
+            StatusText = Tr.T("Build annulé");
         }
         catch (Exception exception)
         {
-            _log.Error("Erreur inattendue : " + exception.Message);
-            StatusText = "Échec du build";
+            _log.Error(Tr.T("Erreur inattendue : ") + exception.Message);
+            StatusText = Tr.T("Échec du build");
         }
         finally
         {
@@ -639,7 +640,7 @@ public sealed partial class MainViewModel : ObservableObject
             }
             else
             {
-                StatusText = "Cet élément n'existe plus.";
+                StatusText = Tr.T("Cet élément n'existe plus.");
             }
 
             return;
@@ -651,7 +652,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    private void OpenFolder(string directory) => Execute("Ouverture du dossier", () => _shell.OpenFolder(directory));
+    private void OpenFolder(string directory) => Execute(Tr.T("Ouverture du dossier"), () => _shell.OpenFolder(directory));
 
     /// <summary>Exécute une action et affiche l'erreur à l'utilisateur si elle échoue.</summary>
     private bool Execute(string operation, Action action)
@@ -664,7 +665,7 @@ public sealed partial class MainViewModel : ObservableObject
         catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException
                                               or ArgumentException or InvalidOperationException or NotSupportedException)
         {
-            _log.Error($"{operation} : {exception.Message}");
+            _log.Error(Tr.F("{0} : {1}", operation, exception.Message));
             _dialogs.ShowError(operation, exception.Message);
             return false;
         }

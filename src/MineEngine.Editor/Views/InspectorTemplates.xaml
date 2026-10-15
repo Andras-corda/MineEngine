@@ -1,5 +1,7 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:views="clr-namespace:MineEngine.Editor.Views"
+                    xmlns:l="clr-namespace:MineEngine.Editor.Localization"
                     xmlns:ui="http://schemas.modernwpf.com/2019"
                     xmlns:assets="clr-namespace:MineEngine.Editor.ViewModels.Assets">
 
@@ -67,30 +69,30 @@
 
     <!-- Propriétés communes à tous les assets. -->
     <DataTemplate x:Key="CommonAssetFields" DataType="{x:Type assets:AssetViewModel}">
-        <GroupBox Header="Général" Padding="8,4" Margin="0,0,0,8">
+        <GroupBox Header="{l:Tr 'Général'}" Padding="8,4" Margin="0,0,0,8">
             <StackPanel>
                 <WrapPanel Style="{StaticResource Row}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="Type" />
+                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Type'}" />
                     <TextBlock Text="{Binding TypeLabel}" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </WrapPanel>
                 <StackPanel Style="{StaticResource FieldRow}">
-                    <TextBlock Style="{StaticResource StackedLabel}" Text="Nom en jeu" />
+                    <TextBlock Style="{StaticResource StackedLabel}" Text="{l:Tr 'Nom en jeu'}" />
                     <TextBox Style="{StaticResource FieldBox}" Margin="0" Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
                 <StackPanel Style="{StaticResource FieldRow}">
-                    <TextBlock Style="{StaticResource StackedLabel}" Text="Identifiant" />
+                    <TextBlock Style="{StaticResource StackedLabel}" Text="{l:Tr 'Identifiant'}" />
                     <TextBox Style="{StaticResource FieldBox}" Margin="0" FontFamily="Consolas"
                              Text="{Binding ResourceIdText, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
                 <TextBlock Style="{StaticResource RowHint}" Text="{Binding ResourceIdRule}" />
                 <WrapPanel Style="{StaticResource Row}" Visibility="{Binding HasGameId, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="Identifiant en jeu" />
+                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Identifiant en jeu'}" />
                     <TextBlock FontFamily="Consolas" VerticalAlignment="Center" Text="{Binding FullResourceId}" />
                 </WrapPanel>
 
                 <!-- Liens par identifiant interne : renommer cet asset met à jour ces assets. -->
                 <StackPanel Margin="0,6,0,2" Visibility="{Binding IsUsed, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock Style="{StaticResource StackedLabel}" Text="Utilisé par" />
+                    <TextBlock Style="{StaticResource StackedLabel}" Text="{l:Tr 'Utilisé par'}" />
                     <ItemsControl ItemsSource="{Binding UsedBy}" Focusable="False">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type assets:AssetLinkViewModel}">
@@ -123,11 +125,11 @@
                 <TextBlock Text="{Binding PathLabel}" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap"
                            Foreground="{DynamicResource HintBrush}" Margin="0,0,0,4" />
                 <WrapPanel>
-                    <Button Style="{StaticResource ToolButton}" Content="Importer..." Command="{Binding ImportCommand}"
-                            ToolTip="Importer une image PNG : elle devient un asset Texture" />
-                    <Button Style="{StaticResource ToolButton}" Content="Retirer" Command="{Binding ClearCommand}" />
-                    <Button Style="{StaticResource ToolButton}" Content="Ouvrir" Command="{Binding OpenCommand}"
-                            ToolTip="Afficher l'asset Texture" />
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Importer...'}" Command="{Binding ImportCommand}"
+                            ToolTip="{l:Tr 'Importer une image PNG : elle devient un asset Texture'}" />
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Retirer'}" Command="{Binding ClearCommand}" />
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Ouvrir'}" Command="{Binding OpenCommand}"
+                            ToolTip="{l:Tr 'Afficher l\'asset Texture'}" />
                 </WrapPanel>
             </StackPanel>
         </DockPanel>
@@ -163,27 +165,27 @@
     <DataTemplate x:Key="InventoryFields" DataType="{x:Type assets:InventoryAssetViewModel}">
         <StackPanel>
             <WrapPanel Style="{StaticResource Row}">
-                <TextBlock Style="{StaticResource RowLabel}" Text="Rareté" />
+                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Rareté'}" />
                 <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding RarityChoices}" SelectedValue="{Binding Rarity}" />
             </WrapPanel>
             <WrapPanel Style="{StaticResource Row}">
-                <TextBlock Style="{StaticResource RowLabel}" Text="Taille de pile" />
+                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Taille de pile'}" />
                 <ui:NumberBox Style="{StaticResource RowNumber}" IsEnabled="{Binding CanEditStackSize}"
                               Minimum="{Binding MinStackSize}" Maximum="{Binding MaxStackSizeLimit}" SmallChange="1" LargeChange="16"
                               Value="{Binding MaxStackSize, UpdateSourceTrigger=PropertyChanged}" />
             </WrapPanel>
             <TextBlock Style="{StaticResource RowHint}" Text="{Binding StackSizeHint}" />
-            <CheckBox Style="{StaticResource WrapCheck}" Content="Résiste au feu et à la lave (comme la netherite)" Margin="0,4"
+            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Résiste au feu et à la lave (comme la netherite)'}" Margin="0,4"
                       IsChecked="{Binding FireResistant}" />
 
-            <TextBlock Style="{StaticResource PanelTitle}" Text="Info-bulle" Margin="0,12,0,4" />
+            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Info-bulle'}" Margin="0,12,0,4" />
             <TextBox Style="{StaticResource FieldBox}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="56"
                      VerticalScrollBarVisibility="Auto"
                      Text="{Binding TooltipText, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Style="{StaticResource FieldHint}" Text="Texte affiché sous le nom, une ligne par ligne. Codes couleur Minecraft acceptés (par exemple §6 pour l'or)." />
+            <TextBlock Style="{StaticResource FieldHint}" Text="{l:Tr 'Texte affiché sous le nom, une ligne par ligne. Codes couleur Minecraft acceptés (par exemple §6 pour l\'or).'}" />
 
-            <TextBlock Style="{StaticResource PanelTitle}" Text="Onglets créatifs" Margin="0,12,0,4" />
-            <CheckBox Style="{StaticResource WrapCheck}" Content="Onglet du mod" Margin="0,2,0,6" IsChecked="{Binding InModCreativeTab}" />
+            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Onglets créatifs'}" Margin="0,12,0,4" />
+            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Onglet du mod'}" Margin="0,2,0,6" IsChecked="{Binding InModCreativeTab}" />
             <ItemsControl ItemsSource="{Binding CreativeTabOptions}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -204,107 +206,107 @@
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CommonAssetFields}" Focusable="False" />
             <TabControl Style="{StaticResource UnderlineTabControl}">
-                <TabItem Header="Visuel">
+                <TabItem Header="{l:Tr 'Visuel'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <ContentControl Content="{Binding MainTexture}" Focusable="False" />
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,8"
-                                   Text="Image PNG, idéalement 16 x 16 pixels. Une image importée devient un asset Texture réutilisable." />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="Effet brillant (comme un livre enchanté)" Margin="0,4" IsChecked="{Binding HasGlint}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="Tenu comme un outil (en diagonale dans la main)" Margin="0,4" IsChecked="{Binding Handheld}" />
+                                   Text="{l:Tr 'Image PNG, idéalement 16 x 16 pixels. Une image importée devient un asset Texture réutilisable.'}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Effet brillant (comme un livre enchanté)'}" Margin="0,4" IsChecked="{Binding HasGlint}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Tenu comme un outil (en diagonale dans la main)'}" Margin="0,4" IsChecked="{Binding Handheld}" />
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="Type">
+                <TabItem Header="{l:Tr 'Type'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Type d'item" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Type d\'item'}" />
                             <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding KindChoices}" SelectedValue="{Binding Kind}" />
                         </WrapPanel>
                         <TextBlock Style="{StaticResource RowHint}"
-                                   Text="Un outil, une arme ou une armure reprend le comportement de Minecraft (minage, dégâts, défense) ; sa durabilité vient de son matériau." />
+                                   Text="{l:Tr 'Un outil, une arme ou une armure reprend le comportement de Minecraft (minage, dégâts, défense) ; sa durabilité vient de son matériau.'}" />
 
                         <StackPanel Visibility="{Binding IsTool, Converter={StaticResource BoolToVisibility}}">
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Matériau" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Matériau'}" />
                                 <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding TierChoices}" SelectedValue="{Binding Tier}" />
                             </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}" Text="Fixe la durabilité, la vitesse de minage, l'enchantabilité et le matériau de réparation." />
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Fixe la durabilité, la vitesse de minage, l\'enchantabilité et le matériau de réparation.'}" />
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Dégâts ajoutés" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Dégâts ajoutés'}" />
                                 <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="-100" Maximum="{Binding MaxAttack}" SmallChange="0.5"
                                               Value="{Binding AttackDamage, UpdateSourceTrigger=PropertyChanged}" />
                             </WrapPanel>
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Vitesse d'attaque" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Vitesse d\'attaque'}" />
                                 <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="-4" Maximum="{Binding MaxAttack}" SmallChange="0.1"
                                               Value="{Binding AttackSpeed, UpdateSourceTrigger=PropertyChanged}" />
                             </WrapPanel>
                             <TextBlock Style="{StaticResource RowHint}"
-                                       Text="Épée en fer : 3 et -2,4 ; hache : 6 et -3,1. Les dégâts s'ajoutent à ceux du matériau ; une vitesse plus basse frappe moins souvent." />
+                                       Text="{l:Tr 'Épée en fer : 3 et -2,4 ; hache : 6 et -3,1. Les dégâts s\'ajoutent à ceux du matériau ; une vitesse plus basse frappe moins souvent.'}" />
                         </StackPanel>
 
                         <StackPanel Visibility="{Binding IsArmor, Converter={StaticResource BoolToVisibility}}">
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Matériau" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Matériau'}" />
                                 <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ArmorMaterialChoices}" SelectedValue="{Binding ArmorMaterial}" />
                             </WrapPanel>
                             <TextBlock Style="{StaticResource RowHint}"
-                                       Text="Fixe la défense, la durabilité et l'apparence de l'armure portée (celle de Minecraft pour ce matériau)." />
+                                       Text="{l:Tr 'Fixe la défense, la durabilité et l\'apparence de l\'armure portée (celle de Minecraft pour ce matériau).'}" />
                         </StackPanel>
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="Propriétés">
+                <TabItem Header="{l:Tr 'Propriétés'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding CanEditDurability}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Durabilité" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Durabilité'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxDurability}"
                                           SmallChange="1" LargeChange="50"
                                           Value="{Binding Durability, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
                         <TextBlock Style="{StaticResource RowHint}"
-                                   Text="Nombre d'utilisations avant de casser ; 0 = aucune. Fer : 250, diamant : 1561. Un item à durabilité ne s'empile pas." />
+                                   Text="{l:Tr 'Nombre d\'utilisations avant de casser ; 0 = aucune. Fer : 250, diamant : 1561. Un item à durabilité ne s\'empile pas.'}" />
                         <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryFields}" Focusable="False" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="Non réparable à l'enclume avec un matériau" Margin="0,8,0,4" IsChecked="{Binding NoRepair}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Non réparable à l\'enclume avec un matériau'}" Margin="0,8,0,4" IsChecked="{Binding NoRepair}" />
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="Nourriture">
+                <TabItem Header="{l:Tr 'Nourriture'}">
                     <StackPanel Style="{StaticResource TabContent}">
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="Cet item est comestible" FontWeight="SemiBold" Margin="0,0,0,8" IsChecked="{Binding IsFood}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Cet item est comestible'}" FontWeight="SemiBold" Margin="0,0,0,8" IsChecked="{Binding IsFood}" />
                         <StackPanel IsEnabled="{Binding IsFood}">
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Valeur nutritive" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Valeur nutritive'}" />
                                 <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxNutrition}" SmallChange="1"
                                               Value="{Binding Nutrition, UpdateSourceTrigger=PropertyChanged}" />
                             </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}" Text="En demi-cuisses : 4 = deux cuisses (pomme), 8 = steak." />
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'En demi-cuisses : 4 = deux cuisses (pomme), 8 = steak.'}" />
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Saturation" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Saturation'}" />
                                 <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxSaturation}" SmallChange="0.1"
                                               Value="{Binding Saturation, UpdateSourceTrigger=PropertyChanged}" />
                             </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}" Text="Retarde la faim. Pomme : 0,3 ; steak : 0,8." />
-                            <CheckBox Style="{StaticResource WrapCheck}" Content="Toujours mangeable, même sans faim" Margin="0,4" IsChecked="{Binding AlwaysEdible}" />
-                            <CheckBox Style="{StaticResource WrapCheck}" Content="Viande (les loups peuvent la manger)" Margin="0,4" IsChecked="{Binding IsMeat}" />
-                            <CheckBox Style="{StaticResource WrapCheck}" Content="Se mange deux fois plus vite (comme les baies)" Margin="0,4" IsChecked="{Binding FastFood}" />
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Retarde la faim. Pomme : 0,3 ; steak : 0,8.'}" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Toujours mangeable, même sans faim'}" Margin="0,4" IsChecked="{Binding AlwaysEdible}" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Viande (les loups peuvent la manger)'}" Margin="0,4" IsChecked="{Binding IsMeat}" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Se mange deux fois plus vite (comme les baies)'}" Margin="0,4" IsChecked="{Binding FastFood}" />
 
-                            <TextBlock Style="{StaticResource PanelTitle}" Text="Effets en mangeant" Margin="0,12,0,4" />
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Effets en mangeant'}" Margin="0,12,0,4" />
                             <ItemsControl ItemsSource="{Binding FoodEffects}" Focusable="False">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type assets:FoodEffectViewModel}">
                                         <Border Style="{StaticResource Card}">
                                             <DockPanel>
-                                                <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE74D;" ToolTip="Retirer"
+                                                <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" ToolTip="{l:Tr 'Retirer'}"
                                                         VerticalAlignment="Top" Command="{Binding RemoveCommand}" />
                                                 <StackPanel>
                                                     <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding EffectChoices}" SelectedValue="{Binding Kind}" />
                                                     <WrapPanel>
-                                                        <ui:NumberBox Header="Durée (s)" Width="120" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
+                                                        <ui:NumberBox Header="{l:Tr 'Durée (s)'}" Width="120" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
                                                                       Minimum="1" Maximum="{Binding MaxSeconds}" Value="{Binding Seconds, UpdateSourceTrigger=PropertyChanged}" />
-                                                        <ui:NumberBox Header="Niveau" Width="90" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
+                                                        <ui:NumberBox Header="{l:Tr 'Niveau'}" Width="90" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
                                                                       Minimum="1" Maximum="{Binding MaxLevel}" Value="{Binding Level, UpdateSourceTrigger=PropertyChanged}" />
-                                                        <ui:NumberBox Header="Chance (%)" Width="110" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
+                                                        <ui:NumberBox Header="{l:Tr 'Chance (%)'}" Width="110" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
                                                                       Minimum="0" Maximum="100" Value="{Binding Percent, UpdateSourceTrigger=PropertyChanged}" />
                                                     </WrapPanel>
                                                 </StackPanel>
@@ -313,58 +315,58 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="Ajouter un effet" Command="{Binding AddFoodEffectCommand}" />
+                            <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Ajouter un effet'}" Command="{Binding AddFoodEffectCommand}" />
                             <TextBlock Style="{StaticResource RowHint}" Margin="0,6,0,0"
-                                       Text="Pomme dorée : Régénération II pendant 5 s et Absorption I pendant 2 min, chance 100 %." />
+                                       Text="{l:Tr 'Pomme dorée : Régénération II pendant 5 s et Absorption I pendant 2 min, chance 100 %.'}" />
                         </StackPanel>
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="Données">
+                <TabItem Header="{l:Tr 'Données'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Item rendu après fabrication" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Item rendu après fabrication'}" />
                             <ContentControl Style="{StaticResource RowPicker}" Content="{Binding CraftRemainder}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="Laissé dans la grille d'artisanat (comme le seau vide après un gâteau). Vide : rien." />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Laissé dans la grille d\'artisanat (comme le seau vide après un gâteau). Vide : rien.'}" />
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Combustible (secondes)" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Combustible (secondes)'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxBurnSeconds}" SmallChange="5"
                                           Value="{Binding BurnSeconds, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="Durée de combustion dans un four ; 0 = pas un combustible. Charbon : 80 s, bâton : 5 s." />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Durée de combustion dans un four ; 0 = pas un combustible. Charbon : 80 s, bâton : 5 s.'}" />
 
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="Tags" Margin="0,12,0,4" />
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Tags'}" Margin="0,12,0,4" />
                         <TextBox Style="{StaticResource FieldBox}" AcceptsReturn="True" FontFamily="Consolas" MinHeight="56"
                                  VerticalScrollBarVisibility="Auto"
                                  Text="{Binding TagsText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
                         <TextBlock Style="{StaticResource FieldHint}"
-                                   Text="Un tag par ligne. Ils servent aux recettes et à la compatibilité avec d'autres mods : c:gems/ruby, minecraft:piglin_loved, minecraft:beacon_payment_items..." />
+                                   Text="{l:Tr 'Un tag par ligne. Ils servent aux recettes et à la compatibilité avec d\'autres mods : c:gems/ruby, minecraft:piglin_loved, minecraft:beacon_payment_items...'}" />
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="Événements">
+                <TabItem Header="{l:Tr 'Événements'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,8"
-                                   Text="Reliez un événement de l'item à un graphe nodal : ce qui s'y passe (message, son, item donné...) s'exécute quand l'événement survient." />
+                                   Text="{l:Tr 'Reliez un événement de l\'item à un graphe nodal : ce qui s\'y passe (message, son, item donné...) s\'exécute quand l\'événement survient.'}" />
                         <ItemsControl ItemsSource="{Binding Events}" Focusable="False">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type assets:ItemEventViewModel}">
                                     <Border x:Name="EventCard" Style="{StaticResource Card}">
                                         <DockPanel>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
-                                                <Button Style="{StaticResource ToolButton}" Content="Ouvrir" Command="{Binding OpenCommand}"
+                                                <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Ouvrir'}" Command="{Binding OpenCommand}"
                                                         Visibility="{Binding IsLinked, Converter={StaticResource BoolToVisibility}}" />
-                                                <Button Style="{StaticResource ToolButton}" Command="{Binding AddCommand}" ToolTip="Ajouter cet événement au graphe d'événements de l'item">
+                                                <Button Style="{StaticResource ToolButton}" Command="{Binding AddCommand}" ToolTip="{l:Tr 'Ajouter cet événement au graphe d\'événements de l\'item'}">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE710;" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                                        <TextBlock Text="Relier" />
+                                                        <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.NewItem}" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                        <TextBlock Text="{l:Tr 'Relier'}" />
                                                     </StackPanel>
                                                 </Button>
                                             </StackPanel>
                                             <StackPanel>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock x:Name="Bolt" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE945;" Margin="0,2,8,0"
+                                                    <TextBlock x:Name="Bolt" FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Event}" Margin="0,2,8,0"
                                                                Foreground="{DynamicResource HintBrush}" />
                                                     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
                                                 </StackPanel>
@@ -395,99 +397,99 @@
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CommonAssetFields}" Focusable="False" />
             <TabControl Style="{StaticResource UnderlineTabControl}">
-                <TabItem Header="Visuel">
+                <TabItem Header="{l:Tr 'Visuel'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Forme" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Forme'}" />
                             <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ModelChoices}" SelectedValue="{Binding BlockModel}" />
                         </WrapPanel>
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Transparence" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Transparence'}" />
                             <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding RenderTypeChoices}" SelectedValue="{Binding RenderType}" />
                         </WrapPanel>
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Luminosité" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Luminosité'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxLightLevel}" SmallChange="1"
                                           Value="{Binding LightLevel, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="Lumière émise de 0 à 15. Torche : 14, glowstone : 15." />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Lumière émise de 0 à 15. Torche : 14, glowstone : 15.'}" />
 
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="Textures" Margin="0,12,0,4" />
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Textures'}" Margin="0,12,0,4" />
                         <ContentControl Content="{Binding MainTexture}" Focusable="False" />
                         <ItemsControl ItemsSource="{Binding ExtraTextures}" Focusable="False" />
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
-                                   Text="Les faces sans texture reprennent la texture par défaut." />
+                                   Text="{l:Tr 'Les faces sans texture reprennent la texture par défaut.'}" />
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="Propriétés">
+                <TabItem Header="{l:Tr 'Propriétés'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Dureté" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Dureté'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxStrength}" SmallChange="0.5" LargeChange="5"
                                           IsEnabled="{Binding Unbreakable, Converter={StaticResource InverseBool}}"
                                           Value="{Binding Hardness, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="Temps pour casser le bloc. Terre : 0,5 ; pierre : 1,5 ; minerai : 3." />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Temps pour casser le bloc. Terre : 0,5 ; pierre : 1,5 ; minerai : 3.'}" />
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Résistance" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Résistance'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxStrength}" SmallChange="1" LargeChange="10"
                                           IsEnabled="{Binding Unbreakable, Converter={StaticResource InverseBool}}"
                                           Value="{Binding Resistance, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="Résistance aux explosions. Pierre : 6 ; obsidienne : 1200." />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="Incassable (comme la bedrock)" Margin="0,4,0,8" IsChecked="{Binding Unbreakable}" />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Résistance aux explosions. Pierre : 6 ; obsidienne : 1200.'}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Incassable (comme la bedrock)'}" Margin="0,4,0,8" IsChecked="{Binding Unbreakable}" />
 
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Sons" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Sons'}" />
                             <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding SoundChoices}" SelectedValue="{Binding Sound}" />
                         </WrapPanel>
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Glissance" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Glissance'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0.1" Maximum="1.2" SmallChange="0.05"
                                           Value="{Binding Friction, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="0,6 normal ; slime : 0,8 ; glace : 0,98." />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr '0,6 normal ; slime : 0,8 ; glace : 0,98.'}" />
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Vitesse de marche" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Vitesse de marche'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0.1" Maximum="5" SmallChange="0.1"
                                           Value="{Binding SpeedFactor, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Hauteur de saut" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Hauteur de saut'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0.1" Maximum="5" SmallChange="0.1"
                                           Value="{Binding JumpFactor, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="Multiplicateurs : 1 normal ; sable des âmes : 0,4 ; bloc de miel : 0,5." />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Multiplicateurs : 1 normal ; sable des âmes : 0,4 ; bloc de miel : 0,5.'}" />
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="Récolte">
+                <TabItem Header="{l:Tr 'Récolte'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Outil efficace" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Outil efficace'}" />
                             <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding HarvestToolChoices}" SelectedValue="{Binding HarvestTool}" />
                         </WrapPanel>
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Niveau d'outil" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Niveau d\'outil'}" />
                             <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ToolTierChoices}" SelectedValue="{Binding ToolTier}" />
                         </WrapPanel>
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="Ne laisse rien sans le bon outil (comme la pierre sans pioche)" Margin="0,4,0,12"
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Ne laisse rien sans le bon outil (comme la pierre sans pioche)'}" Margin="0,4,0,12"
                                   IsChecked="{Binding RequiresCorrectTool}" />
 
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Laisse tomber" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Laisse tomber'}" />
                             <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding DropKindChoices}" SelectedValue="{Binding DropKind}" />
                         </WrapPanel>
                         <StackPanel Visibility="{Binding IsDropOtherItem, Converter={StaticResource BoolToVisibility}}">
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Item laissé" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Item laissé'}" />
                                 <ContentControl Style="{StaticResource RowPicker}" Content="{Binding DropItemPicker}" />
                             </WrapPanel>
                             <TextBlock Style="{StaticResource RowHint}"
-                                       Text="Item du projet (« ruby ») ou de Minecraft (« diamond », « minecraft:coal »)." />
+                                       Text="{l:Tr 'Item du projet (« ruby ») ou de Minecraft (« diamond », « minecraft:coal »).'}" />
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Quantité (min - max)" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Quantité (min - max)'}" />
                                 <ui:NumberBox Style="{StaticResource RowNumber}" Width="130" Minimum="1" Maximum="{Binding MaxDropCount}" SmallChange="1"
                                               Value="{Binding DropMin, UpdateSourceTrigger=PropertyChanged}" />
                                 <ui:NumberBox Style="{StaticResource RowNumber}" Width="130" Minimum="1" Maximum="{Binding MaxDropCount}" SmallChange="1"
@@ -496,19 +498,19 @@
                         </StackPanel>
 
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Expérience (min - max)" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Expérience (min - max)'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Width="130" Minimum="0" Maximum="{Binding MaxExperience}" SmallChange="1"
                                           Value="{Binding ExperienceMin, UpdateSourceTrigger=PropertyChanged}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Width="130" Minimum="0" Maximum="{Binding MaxExperience}" SmallChange="1"
                                           Value="{Binding ExperienceMax, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="Points d'expérience gagnés en cassant le bloc (minerai de diamant : 3 à 7)." />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Points d\'expérience gagnés en cassant le bloc (minerai de diamant : 3 à 7).'}" />
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="Item">
+                <TabItem Header="{l:Tr 'Item'}">
                     <StackPanel Style="{StaticResource TabContent}">
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="Le bloc existe aussi comme item dans l'inventaire" FontWeight="SemiBold" Margin="0,0,0,8"
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Le bloc existe aussi comme item dans l\'inventaire'}" FontWeight="SemiBold" Margin="0,0,0,8"
                                   IsChecked="{Binding HasItemForm}" />
                         <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryFields}" Focusable="False"
                                         IsEnabled="{Binding HasItemForm}" />
@@ -528,19 +530,19 @@
                        RenderOptions.BitmapScalingMode="NearestNeighbor" Stretch="Uniform" Margin="6" />
             </Border>
             <WrapPanel Style="{StaticResource Row}">
-                <TextBlock Style="{StaticResource RowLabel}" Text="Taille" />
+                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Taille'}" />
                 <TextBlock VerticalAlignment="Center" Text="{Binding SizeLabel}" />
             </WrapPanel>
             <WrapPanel Style="{StaticResource Row}">
-                <TextBlock Style="{StaticResource RowLabel}" Text="Fichier" />
+                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Fichier'}" />
                 <TextBlock VerticalAlignment="Center" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" Text="{Binding FilePath}" />
             </WrapPanel>
             <WrapPanel Margin="0,4">
-                <Button Style="{StaticResource ToolButton}" Content="Remplacer l'image..." Command="{Binding ReplaceCommand}" />
-                <Button Style="{StaticResource ToolButton}" Content="Ouvrir l'image" Command="{Binding OpenFileCommand}" />
+                <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Remplacer l\'image...'}" Command="{Binding ReplaceCommand}" />
+                <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Ouvrir l\'image'}" Command="{Binding OpenFileCommand}" />
             </WrapPanel>
             <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
-                       Text="Les items, blocs et mobs désignent cette texture par son identifiant interne : vous pouvez la renommer sans rien casser." />
+                       Text="{l:Tr 'Les items, blocs et mobs désignent cette texture par son identifiant interne : vous pouvez la renommer sans rien casser.'}" />
         </StackPanel>
     </DataTemplate>
 
@@ -549,25 +551,25 @@
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CommonAssetFields}" Focusable="False" />
             <WrapPanel Style="{StaticResource Row}">
-                <TextBlock Style="{StaticResource RowLabel}" Text="Fichier" />
+                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Fichier'}" />
                 <TextBlock VerticalAlignment="Center" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" Text="{Binding FilePath}" />
             </WrapPanel>
-            <TextBlock Style="{StaticResource RowHint}" Foreground="{DynamicResource LogWarningBrush}" Text="Fichier introuvable."
+            <TextBlock Style="{StaticResource RowHint}" Foreground="{DynamicResource LogWarningBrush}" Text="{l:Tr 'Fichier introuvable.'}"
                        Visibility="{Binding IsFileMissing, Converter={StaticResource BoolToVisibility}}" />
             <WrapPanel Margin="0,4">
-                <Button Style="{StaticResource ToolButton}" Content="Écouter" Command="{Binding OpenFileCommand}"
-                        ToolTip="Ouvre le son avec le lecteur de Windows" />
-                <Button Style="{StaticResource ToolButton}" Content="Remplacer le son..." Command="{Binding ReplaceCommand}" />
+                <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Écouter'}" Command="{Binding OpenFileCommand}"
+                        ToolTip="{l:Tr 'Ouvre le son avec le lecteur de Windows'}" />
+                <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Remplacer le son...'}" Command="{Binding ReplaceCommand}" />
             </WrapPanel>
             <StackPanel Style="{StaticResource FieldRow}">
-                <TextBlock Style="{StaticResource StackedLabel}" Text="Sous-titre" />
+                <TextBlock Style="{StaticResource StackedLabel}" Text="{l:Tr 'Sous-titre'}" />
                 <TextBox Style="{StaticResource FieldBox}" Margin="0" Text="{Binding Subtitle, UpdateSourceTrigger=PropertyChanged}" />
             </StackPanel>
-            <TextBlock Style="{StaticResource RowHint}" Text="Affiché quand les sous-titres du jeu sont activés ; laissez vide pour aucun." />
-            <TextBlock Style="{StaticResource StackedLabel}" Text="Tester en jeu" Margin="0,8,0,2" />
+            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Affiché quand les sous-titres du jeu sont activés ; laissez vide pour aucun.'}" />
+            <TextBlock Style="{StaticResource StackedLabel}" Text="{l:Tr 'Tester en jeu'}" Margin="0,8,0,2" />
             <TextBox IsReadOnly="True" FontFamily="Consolas" Text="{Binding PlaySoundCommand, Mode=OneWay}" />
             <TextBlock Style="{StaticResource FieldHint}" Margin="0,6,0,0"
-                       Text="Format OGG Vorbis, de préférence mono (un son stéréo n'est pas spatialisé par Minecraft)." />
+                       Text="{l:Tr 'Format OGG Vorbis, de préférence mono (un son stéréo n\'est pas spatialisé par Minecraft).'}" />
         </StackPanel>
     </DataTemplate>
 
@@ -579,36 +581,36 @@
                     Command="{Binding DataContext.OpenGraphEditorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     CommandParameter="{Binding}">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xEA86;" Margin="0,0,8,0" VerticalAlignment="Center" />
-                    <TextBlock Text="Ouvrir l'éditeur nodal" />
+                    <views:IconView Icon="NodeGraphGeometry" IconSize="14" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{l:Tr 'Ouvrir l\'éditeur nodal'}" />
                 </StackPanel>
             </Button>
             <TextBlock Style="{StaticResource RowHint}"
-                       Text="Les nœuds se placent et se relient dans l'éditeur ; double-cliquer sur le graphe dans le Dashboard l'ouvre aussi." />
+                       Text="{l:Tr 'Les nœuds se placent et se relient dans l\'éditeur ; double-cliquer sur le graphe dans le Dashboard l\'ouvre aussi.'}" />
 
-            <TextBlock Style="{StaticResource PanelTitle}" Text="Résumé" Margin="0,12,0,4" />
+            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Résumé'}" Margin="0,12,0,4" />
             <WrapPanel Style="{StaticResource Row}">
-                <TextBlock Style="{StaticResource RowLabel}" Text="Nœuds" />
+                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Nœuds'}" />
                 <TextBlock VerticalAlignment="Center" Text="{Binding NodeCount}" />
             </WrapPanel>
             <WrapPanel Style="{StaticResource Row}">
-                <TextBlock Style="{StaticResource RowLabel}" Text="Fils" />
+                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Fils'}" />
                 <TextBlock VerticalAlignment="Center" Text="{Binding ConnectionCount}" />
             </WrapPanel>
             <WrapPanel Style="{StaticResource Row}">
-                <TextBlock Style="{StaticResource RowLabel}" Text="Classe Java" />
+                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Classe Java'}" />
                 <TextBlock VerticalAlignment="Center" FontFamily="Consolas" Text="{Binding JavaClassName}" />
             </WrapPanel>
 
-            <TextBlock Style="{StaticResource StackedLabel}" Text="Événements" Margin="0,8,0,2"
+            <TextBlock Style="{StaticResource StackedLabel}" Text="{l:Tr 'Événements'}" Margin="0,8,0,2"
                        Visibility="{Binding IsEventGraph, Converter={StaticResource BoolToVisibility}}" />
-            <TextBlock Style="{StaticResource FieldHint}" Text="Aucun événement : le graphe ne fera rien en jeu."
+            <TextBlock Style="{StaticResource FieldHint}" Text="{l:Tr 'Aucun événement : le graphe ne fera rien en jeu.'}"
                        Visibility="{Binding ShowNoEventHint, Converter={StaticResource BoolToVisibility}}" />
             <ItemsControl ItemsSource="{Binding Events}" Focusable="False">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal" Margin="0,1">
-                            <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE945;" FontSize="11" Margin="0,2,6,0"
+                            <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Event}" FontSize="11" Margin="0,2,6,0"
                                        Foreground="{DynamicResource AccentLineBrush}" />
                             <TextBlock Text="{Binding}" />
                         </StackPanel>
@@ -617,7 +619,7 @@
             </ItemsControl>
 
             <StackPanel Visibility="{Binding HasProblems, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Style="{StaticResource StackedLabel}" Text="Problèmes" Margin="0,8,0,2" />
+                <TextBlock Style="{StaticResource StackedLabel}" Text="{l:Tr 'Problèmes'}" Margin="0,8,0,2" />
                 <ItemsControl ItemsSource="{Binding Problems}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -634,12 +636,12 @@
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CommonAssetFields}" Focusable="False" />
             <WrapPanel Style="{StaticResource Row}">
-                <TextBlock Style="{StaticResource RowLabel}" Text="Type" />
+                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Type'}" />
                 <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding KindChoices}" SelectedValue="{Binding Kind}" />
             </WrapPanel>
 
             <StackPanel Visibility="{Binding IsCrafting, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Style="{StaticResource PanelTitle}" Text="Grille de l'établi" Margin="0,12,0,4" />
+                <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Grille de l\'établi'}" Margin="0,12,0,4" />
                 <ItemsControl ItemsSource="{Binding GridSlots}" Focusable="False" MaxWidth="330" HorizontalAlignment="Left">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -655,36 +657,36 @@
                 </ItemsControl>
                 <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0" Text="{Binding GridHint}" />
                 <TextBlock Style="{StaticResource FieldHint}" Margin="0,2,0,0"
-                           Text="Une case accepte un item du projet (« ruby »), de Minecraft (« minecraft:stick ») ou un tag (« #minecraft:planks »)." />
+                           Text="{l:Tr 'Une case accepte un item du projet (« ruby »), de Minecraft (« minecraft:stick ») ou un tag (« #minecraft:planks »).'}" />
             </StackPanel>
 
             <StackPanel Visibility="{Binding IsSmelting, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Style="{StaticResource PanelTitle}" Text="Four" Margin="0,12,0,4" />
+                <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Four'}" Margin="0,12,0,4" />
                 <WrapPanel Style="{StaticResource Row}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="Ingrédient à cuire" />
+                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Ingrédient à cuire'}" />
                     <ContentControl Style="{StaticResource RowPicker}" Content="{Binding SmeltingInput}" />
                 </WrapPanel>
                 <WrapPanel Style="{StaticResource Row}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="Durée (secondes)" />
+                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Durée (secondes)'}" />
                     <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0.05" Maximum="3600" SmallChange="1"
                                   Value="{Binding CookingSeconds, UpdateSourceTrigger=PropertyChanged}" />
                 </WrapPanel>
-                <TextBlock Style="{StaticResource RowHint}" Text="Four : 10 secondes pour la plupart des recettes." />
+                <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Four : 10 secondes pour la plupart des recettes.'}" />
                 <WrapPanel Style="{StaticResource Row}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="Expérience" />
+                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Expérience'}" />
                     <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="100" SmallChange="0.1"
                                   Value="{Binding Experience, UpdateSourceTrigger=PropertyChanged}" />
                 </WrapPanel>
-                <TextBlock Style="{StaticResource RowHint}" Text="Lingot de fer : 0,7 ; diamant : 1." />
+                <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Lingot de fer : 0,7 ; diamant : 1.'}" />
             </StackPanel>
 
-            <TextBlock Style="{StaticResource PanelTitle}" Text="Résultat" Margin="0,12,0,4" />
+            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Résultat'}" Margin="0,12,0,4" />
             <WrapPanel Style="{StaticResource Row}">
-                <TextBlock Style="{StaticResource RowLabel}" Text="Item produit" />
+                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Item produit'}" />
                 <ContentControl Style="{StaticResource RowPicker}" Content="{Binding Result}" />
             </WrapPanel>
             <WrapPanel Style="{StaticResource Row}" Visibility="{Binding IsCrafting, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Style="{StaticResource RowLabel}" Text="Quantité" />
+                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Quantité'}" />
                 <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="{Binding MaxResultCount}" SmallChange="1"
                               Value="{Binding ResultCount, UpdateSourceTrigger=PropertyChanged}" />
             </WrapPanel>
@@ -699,7 +701,7 @@
                 <TextBlock Style="{StaticResource FieldHint}" Margin="0,1,0,0" Text="{Binding SelectorLabel}" />
                 <TextBlock Style="{StaticResource FieldHint}" Margin="0,2,0,4" Text="{Binding Description}" />
                 <TextBlock Style="{StaticResource FieldHint}" Foreground="{DynamicResource LogWarningBrush}" Margin="0,0,0,4"
-                           Text="Réservé aux mobs de la famille Animal : il sera ignoré."
+                           Text="{l:Tr 'Réservé aux mobs de la famille Animal : il sera ignoré.'}"
                            Visibility="{Binding IsInvalidForKind, Converter={StaticResource BoolToVisibility}}" />
 
                 <WrapPanel Style="{StaticResource Row}" Visibility="{Binding Info.UsesSpeed, Converter={StaticResource BoolToVisibility}}">
@@ -724,10 +726,10 @@
                           Visibility="{Binding Info.UsesFlag, Converter={StaticResource BoolToVisibility}}" />
 
                 <WrapPanel Margin="0,4,0,0">
-                    <Button Style="{StaticResource ToolButton}" Content="Monter" Command="{Binding MoveUpCommand}"
-                            ToolTip="Priorité plus haute : passe avant les comportements suivants" />
-                    <Button Style="{StaticResource ToolButton}" Content="Descendre" Command="{Binding MoveDownCommand}" />
-                    <Button Style="{StaticResource ToolButton}" Content="Retirer" Command="{Binding RemoveCommand}" />
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Monter'}" Command="{Binding MoveUpCommand}"
+                            ToolTip="{l:Tr 'Priorité plus haute : passe avant les comportements suivants'}" />
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Descendre'}" Command="{Binding MoveDownCommand}" />
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Retirer'}" Command="{Binding RemoveCommand}" />
                 </WrapPanel>
             </StackPanel>
         </Border>
@@ -737,17 +739,17 @@
         <Border Style="{StaticResource Card}">
             <StackPanel>
                 <WrapPanel Style="{StaticResource Row}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="Item" />
+                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Item'}" />
                     <ContentControl Style="{StaticResource RowPicker}" Content="{Binding ItemPicker}" />
                 </WrapPanel>
                 <WrapPanel Style="{StaticResource Row}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="Quantité (min - max)" />
+                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Quantité (min - max)'}" />
                     <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="0" Maximum="{Binding MaxCount}" SmallChange="1"
                                   Value="{Binding Min, UpdateSourceTrigger=PropertyChanged}" />
                     <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="0" Maximum="{Binding MaxCount}" SmallChange="1"
                                   Value="{Binding Max, UpdateSourceTrigger=PropertyChanged}" />
                 </WrapPanel>
-                <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="Retirer" Command="{Binding RemoveCommand}" />
+                <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Retirer'}" Command="{Binding RemoveCommand}" />
             </StackPanel>
         </Border>
     </DataTemplate>
@@ -756,131 +758,131 @@
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CommonAssetFields}" Focusable="False" />
             <TabControl Style="{StaticResource UnderlineTabControl}">
-                <TabItem Header="Apparence">
+                <TabItem Header="{l:Tr 'Apparence'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Modèle" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Modèle'}" />
                             <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ModelChoices}" SelectedValue="{Binding MobModel}" />
                         </WrapPanel>
                         <ContentControl Content="{Binding MainTexture}" Focusable="False" />
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,8" Text="{Binding TextureHint}" />
 
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="Taille" Margin="0,8,0,4" />
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Taille'}" Margin="0,8,0,4" />
                         <TextBlock Style="{StaticResource RowHint}" Text="{Binding HitboxHint}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2,0,4" Content="Taille personnalisée" IsChecked="{Binding UseCustomHitbox}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2,0,4" Content="{l:Tr 'Taille personnalisée'}" IsChecked="{Binding UseCustomHitbox}" />
                         <StackPanel IsEnabled="{Binding UseCustomHitbox}">
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Largeur (blocs)" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Largeur (blocs)'}" />
                                 <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0.1" Maximum="{Binding MaxHitbox}" SmallChange="0.1"
                                               Value="{Binding Width, UpdateSourceTrigger=PropertyChanged}" />
                             </WrapPanel>
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Hauteur (blocs)" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Hauteur (blocs)'}" />
                                 <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0.1" Maximum="{Binding MaxHitbox}" SmallChange="0.1"
                                               Value="{Binding Height, UpdateSourceTrigger=PropertyChanged}" />
                             </WrapPanel>
                         </StackPanel>
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
-                                   Text="La taille change la zone de collision, pas l'affichage du modèle." />
+                                   Text="{l:Tr 'La taille change la zone de collision, pas l\'affichage du modèle.'}" />
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="Attributs">
+                <TabItem Header="{l:Tr 'Attributs'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Famille" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Famille'}" />
                             <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding KindChoices}" SelectedValue="{Binding Kind}" />
                         </WrapPanel>
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Points de vie" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Points de vie'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="{Binding MaxHealth}" SmallChange="1" LargeChange="10"
                                           Value="{Binding Health, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="20 = 10 cœurs (zombie). Vache : 10 ; golem de fer : 100." />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr '20 = 10 cœurs (zombie). Vache : 10 ; golem de fer : 100.'}" />
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Dégâts d'attaque" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Dégâts d\'attaque'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxAttackDamage}" SmallChange="0.5"
                                           Value="{Binding AttackDamage, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="Zombie : 3 (un cœur et demi)." />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Zombie : 3 (un cœur et demi).'}" />
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Vitesse" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Vitesse'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxMovementSpeed}" SmallChange="0.01"
                                           Value="{Binding MovementSpeed, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="Zombie : 0,23 ; vache : 0,2 ; araignée : 0,3." />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Zombie : 0,23 ; vache : 0,2 ; araignée : 0,3.'}" />
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Armure" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Armure'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxArmor}" SmallChange="1"
                                           Value="{Binding Armor, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Portée de suivi" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Portée de suivi'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="{Binding MaxFollowRange}" SmallChange="1"
                                           Value="{Binding FollowRange, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="Distance (en blocs) à laquelle il repère et poursuit sa cible." />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Distance (en blocs) à laquelle il repère et poursuit sa cible.'}" />
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Résistance au recul" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Résistance au recul'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="1" SmallChange="0.1"
                                           Value="{Binding KnockbackResistance, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Expérience donnée" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Expérience donnée'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxExperience}" SmallChange="1"
                                           Value="{Binding Experience, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,6,0,2" Content="Résiste au feu et à la lave" IsChecked="{Binding FireImmune}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2" Content="Brûle au soleil (comme un zombie)" IsChecked="{Binding BurnsInDaylight}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2" Content="Ne disparaît jamais quand le joueur s'éloigne" IsChecked="{Binding Persistent}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,6,0,2" Content="{l:Tr 'Résiste au feu et à la lave'}" IsChecked="{Binding FireImmune}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2" Content="{l:Tr 'Brûle au soleil (comme un zombie)'}" IsChecked="{Binding BurnsInDaylight}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2" Content="{l:Tr 'Ne disparaît jamais quand le joueur s\'éloigne'}" IsChecked="{Binding Persistent}" />
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="IA">
+                <TabItem Header="{l:Tr 'IA'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,8"
-                                   Text="Comportements par ordre de priorité : le premier qui peut agir l'emporte sur les suivants. Les comportements de ciblage choisissent qui attaquer." />
+                                   Text="{l:Tr 'Comportements par ordre de priorité : le premier qui peut agir l\'emporte sur les suivants. Les comportements de ciblage choisissent qui attaquer.'}" />
                         <ItemsControl ItemsSource="{Binding Goals}" Focusable="False" />
                         <WrapPanel Margin="0,4,0,0">
                             <ComboBox Width="230" Margin="0,2,8,2" ItemsSource="{Binding GoalKindChoices}"
                                       DisplayMemberPath="Label" SelectedValuePath="Kind" SelectedValue="{Binding NewGoalKind}" />
-                            <Button Style="{StaticResource ToolButton}" Content="Ajouter" Command="{Binding AddGoalCommand}" />
+                            <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Ajouter'}" Command="{Binding AddGoalCommand}" />
                         </WrapPanel>
 
                         <StackPanel Visibility="{Binding IsAnimal, Converter={StaticResource BoolToVisibility}}" Margin="0,12,0,0">
-                            <TextBlock Style="{StaticResource PanelTitle}" Text="Reproduction" Margin="0,0,0,4" />
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Reproduction'}" Margin="0,0,0,4" />
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Item de reproduction" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Item de reproduction'}" />
                                 <ContentControl Style="{StaticResource RowPicker}" Content="{Binding BreedingItem}" />
                             </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}" Text="Donné à deux adultes, il les fait se reproduire (vache : minecraft:wheat)." />
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Donné à deux adultes, il les fait se reproduire (vache : minecraft:wheat).'}" />
                         </StackPanel>
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="Apparition">
+                <TabItem Header="{l:Tr 'Apparition'}">
                     <StackPanel Style="{StaticResource TabContent}">
-                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Margin="0,0,0,6" Content="Œuf d'apparition"
+                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Margin="0,0,0,6" Content="{l:Tr 'Œuf d\'apparition'}"
                                   IsChecked="{Binding HasSpawnEgg}" />
                         <StackPanel IsEnabled="{Binding HasSpawnEgg}">
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Couleur de fond" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Couleur de fond'}" />
                                 <TextBox Width="110" FontFamily="Consolas"
                                          Text="{Binding EggPrimaryText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
                                 <Border Width="28" Height="28" Margin="8,0,0,0" CornerRadius="14" BorderThickness="1"
                                         BorderBrush="{DynamicResource PreviewBorderBrush}" Background="{Binding EggPrimaryPreview}" />
                             </WrapPanel>
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Couleur des taches" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Couleur des taches'}" />
                                 <TextBox Width="110" FontFamily="Consolas"
                                          Text="{Binding EggSecondaryText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
                                 <Border Width="28" Height="28" Margin="8,0,0,0" CornerRadius="14" BorderThickness="1"
                                         BorderBrush="{DynamicResource PreviewBorderBrush}" Background="{Binding EggSecondaryPreview}" />
                             </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}" Text="L'œuf est ajouté à l'onglet du mod et à l'onglet « Œufs d'apparition »." />
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'L\'œuf est ajouté à l\'onglet du mod et à l\'onglet « Œufs d\'apparition ».'}" />
                         </StackPanel>
 
-                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Margin="0,12,0,6" Content="Apparaît naturellement dans le monde"
+                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Margin="0,12,0,6" Content="{l:Tr 'Apparaît naturellement dans le monde'}"
                                   IsChecked="{Binding SpawnsNaturally}" />
                         <StackPanel IsEnabled="{Binding SpawnsNaturally}">
                             <ItemsControl ItemsSource="{Binding BiomeOptions}" Focusable="False">
@@ -896,47 +898,47 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Fréquence" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Fréquence'}" />
                                 <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="{Binding MaxSpawnWeight}" SmallChange="1"
                                               Value="{Binding SpawnWeight, UpdateSourceTrigger=PropertyChanged}" />
                             </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}" Text="Comparée aux autres créatures : zombie 100, vache 8, creeper 100." />
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Comparée aux autres créatures : zombie 100, vache 8, creeper 100.'}" />
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="Taille des groupes" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Taille des groupes'}" />
                                 <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="1" Maximum="{Binding MaxGroupSize}" SmallChange="1"
                                               Value="{Binding SpawnMinGroup, UpdateSourceTrigger=PropertyChanged}" />
                                 <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="1" Maximum="{Binding MaxGroupSize}" SmallChange="1"
                                               Value="{Binding SpawnMaxGroup, UpdateSourceTrigger=PropertyChanged}" />
                             </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}" Text="Un monstre apparaît dans le noir, un animal sur l'herbe, une créature sur tout sol." />
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Un monstre apparaît dans le noir, un animal sur l\'herbe, une créature sur tout sol.'}" />
                         </StackPanel>
 
-                        <TextBlock Style="{StaticResource StackedLabel}" Text="Faire apparaître en jeu" Margin="0,12,0,2" />
+                        <TextBlock Style="{StaticResource StackedLabel}" Text="{l:Tr 'Faire apparaître en jeu'}" Margin="0,12,0,2" />
                         <TextBox IsReadOnly="True" FontFamily="Consolas" Text="{Binding SummonCommand, Mode=OneWay}" />
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="Sons et butin">
+                <TabItem Header="{l:Tr 'Sons et butin'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,6"
-                                   Text="Un son du projet (« goblin_roar ») ou de Minecraft (« minecraft:entity.zombie.ambient ») ; vide pour le son par défaut." />
+                                   Text="{l:Tr 'Un son du projet (« goblin_roar ») ou de Minecraft (« minecraft:entity.zombie.ambient ») ; vide pour le son par défaut.'}" />
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Son ambiant" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Son ambiant'}" />
                             <ContentControl Style="{StaticResource RowPicker}" Content="{Binding AmbientSound}" />
                         </WrapPanel>
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Son de blessure" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Son de blessure'}" />
                             <ContentControl Style="{StaticResource RowPicker}" Content="{Binding HurtSound}" />
                         </WrapPanel>
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="Son de mort" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Son de mort'}" />
                             <ContentControl Style="{StaticResource RowPicker}" Content="{Binding DeathSound}" />
                         </WrapPanel>
 
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="Butin" Margin="0,12,0,4" />
-                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,6" Text="Items laissés à sa mort, chacun avec une quantité aléatoire." />
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Butin'}" Margin="0,12,0,4" />
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,6" Text="{l:Tr 'Items laissés à sa mort, chacun avec une quantité aléatoire.'}" />
                         <ItemsControl ItemsSource="{Binding Drops}" Focusable="False" />
-                        <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="Ajouter un item" Command="{Binding AddDropCommand}" />
+                        <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Ajouter un item'}" Command="{Binding AddDropCommand}" />
                     </StackPanel>
                 </TabItem>
             </TabControl>
