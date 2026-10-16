@@ -28,21 +28,30 @@ namespace MineEngine.App;
 /// </summary>
 internal sealed class CompositionRoot : IDisposable
 {
-    private readonly HttpClient _httpClient;
-    private readonly FileLog _fileLog;
+    private readonly HttpClient _httpClient; // HTTP client pour les requêtes réseau 
+    private readonly FileLog _fileLog; // Fichier de journalisation pour enregistrer les logs
 
+    /// <summary>
+    /// Initializes a new instance of the CompositionRoot class, setting up dependencies and services for the application.
+    /// </summary>
+    /// <param name="application"></param>
     public CompositionRoot(System.Windows.Application application)
     {
         ArgumentNullException.ThrowIfNull(application);
-        _httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+        _httpClient = new HttpClient { 
+            Timeout = TimeSpan.FromMinutes(10) 
+            };
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("MineEngine/" + EditorInfo.Version);
 
+        // données locales de l'application pour stocker les préférences, les thèmes, les langues, les MDK, etc.
         string localData = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MineEngine");
+            
+        // dossier de données locales pour stocker les préférences, les thèmes, les langues, les MDK, etc.
         string projectsDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "MineEngine Projects");
 
-        // Préférences de l'éditeur (thème, langue, taille) : appliquées avant la création des fenêtres
+        // Préférences de l'éditeur (appliquées avant la création des fenêtres)
         Preferences = new EditorPreferences(
             new EditorSettingsStore(Path.Combine(localData, "settings.json")),
             new WpfThemeService(application, new ThemeLibrary(Path.Combine(localData, "themes"))),
@@ -50,7 +59,7 @@ internal sealed class CompositionRoot : IDisposable
             new LanguageLibrary(Path.Combine(localData, "languages")));
         Preferences.Load();
 
-        // Journal : console Output de l'éditeur et fichier dans %LOCALAPPDATA%\MineEngine\logs
+        // console Output de l'éditeur et fichier dans %LOCALAPPDATA%\MineEngine\logs
         Output = new OutputViewModel();
         _fileLog = new FileLog(Path.Combine(localData, "logs"));
         Log = new CompositeLog(Output, _fileLog);
@@ -85,19 +94,22 @@ internal sealed class CompositionRoot : IDisposable
             open => new ProjectHubViewModel(knownProjects, new ProjectSettingsSerializer(), dialogs, shell, projectsDirectory, Preferences, open));
     }
 
-    public EditorPreferences Preferences { get; }
+    public EditorPreferences Preferences { get; } // objet contenant les préférences de l'éditeur, les thèmes, les langues, etc.
 
-    public OutputViewModel Output { get; }
+    public OutputViewModel Output { get; } // objet représentant la console Output de l'éditeur, affichant les messages de log et les erreurs.
 
     /// <summary>Journal de l'application : console Output et fichier.</summary>
-    public ILog Log { get; }
+    public ILog Log { get; } // objet représentant le journal de l'application, combinant la console Output et le fichier de log pour enregistrer les messages et les erreurs.
 
-    public DockLayoutService DockLayout { get; }
+    public DockLayoutService DockLayout { get; } // objet représentant la disposition du dock de l'éditeur, permettant de sauvegarder et de restaurer la position des fenêtres et des panneaux.
 
-    public MdkLibrary MdkLibrary { get; }
+    public MdkLibrary MdkLibrary { get; } // objet représentant la bibliothèque de MDK (Mod Development Kit) de l'éditeur, permettant de gérer les MDK installés et disponibles pour le développement de mods.
 
-    public MainViewModel MainViewModel { get; }
+    public MainViewModel MainViewModel { get; } // objet représentant le ViewModel principal de l'éditeur, contenant les commandes et les données pour gérer les projets, les assets, les préférences, etc.
 
+    /// <summary>
+    /// Cleans up resources and disposes of the composition root when the application exits.
+    /// </summary>
     public void Dispose()
     {
         _httpClient.Dispose();

@@ -7,17 +7,26 @@ namespace MineEngine.Assets.Definitions;
 
 public sealed class BlockAssetDefinition : InventoryAssetDefinition<BlockAsset>
 {
-    public override AssetType Type => AssetType.Block;
+    public override AssetType Type => AssetType.Block; // Type d'asset correspondant à cette définition 
+    public override string Label => Tr.T("Bloc"); // label de l'asset 
+    public override string DefaultResourceIdBase => "new_block"; // identifiant de ressource par défaut pour l'asset
+    public override string DefaultDisplayName => Tr.T("New block"); // nom d'affichage par défaut pour l'asset
 
-    public override string Label => Tr.T("Bloc");
-
-    public override string DefaultResourceIdBase => "new_block";
-
-    public override string DefaultDisplayName => Tr.T("Nouveau bloc");
-
+    /// <summary>
+    /// Creates a new block asset with the specified ID, resource ID, and display name, allowing for the instantiation of block assets with specific properties and identifiers.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="resourceId"></param>
+    /// <param name="displayName"></param>
+    /// <returns></returns>
     protected override BlockAsset Create(Guid id, ResourceId resourceId, string displayName) =>
         new(id, resourceId, displayName);
 
+    /// <summary>
+    /// Reads the properties of a block asset from a JSON object, allowing for the deserialization of block asset properties and the reconstruction of the block asset's state from stored data.
+    /// </summary>
+    /// <param name="asset"></param>
+    /// <param name="reader"></param>
     protected override void ReadProperties(BlockAsset asset, JsonPropertyReader reader)
     {
         ReadInventory(asset, reader);
@@ -62,6 +71,11 @@ public sealed class BlockAssetDefinition : InventoryAssetDefinition<BlockAsset>
         asset.HasItemFormEnabled = reader.GetBoolean("hasItem", true);
     }
 
+    /// <summary>
+    /// Writes the properties of a block asset to a JSON object, allowing for the serialization of block asset properties and the storage of the block asset's state in a structured format.
+    /// </summary>
+    /// <param name="asset"></param>
+    /// <param name="properties"></param>
     protected override void WriteProperties(BlockAsset asset, JsonObject properties)
     {
         WriteInventory(asset, properties);

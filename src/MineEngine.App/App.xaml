@@ -3,10 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.modernwpf.com/2019"
              ShutdownMode="OnMainWindowClose">
-    <!--
-        Styles ModernWpf (Windows 11, clair et sombre). La palette propre à Mine Engine
-        est ajoutée par WpfThemeService selon le thème actif.
-    -->
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
