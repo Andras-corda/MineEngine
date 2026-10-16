@@ -1,0 +1,139 @@
+﻿<UserControl x:Class="MineEngine.Editor.Views.Panels.LanguagesPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:MineEngine.Editor.Localization"
+             xmlns:vm="clr-namespace:MineEngine.Editor.ViewModels"
+             x:Name="Root">
+
+    <!--
+        Onglet Langues (permanent, comme le Dashboard) : les langues du mod à gauche, les textes
+        de la langue choisie à droite avec leur traduction. Un texte non traduit garde le nom saisi
+        sur l'élément. DataContext : MainViewModel.
+    -->
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="ToolText" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="Padding" Value="10,4" />
+                <Setter Property="Margin" Value="0,0,6,0" />
+                <Setter Property="MinHeight" Value="28" />
+            </Style>
+
+            <Style x:Key="RowItem" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                <Setter Property="Padding" Value="8,3" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource HubBackgroundBrush}">
+        <DockPanel Margin="16,12,16,8" DataContext="{Binding Languages}"
+                   Visibility="{Binding DataContext.HasProject, ElementName=Root, Converter={StaticResource BoolToVisibility}}">
+
+            <!-- Langues du mod -->
+            <DockPanel DockPanel.Dock="Left" Width="230" Margin="0,0,16,0">
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelCaption}" Text="{l:Tr 'LANGUES DU MOD'}" Margin="2,0,0,8" />
+                <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                    <WrapPanel>
+                        <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Ajouter...'}" Command="{Binding AddLocaleCommand}" Margin="0,0,6,6" />
+                        <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Supprimer'}" Command="{Binding RemoveLocaleCommand}" Margin="0,0,6,6" />
+                    </WrapPanel>
+                    <TextBlock Style="{StaticResource FieldHint}" Margin="2,4,0,0"
+                               Text="{l:Tr 'Chaque langue devient un fichier assets/&lt;mod&gt;/lang/&lt;langue&gt;.json du mod. Minecraft choisit celle du joueur, sinon l\'anglais.'}" />
+                </StackPanel>
+                <ListBox ItemsSource="{Binding Locales}" SelectedItem="{Binding SelectedLocale}" Background="Transparent" BorderThickness="0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:LocaleItemViewModel}">
+                            <StackPanel Margin="0,2">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource MonoHint}" Text="{Binding Code}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource StrongTextBrush}" TextTrimming="CharacterEllipsis" />
+                                </DockPanel>
+                                <TextBlock Text="{Binding Progress}" FontSize="11" Foreground="{DynamicResource HintBrush}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+
+            <!-- Actions et filtres -->
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
+                    <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Ajouter une clé...'}" Command="{Binding AddKeyCommand}"
+                            ToolTip="{l:Tr 'Texte affiché par votre code Java (message, écran...) : il n\'est écrit que dans les langues où vous le traduisez.'}" />
+                    <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Importer...'}" Command="{Binding ImportCommand}"
+                            ToolTip="{l:Tr 'Fichier de langue Minecraft (.json) ; la langue est tirée du nom du fichier (de_de.json).'}" />
+                    <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Exporter...'}" Command="{Binding ExportCommand}" Margin="0"
+                            ToolTip="{l:Tr 'Fichier de langue complet de la langue choisie, tel que le mod l\'utilisera.'}" />
+                </StackPanel>
+                <CheckBox DockPanel.Dock="Right" Margin="12,0,6,0" VerticalAlignment="Center" IsChecked="{Binding UntranslatedOnly}"
+                          Content="{l:Tr 'Non traduits seulement'}" />
+                <Grid>
+                    <TextBox x:Name="SearchBox" Padding="28,4,8,4" MinHeight="28" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Search}" FontSize="12" Margin="10,0,0,0"
+                               VerticalAlignment="Center" IsHitTestVisible="False" Foreground="{DynamicResource HintBrush}" />
+                    <TextBlock Text="{l:Tr 'Rechercher une clé ou un texte...'}" Margin="29,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                               Foreground="{DynamicResource HintBrush}"
+                               Visibility="{Binding Text, ElementName=SearchBox, Converter={StaticResource EmptyToVisible}}" />
+                </Grid>
+            </DockPanel>
+
+            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource FieldHint}" Margin="2,6,0,0" Text="{Binding Message}" />
+
+            <!-- En-têtes -->
+            <Grid DockPanel.Dock="Top" Margin="8,0,8,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="3*" />
+                    <ColumnDefinition Width="30" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'CLÉ'}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource PanelCaption}" Text="{l:Tr 'ORIGINE'}" />
+                <TextBlock Grid.Column="2" Style="{StaticResource PanelCaption}" Text="{l:Tr 'TEXTE PAR DÉFAUT'}" />
+                <TextBlock Grid.Column="3" Style="{StaticResource PanelCaption}" Text="{l:Tr 'TRADUCTION'}" />
+            </Grid>
+
+            <ListBox ItemsSource="{Binding VisibleRows}" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource RowItem}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.IsVirtualizing="True"
+                     KeyboardNavigation.TabNavigation="Continue">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:TranslationRowViewModel}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="3*" />
+                                <ColumnDefinition Width="30" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource MonoHint}" Text="{Binding Key}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding Key}" Margin="0,0,8,0" />
+                            <TextBlock Grid.Column="1" Text="{Binding SourceLabel}" VerticalAlignment="Center" FontSize="12"
+                                       Foreground="{DynamicResource HintBrush}" />
+                            <TextBlock Grid.Column="2" Text="{Binding DefaultText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource BadgeTextBrush}" Margin="0,0,8,0" ToolTip="{Binding DefaultText}" />
+                            <Grid Grid.Column="3">
+                                <TextBox x:Name="Translation" MinHeight="0" Padding="6,3"
+                                         Text="{Binding Translation, UpdateSourceTrigger=PropertyChanged}"
+                                         IsEnabled="{Binding DataContext.Languages.CanEdit, ElementName=Root}" />
+                                <TextBlock Text="{Binding DefaultText}" Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                                           FontStyle="Italic" Foreground="{DynamicResource HintBrush}" TextTrimming="CharacterEllipsis"
+                                           Visibility="{Binding Text, ElementName=Translation, Converter={StaticResource EmptyToVisible}}" />
+                            </Grid>
+                            <Button Grid.Column="4" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" HorizontalAlignment="Right"
+                                    ToolTip="{l:Tr 'Retirer la traduction (le texte par défaut revient)'}"
+                                    Command="{Binding DataContext.Languages.ClearTranslationCommand, ElementName=Root}" CommandParameter="{Binding}"
+                                    Visibility="{Binding IsTranslated, Converter={StaticResource BoolToVisibility}}" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+    </Grid>
+</UserControl>

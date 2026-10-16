@@ -114,6 +114,10 @@ public enum GraphNodeKind
     Subtract,
     Multiply,
     LessThan,
+
+    // Mise en page (V0.5.4)
+    /// <summary>Point de passage d'un fil (voir <see cref="Reroutes"/>) : sans effet sur le programme.</summary>
+    Reroute,
 }
 
 /// <summary>

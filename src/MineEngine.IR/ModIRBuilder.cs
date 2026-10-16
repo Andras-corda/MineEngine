@@ -56,7 +56,7 @@ public sealed class ModIRBuilder
             }
         }
 
-        return diagnostics.HasErrors ? null : new ModIR(CreateModInfo(project.Settings), context.BuildContent());
+        return diagnostics.HasErrors ? null : new ModIR(CreateModInfo(project.Settings), context.BuildContent(), project.Localization);
     }
 
     private static IRModInfo CreateModInfo(ProjectSettings settings) => new(

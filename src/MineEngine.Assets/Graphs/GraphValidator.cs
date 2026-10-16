@@ -21,6 +21,9 @@ public static class GraphValidator
     {
         ArgumentNullException.ThrowIfNull(graph);
         context ??= CatalogGraphContext.Instance;
+
+        // Les redirections ne sont que de la mise en page : on vérifie le graphe tel qu'il sera compilé.
+        graph = Reroutes.Collapse(graph);
         var issues = new List<GraphIssue>();
         Dictionary<Guid, NodeInfo> infos = graph.Nodes.ToDictionary(n => n.Id, context.Describe);
         NodeInfo Info(GraphNode node) => infos[node.Id];

@@ -50,7 +50,13 @@ public sealed class MineEngineDockTheme : DictionaryTheme
             dictionary[key] = palette(brush);
         }
 
-        dictionary[Keys.PreviewBoxBackgroundBrushKey] = Translucent(palette("AccentLineBrush"), 0x40);
+        // Guides de dépôt (comme Unreal) : boutons aux couleurs des cartes, flèches claires, zone visée
+        // remplie de l'accent en transparence et soulignée d'un trait d'accent.
+        dictionary[Keys.DockingButtonBackgroundBrushKey] = palette("CardBrush");
+        dictionary[Keys.DockingButtonForegroundArrowBrushKey] = palette("StrongTextBrush");
+        dictionary[Keys.DockingButtonStarBorderBrushKey] = palette("CardBorderBrush");
+        dictionary[Keys.DockingButtonStarBackgroundBrushKey] = Translucent(palette("SidebarBrush"), 0xE6);
+        dictionary[Keys.PreviewBoxBackgroundBrushKey] = Translucent(palette("AccentLineBrush"), 0x50);
         return dictionary;
     }
 

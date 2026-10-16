@@ -46,7 +46,7 @@ public partial class MainWindow : Window
         // de la fenêtre principale : chaque panneau le reçoit donc explicitement.
         foreach (FrameworkElement panel in new FrameworkElement[]
                  {
-                     ExplorerPanel, DashboardPanel, OutputPanel, DiagnosticsPanel, InspectorPanel,
+                     ExplorerPanel, DashboardPanel, ResourcesPanel, LanguagesPanel, OutputPanel, DiagnosticsPanel, InspectorPanel,
                  })
         {
             panel.DataContext = viewModel;
@@ -55,8 +55,12 @@ public partial class MainWindow : Window
         ApplyTheme();
         _themes.AppearanceChanged += OnAppearanceChanged;
         _viewModel.PanelRequested += (_, panelId) => ShowPanel(panelId);
+        _viewModel.RestartRequested += (_, project) => Restart(project);
         _viewModel.Documents.CollectionChanged += OnDocumentsChanged;
         _viewModel.DocumentActivationRequested += (_, document) => ActivateDocument(document);
+        _viewModel.ProjectTabRequested += (_, contentId) => ActivateTab(contentId);
+        _viewModel.Shortcuts.PropertyChanged += (_, _) => ApplyShortcuts();
+        ApplyShortcuts();
         DockManager.ActiveContentChanged += OnActiveContentChanged;
         DockManager.DocumentClosing += OnDocumentClosing;
         Loaded += (_, _) =>
@@ -222,6 +226,38 @@ public partial class MainWindow : Window
         }
     }
 
+    private readonly List<InputBinding> _shortcutBindings = [];
+
+    /// <summary>Raccourcis du catalogue, avec ceux choisis dans les paramètres (reconstruits à chaque changement).</summary>
+    private void ApplyShortcuts()
+    {
+        foreach (InputBinding binding in _shortcutBindings)
+        {
+            InputBindings.Remove(binding);
+        }
+
+        _shortcutBindings.Clear();
+        foreach (ShortcutDefinition definition in ShortcutCatalog.All)
+        {
+            if (ShortcutCatalog.Parse(ShortcutCatalog.Effective(definition, _viewModel.Shortcuts.Overrides)) is { } gesture)
+            {
+                var binding = new KeyBinding(definition.Command(_viewModel), gesture);
+                InputBindings.Add(binding);
+                _shortcutBindings.Add(binding);
+            }
+        }
+    }
+
+    /// <summary>Affiche un onglet permanent du projet (Ressources, Langues).</summary>
+    private void ActivateTab(string contentId)
+    {
+        if (FindLayoutDocument(contentId) is { } tab)
+        {
+            tab.IsSelected = true;
+            tab.IsActive = true;
+        }
+    }
+
     private void ActivateDocument(DocumentViewModel? document)
     {
         LayoutDocument? target = FindLayoutDocument(document?.Id ?? DashboardContentId);
@@ -251,7 +287,7 @@ public partial class MainWindow : Window
             case FrameworkElement { DataContext: DocumentViewModel document }:
                 _viewModel.ActiveDocument = document;
                 break;
-            case Panels.DashboardPanel:
+            case Panels.DashboardPanel or Panels.ResourcesPanel or Panels.LanguagesPanel:
                 _viewModel.ActiveDocument = null;
                 break;
         }
@@ -389,6 +425,13 @@ public partial class MainWindow : Window
         }
 
         bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+        if (e.Key == Key.F && !shift && _viewModel.HasProject)
+        {
+            Toolbar.FocusSearch();
+            e.Handled = true;
+            return;
+        }
+
         ICommand? command = e.Key switch
         {
             Key.Z when !shift => _viewModel.UndoCommand,
@@ -553,4 +596,29 @@ public partial class MainWindow : Window
     }
 
     private void OnExitClick(object sender, RoutedEventArgs e) => Close();
+
+    /// <summary>
+    /// Ferme la fenêtre (le projet modifié peut encore être enregistré ou la fermeture annulée),
+    /// puis relance Mine Engine sur le même projet.
+    /// </summary>
+    private void Restart(string? project)
+    {
+        Closed += (_, _) =>
+        {
+            if (Environment.ProcessPath is not { } executable)
+            {
+                return;
+            }
+
+            var start = new System.Diagnostics.ProcessStartInfo(executable) { UseShellExecute = false };
+            if (project is not null)
+            {
+                start.ArgumentList.Add(project);
+            }
+
+            System.Diagnostics.Process.Start(start);
+        };
+
+        Close();
+    }
 }

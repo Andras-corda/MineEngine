@@ -247,7 +247,31 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         }
     }
 
-    /// <summary>Supprime les nœuds sélectionnés, sauf l'entrée d'une fonction (le graphe n'aurait plus de début).</summary>
+    /// <summary>Largeur et hauteur d'une redirection à l'écran : son point est centré sur le double-clic.</summary>
+    public const double RerouteWidth = 30;
+
+    public const double RerouteHeight = 18;
+
+    /// <summary>
+    /// Pose une redirection sur un fil (double-clic, comme dans Unreal) : le fil passe par ce point,
+    /// que l'on peut ensuite déplacer. Une seule étape annulable.
+    /// </summary>
+    public void InsertReroute(GraphConnectionViewModel wire, double x, double y)
+    {
+        ArgumentNullException.ThrowIfNull(wire);
+        GraphConnection model = wire.Model;
+        GraphNode reroute = Reroutes.Create(wire.IsExec ? DataType.Exec : wire.From.Type, Math.Round(x - (RerouteWidth / 2)), Math.Round(y - (RerouteHeight / 2)));
+        GraphConnection[] links = wire.IsExec
+            ? [model with { ToNode = reroute.Id, ToPin = NodeInfo.ExecInput }, model with { FromNode = reroute.Id, FromPin = NodeInfo.ExecThen }]
+            : [model with { ToNode = reroute.Id, ToPin = Reroutes.ValueInput }, model with { FromNode = reroute.Id, FromPin = Reroutes.ValueOutput }];
+        Apply(_asset.Graph.Disconnect(model).Merge([reroute], links), Tr.T("Ajouter une redirection"));
+        SelectOnly(Nodes.FirstOrDefault(n => n.Id == reroute.Id));
+    }
+
+    /// <summary>
+    /// Supprime les nœuds sélectionnés, sauf l'entrée d'une fonction (le graphe n'aurait plus de début).
+    /// Une redirection supprimée laisse son fil en place : ses deux bouts sont reliés directement.
+    /// </summary>
     public void DeleteSelection()
     {
         if (SelectedNodes.Any(n => n.IsEntry))
@@ -258,7 +282,8 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         List<Guid> ids = [.. SelectedNodes.Where(n => !n.IsEntry).Select(n => n.Id)];
         if (ids.Count > 0)
         {
-            Apply(_asset.Graph.RemoveNodes(ids), ids.Count == 1 ? Tr.T("Supprimer un nœud") : Tr.F("Supprimer {0} nœuds", ids.Count));
+            NodeGraph graph = Reroutes.Bypass(_asset.Graph, ids).RemoveNodes(ids);
+            Apply(graph, ids.Count == 1 ? Tr.T("Supprimer un nœud") : Tr.F("Supprimer {0} nœuds", ids.Count));
         }
     }
 
@@ -287,16 +312,20 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
     }
 
     /// <summary>Écrit dans le graphe la position des nœuds déplacés à la souris (une étape annulable).</summary>
-    public void CommitMove()
+    /// <param name="gridSize">Pas de la grille sur laquelle caler les nœuds déplacés ; 0 pour ne pas les caler.</param>
+    public void CommitMove(double gridSize = 0)
     {
         Dictionary<Guid, (double X, double Y)> moved = Nodes
             .Where(n => Math.Abs(n.X - n.Model.X) > 0.01 || Math.Abs(n.Y - n.Model.Y) > 0.01)
-            .ToDictionary(n => n.Id, n => (Math.Round(n.X), Math.Round(n.Y)));
+            .ToDictionary(n => n.Id, n => (Snap(n.X, gridSize), Snap(n.Y, gridSize)));
         if (moved.Count > 0)
         {
             Apply(_asset.Graph.MoveNodes(moved), moved.Count == 1 ? Tr.T("Déplacer un nœud") : Tr.F("Déplacer {0} nœuds", moved.Count));
         }
     }
+
+    private static double Snap(double value, double gridSize) =>
+        gridSize > 0 ? Math.Round(value / gridSize) * gridSize : Math.Round(value);
 
     /// <summary>Valeur saisie sur une entrée. Les frappes successives sur le même champ forment une seule étape.</summary>
     public void SetValue(GraphNodeViewModel node, string pin, string value)

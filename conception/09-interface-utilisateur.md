@@ -13,8 +13,11 @@ De haut en bas :
    - au centre, le titre : « <nom du projet> — Mine Engine », avec une étoile si le projet ou un onglet a des modifications non enregistrées ; « Mine Engine — Sélection de projet » sans projet ;
    - à droite, quand un projet est ouvert, quatre boutons de disposition (personnaliser, Explorateur, panneau du bas, Détails), puis les boutons système (réduire, agrandir, fermer).
 2. **Barre de menus** (section 3).
-3. **Espace de travail** : panneaux ancrables quand un projet est ouvert, accueil sinon.
-4. **Barre de statut** : point d'état et nom du projet, message d'état (« Prêt », « Enregistré à 14:02:11 », « Build en cours... »), résumé des problèmes (« 0 erreur · 2 avertissements », cliquable vers les Diagnostics), boutons Générer et Lancer, position du curseur et langage quand un onglet de code est actif, version de l'application.
+3. **Barre d'outils** (projet ouvert seulement), sous les menus :
+   - à gauche : bouton bleu **+** (menu : item, bloc, mob, recette ; les sept sortes de graphes ; importer des textures, des sons), puis, pour l'élément sélectionné : **dupliquer** (Ctrl+D ; copie `<id>_copy` dans le même dossier, nom suivi de « (copie) » ; pas pour une texture ni un son), **supprimer**, **éditer** (ouvre son onglet), **ouvrir le graphe** (graphes seulement), **voir le code Java** (génère le code du mod sans compiler, puis ouvre le premier fichier Java produit par l'élément, à sa ligne ; un élément sans Java le dit dans la barre de statut) ; puis **nouveau dossier** dans le dossier ouvert du Dashboard ;
+   - à droite : **recherche** des éléments du mod (Ctrl+F hors d'un éditeur de code ; taper affiche le Dashboard), bascule **Liste** / **Vignettes**, **Valider** (F7), **Compiler**, **Arrêter** (pendant un build), **Lancer** (bouton bleu, F5).
+4. **Espace de travail** : panneaux ancrables quand un projet est ouvert, accueil sinon.
+5. **Barre de statut** : point d'état et nom du projet, message d'état (« Prêt », « Enregistré à 14:02:11 », « Build en cours... »), résumé des problèmes (« 0 erreur · 2 avertissements », cliquable vers les Diagnostics), boutons Générer et Lancer, position du curseur et langage quand un onglet de code est actif, version de l'application.
 
 ### Panneaux
 
@@ -26,7 +29,7 @@ De haut en bas :
 | Diagnostics | bas, empilé avec Sortie | problèmes |
 | Détails / Inspecteur | droite (380 px, minimum 240) | la cible sélectionnée et ses propriétés |
 
-Les panneaux peuvent être déplacés, empilés, détachés en fenêtres flottantes, masqués. **La disposition est enregistrée à la fermeture et restaurée au démarrage.** Si la disposition enregistrée ne contient pas un panneau (nouvelle version), la disposition par défaut est utilisée. Une fenêtre flottante vidée de ses panneaux est retirée, pour que ses panneaux reviennent dans la fenêtre principale quand on les rouvre. « Réinitialiser la disposition » remet celle d'origine.
+Les panneaux peuvent être déplacés, empilés, détachés en fenêtres flottantes, masqués. Pendant qu'on glisse un panneau, les **guides de dépôt** (comme dans Unreal) prennent les couleurs du thème : boutons couleur carte, flèches couleur texte, centre couleur barre latérale, et la zone où le panneau va se poser est remplie de l'accent en transparence avec un trait d'accent. **La disposition est enregistrée à la fermeture et restaurée au démarrage.** Si la disposition enregistrée ne contient pas un panneau (nouvelle version), la disposition par défaut est utilisée. Une fenêtre flottante vidée de ses panneaux est retirée, pour que ses panneaux reviennent dans la fenêtre principale quand on les rouvre. « Réinitialiser la disposition » remet celle d'origine.
 
 Les onglets n'ont pas de menu déroulant de liste ; Ctrl+Tab permet de passer de l'un à l'autre.
 
@@ -64,12 +67,14 @@ Réduite, la barre ne garde que les icônes (avec une info-bulle). Elle se rédu
 
 | Menu | Entrées |
 | --- | --- |
-| Fichier | Nouveau projet... (Ctrl+N), Ouvrir un projet... (Ctrl+O), Enregistrer tout (Ctrl+S), Enregistrer le fichier, Fermer l'onglet (Ctrl+W), Fermer le projet (retour à l'accueil) ; Ouvrir le dossier du projet, Ouvrir le dossier des sauvegardes ; Quitter |
-| Édition | Annuler (Ctrl+Z, avec la description de l'action : « Annuler : Modifier le nom affiché »), Rétablir (Ctrl+Y) ; Supprimer l'élément sélectionné, Voir le fichier de l'élément |
-| Affichage | Dashboard, Explorateur, Détails / Inspecteur, Sortie, Diagnostics ; Réinitialiser la disposition |
-| Projet | Paramètres du projet... ; Ajouter un item, un bloc, un mob, une recette ; Ajouter un graphe (événements, fonction, procédure, classe, structure, interface, énumération) ; Nouvelle classe Java (écouteur d'événements du jeu, classe utilitaire, classe vide) ; Importer des textures (PNG), des sons (OGG) ; Valider le projet (F7) |
-| Compilation | Générer le mod (.jar) (Ctrl+Maj+B), Lancer Minecraft (F5), Annuler le build ; Ouvrir le dossier des mods produits |
+| Mine Engine | Dépôt GitHub (ouvre le dépôt dans le navigateur) ; Site web (grisé tant que le site n'existe pas) |
+| Fichier | Nouveau projet... (Ctrl+N), Ouvrir un projet... (Ctrl+O), Enregistrer tout (Ctrl+S), Enregistrer le fichier, Fermer l'onglet (Ctrl+W), Fermer le projet (retour à l'accueil) ; Quitter |
+| Édition | Annuler (Ctrl+Z, avec la description de l'action : « Annuler : Modifier le nom affiché »), Rétablir (Ctrl+Y) ; Éditer, Dupliquer (Ctrl+D), Supprimer l'élément sélectionné ; Ouvrir le graphe sélectionné, Voir le code Java, Voir le fichier de l'élément |
+| Espace de travail | Paramètres du projet... ; Ouvrir le dossier du projet, Ouvrir le dossier des sauvegardes ; Nouveau dossier, Nouvelle classe Java (écouteur d'événements du jeu, classe utilitaire, classe vide) ; Valider le projet (F7) |
+| Éléments | Ajouter un item, un bloc, un mob, une recette ; Ajouter un graphe (événements, fonction, procédure, classe, structure, interface, énumération) ; Importer des textures (PNG), des sons (OGG), un élément (`.asset.json` exporté d'un autre projet : nouvel identifiant interne, identifiant libre, rangé dans le dossier ouvert ; pas pour une texture ni un son) ; Exporter l'élément sélectionné (son `.asset.json`, ou l'image ou le son d'une texture ou d'un son) |
 | Outils | Gestionnaire de MDK... ; Paramètres... (Ctrl+,) |
+| Compilation et lancement | Compiler le mod (Ctrl+Maj+B), Exporter le mod (.jar)... (compile puis copie le `.jar` à l'endroit choisi), Lancer Minecraft (F5), Recharger Gradle (régénère le projet puis `gradlew --refresh-dependencies dependencies --configuration compileClasspath`, sans compiler) ; Arrêter ; Ouvrir le dossier des mods produits |
+| Fenêtre | Dashboard, Explorateur (Ctrl+B), Détails / Inspecteur (Ctrl+Alt+B), Sortie, Diagnostics ; Mode concentration, Tout afficher, Réinitialiser la disposition |
 
 Les entrées de création ont l'icône de la sorte d'élément. Les commandes de modification sont désactivées pendant une compilation.
 
@@ -77,13 +82,7 @@ Les entrées de création ont l'icône de la sorte d'élément. Les commandes de
 
 L'onglet permanent qui liste les éléments du mod.
 
-**En-tête** : nom du projet, cible (« monmod | Minecraft 1.21.1 | neoforge | MDK ... »), résumé des problèmes et du dernier build ; à droite, Valider (F7), Générer, Lancer (bouton bleu, F5).
-
-**Barre d'outils** : + Item, + Bloc, + Mob, + Recette, + Graphe (menu des sept sortes), Importer (menu : textures, sons), Supprimer.
-
-**Filtres** par sorte, avec leur nombre : Tout, Items, Blocs, Mobs, Recettes, Textures, Sons, Graphes. **Recherche** (nom, identifiant). Nombre d'éléments affichés. Bascule **Liste** / **Vignettes**.
-
-**Fil d'Ariane des dossiers** : « Contenu du mod › Équipement › Outils », bouton dossier parent (Retour arrière), bouton « Nouveau dossier ». Chaque segment accepte qu'on y dépose un élément.
+Pas d'en-tête : le Dashboard commence directement par la liste. Les actions (ajout, recherche, mode d'affichage, compilation) sont dans la barre d'outils de la fenêtre ; le nom du projet et l'état des problèmes sont dans la barre de titre et la barre de statut. On entre dans un dossier par double-clic et on remonte avec Retour arrière ; un élément se range en le déposant sur un dossier.
 
 **Contenu** : les dossiers du dossier ouvert d'abord (nom, contenu « 10 élément(s), 2 dossier(s) », badge DOSSIER), puis les éléments. En liste, colonnes ÉLÉMENT (icône ou texture, nom, identifiant complet), ÉTAT (« OK », « 1 avertissement », « 2 erreurs », avec une pastille de couleur), UTILISÉ PAR (nombre de liens entrants), TYPE (badge). En vignettes, une grille de cartes de 120 px.
 
@@ -118,7 +117,7 @@ Les textes d'aide sous les champs donnent des repères du jeu (« Pierre : 1,5 ;
 
 ## 6. Éditeur nodal
 
-Un onglet par graphe. À gauche (ou en pleine largeur pour une structure, une interface, une énumération), le panneau **Définition** ; à droite, le **canevas**.
+Un onglet par graphe, occupé par le **canevas**. Le panneau **Définition** (nom, variables, paramètres, champs...) est affiché dans l'**Inspecteur**, sous le résumé du graphe, comme « My Blueprint » dans Unreal. Une structure, une interface ou une énumération n'a pas de nœuds : sa définition remplit l'onglet.
 
 ### Canevas
 
@@ -153,6 +152,7 @@ Un onglet par graphe. À gauche (ou en pleine largeur pour une structure, une in
 | Clic, Ctrl+clic, rectangle sur le vide | sélection |
 | Suppr ou Retour arrière | supprime la sélection (sauf l'entrée d'une fonction, qui serait sans début) |
 | Ctrl+D | duplique la sélection (et les fils entre ses nœuds) un peu plus bas à droite |
+| Double-clic sur un fil | pose une **redirection** (« reroute » d'Unreal) à cet endroit : le fil passe par ce point, que l'on déplace comme un nœud. Une redirection se dessine comme un point de la couleur du fil (blanc pour l'exécution) ; on tire un fil depuis son côté gauche ou droit. Supprimée, elle laisse le fil en place. Elle ne change rien au programme : la validation et le Java produit sont ceux du graphe sans redirections. |
 | Ctrl+A | sélectionne tout |
 | F | cadre tout le graphe |
 | Échap | annule le geste en cours, ferme le menu |
@@ -176,7 +176,7 @@ Nombre d'événements, de nœuds et de fils, état ; liste des problèmes (un cl
 Un onglet par fichier ouvert depuis l'Explorateur (ou par « Voir le fichier de l'élément », qui montre le JSON de l'élément en lecture seule, mis à jour en direct).
 
 - **Fil d'Ariane** du chemin, **barre d'outils** : Enregistrer (Ctrl+S), Rechercher (Ctrl+F), Formater (Java).
-- **Bandeau** selon le statut du fichier : code généré (lecture seule, bouton « Verrouiller pour modifier »), code verrouillé (bouton « Déverrouiller », avec avertissement que les modifications manuelles seront perdues), fichier du projet (« modifiez-le dans Projet > Paramètres du projet »), fichier produit par Gradle ou le jeu, aperçu d'un élément.
+- **Bandeau** selon le statut du fichier : code généré (lecture seule, bouton « Verrouiller pour modifier »), code verrouillé (bouton « Déverrouiller », avec avertissement que les modifications manuelles seront perdues), fichier du projet (« modifiez-le dans Espace de travail > Paramètres du projet »), fichier produit par Gradle ou le jeu, aperçu d'un élément.
 - **Texte** : numéros de ligne, coloration (Java, JSON, Markdown, XML, PowerShell, Python), ligne courante surlignée, police à chasse fixe (Cascadia Mono, sinon Consolas).
 - **Java** : blocs repliables (accolades), indentation automatique, fermeture des parenthèses, crochets, accolades et guillemets (sauf devant un mot ou après un caractère d'échappement ; taper le caractère fermant juste avant le même le saute), Entrée entre `{` et `}` ouvre un bloc indenté, **complétion** (Ctrl+Espace, ou d'elle-même après 3 lettres s'il y a une correspondance) : mots-clés, types de Minecraft courants avec leur import ajouté automatiquement, extraits (`sout`, `fori`, `subscribe`, `psvm`) et identifiants du fichier ; **formatage** (Ctrl+Maj+F) en une étape d'annulation ; erreurs de la dernière compilation soulignées dans la marge, avec leur message au survol.
 - **Rechercher et remplacer** : mot entier, respecter la casse, précédent (Maj+F3), suivant (F3), fermer (Échap).
@@ -210,7 +210,12 @@ Sans cible : « Sélectionnez un élément dans le Dashboard, ou ouvrez un fichi
 ## 11. Fenêtres secondaires
 
 - **Nouveau projet / Paramètres du projet** : nom du mod, identifiant (« Définitif après la création »), version, auteurs, site web, licence, description, MDK (liste des MDK utilisables, avec rappel de ce qu'ils fixent et lien « Gérer les MDK... »), emplacement (dossier parent, « Le projet sera créé dans : ... »). Chaque champ invalide est expliqué. Les paramètres d'un projet existant se modifient en une seule étape d'annulation.
-- **Paramètres de l'éditeur** : onglet Apparence (thème : identique au système, clair, sombre, appliqué immédiatement en aperçu et rétabli si l'on annule ; langue : English ou Français, appliquée au prochain démarrage) ; onglet Sauvegarde (intervalle de sauvegarde automatique, nombre de sauvegardes de secours conservées).
+- **Paramètres de l'éditeur**, quatre onglets :
+  - **Général** : rouvrir le dernier projet au démarrage, intervalle de sauvegarde automatique, nombre de sauvegardes de secours ; bouton « Paramètres par défaut » en bas de la fenêtre (les thèmes et langues importés sont conservés).
+  - **Apparence** : liste des thèmes avec un aperçu (fond, carte, texte, accent) et leur origine ; boutons Importer, Exporter, Supprimer (thèmes importés seulement). Couleur d'accent : celle du thème ou une des sept proposées (bleu, violet, vert, orange, rouge, rose, cyan). Taille de l'interface : 80 %, 90 %, 100 %, 110 %, 125 %, 150 %. Thème et accent sont appliqués immédiatement en aperçu et rétablis si l'on annule ; la taille est appliquée à l'enregistrement.
+  - **Langue** : liste des langues avec leur origine et, pour une langue importée, la part des textes traduits ; boutons Importer, Exporter un modèle, Supprimer. Après l'enregistrement d'une autre langue, Mine Engine propose de redémarrer ; il ferme alors la fenêtre (le projet modifié peut être enregistré) et se relance sur le même projet.
+  - **Éditeurs** : taille du texte et retour à la ligne de l'éditeur de code ; affichage de la grille et calage des nœuds sur la grille (pas de 32) dans l'éditeur de graphes.
+- **État retenu entre deux sessions** : barre latérale de l'accueil réduite ou non.
 - **Gestionnaire de MDK** : explication de ce qu'est un MDK, versions prises en charge, dossier de la bibliothèque ; tableau des MDK installés (MDK, Minecraft, loader, version du loader, Java, Gradle, état, origine) avec Supprimer et Ouvrir le dossier ; MDK officiels à télécharger ; importer une archive ou un dossier ; actualiser.
 - **Saisie d'un texte** (nouveau dossier, renommer...) : titre, question, champ, OK et Annuler.
 - **Confirmation à la fermeture** d'un projet ou d'un onglet modifié : Enregistrer, Ne pas enregistrer, Annuler. Pendant un build, la fermeture propose d'arrêter le build.
@@ -240,6 +245,24 @@ Toutes les couleurs viennent d'une palette par thème ; aucune couleur n'est éc
 | Code : ligne courante, sélection, ligne en erreur | `#303237`, `#264F78`, `#3A1F24` | `#F0F1F4`, `#ADD6FF`, `#FBE3E4` |
 
 Les contrôles standard (champs, boutons, listes déroulantes, menus, info-bulles) prennent ces gris, pas ceux du système. Le thème « identique au système » suit le réglage clair ou sombre du système et change avec lui.
+
+#### Thèmes livrés
+
+Les couleurs des thèmes sont des données (un dictionnaire nom de couleur vers `#RRGGBB`), pas des fichiers d'interface : le même format sert aux thèmes livrés, importés et exportés. Sombre et Clair définissent toutes les couleurs ci-dessus. Les cinq thèmes de couleur sont construits à partir de cinq teintes (fond, barre latérale, cartes, texte, accent) ; survols, bordures, champs, texte secondaire et sélections en sont dérivés par mélange :
+
+| Thème | Fond | Barre latérale | Cartes | Texte | Accent |
+| --- | --- | --- | --- | --- | --- |
+| Bleu nuit | `#0D1433` | `#0A0F28` | `#171F55` | `#E8EDF8` | `#49699A` |
+| Rouge carmin | `#19171B` | `#121014` | `#271318` | `#F2E8EA` | `#75020F` |
+| Vert forêt | `#09231A` | `#101C13` | `#0B372B` | `#E6F2EC` | `#3E795F` |
+| Or | `#19171B` | `#121014` | `#2F2921` | `#F2EEE4` | `#9E8123` |
+| Violet | `#1E202C` | `#17181F` | `#292A37` | `#ECECF4` | `#60519B` |
+
+Contraste élevé : fonds noirs, textes blancs, bordures grises marquées.
+
+#### Couleur d'accent
+
+Choisir un accent recalcule toutes les couleurs qui en dépendent : bouton principal (accent), survol (accent éclairci de 12 %), clic (assombri de 15 %), trait d'accent et bordure de carte sélectionnée, puis les fonds de sélection, mélanges de l'accent et du fond (barre latérale en sombre, carte en clair) à 22, 30, 40 et 50 % en sombre, 10, 17, 23 et 31 % en clair.
 
 ### Police
 

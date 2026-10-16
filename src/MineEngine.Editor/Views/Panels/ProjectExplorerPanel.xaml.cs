@@ -18,6 +18,15 @@ public partial class ProjectExplorerPanel : UserControl
         InitializeComponent();
     }
 
+    /// <summary>« Ouvrir avec » propose les programmes configurés pour ce fichier (rien pour un dossier).</summary>
+    private void OnNodeMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (sender is TreeViewItem { DataContext: FileNodeViewModel node, ContextMenu: { } menu } && DataContext is MainViewModel main)
+        {
+            OpenWithMenu.Fill(menu, node.IsDirectory ? null : node.FullPath, main);
+        }
+    }
+
     private MainViewModel? Main => DataContext as MainViewModel;
 
     private void OnSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)

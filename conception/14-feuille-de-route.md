@@ -13,10 +13,11 @@
 | V0.4.3 | Programmation en graphes | En cours : boucles, listes, types abstraits à faire |
 | V0.4.4 | Refonte graphique | Fini |
 | V0.4.5 | Nouvelles icônes et police d'écriture | Fini |
-| V0.5 | Paramétrage plus poussé de l'interface | À faire |
-| V0.5.1 | Changement et importation de thèmes | À faire |
-| V0.5.2 | Changement et importation de langues | En partie fait (anglais et français) |
-| V0.5.3 | Changement de la disposition par glisser-déposer (système Unreal) | À faire |
+| V0.5 | Paramétrage plus poussé de l'interface | Fini |
+| V0.5.1 | Changement et importation de thèmes | Fini |
+| V0.5.2 | Changement et importation de langues | Fini |
+| V0.5.3 | Changement de la disposition par glisser-déposer (système Unreal) | Fini |
+| V0.5.4 | Redirections (« reroute ») sur les fils des graphes | Fini |
 | V0.6 | Intégration du sous-programme Puppeteer (arbres d'IA) | À faire |
 | V0.6.1 | Corrections de bugs | À faire |
 | V1.0 | Alpha exploitable | À faire |
@@ -66,6 +67,14 @@ Fonctions, procédures, classes, structures, interfaces, énumérations ; pannea
 
 Gris neutres contrastés, contrôles repeints, police Roboto, style et bibliothèque d'icônes (`docs/ICONS.md`, `Icons.xaml`), icônes vectorielles par sorte d'élément et par loader, accueil épuré avec barre latérale réductible, interface en anglais par défaut avec le français au choix.
 
+### V0.5 à V0.5.2, paramètres, thèmes et langues
+
+Fenêtre Paramètres en quatre onglets (Général, Apparence, Langue, Éditeurs) ; taille de l'interface, couleur d'accent, options des éditeurs de code et de graphes, réouverture du dernier projet, état de la barre latérale retenu ; thèmes devenus des données (huit thèmes livrés, import, export, suppression) ; langues importables avec modèle de traduction, taux de traduction et redémarrage proposé.
+
+### V0.5.3 et V0.5.4, disposition et redirections
+
+Guides de dépôt des panneaux aux couleurs du thème (boutons, flèches, centre, zone visée remplie d'accent) ; redirections sur les fils des graphes : double-clic sur un fil, point déplaçable, suppression qui garde le fil, sans effet sur le Java produit.
+
 ## Reste à faire dans les versions en cours
 
 - **V0.3** : valider le critère à la main ; vérifier les mobs en jeu (IA, apparition naturelle, reproduction, œufs) et les recettes.
@@ -73,7 +82,7 @@ Gris neutres contrastés, contrôles repeints, police Roboto, style et biblioth�
 - **V0.4.1** : réduire le panneau Détails à un résumé avec « Ouvrir l'éditeur ».
 - **V0.4.2** : « Voir le code Java » depuis un élément du Dashboard, et verrouillage par élément (tous ses fichiers) ; aller à la ligne (Ctrl+G), ouverture rapide de fichiers et d'éléments (Ctrl+P).
 - **V0.4.3** : boucles (pour, tant que), listes, conversion entre types (« est un », transtypage), nombres décimaux ; classes et méthodes abstraites, surcharge ; appeler une méthode Java écrite à la main depuis un graphe (V1.1).
-- **V0.5.2** : importer une langue (fichier de traductions ajouté par l'utilisateur) ; traduire les textes écrits dans le mod généré (description par défaut de `mods.toml`, nom des œufs d'apparition, commentaires du code Java).
+- **Après V0.5.2** : traduire les textes écrits dans le mod généré (description par défaut de `mods.toml`, nom des œufs d'apparition, commentaires du code Java), qui restent en français.
 
 ## Versions à venir
 
@@ -82,7 +91,6 @@ Gris neutres contrastés, contrôles repeints, police Roboto, style et biblioth�
 | V0.5 | Paramétrage plus poussé de l'interface | |
 | V0.5.1 | Thèmes : changer, importer | |
 | V0.5.2 | Langues : changer, importer | |
-| V0.5.3 | Disposition par glisser-déposer, comme Unreal | |
 | V0.6 | Intégration de Puppeteer (arbres d'IA) | |
 | V0.6.1 | Corrections de bugs | |
 | V1.0 | Alpha exploitable : bibliothèque de nœuds (événements, conditions, math, variables, joueur, monde, items, blocs, entités, audio), débogage relié aux nœuds | Sans écrire de Java, créer un mod, un item, un bloc, une recette et un comportement en nodal, compiler, lancer et tester, sans bug majeur |

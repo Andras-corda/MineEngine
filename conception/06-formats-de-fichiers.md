@@ -253,6 +253,7 @@ Pour un graphe d'événements, `kind` et `access` ne sont pas écrits (le fichie
 - Les types de variable sont écrits `boolean`, `number`, `text`, `player`, `position`, `item`, `block`, `sound`, `object:<uuid>`, `enum:<uuid>`.
 - Les positions des nœuds sont arrondies à un chiffre après la virgule. `target` et `member` ne sont écrits que s'ils existent. Les valeurs d'un nœud sont triées par nom de broche (ordre ordinal).
 - À la lecture, un nœud de sorte inconnue (fichier plus récent) est ignoré, avec ses fils ; un fil vers un nœud absent est ignoré.
+- Une redirection (V0.5.4) est un nœud `"kind": "Reroute"` dont la valeur `type` garde le type du fil : `exec`, ou un type de valeur (`number`, `object:<uuid>`...). Fil de valeur : entrée `in`, sortie `out` ; fil d'exécution : entrée `exec`, sortie `then`.
 
 ## 5. Fichiers importés
 
@@ -277,11 +278,37 @@ Une sauvegarde est d'abord écrite dans `.zip.tmp`, puis renommée. Les sauvegar
 
 | Fichier | Contenu |
 | --- | --- |
-| `settings.json` | préférences : `{ "theme": "System", "language": "en", "autoSaveMinutes": 5, "backupsToKeep": 10 }` (thème `System`, `Light` ou `Dark` ; langue `en` ou `fr` ; sauvegarde automatique 0 à 120 minutes, 0 la désactive ; sauvegardes conservées 1 à 100). Illisible : valeurs par défaut. |
+| `settings.json` | préférences : `{ "theme": "system", "accentColor": null, "language": "en", "uiScale": 1.0, "codeFontSize": 13, "codeWordWrap": false, "graphShowGrid": true, "graphSnapToGrid": false, "reopenLastProject": false, "hubSidebarCollapsed": false, "autoSaveMinutes": 5, "backupsToKeep": 10 }`. `theme` : `system` (suit le système), l'identifiant d'un thème livré (`dark`, `light`, `blue`, `red`, `green`, `gold`, `purple`, `contrast`) ou celui d'un thème importé ; les valeurs `System`, `Light`, `Dark` des versions précédentes restent comprises. `accentColor` : `#RRGGBB` ou `null` (accent du thème). `language` : `en`, `fr` ou le code d'une langue importée. `uiScale` 0,8 à 1,5 ; `codeFontSize` 9 à 28 ; sauvegarde automatique 0 à 120 minutes, 0 la désactive ; sauvegardes conservées 1 à 100. Une clé absente garde sa valeur par défaut ; un fichier illisible donne les valeurs par défaut. |
+| `themes/<identifiant>.json` | thème importé (format ci-dessous) ; l'identifiant est tiré de son nom (`mon-theme`, `mon-theme-2`...) |
+| `languages/<code>.json` | langue importée (format ci-dessous) |
 | `projects.json` | projets connus : `{ "projects": [ { "path": "C:\\...", "lastOpened": "2026-10-15T18:22:00.0000000+02:00" } ] }` (`lastOpened` au format ISO 8601 aller-retour, ou `null`). Illisible : liste vide. |
 | `layout.v2.xml` | disposition des panneaux de l'éditeur (format propre à la bibliothèque de panneaux : une réécriture peut en choisir un autre, sous un autre nom) |
 | `logs/mineengine-AAAAMMJJ.log` | journal du jour : `HH:mm:ss.fff [NIVEAU ] message`, niveau sur 7 caractères (`DEBUG`, `INFO`, `SUCCESS`, `WARNING`, `ERROR`). Les journaux de plus de 14 jours sont supprimés au démarrage. |
 | `mdks/<identifiant>/` | un MDK installé (le projet Gradle extrait), avec son `mdk.json` |
+
+### Fichier de thème
+
+```json
+{ "formatVersion": 1, "name": "Mon thème", "base": "dark",
+  "colors": { "HubBackgroundBrush": "#19171B", "CardBrush": "#2F2921", "AccentBrush": "#9E8123" } }
+```
+
+- `base` vaut `dark` ou `light` : elle choisit l'habillage des contrôles standard et fournit les couleurs absentes.
+- Les clés sont les noms des couleurs de l'interface (voir [09](09-interface-utilisateur.md)) ; une clé inconnue est ignorée, une couleur qui n'est pas `#RRGGBB` rend le fichier invalide.
+- Un thème exporté contient toutes les couleurs, avec l'accent choisi ; c'est le point de départ conseillé pour en créer un.
+- `formatVersion` plus grand que celui connu : fichier refusé.
+
+### Fichier de langue
+
+```json
+{ "formatVersion": 1, "code": "de", "name": "Deutsch", "culture": "de-DE",
+  "translations": { "Nouveau bloc": "Neuer Block", "Déplacer {0} nœuds": "{0} Knoten verschieben" } }
+```
+
+- `code` : 2 ou 3 lettres, éventuellement suivies d'une variante (`pt-br`) ; `en` et `fr` sont réservés aux langues livrées.
+- `culture` : culture des dates et des nombres ; inconnue, `en-US` est utilisée.
+- Les clés sont les textes français du code. Une traduction vide, ou qui n'a pas les mêmes valeurs `{0}`, `{1}`... que son texte, est écartée (le nombre d'entrées écartées est affiché à l'import).
+- Le modèle exporté depuis les paramètres contient tous les textes avec leur version anglaise, `code` `xx`.
 
 `mdk.json`, dans le dossier de chaque MDK :
 

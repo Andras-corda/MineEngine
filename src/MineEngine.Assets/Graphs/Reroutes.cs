@@ -1,0 +1,148 @@
+using System.Collections.Immutable;
+
+namespace MineEngine.Assets.Graphs;
+
+/// <summary>
+/// Nœuds de redirection (« reroute » des Blueprints d'Unreal) : un point posé sur un fil pour
+/// le faire passer ailleurs et garder le graphe lisible. Une redirection porte le type du fil
+/// sur lequel elle a été créée (exécution ou valeur, enregistré dans la valeur "type") ; elle
+/// ne change rien au programme : la validation et la génération du Java travaillent sur le
+/// graphe sans redirections (<see cref="Collapse"/>).
+/// </summary>
+public static class Reroutes
+{
+    /// <summary>Valeur du nœud qui garde le type du fil : "exec" ou un type de valeur ("number", "object:guid").</summary>
+    public const string TypeKey = "type";
+
+    /// <summary>Entrée d'une redirection de valeur.</summary>
+    public const string ValueInput = "in";
+
+    /// <summary>Sortie d'une redirection de valeur.</summary>
+    public const string ValueOutput = "out";
+
+    private const string ExecType = "exec";
+
+    /// <summary>Nouvelle redirection pour un fil de ce type.</summary>
+    public static GraphNode Create(DataType type, double x, double y)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        string text = type.IsExec ? ExecType : type.ToStorageText();
+        return new GraphNode(Guid.NewGuid(), GraphNodeKind.Reroute, x, y,
+            ImmutableDictionary<string, string>.Empty.Add(TypeKey, text));
+    }
+
+    /// <summary>Type du fil que porte la redirection ; null si la valeur enregistrée est illisible.</summary>
+    public static DataType? TypeOf(GraphNode node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        string? text = node.Values.GetValueOrDefault(TypeKey);
+        return text == ExecType ? DataType.Exec : DataType.Parse(text);
+    }
+
+    /// <summary>
+    /// Broches d'une redirection : entrée et sortie d'exécution pour un fil blanc, sinon une entrée
+    /// et une sortie du type du fil. Le nom du type est donné par <paramref name="typeLabel"/>.
+    /// </summary>
+    public static NodeInfo Describe(GraphNode node, Func<DataType, string> typeLabel)
+    {
+        ArgumentNullException.ThrowIfNull(typeLabel);
+        string title = Tr.T("Redirection");
+        DataType? type = TypeOf(node);
+        if (type is null)
+        {
+            return NodeCatalog.Missing(GraphNodeKind.Reroute, title);
+        }
+
+        if (type.IsExec)
+        {
+            return new NodeInfo(GraphNodeKind.Reroute, NodeCategory.Action, title,
+                Tr.T("Point de passage d'un fil d'exécution : il ne change rien au programme."), flow: NodeFlow.Step);
+        }
+
+        string label = typeLabel(type);
+        return new NodeInfo(GraphNodeKind.Reroute, NodeCategory.Variable, title,
+            Tr.F("Point de passage d'un fil {0} : il ne change rien au programme.", label),
+            inputs: [new PinInfo(ValueInput, string.Empty, type)],
+            outputs: [new PinInfo(ValueOutput, string.Empty, type)],
+            flow: NodeFlow.Pure);
+    }
+
+    public static bool IsReroute(GraphNode node) => node.Kind == GraphNodeKind.Reroute;
+
+    /// <summary>Le graphe sans aucune redirection : chaque fil qui en traversait relie directement ses deux bouts.</summary>
+    public static NodeGraph Collapse(NodeGraph graph)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+        return graph.Nodes.Any(IsReroute) ? Bypass(graph, graph.Nodes.Where(IsReroute).Select(n => n.Id)) : graph;
+    }
+
+    /// <summary>
+    /// Retire des redirections en reliant directement ce qu'elles reliaient (suppression d'une
+    /// redirection dans l'éditeur : le fil reste).
+    /// </summary>
+    public static NodeGraph Bypass(NodeGraph graph, IEnumerable<Guid> reroutes)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+        var removed = reroutes.Where(id => graph.FindNode(id) is { } node && IsReroute(node)).ToHashSet();
+        if (removed.Count == 0)
+        {
+            return graph;
+        }
+
+        // Un fil de valeur est réécrit à la sortie de la redirection (il part de ce qui l'alimente) ;
+        // un fil d'exécution est réécrit à son entrée (il va là où elle mène). Les fils qui
+        // touchent l'autre côté disparaissent avec elle. Les chaînes de redirections sont suivies.
+        var connections = new List<GraphConnection>();
+        foreach (GraphConnection connection in graph.Connections)
+        {
+            bool fromRemoved = removed.Contains(connection.FromNode);
+            bool toRemoved = removed.Contains(connection.ToNode);
+            if (!fromRemoved && !toRemoved)
+            {
+                connections.Add(connection);
+            }
+            else if (fromRemoved && !toRemoved && connection.FromPin == ValueOutput)
+            {
+                if (Source(graph, connection.FromNode, removed, []) is { } source)
+                {
+                    connections.Add(connection with { FromNode = source.Node, FromPin = source.Pin });
+                }
+            }
+            else if (!fromRemoved && toRemoved && connection.ToPin == NodeInfo.ExecInput)
+            {
+                if (Destination(graph, connection.ToNode, removed, []) is { } destination)
+                {
+                    connections.Add(connection with { ToNode = destination.Node, ToPin = destination.Pin });
+                }
+            }
+        }
+
+        return new NodeGraph(graph.Nodes.Where(n => !removed.Contains(n.Id)), connections.Distinct());
+    }
+
+    /// <summary>Broche réelle qui alimente l'entrée d'une redirection retirée (en remontant la chaîne).</summary>
+    private static (Guid Node, string Pin)? Source(NodeGraph graph, Guid reroute, HashSet<Guid> removed, HashSet<Guid> seen)
+    {
+        if (!seen.Add(reroute) || graph.InputConnection(reroute, ValueInput) is not { } incoming)
+        {
+            return null;
+        }
+
+        return removed.Contains(incoming.FromNode)
+            ? Source(graph, incoming.FromNode, removed, seen)
+            : (incoming.FromNode, incoming.FromPin);
+    }
+
+    /// <summary>Entrée réelle vers laquelle mène la sortie d'exécution d'une redirection retirée.</summary>
+    private static (Guid Node, string Pin)? Destination(NodeGraph graph, Guid reroute, HashSet<Guid> removed, HashSet<Guid> seen)
+    {
+        if (!seen.Add(reroute) || graph.OutputConnections(reroute, NodeInfo.ExecThen).FirstOrDefault() is not { } outgoing)
+        {
+            return null;
+        }
+
+        return removed.Contains(outgoing.ToNode)
+            ? Destination(graph, outgoing.ToNode, removed, seen)
+            : (outgoing.ToNode, outgoing.ToPin);
+    }
+}

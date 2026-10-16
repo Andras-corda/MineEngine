@@ -1,14 +1,17 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 using System.Windows.Data;
 using System.Windows.Input;
 using MineEngine.Assets;
 using MineEngine.Assets.Commands;
 using MineEngine.Assets.Definitions;
 using MineEngine.Assets.Graphs;
+using MineEngine.Assets.Serialization;
 using MineEngine.Core.Assets;
 using MineEngine.Core.Commands;
 using MineEngine.Core.Identifiers;
+using MineEngine.Core.Json;
 using MineEngine.Editor.Mvvm;
 using MineEngine.Editor.ViewModels.Assets;
 using MineEngine.Project;
@@ -91,6 +94,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         }
 
         FilteredAssets = new ListCollectionView(Assets) { Filter = MatchesFilter };
+        Resources = new ResourcesViewModel(this, factory.Catalog.Definitions.Select(d => (d.Type, PluralLabel(d))));
         UpdateFilterCounts();
         RefreshFolders();
 
@@ -111,6 +115,9 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         Tr.F("{0}  |  Minecraft {1}  |  {2}  |  MDK {3}", Model.Settings.ModId, Model.Settings.MinecraftVersion, Model.Settings.LoaderId, Model.Settings.MdkId ?? Tr.T("non choisi"));
 
     public ObservableCollection<AssetViewModel> Assets { get; } = [];
+
+    /// <summary>Onglet Ressources : tous les éléments, rangés par sorte et triés.</summary>
+    public ResourcesViewModel Resources { get; }
 
     /// <summary>Vue filtrée affichée par le Content Browser.</summary>
     public ICollectionView FilteredAssets { get; }
@@ -277,6 +284,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _selectedAsset, value))
             {
                 OnPropertyChanged(nameof(HasSelection));
+                Resources?.OnSelectionChanged();
             }
         }
     }
@@ -351,6 +359,91 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         }
 
         return errors;
+    }
+
+    /// <summary>
+    /// Vrai pour les assets qui peuvent être dupliqués : contenu du mod et graphes. Une texture
+    /// ou un son pointe vers un fichier ; sa copie partagerait ce fichier.
+    /// </summary>
+    public static bool CanDuplicate(AssetViewModel? viewModel) =>
+        viewModel is not null && viewModel.Model.Type is not (AssetType.Texture or AssetType.Sound);
+
+    /// <summary>
+    /// Copie un asset avec un nouvel identifiant (« magic_sword_copy », puis « magic_sword_copy_2 »...)
+    /// dans le même dossier (étape annulable), puis la sélectionne.
+    /// </summary>
+    public Asset DuplicateAsset(AssetViewModel source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (!CanDuplicate(source))
+        {
+            throw new InvalidOperationException(Tr.T("Les textures et les sons ne peuvent pas être dupliqués : importez de nouveau le fichier."));
+        }
+
+        // La copie passe par le format de fichier des assets : toutes les propriétés suivent, y compris celles à venir.
+        var serializer = new AssetSerializer(_factory.Catalog);
+        JsonObject root = JsonFormatting.ParseObject(serializer.Serialize(source.Model), source.Model.ResourceId.Value);
+        root["guid"] = Guid.NewGuid().ToString("D");
+        root["resourceId"] = Model.Assets.CreateUniqueResourceId(source.Model.ResourceId.Value + "_copy", source.Model.Type).Value;
+        root["displayName"] = string.IsNullOrWhiteSpace(source.Model.DisplayName)
+            ? string.Empty
+            : Tr.F("{0} (copie)", source.Model.DisplayName);
+        Asset copy = serializer.Deserialize(root, source.Model.ResourceId.Value);
+        History.Execute(new AddAssetCommand(Model.Assets, copy, source.TypeLabel));
+        SelectAsset(copy.Id);
+        return copy;
+    }
+
+    /// <summary>
+    /// Fichier à écrire pour exporter un asset : l'image ou le son d'une texture ou d'un son,
+    /// sinon son fichier .asset.json (que l'on peut importer dans un autre projet).
+    /// </summary>
+    public string ExportFileName(AssetViewModel viewModel)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+        return viewModel.Model is FileAsset file
+            ? Path.GetFileName(file.FilePath)
+            : viewModel.Model.ResourceId.Value + AssetSerializer.FileExtension;
+    }
+
+    /// <summary>Écrit l'asset dans le fichier choisi (voir <see cref="ExportFileName"/>).</summary>
+    public void ExportAsset(AssetViewModel viewModel, string targetFile)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetFile);
+        if (viewModel.Model is FileAsset file)
+        {
+            File.Copy(Model.Layout.ToAbsolutePath(file.FilePath), targetFile, overwrite: true);
+            return;
+        }
+
+        Core.IO.AtomicFile.WriteAllText(targetFile, new AssetSerializer(_factory.Catalog).Serialize(viewModel.Model));
+    }
+
+    /// <summary>
+    /// Ajoute au dossier ouvert un élément exporté depuis un projet (.asset.json), avec un nouvel
+    /// identifiant interne et un identifiant libre (étape annulable). Les liens vers des éléments
+    /// absents de ce projet sont signalés par la validation.
+    /// </summary>
+    public Asset ImportAssetFile(string sourceFile)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFile);
+        var serializer = new AssetSerializer(_factory.Catalog);
+        string name = Path.GetFileName(sourceFile);
+        JsonObject root = JsonFormatting.ParseObject(File.ReadAllText(sourceFile), name);
+        Asset read = serializer.Deserialize(root, name);
+        if (read is FileAsset)
+        {
+            throw new InvalidDataException(Tr.T("Une texture ou un son s'importe directement depuis son fichier PNG ou OGG."));
+        }
+
+        root["guid"] = Guid.NewGuid().ToString("D");
+        root["resourceId"] = Model.Assets.CreateUniqueResourceId(read.ResourceId.Value, read.Type).Value;
+        Asset asset = serializer.Deserialize(root, name);
+        asset.Folder = _currentFolder;
+        History.Execute(new AddAssetCommand(Model.Assets, asset, _factory.Catalog.Get(asset.Type).Label));
+        SelectAsset(asset.Id);
+        return asset;
     }
 
     /// <summary>Supprime un asset (étape annulable).</summary>

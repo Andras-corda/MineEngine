@@ -16,6 +16,7 @@ using MineEngine.Minecraft.Java;
 using MineEngine.Minecraft.Mdk;
 using MineEngine.Minecraft.NeoForge;
 using MineEngine.Project;
+using MineEngine.Project.Localization;
 using MineEngine.Project.Serialization;
 
 namespace MineEngine.Tests;
@@ -176,6 +177,39 @@ public sealed class GeneratorTests
         Assert.Equal("com.mineengine.mods.int_mod", naming.RootPackage);
         Assert.Equal("ModBlocksMod", naming.MainClass);
         Assert.Equal("ITEMS_ENTRY", naming.ConstantFor(ResourceId.Parse("items")));
+    }
+
+    [Fact]
+    public async Task Mod_languages_follow_the_languages_tab()
+    {
+        using var temp = new TemporaryDirectory();
+        var backend = new FakeBackend(ModLoaderKind.NeoForge, "1.21.1", new NeoForgeJavaEmitter());
+        ModProject project = CreateSampleProject(temp.Path, backend.LoaderId, backend.MinecraftVersion.Id);
+        project.Localization = project.Localization
+            .WithLocale("de_de")
+            .WithTranslation("de_de", "item.testmod.ruby", "Rubin")
+            .WithTranslation("en_us", "item.testmod.ruby", "Ruby")
+            .WithTranslation("de_de", "message.testmod.hello", "Hallo");
+        ModIR ir = ModIRBuilder.CreateDefault().Build(project, new DiagnosticBag())!;
+        string workspace = Path.Combine(temp.Path, "workspace");
+        Assert.True((await ModGenerator.CreateDefault(backend).GenerateAsync(ir, workspace, NullLog.Instance, CancellationToken.None)).Success);
+
+        JsonObject Lang(string locale) =>
+            JsonNode.Parse(File.ReadAllText(Path.Combine(workspace, $"src/main/resources/assets/testmod/lang/{locale}.json")))!.AsObject();
+
+        JsonObject english = Lang("en_us");
+        JsonObject french = Lang("fr_fr");
+        JsonObject german = Lang("de_de");
+        Assert.Equal("Ruby", english["item.testmod.ruby"]!.GetValue<string>());
+        Assert.Equal("Rubis", french["item.testmod.ruby"]!.GetValue<string>());
+        Assert.Equal("Rubin", german["item.testmod.ruby"]!.GetValue<string>());
+        Assert.Equal("Bloc de rubis", german["block.testmod.ruby_block"]!.GetValue<string>());
+        Assert.Equal("Hallo", german["message.testmod.hello"]!.GetValue<string>());
+
+        // L'onglet Langues montre exactement les clés que le générateur écrit.
+        Assert.Equal(
+            ModTranslationKeys.Collect(project).Select(e => e.Key).Order(StringComparer.Ordinal),
+            french.Select(e => e.Key).Order(StringComparer.Ordinal));
     }
 
     private static async Task<string> GenerateAsync(string directory, FakeBackend backend)

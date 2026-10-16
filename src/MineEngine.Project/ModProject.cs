@@ -1,5 +1,6 @@
 using MineEngine.Assets;
 using MineEngine.Core.Commands;
+using MineEngine.Project.Localization;
 
 namespace MineEngine.Project;
 
@@ -7,6 +8,7 @@ namespace MineEngine.Project;
 public sealed class ModProject
 {
     private bool _isDirty;
+    private ModLocalization _localization = ModLocalization.Default;
 
     public ModProject(ProjectLayout layout, ProjectSettings settings, AssetRegistry assets)
     {
@@ -20,6 +22,9 @@ public sealed class ModProject
     /// <summary>Déclenché quand le projet passe de "enregistré" à "modifié" ou inversement.</summary>
     public event EventHandler? DirtyStateChanged;
 
+    /// <summary>Déclenché quand les langues ou les traductions du mod changent (modification, annulation).</summary>
+    public event EventHandler? LocalizationChanged;
+
     public ProjectLayout Layout { get; }
 
     public ProjectSettings Settings { get; }
@@ -30,6 +35,21 @@ public sealed class ModProject
     public UndoHistory History { get; } = new();
 
     public string Name => Settings.ModName;
+
+    /// <summary>Langues du mod et traductions saisies (onglet Langues). Se modifie par l'historique.</summary>
+    public ModLocalization Localization
+    {
+        get => _localization;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (!ReferenceEquals(_localization, value))
+            {
+                _localization = value;
+                LocalizationChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    }
 
     /// <summary>Remarques produites à l'ouverture (conversion d'un ancien format...).</summary>
     public IReadOnlyList<string> LoadNotes { get; init; } = [];

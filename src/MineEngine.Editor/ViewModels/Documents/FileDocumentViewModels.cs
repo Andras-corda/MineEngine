@@ -58,7 +58,7 @@ public sealed class FileDocumentViewModel : CodeDocumentViewModel, IDisposable
     {
         ProjectFileKind.Generated => Tr.T("Code généré par Mine Engine : il est réécrit à chaque compilation. Verrouillez-le pour le modifier à la main."),
         ProjectFileKind.Locked => Tr.T("Code verrouillé : Mine Engine ne réécrit plus ce fichier. Les changements faits dans les éléments ne s'y appliquent plus."),
-        ProjectFileKind.ProjectFile => Tr.T("Fichier du projet : modifiez-le dans Projet > Paramètres du projet."),
+        ProjectFileKind.ProjectFile => Tr.T("Fichier du projet : modifiez-le dans Espace de travail > Paramètres du projet."),
         ProjectFileKind.BuildOutput => Tr.T("Fichier produit par la compilation ou par le jeu."),
         _ => null,
     };

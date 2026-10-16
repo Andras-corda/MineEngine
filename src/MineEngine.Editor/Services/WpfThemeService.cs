@@ -1,4 +1,6 @@
 using System.Windows;
+using System.Windows.Media;
+using MineEngine.Core.Theming;
 using MineEngine.Editor.Settings;
 using ModernWpf;
 
@@ -7,63 +9,91 @@ namespace MineEngine.Editor.Services;
 /// <summary>Applique un thème à toute l'interface.</summary>
 public interface IThemeService
 {
-    /// <summary>Thème choisi (Identique à Windows, Clair ou Sombre).</summary>
-    AppTheme Current { get; }
+    /// <summary>Thèmes livrés et importés.</summary>
+    ThemeLibrary Library { get; }
+
+    /// <summary>Identifiant du thème choisi (<see cref="EditorSettings.SystemThemeId"/> pour suivre Windows).</summary>
+    string CurrentThemeId { get; }
+
+    /// <summary>Accent choisi ; null garde celui du thème.</summary>
+    RgbColor? CurrentAccent { get; }
+
+    /// <summary>Thème effectivement affiché (celui de Windows pour le thème système).</summary>
+    ThemeDefinition ActualTheme { get; }
 
     /// <summary>Vrai si l'interface est actuellement affichée en sombre.</summary>
     bool IsDark { get; }
 
-    /// <summary>Déclenché quand l'interface passe effectivement de clair à sombre ou inversement.</summary>
+    /// <summary>Déclenché après chaque changement de couleurs.</summary>
     event EventHandler? AppearanceChanged;
 
-    void Apply(AppTheme theme);
+    /// <summary>Applique un thème ; un identifiant inconnu (thème supprimé) suit Windows.</summary>
+    void Apply(string themeId, RgbColor? accent);
 }
 
 /// <summary>
-/// Thème basé sur ModernWpf : son ThemeManager redessine les contrôles en clair ou
-/// en sombre (ou suit Windows) ; la palette propre à Mine Engine (titres, badges,
-/// couleurs de la console) est échangée en même temps.
+/// Thème basé sur ModernWpf : son ThemeManager redessine les contrôles en clair ou en sombre
+/// selon la base du thème ; les couleurs propres à Mine Engine (titres, badges, console, sélections)
+/// sont construites à partir des données du thème et remplacées d'un bloc.
 /// </summary>
 public sealed class WpfThemeService : IThemeService
 {
-    private static readonly Uri LightPalette = new("pack://application:,,,/MineEngine.Editor;component/Themes/LightPalette.xaml");
-    private static readonly Uri DarkPalette = new("pack://application:,,,/MineEngine.Editor;component/Themes/DarkPalette.xaml");
-
-    /// <summary>Couleur d'accent de Mine Engine (bleu), indépendante de celle de Windows.</summary>
-    private static readonly System.Windows.Media.Color AccentColor = System.Windows.Media.Color.FromRgb(0x2F, 0x7F, 0xD8);
-
     private readonly Application _application;
     private ResourceDictionary? _currentPalette;
 
-    public WpfThemeService(Application application)
+    public WpfThemeService(Application application, ThemeLibrary library)
     {
         _application = application ?? throw new ArgumentNullException(nameof(application));
-        ThemeManager.Current.AccentColor = AccentColor;
-        ThemeManager.Current.ActualApplicationThemeChanged += (_, _) => ApplyPalette();
+        Library = library ?? throw new ArgumentNullException(nameof(library));
+        ThemeManager.Current.ActualApplicationThemeChanged += (_, _) =>
+        {
+            if (CurrentThemeId == EditorSettings.SystemThemeId)
+            {
+                ApplyPalette();
+            }
+        };
     }
 
     public event EventHandler? AppearanceChanged;
 
-    public AppTheme Current { get; private set; } = AppTheme.System;
+    public ThemeLibrary Library { get; }
 
-    public bool IsDark => ThemeManager.Current.ActualApplicationTheme == ApplicationTheme.Dark;
+    public string CurrentThemeId { get; private set; } = EditorSettings.SystemThemeId;
 
-    public void Apply(AppTheme theme)
+    public RgbColor? CurrentAccent { get; private set; }
+
+    public ThemeDefinition ActualTheme { get; private set; } = BuiltInThemes.Dark;
+
+    public bool IsDark => ActualTheme.IsDark;
+
+    public void Apply(string themeId, RgbColor? accent)
     {
-        Current = theme;
-        ThemeManager.Current.ApplicationTheme = theme switch
-        {
-            AppTheme.Light => ApplicationTheme.Light,
-            AppTheme.Dark => ApplicationTheme.Dark,
-            _ => null,
-        };
-
+        ThemeDefinition? theme = themeId == EditorSettings.SystemThemeId ? null : Library.Find(themeId);
+        CurrentThemeId = theme?.Id ?? EditorSettings.SystemThemeId;
+        CurrentAccent = accent;
+        ThemeManager.Current.ApplicationTheme = theme is null ? null : theme.IsDark ? ApplicationTheme.Dark : ApplicationTheme.Light;
         ApplyPalette();
     }
 
     private void ApplyPalette()
     {
-        var palette = new ResourceDictionary { Source = IsDark ? DarkPalette : LightPalette };
+        ActualTheme = CurrentThemeId == EditorSettings.SystemThemeId
+            ? ThemeManager.Current.ActualApplicationTheme == ApplicationTheme.Light ? BuiltInThemes.Light : BuiltInThemes.Dark
+            : Library.Find(CurrentThemeId) ?? BuiltInThemes.Dark;
+
+        IReadOnlyDictionary<string, string> colors = ActualTheme.Resolve(CurrentAccent);
+        var palette = new ResourceDictionary();
+        foreach ((string key, string value) in colors)
+        {
+            RgbColor color = RgbColor.Parse(value);
+            var brush = new SolidColorBrush(Color.FromRgb(color.R, color.G, color.B));
+            brush.Freeze();
+            palette[key] = brush;
+        }
+
+        RgbColor accent = AccentColors.Of(colors);
+        ThemeManager.Current.AccentColor = Color.FromRgb(accent.R, accent.G, accent.B);
+
         if (_currentPalette is not null)
         {
             _application.Resources.MergedDictionaries.Remove(_currentPalette);

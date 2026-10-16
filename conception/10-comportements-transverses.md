@@ -101,6 +101,13 @@ Les messages suivent un ton constant : phrases complètes, sans jargon de progra
 - **Un même mot qui a deux sens doit avoir deux textes** : « Annuler » (bouton d'une fenêtre, « Cancel ») et « _Annuler » (menu Édition, « Undo »).
 - **Ne sont pas traduits** : les identifiants, les noms techniques (Java, Gradle, JSON), et tout ce qui part dans le mod généré (code Java, `mods.toml`, fichiers de langue du jeu).
 
+### Langues importées
+
+- Une langue peut être ajoutée sans recompiler : un fichier `.json` (format dans [06](06-formats-de-fichiers.md)) importé depuis les paramètres est copié dans `%LOCALAPPDATA%\MineEngine\languages`.
+- **Ordre de repli** : traduction de la langue importée, sinon l'anglais, sinon le texte français.
+- Une traduction composite mal formée (accolade oubliée) ne fait pas planter l'interface : le texte source est affiché.
+- Un fichier de langue devenu illisible au démarrage : l'interface reste en anglais.
+
 ### Contrôle automatique
 
 Un test parcourt le code et les vues, extrait tous les textes passés au traducteur, et échoue si l'un d'eux n'a pas de traduction anglaise, ou si une traduction n'a pas les mêmes `{n}` que son texte source. Il vérifie aussi qu'il a bien trouvé plus de 1 000 textes (sinon c'est l'extraction qui est cassée).
@@ -113,12 +120,19 @@ Garder le français comme langue source n'est pas une obligation. Une réécritu
 
 | Préférence | Défaut | Valeurs |
 | --- | --- | --- |
-| Thème | identique au système | système, clair, sombre ; appliqué immédiatement en aperçu |
-| Langue | anglais | anglais, français ; au prochain démarrage |
+| Thème | identique au système | système, thèmes livrés, thèmes importés ; appliqué immédiatement en aperçu |
+| Couleur d'accent | celle du thème | celle du thème ou une des sept proposées ; en aperçu |
+| Taille de l'interface | 100 % | 80 % à 150 % |
+| Langue | anglais | anglais, français, langues importées ; au prochain démarrage (redémarrage proposé) |
+| Rouvrir le dernier projet | non | oui, non |
+| Éditeur de code : taille du texte | 13 | 9 à 28 |
+| Éditeur de code : retour à la ligne | non | oui, non |
+| Graphes : grille affichée | oui | oui, non |
+| Graphes : calage sur la grille | non | oui, non |
 | Sauvegarde automatique | 5 minutes | 0 (désactivée) à 120 |
 | Sauvegardes de secours conservées | 10 | 1 à 100 |
 
-Les préférences sont enregistrées quand l'utilisateur valide la fenêtre ; annuler rétablit le thème précédent.
+Les préférences sont enregistrées quand l'utilisateur valide la fenêtre ; annuler rétablit le thème et l'accent précédents. Les thèmes et langues importés ou supprimés le sont immédiatement (ce sont des fichiers). L'état de la barre latérale de l'accueil est enregistré dès qu'il change.
 
 ## 8. Gestion des erreurs
 

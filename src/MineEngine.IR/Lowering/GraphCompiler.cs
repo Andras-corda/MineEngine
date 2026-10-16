@@ -31,7 +31,7 @@ public sealed class GraphCompiler
         _asset = asset ?? throw new ArgumentNullException(nameof(asset));
         _program = program ?? throw new ArgumentNullException(nameof(program));
         _resolveContent = resolveContent ?? throw new ArgumentNullException(nameof(resolveContent));
-        _graph = asset.Graph;
+        _graph = Reroutes.Collapse(asset.Graph);
         _infos = _graph.Nodes.ToDictionary(n => n.Id, n => program.Describe(n, asset));
     }
 

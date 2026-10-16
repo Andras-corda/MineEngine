@@ -4,6 +4,7 @@ using MineEngine.Build;
 using MineEngine.Build.Gradle;
 using MineEngine.Build.Java;
 using MineEngine.Core.Logging;
+using MineEngine.Core.Theming;
 using MineEngine.Editor;
 using MineEngine.Editor.Services;
 using MineEngine.Editor.Settings;
@@ -41,9 +42,12 @@ internal sealed class CompositionRoot : IDisposable
         string projectsDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "MineEngine Projects");
 
-        // Préférences de l'éditeur (thème) : appliquées avant la création des fenêtres
+        // Préférences de l'éditeur (thème, langue, taille) : appliquées avant la création des fenêtres
         Preferences = new EditorPreferences(
-            new EditorSettingsStore(Path.Combine(localData, "settings.json")), new WpfThemeService(application));
+            new EditorSettingsStore(Path.Combine(localData, "settings.json")),
+            new WpfThemeService(application, new ThemeLibrary(Path.Combine(localData, "themes"))),
+            new WpfInterfaceService(application),
+            new LanguageLibrary(Path.Combine(localData, "languages")));
         Preferences.Load();
 
         // Journal : console Output de l'éditeur et fichier dans %LOCALAPPDATA%\MineEngine\logs
@@ -78,7 +82,7 @@ internal sealed class CompositionRoot : IDisposable
         var knownProjects = new KnownProjectsStore(Path.Combine(localData, "projects.json"));
         MainViewModel = new MainViewModel(
             repository, new ProjectBackupService(), assetViewModels, pipeline, dialogs, shell, mdks, Preferences, Output, Log,
-            open => new ProjectHubViewModel(knownProjects, new ProjectSettingsSerializer(), dialogs, shell, projectsDirectory, open));
+            open => new ProjectHubViewModel(knownProjects, new ProjectSettingsSerializer(), dialogs, shell, projectsDirectory, Preferences, open));
     }
 
     public EditorPreferences Preferences { get; }

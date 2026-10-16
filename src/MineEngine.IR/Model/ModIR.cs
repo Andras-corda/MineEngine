@@ -1,3 +1,5 @@
+using MineEngine.Project.Localization;
+
 namespace MineEngine.IR.Model;
 
 /// <summary>
@@ -7,11 +9,15 @@ namespace MineEngine.IR.Model;
 /// </summary>
 public sealed class ModIR
 {
-    public ModIR(IRModInfo mod, IRContent content)
+    public ModIR(IRModInfo mod, IRContent content, ModLocalization? localization = null)
     {
         Mod = mod ?? throw new ArgumentNullException(nameof(mod));
         Content = content ?? throw new ArgumentNullException(nameof(content));
+        Localization = localization ?? ModLocalization.Default;
     }
+
+    /// <summary>Langues du mod et traductions saisies par l'utilisateur.</summary>
+    public ModLocalization Localization { get; }
 
     public IRModInfo Mod { get; }
 

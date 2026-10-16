@@ -4,6 +4,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using MineEngine.Editor.Mvvm;
 using MineEngine.Editor.Services;
+using MineEngine.Editor.Settings;
 using MineEngine.Project;
 using MineEngine.Project.Serialization;
 using MineEngine.Project.Workspace;
@@ -40,6 +41,7 @@ public sealed class ProjectHubViewModel : ObservableObject
     private readonly IDialogService _dialogs;
     private readonly IShellService _shell;
     private readonly Action<string> _openProject;
+    private readonly EditorPreferences _preferences;
     private readonly ListCollectionView _view;
     private HubPage _page = HubPage.Home;
     private string _searchText = string.Empty;
@@ -56,8 +58,11 @@ public sealed class ProjectHubViewModel : ObservableObject
         IDialogService dialogs,
         IShellService shell,
         string defaultProjectsDirectory,
+        EditorPreferences preferences,
         Action<string> openProject)
     {
+        _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
+        _isSidebarCollapsed = preferences.Current.HubSidebarCollapsed;
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _settingsSerializer = settingsSerializer ?? throw new ArgumentNullException(nameof(settingsSerializer));
         _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
@@ -105,12 +110,22 @@ public sealed class ProjectHubViewModel : ObservableObject
 
     public bool IsHelpPage => _page == HubPage.Help;
 
-    /// <summary>Barre latérale réduite à ses icônes.</summary>
+    /// <summary>Barre latérale réduite à ses icônes ; l'état est retrouvé au prochain démarrage.</summary>
     public bool IsSidebarCollapsed
     {
         get => _isSidebarCollapsed;
-        set => SetProperty(ref _isSidebarCollapsed, value);
+        set
+        {
+            if (SetProperty(ref _isSidebarCollapsed, value))
+            {
+                _preferences.Remember(settings => settings.HubSidebarCollapsed = value);
+            }
+        }
     }
+
+    /// <summary>Dossier du dernier projet ouvert qui existe encore, ou null.</summary>
+    public string? LastOpenedProject =>
+        Projects.Where(p => !p.IsMissing && p.LastOpened is not null).MaxBy(p => p.SortDate)?.RootDirectory;
 
     public string SearchText
     {

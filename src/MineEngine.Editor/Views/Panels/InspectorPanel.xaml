@@ -105,7 +105,7 @@
                     </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>
-            <!-- Onglet de graphe : résumé, nœud sélectionné, problèmes (un clic montre le nœud). -->
+            <!-- Onglet de graphe : résumé, définition, nœud sélectionné, problèmes (un clic montre le nœud). -->
             <DataTemplate DataType="{x:Type graphs:GraphDocumentViewModel}">
                 <StackPanel>
                     <Border Style="{StaticResource DetailsSection}">
@@ -128,6 +128,12 @@
                                 <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'État'}" />
                             </DockPanel>
                         </StackPanel>
+                    </Border>
+
+                    <!-- Définition (nom, variables, paramètres...) : comme le panneau « My Blueprint » d'Unreal.
+                         Une structure, une interface ou une énumération n'a pas de nœuds : sa définition reste dans l'onglet. -->
+                    <Border Margin="-10,0,-10,10" Visibility="{Binding HasBody, Converter={StaticResource BoolToVisibility}}">
+                        <graphviews:DefinitionPanel DataContext="{Binding Definition}" />
                     </Border>
 
                     <Border Style="{StaticResource DetailsSection}" Visibility="{Binding SelectedNode, Converter={StaticResource NullToCollapsed}}">

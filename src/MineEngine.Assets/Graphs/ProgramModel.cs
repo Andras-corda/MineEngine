@@ -196,6 +196,7 @@ public sealed class ProgramModel
             GraphNodeKind.EnumLiteral or GraphNodeKind.EnumEquals => EnumNode(node, graph),
             GraphNodeKind.Self => Self(graph),
             GraphNodeKind.SuperConstructor => Super(node, graph),
+            GraphNodeKind.Reroute => Reroutes.Describe(node, TypeLabel),
             _ => NodeCatalog.Missing(node.Kind, node.Kind.ToString()),
         };
     }

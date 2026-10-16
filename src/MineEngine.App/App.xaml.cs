@@ -38,6 +38,10 @@ public partial class App : Application
         {
             _compositionRoot.MainViewModel.OpenProjectAtStartup(e.Args[0]);
         }
+        else
+        {
+            _compositionRoot.MainViewModel.ReopenLastProjectAtStartup();
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

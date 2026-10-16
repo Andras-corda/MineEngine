@@ -52,12 +52,16 @@ public static class JavaClassTemplates
     public static string Create(JavaClassKind kind, string package, string className, ModId modId, ModLoaderKind loader)
     {
         string header = package.Length == 0 ? string.Empty : $"package {package};\n\n";
-        return header + kind switch
+        string body = kind switch
         {
             JavaClassKind.EventListener => EventListener(className, modId, loader),
             JavaClassKind.Utility => Utility(className),
             _ => $"public class {className} {{\n}}\n",
         };
+
+        // Les textes multilignes reprennent les fins de ligne de ce fichier source (CRLF selon Git) :
+        // le code Java écrit utilise toujours LF.
+        return header + body.ReplaceLineEndings("\n");
     }
 
     private static string EventListener(string className, ModId modId, ModLoaderKind loader)

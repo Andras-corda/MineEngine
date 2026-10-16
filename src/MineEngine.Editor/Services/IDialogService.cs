@@ -36,8 +36,14 @@ public interface IDialogService
 
     void ShowMdkManager();
 
-    /// <summary>Fenêtre des paramètres de l'éditeur (thème...).</summary>
-    void ShowSettings();
+    /// <summary>Fenêtre des paramètres de l'éditeur ; vrai si l'utilisateur demande de relancer Mine Engine.</summary>
+    bool ShowSettings();
+
+    /// <summary>Fichier à importer (filtre au format "Libellé|*.ext") ; null si l'utilisateur annule.</summary>
+    string? AskFileToOpen(string title, string filter);
+
+    /// <summary>Emplacement où exporter un fichier ; null si l'utilisateur annule.</summary>
+    string? AskFileToSave(string title, string filter, string defaultFileName);
 
     string? AskProjectToOpen();
 
@@ -73,4 +79,13 @@ public interface IShellService
 
     /// <summary>Ouvre un fichier avec l'application associée par Windows.</summary>
     void OpenFile(string file);
+
+    /// <summary>Ouvre une adresse web (http ou https) dans le navigateur par défaut.</summary>
+    void OpenUrl(string url);
+
+    /// <summary>Ouvre un fichier avec un programme choisi (chemin de son .exe).</summary>
+    void OpenWith(string program, string file);
+
+    /// <summary>Fenêtre « Ouvrir avec » de Windows, pour choisir une autre application.</summary>
+    void ShowOpenWithDialog(string file);
 }

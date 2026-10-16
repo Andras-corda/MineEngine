@@ -6,7 +6,7 @@
     <!--
         Style de base de Mine Engine, celui de l'accueil : fonds gris neutres, cartes arrondies,
         accent bleu, onglets soulignés. Toutes les vues et fenêtres fusionnent ce dictionnaire ;
-        les couleurs viennent de la palette du thème (Themes/*Palette.xaml).
+        les couleurs viennent du thème actif (MineEngine.Core/Theming, appliqué par WpfThemeService).
     -->
 
     <!-- Icônes (glyphes, géométries et styles d'icônes), voir docs/ICONS.md -->

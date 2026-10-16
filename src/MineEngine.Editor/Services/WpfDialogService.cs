@@ -70,10 +70,29 @@ public sealed class WpfDialogService : IDialogService
         window.ShowDialog();
     }
 
-    public void ShowSettings()
+    public bool ShowSettings()
     {
-        var window = new SettingsWindow(new SettingsViewModel(_preferences)) { Owner = Owner };
-        window.ShowDialog();
+        var viewModel = new SettingsViewModel(_preferences, this);
+        var window = new SettingsWindow(viewModel) { Owner = Owner };
+        return window.ShowDialog() == true && viewModel.RestartRequested;
+    }
+
+    public string? AskFileToOpen(string title, string filter)
+    {
+        var dialog = new OpenFileDialog { Title = title, Filter = filter };
+        return ShowDialog(dialog) ? dialog.FileName : null;
+    }
+
+    public string? AskFileToSave(string title, string filter, string defaultFileName)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Title = title,
+            Filter = filter,
+            FileName = string.Join("_", defaultFileName.Split(Path.GetInvalidFileNameChars())),
+            OverwritePrompt = true,
+        };
+        return ShowDialog(dialog) ? dialog.FileName : null;
     }
 
     public string? AskProjectToOpen()

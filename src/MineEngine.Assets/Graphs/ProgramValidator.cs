@@ -252,7 +252,7 @@ public static class ProgramValidator
     /// <summary>Le constructeur parent, s'il a des paramètres, doit être appelé juste après l'entrée.</summary>
     private static void ValidateSuperCall(GraphAsset graph, ProgramModel program, List<GraphIssue> issues)
     {
-        NodeGraph body = graph.Graph;
+        NodeGraph body = Reroutes.Collapse(graph.Graph);
         GraphNode? entry = body.Nodes.FirstOrDefault(n => n.Kind == GraphNodeKind.FunctionEntry);
         GraphNode? first = entry is null ? null : body.NextNode(entry.Id, NodeInfo.ExecThen);
         foreach (GraphNode super in body.Nodes.Where(n => n.Kind == GraphNodeKind.SuperConstructor && n.Id != first?.Id))

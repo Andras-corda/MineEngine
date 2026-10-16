@@ -62,7 +62,7 @@ Les autres MDK apparaissent dans le gestionnaire avec l'état « Non pris en cha
 
 1. Le MDK enregistré dans le projet, s'il est installé.
 2. Sinon, un MDK installé du même loader et de la même version de Minecraft, que le générateur prend en charge ; un avertissement signale la substitution.
-3. Sinon, erreur : « Le MDK 'X' n'est pas installé. Installez-le avec Outils > Gestionnaire de MDK, ou choisissez-en un autre dans Projet > Paramètres du projet. »
+3. Sinon, erreur : « Le MDK 'X' n'est pas installé. Installez-le avec Outils > Gestionnaire de MDK, ou choisissez-en un autre dans Espace de travail > Paramètres du projet. »
 4. Un MDK trouvé mais non pris en charge : erreur qui cite les versions prises en charge.
 
 ## 3. Trouver un JDK

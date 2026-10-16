@@ -58,6 +58,12 @@
                           Command="{Binding PlacementTarget.Tag.ShowAssetDetailsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 <MenuItem Header="{l:Tr 'Voir le fichier de l\'asset'}"
                           Command="{Binding PlacementTarget.Tag.OpenAssetSourceCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                <!-- Rempli à l'ouverture du menu (voir OpenWithMenu). -->
+                <MenuItem Header="{l:Tr 'Ouvrir avec'}" Tag="openWith" />
+                <MenuItem Header="{l:Tr 'Voir le code Java'}"
+                          Command="{Binding PlacementTarget.Tag.OpenAssetJavaCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                <MenuItem Header="{l:Tr 'Dupliquer'}" InputGestureText="Ctrl+D"
+                          Command="{Binding PlacementTarget.Tag.DuplicateAssetCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 <Separator />
                 <!-- Rempli à l'ouverture du menu avec la racine et tous les dossiers. -->
                 <MenuItem Header="{l:Tr 'Déplacer vers'}" Tag="move" />
@@ -106,223 +112,12 @@
                 <EventSetter Event="PreviewMouseMove" Handler="OnAssetMouseMove" />
                 <EventSetter Event="ContextMenuOpening" Handler="OnAssetMenuOpening" />
             </Style>
-
-            <!-- Pastille de filtre ("Items 3") ; Tag = vrai si active. -->
-            <Style x:Key="FilterChip" TargetType="Button">
-                <Setter Property="Foreground" Value="{DynamicResource BadgeTextBrush}" />
-                <Setter Property="Cursor" Value="Hand" />
-                <Setter Property="Margin" Value="0,0,6,6" />
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="Back" CornerRadius="12" Padding="11,4" Background="{DynamicResource CardBrush}"
-                                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
-                                <ContentPresenter />
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Back" Property="Background" Value="{DynamicResource CardHoverBrush}" />
-                                </Trigger>
-                                <Trigger Property="Tag" Value="{StaticResource True}">
-                                    <Setter TargetName="Back" Property="Background" Value="{DynamicResource NavSelectedBrush}" />
-                                    <Setter TargetName="Back" Property="BorderBrush" Value="{DynamicResource CardSelectedBorderBrush}" />
-                                    <Setter Property="Foreground" Value="{DynamicResource StrongTextBrush}" />
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
 
     <ScrollViewer x:Name="Page" Background="{DynamicResource HubBackgroundBrush}" VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled">
-        <DockPanel Margin="24,18,24,12" Visibility="{Binding HasProject, Converter={StaticResource BoolToVisibility}}">
-
-            <!-- En-tête : projet, cible, compilation -->
-            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
-                <WrapPanel x:Name="HeaderActions" DockPanel.Dock="Right" VerticalAlignment="Top">
-                    <Button Command="{Binding ValidateCommand}" Padding="12,6" Margin="0,0,8,6" ToolTip="{l:Tr 'Valider le projet (F7)'}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Check}" />
-                            <TextBlock Text="{l:Tr 'Valider'}" />
-                        </StackPanel>
-                    </Button>
-                    <Button Command="{Binding BuildCommand}" Padding="12,6" Margin="0,0,8,6" ToolTip="{l:Tr 'Générer le mod (Ctrl+Maj+B)'}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Build}" />
-                            <TextBlock Text="{l:Tr 'Compiler'}" />
-                        </StackPanel>
-                    </Button>
-                    <Button Style="{DynamicResource AccentButtonStyle}" Command="{Binding RunClientCommand}" Padding="12,6" Margin="0,0,0,6"
-                            ToolTip="{l:Tr 'Lancer Minecraft avec le mod (F5)'}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Run}" />
-                            <TextBlock Text="{l:Tr 'Lancer'}" />
-                        </StackPanel>
-                    </Button>
-                </WrapPanel>
-                <StackPanel>
-                    <TextBlock Text="{Binding Project.Name}" FontSize="24" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
-                               Foreground="{DynamicResource StrongTextBrush}" />
-                    <TextBlock Text="{Binding Project.TargetDescription}" Foreground="{DynamicResource HintBrush}" Margin="0,3,0,0"
-                               TextTrimming="CharacterEllipsis" />
-                    <TextBlock Foreground="{DynamicResource HintBrush}" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap">
-                        <Run Text="{Binding Diagnostics.Summary, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding LastBuildSummary, Mode=OneWay}" />
-                    </TextBlock>
-                </StackPanel>
-            </DockPanel>
-
-            <!-- Ajout d'éléments -->
-            <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                <Button Command="{Binding AddItemCommand}" Padding="10,5" Margin="0,0,6,6">
-                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Item'}" /></StackPanel>
-                </Button>
-                <Button Command="{Binding AddBlockCommand}" Padding="10,5" Margin="0,0,6,6">
-                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Bloc'}" /></StackPanel>
-                </Button>
-                <Button Command="{Binding AddMobCommand}" Padding="10,5" Margin="0,0,6,6">
-                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Mob'}" /></StackPanel>
-                </Button>
-                <Button Command="{Binding AddRecipeCommand}" Padding="10,5" Margin="0,0,6,6">
-                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Recette'}" /></StackPanel>
-                </Button>
-                <Button Padding="10,5" Margin="0,0,6,6" Click="OnImportClick"
-                        ToolTip="{l:Tr 'Nouveau graphe : événements, fonction, procédure, classe, structure, interface ou énumération'}">
-                    <Button.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="{l:Tr 'Graphe d\'événements'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Events}"
-                                      ToolTip="{l:Tr 'Réactions aux événements du jeu (clic droit, connexion...)'}">
-                                <MenuItem.Icon><views:IconView Icon="NodeGraphGeometry" IconSize="14" /></MenuItem.Icon>
-                            </MenuItem>
-                            <Separator />
-                            <MenuItem Header="{l:Tr 'Fonction'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Function}"
-                                      ToolTip="{l:Tr 'Suite d\'instructions qui renvoie des valeurs'}">
-                                <MenuItem.Icon><views:IconView Icon="FunctionGeometry" IconSize="14" /></MenuItem.Icon>
-                            </MenuItem>
-                            <MenuItem Header="{l:Tr 'Procédure'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Procedure}"
-                                      ToolTip="{l:Tr 'Suite d\'instructions qui ne renvoie rien'}">
-                                <MenuItem.Icon><views:IconView Icon="ProcedureGeometry" IconSize="14" /></MenuItem.Icon>
-                            </MenuItem>
-                            <Separator />
-                            <MenuItem Header="{l:Tr 'Classe'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Class}"
-                                      ToolTip="{l:Tr 'Type avec des champs, un constructeur, des méthodes ; héritage et interfaces'}">
-                                <MenuItem.Icon><views:IconView Icon="ClassGeometry" IconSize="14" /></MenuItem.Icon>
-                            </MenuItem>
-                            <MenuItem Header="{l:Tr 'Structure'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Struct}"
-                                      ToolTip="{l:Tr 'Type qui regroupe des champs'}">
-                                <MenuItem.Icon><views:IconView Icon="StructGeometry" IconSize="14" /></MenuItem.Icon>
-                            </MenuItem>
-                            <MenuItem Header="{l:Tr 'Interface'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Interface}"
-                                      ToolTip="{l:Tr 'Méthodes que les classes qui l\'implémentent doivent fournir'}">
-                                <MenuItem.Icon><views:IconView Icon="InterfaceGeometry" IconSize="14" /></MenuItem.Icon>
-                            </MenuItem>
-                            <MenuItem Header="{l:Tr 'Énumération'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Enum}"
-                                      ToolTip="{l:Tr 'Liste de valeurs nommées'}">
-                                <MenuItem.Icon><views:IconView Icon="EnumGeometry" IconSize="14" /></MenuItem.Icon>
-                            </MenuItem>
-                        </ContextMenu>
-                    </Button.ContextMenu>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Graphe'}" />
-                        <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.ChevronDown}" FontSize="9" Margin="6,1,0,0" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
-                <!-- Bouton + menu : le DropDownButton de ModernWpf provoquait une boucle de mise en page. -->
-                <Button Padding="10,5" Margin="0,0,6,6" Click="OnImportClick" ToolTip="{l:Tr 'Importer des fichiers dans le projet'}">
-                    <Button.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="{l:Tr 'Textures (PNG)...'}" Command="{Binding ImportTexturesCommand}" />
-                            <MenuItem Header="{l:Tr 'Sons (OGG)...'}" Command="{Binding ImportSoundsCommand}" />
-                        </ContextMenu>
-                    </Button.ContextMenu>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Import}" /><TextBlock Text="{l:Tr 'Importer'}" />
-                        <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.ChevronDown}" FontSize="9" Margin="6,1,0,0" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
-                <Button Command="{Binding DeleteAssetCommand}" Padding="10,5" Margin="0,0,6,6" ToolTip="{l:Tr 'Supprimer l\'élément sélectionné'}">
-                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Delete}" /><TextBlock Text="{l:Tr 'Supprimer'}" /></StackPanel>
-                </Button>
-            </WrapPanel>
-
-            <!-- Filtres, recherche, mode d'affichage -->
-            <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Project.TypeFilters}" Focusable="False">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type vm:AssetTypeFilter}">
-                        <Button Style="{StaticResource FilterChip}" Tag="{Binding IsActive}" CommandParameter="{Binding}"
-                                Command="{Binding DataContext.Project.SelectTypeFilterCommand, ElementName=Root}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Label}" />
-                                <TextBlock Text="{Binding Count}" Margin="7,0,0,0" Foreground="{DynamicResource HintBrush}" />
-                            </StackPanel>
-                        </Button>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-
-            <DockPanel DockPanel.Dock="Top" Margin="0,4,0,10">
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
-                    <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ListView}" ToolTip="{l:Tr 'Liste'}" Command="{Binding Project.ShowListCommand}" />
-                    <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.GridView}" ToolTip="{l:Tr 'Vignettes'}" Command="{Binding Project.ShowTilesCommand}" />
-                </StackPanel>
-                <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="12" Foreground="{DynamicResource HintBrush}">
-                    <Run Text="{Binding Project.VisibleCount, Mode=OneWay}" /><Run Text="{l:Tr ' élément(s)'}" />
-                </TextBlock>
-                <Grid>
-                    <TextBox x:Name="SearchBox" Padding="28,5,8,5" Text="{Binding Project.SearchText, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Search}" FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center"
-                               IsHitTestVisible="False" Foreground="{DynamicResource HintBrush}" />
-                    <TextBlock Text="{l:Tr 'Rechercher un élément du mod...'}" Margin="29,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
-                               Foreground="{DynamicResource HintBrush}"
-                               Visibility="{Binding Text, ElementName=SearchBox, Converter={StaticResource EmptyToVisible}}" />
-                </Grid>
-            </DockPanel>
-
-            <!-- Dossier ouvert : fil d'Ariane (chaque segment accepte les éléments déposés), dossier parent, nouveau dossier -->
-            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <Button Style="{StaticResource FlatButton}" Command="{Binding NewFolderCommand}" ToolTip="{l:Tr 'Créer un dossier dans le dossier ouvert'}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewFolder}" /><TextBlock Text="{l:Tr 'Nouveau dossier'}" />
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
-                <Button DockPanel.Dock="Left" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Up}" Margin="0,0,6,0"
-                        Command="{Binding Project.OpenParentFolderCommand}" ToolTip="{l:Tr 'Dossier parent (Retour arrière)'}" />
-                <ItemsControl ItemsSource="{Binding Project.Breadcrumb}" Focusable="False" VerticalAlignment="Center">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:FolderCrumb}">
-                            <StackPanel Orientation="Horizontal">
-                                <Button x:Name="Crumb" Style="{StaticResource FlatButton}" Padding="6,2" AllowDrop="True" Tag="{Binding Path}"
-                                        Command="{Binding DataContext.Project.OpenFolderCommand, ElementName=Root}" CommandParameter="{Binding Path}"
-                                        DragOver="OnFolderDragOver" DragLeave="OnFolderDragLeave" Drop="OnFolderDrop">
-                                    <TextBlock x:Name="CrumbText" Text="{Binding Name}" />
-                                </Button>
-                                <TextBlock x:Name="Separator" Text="&#x203A;" VerticalAlignment="Center" Margin="2,0" Foreground="{DynamicResource HintBrush}" />
-                            </StackPanel>
-                            <DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding IsLast}" Value="True">
-                                    <Setter TargetName="Separator" Property="Visibility" Value="Collapsed" />
-                                    <Setter TargetName="CrumbText" Property="FontWeight" Value="SemiBold" />
-                                    <Setter TargetName="Crumb" Property="Foreground" Value="{DynamicResource StrongTextBrush}" />
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </DockPanel>
+        <DockPanel Margin="24,14,24,12" Visibility="{Binding HasProject, Converter={StaticResource BoolToVisibility}}">
 
             <!-- En-têtes de colonnes (mode liste, fenêtre large) -->
             <Grid DockPanel.Dock="Top" Margin="15,0,15,6"

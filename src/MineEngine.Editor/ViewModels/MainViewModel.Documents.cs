@@ -8,10 +8,13 @@ using MineEngine.Core.Assets;
 using MineEngine.Core.Diagnostics;
 using MineEngine.Editor.Mvvm;
 using MineEngine.Editor.Services;
+using MineEngine.Editor.Settings;
 using MineEngine.Editor.ViewModels.Assets;
 using MineEngine.Editor.ViewModels.Documents;
 using MineEngine.Editor.ViewModels.Graphs;
+using MineEngine.Generator;
 using MineEngine.IR.Model;
+using MineEngine.Minecraft.Generation;
 using MineEngine.Minecraft.Java;
 using MineEngine.Minecraft.Mdk;
 using MineEngine.Project.Commands;
@@ -34,6 +37,20 @@ public sealed partial class MainViewModel
 
     /// <summary>Demande à la vue d'afficher un onglet (null : le Dashboard).</summary>
     public event EventHandler<DocumentViewModel?>? DocumentActivationRequested;
+
+    /// <summary>Identifiants des onglets permanents du projet (ContentId de la disposition).</summary>
+    public const string DashboardTabId = "home";
+
+    public const string ResourcesTabId = "resources";
+
+    public const string LanguagesTabId = "languages";
+
+    /// <summary>Demande à la vue d'afficher un onglet permanent (Ressources, Langues).</summary>
+    public event EventHandler<string>? ProjectTabRequested;
+
+    public ICommand ShowResourcesCommand { get; private set; } = null!;
+
+    public ICommand ShowLanguagesCommand { get; private set; } = null!;
 
     /// <summary>Onglets ouverts (fichiers et graphes, sans le Dashboard).</summary>
     public ObservableCollection<DocumentViewModel> Documents { get; } = [];
@@ -97,6 +114,24 @@ public sealed partial class MainViewModel
     /// <summary>Ouvre l'éditeur nodal d'un graphe (paramètre : son ViewModel, sinon l'asset sélectionné).</summary>
     public ICommand OpenGraphEditorCommand { get; private set; } = null!;
 
+    /// <summary>Ouvre l'élément sélectionné dans son onglet d'édition (barre d'outils).</summary>
+    public ICommand EditSelectedAssetCommand { get; private set; } = null!;
+
+    /// <summary>Ouvre l'éditeur nodal du graphe sélectionné (barre d'outils).</summary>
+    public ICommand OpenSelectedGraphCommand { get; private set; } = null!;
+
+    /// <summary>Écrit l'élément sélectionné dans un fichier (.asset.json, ou l'image / le son d'une texture / d'un son).</summary>
+    public ICommand ExportAssetCommand { get; private set; } = null!;
+
+    /// <summary>Ajoute au dossier ouvert un élément exporté depuis un autre projet (.asset.json).</summary>
+    public ICommand ImportAssetCommand { get; private set; } = null!;
+
+    /// <summary>Copie l'élément sélectionné dans le même dossier (Ctrl+D).</summary>
+    public ICommand DuplicateAssetCommand { get; private set; } = null!;
+
+    /// <summary>Génère le code du mod puis ouvre le fichier Java de l'élément sélectionné, à sa première ligne.</summary>
+    public ICommand OpenAssetJavaCommand { get; private set; } = null!;
+
     /// <summary>Appelé par la vue quand l'utilisateur ferme un onglet ; faux pour l'annuler.</summary>
     public bool RequestCloseDocument(DocumentViewModel document)
     {
@@ -126,6 +161,8 @@ public sealed partial class MainViewModel
             () => _shell.OpenFolder(Path.GetDirectoryName(((FileDocumentViewModel)_activeDocument!).FullPath)!),
             () => _activeDocument is FileDocumentViewModel);
         ShowDashboardCommand = new RelayCommand(() => DocumentActivationRequested?.Invoke(this, null), () => HasProject);
+        ShowResourcesCommand = new RelayCommand(() => ProjectTabRequested?.Invoke(this, ResourcesTabId), () => HasProject);
+        ShowLanguagesCommand = new RelayCommand(() => ProjectTabRequested?.Invoke(this, LanguagesTabId), () => HasProject);
         OpenAssetSourceCommand = new RelayCommand(
             () => OpenAssetDocument(_project!.SelectedAsset!.Model), () => _project?.SelectedAsset is not null);
         ShowAssetDetailsCommand = new RelayCommand<AssetViewModel>(asset =>
@@ -143,6 +180,20 @@ public sealed partial class MainViewModel
                 }
             },
             asset => (asset ?? _project?.SelectedAsset)?.Model is GraphAsset);
+        EditSelectedAssetCommand = new RelayCommand(
+            () => OpenAsset(_project!.SelectedAsset!.Model), () => HasProject && _project?.SelectedAsset is not null);
+        OpenSelectedGraphCommand = new RelayCommand(
+            () => OpenGraphDocument((GraphAsset)_project!.SelectedAsset!.Model), () => _project?.SelectedAsset?.Model is GraphAsset);
+        ExportAssetCommand = new RelayCommand(ExportSelectedAsset, () => HasProject && _project?.SelectedAsset is not null);
+        ImportAssetCommand = new RelayCommand(ImportAssetFiles, () => CanEdit);
+        DuplicateAssetCommand = new RelayCommand(
+            () => Execute(Tr.T("Dupliquer"), () =>
+            {
+                Asset copy = _project!.DuplicateAsset(_project.SelectedAsset!);
+                StatusText = Tr.F("'{0}' créé (Ctrl+Z pour annuler)", copy.ResourceId);
+            }),
+            () => CanEdit && ProjectViewModel.CanDuplicate(_project?.SelectedAsset));
+        OpenAssetJavaCommand = new AsyncRelayCommand(OpenAssetJavaAsync, () => CanEdit && _project?.SelectedAsset is not null);
         OpenAssetEditorCommand = new RelayCommand<AssetViewModel?>(
             asset =>
             {
@@ -392,6 +443,111 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>Ouvre un fichier du projet et place le curseur sur une ligne (erreur de compilation).</summary>
+    /// <summary>
+    /// Écrit le code du mod (sans compiler), puis ouvre le premier fichier Java produit par
+    /// l'élément sélectionné. Un élément sans code Java (recette, texture...) le dit dans la barre d'état.
+    /// </summary>
+    private async Task OpenAssetJavaAsync()
+    {
+        if (_project?.SelectedAsset is not { } selected)
+        {
+            return;
+        }
+
+        Guid assetId = selected.Model.Id;
+        SetBusy(new CancellationTokenSource());
+        StatusText = Tr.T("Génération du code Java...");
+        try
+        {
+            GenerationResult? result = await _pipeline.GenerateAsync(_project.Model, _log, _buildCancellation!.Token);
+            if (result is null)
+            {
+                StatusText = Tr.T("Le code n'a pas pu être généré : voir Diagnostics et la sortie.");
+                return;
+            }
+
+            SourceMapEntry? entry = result.SourceMap.Entries
+                .Where(e => e.AssetId == assetId && e.File.EndsWith(".java", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(e => e.File, StringComparer.Ordinal)
+                .ThenBy(e => e.FirstLine)
+                .FirstOrDefault();
+            if (entry is null)
+            {
+                StatusText = Tr.F("'{0}' ne produit pas de code Java (seulement des fichiers de données).", selected.Header);
+                return;
+            }
+
+            OpenFileAtLine(Path.Combine(result.WorkspaceDirectory, entry.File.Replace('/', Path.DirectorySeparatorChar)), entry.FirstLine);
+            StatusText = Tr.F("Code Java de '{0}'", selected.Header);
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = Tr.T("Génération annulée");
+        }
+        finally
+        {
+            SetBusy(null);
+            Explorer.Refresh();
+            RefreshGeneratedDocuments();
+        }
+    }
+
+    private void ExportSelectedAsset()
+    {
+        AssetViewModel selected = _project!.SelectedAsset!;
+        string fileName = _project.ExportFileName(selected);
+        string extension = fileName.EndsWith(AssetSerializer.FileExtension, StringComparison.OrdinalIgnoreCase)
+            ? AssetSerializer.FileExtension
+            : Path.GetExtension(fileName);
+        string? target = _dialogs.AskFileToSave(
+            Tr.T("Exporter l'élément"), Tr.F("Fichier {0} (*{1})|*{2}", extension, extension, extension), fileName);
+        if (target is not null && Execute(Tr.T("Exporter l'élément"), () => _project.ExportAsset(selected, target)))
+        {
+            StatusText = Tr.F("'{0}' exporté dans {1}", selected.Header, target);
+        }
+    }
+
+    private void ImportAssetFiles()
+    {
+        string filter = Tr.F("Élément Mine Engine (*{0})|*{1}", AssetSerializer.FileExtension, AssetSerializer.FileExtension);
+        if (_dialogs.AskFileToOpen(Tr.T("Importer un élément"), filter) is { } file
+            && Execute(Tr.T("Importer un élément"), () =>
+            {
+                Asset asset = _project!.ImportAssetFile(file);
+                StatusText = Tr.F("'{0}' importé (Ctrl+Z pour annuler)", asset.ResourceId);
+            }))
+        {
+            Details = _project!.SelectedAsset;
+        }
+    }
+
+    /// <summary>Programmes de « Ouvrir avec » proposés pour ce fichier (d'après son extension).</summary>
+    public IReadOnlyList<ExternalProgram> ProgramsFor(string file) =>
+        [.. _preferences.Current.ExternalPrograms.Where(p => p.Handles(file))];
+
+    /// <summary>Ouvre un fichier avec un programme externe ; une erreur (programme déplacé) est affichée.</summary>
+    public void OpenWith(ExternalProgram program, string file) =>
+        Execute(Tr.F("Ouvrir avec {0}", program.Name), () => _shell.OpenWith(program.Path, file));
+
+    /// <summary>Ouvre un fichier avec l'application associée par Windows.</summary>
+    public void OpenWithDefault(string file) => Execute(Tr.T("Ouvrir"), () => _shell.OpenFile(file));
+
+    /// <summary>Fenêtre « Ouvrir avec » de Windows.</summary>
+    public void ChooseProgram(string file) => Execute(Tr.T("Ouvrir avec"), () => _shell.ShowOpenWithDialog(file));
+
+    /// <summary>Fichier d'un élément pour « Ouvrir avec » : l'image ou le son d'une texture ou d'un son, sinon son .asset.json.</summary>
+    public string? AssetFile(AssetViewModel asset)
+    {
+        if (_project is null)
+        {
+            return null;
+        }
+
+        return asset.Model is FileAsset file
+            ? _project.Model.Layout.ToAbsolutePath(file.FilePath)
+            : _project.Model.Layout.GetAssetFilePath(asset.Model);
+    }
+
     private void OpenFileAtLine(string fullPath, int line)
     {
         if (!File.Exists(fullPath))

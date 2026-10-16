@@ -54,6 +54,21 @@ public sealed class GraphNodeViewModel : ObservableObject
 
     public NodeInfo Info { get; }
 
+    /// <summary>Redirection : dessinée comme un simple point sur le fil.</summary>
+    public bool IsReroute => Reroutes.IsReroute(_model);
+
+    /// <summary>Broche d'arrivée d'une redirection (exécution ou valeur).</summary>
+    public GraphPinViewModel? RerouteInput => ExecInput ?? Inputs.FirstOrDefault();
+
+    /// <summary>Broche de départ d'une redirection.</summary>
+    public GraphPinViewModel? RerouteOutput => ExecOutput ?? Outputs.FirstOrDefault();
+
+    /// <summary>Le fil d'une redirection est un fil d'exécution (point blanc).</summary>
+    public bool IsExecReroute => IsReroute && ExecInput is not null;
+
+    /// <summary>Type du fil d'une redirection de valeur (couleur du point).</summary>
+    public DataType? RerouteType => RerouteInput?.Type;
+
     /// <summary>Le nœud d'entrée d'une fonction ne se supprime pas : le graphe n'aurait plus de début.</summary>
     public bool IsEntry => _model.Kind == GraphNodeKind.FunctionEntry;
 

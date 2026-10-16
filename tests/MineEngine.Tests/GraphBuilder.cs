@@ -19,6 +19,13 @@ internal sealed class GraphBuilder
         return node;
     }
 
+    /// <summary>Ajoute un nœud déjà construit (redirection...).</summary>
+    public GraphNode Add(GraphNode node)
+    {
+        _graph = _graph.AddNode(node);
+        return node;
+    }
+
     public GraphBuilder Exec(GraphNode from, GraphNode to, string pin = NodeInfo.ExecThen)
     {
         _graph = _graph.Connect(new GraphConnection(from.Id, pin, to.Id, NodeInfo.ExecInput));

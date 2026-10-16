@@ -1,0 +1,192 @@
+﻿<UserControl x:Class="MineEngine.Editor.Views.MainToolbar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:MineEngine.Editor.Localization"
+             xmlns:views="clr-namespace:MineEngine.Editor.Views"
+             xmlns:graphs="clr-namespace:MineEngine.Assets.Graphs;assembly=MineEngine.Assets"
+             xmlns:java="clr-namespace:MineEngine.Minecraft.Java;assembly=MineEngine.Minecraft">
+
+    <!--
+        Barre d'outils sous les menus, au-dessus de l'espace de travail. DataContext : MainViewModel.
+        À gauche, ce qui agit sur le mod et sur l'élément sélectionné ; à droite, la recherche,
+        le mode d'affichage du Dashboard, puis valider, compiler et lancer.
+    -->
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="ToolButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
+                <Setter Property="Width" Value="30" />
+                <Setter Property="Height" Value="28" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Margin" Value="1,0" />
+            </Style>
+
+            <!-- Mode d'affichage du Dashboard ; Tag = vrai pour le mode actif. -->
+            <Style x:Key="ModeButton" TargetType="Button" BasedOn="{StaticResource ToolButton}">
+                <Style.Triggers>
+                    <Trigger Property="Tag" Value="{StaticResource True}">
+                        <Setter Property="Foreground" Value="{DynamicResource StrongTextBrush}" />
+                        <Setter Property="Background" Value="{DynamicResource NavSelectedBrush}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="ToolSeparator" TargetType="Border">
+                <Setter Property="Width" Value="1" />
+                <Setter Property="Height" Value="18" />
+                <Setter Property="Margin" Value="8,0" />
+                <Setter Property="Background" Value="{DynamicResource CardBorderBrush}" />
+            </Style>
+
+            <!-- Bouton texte (Valider, Compiler, Lancer) : glyphe puis libellé. -->
+            <Style x:Key="ActionButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="Padding" Value="10,4" />
+                <Setter Property="Margin" Value="4,0,0,0" />
+                <Setter Property="MinHeight" Value="28" />
+                <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Border Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="8,5">
+        <DockPanel>
+            <!-- Droite : recherche, affichage, validation, compilation, lancement -->
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Grid Width="260" VerticalAlignment="Center">
+                    <TextBox x:Name="SearchBox" Padding="28,4,8,4" MinHeight="28" TextChanged="OnSearchTextChanged"
+                             Text="{Binding Project.SearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="{l:Tr 'Rechercher un élément du mod (Ctrl+F)'}" />
+                    <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Search}" FontSize="12" Margin="10,0,0,0"
+                               VerticalAlignment="Center" IsHitTestVisible="False" Foreground="{DynamicResource HintBrush}" />
+                    <TextBlock Text="{l:Tr 'Rechercher...'}" Margin="29,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                               Foreground="{DynamicResource HintBrush}"
+                               Visibility="{Binding Text, ElementName=SearchBox, Converter={StaticResource EmptyToVisible}}" />
+                </Grid>
+
+                <Button Style="{StaticResource ModeButton}" Margin="6,0,1,0" Content="{StaticResource Glyph.ListView}" ToolTip="{l:Tr 'Afficher en liste'}"
+                        Command="{Binding Project.ShowListCommand}" Click="OnShowDashboardClick"
+                        Tag="{Binding Project.IsTileView, Converter={StaticResource InverseBool}, FallbackValue=False}" />
+                <Button Style="{StaticResource ModeButton}" Content="{StaticResource Glyph.GridView}" ToolTip="{l:Tr 'Afficher en vignettes'}"
+                        Command="{Binding Project.ShowTilesCommand}" Click="OnShowDashboardClick"
+                        Tag="{Binding Project.IsTileView, FallbackValue=False}" />
+
+                <Border Style="{StaticResource ToolSeparator}" />
+
+                <Button Style="{StaticResource ActionButton}" Command="{Binding ValidateCommand}" ToolTip="{l:Tr 'Valider le projet (F7)'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Check}" />
+                        <TextBlock Text="{l:Tr 'Valider'}" />
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource ActionButton}" Command="{Binding BuildCommand}" ToolTip="{l:Tr 'Générer le mod (Ctrl+Maj+B)'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Build}" />
+                        <TextBlock Text="{l:Tr 'Compiler'}" />
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource ActionButton}" Command="{Binding CancelBuildCommand}" ToolTip="{l:Tr 'Arrêter la compilation'}"
+                        Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="{l:Tr 'Arrêter'}" />
+                </Button>
+                <Button Style="{DynamicResource AccentButtonStyle}" Padding="12,4" MinHeight="28" Margin="4,0,0,0"
+                        Command="{Binding RunClientCommand}" ToolTip="{l:Tr 'Lancer Minecraft avec le mod (F5)'}" ToolTipService.ShowOnDisabled="True">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Run}" />
+                        <TextBlock Text="{l:Tr 'Lancer'}" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+
+            <!-- Gauche : ajout, puis actions sur l'élément sélectionné, puis dossier -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="AddButton" Style="{DynamicResource AccentButtonStyle}" Padding="8,4" MinHeight="28" Margin="0,0,4,0"
+                        Click="OnAddClick" IsEnabled="{Binding CanEdit}" ToolTip="{l:Tr 'Ajouter au mod'}">
+                    <Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{l:Tr 'Contenu du jeu'}">
+                                <MenuItem.Icon><views:IconView Icon="BlockGeometry" IconSize="14" /></MenuItem.Icon>
+                                <MenuItem Header="{l:Tr 'Item'}" Command="{Binding AddItemCommand}">
+                                    <MenuItem.Icon><views:IconView Icon="ItemGeometry" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{l:Tr 'Bloc'}" Command="{Binding AddBlockCommand}">
+                                    <MenuItem.Icon><views:IconView Icon="BlockGeometry" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{l:Tr 'Mob'}" Command="{Binding AddMobCommand}">
+                                    <MenuItem.Icon><views:IconView Icon="MobGeometry" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{l:Tr 'Recette'}" Command="{Binding AddRecipeCommand}">
+                                    <MenuItem.Icon><views:IconView Icon="RecipeGeometry" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
+                            </MenuItem>
+                            <MenuItem Header="{l:Tr 'Programmation nodale'}">
+                                <MenuItem.Icon><views:IconView Icon="NodeGraphGeometry" IconSize="14" /></MenuItem.Icon>
+                                <MenuItem Header="{l:Tr 'Graphe d\'événements'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Events}" ToolTip="{l:Tr 'Réactions aux événements du jeu (clic droit, connexion...)'}">
+                                    <MenuItem.Icon><views:IconView Icon="NodeGraphGeometry" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
+                                <Separator />
+                                <MenuItem Header="{l:Tr 'Fonction'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Function}" ToolTip="{l:Tr 'Suite d\'instructions qui renvoie des valeurs'}">
+                                    <MenuItem.Icon><views:IconView Icon="FunctionGeometry" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{l:Tr 'Procédure'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Procedure}" ToolTip="{l:Tr 'Suite d\'instructions qui ne renvoie rien'}">
+                                    <MenuItem.Icon><views:IconView Icon="ProcedureGeometry" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
+                                <Separator />
+                                <MenuItem Header="{l:Tr 'Classe'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Class}" ToolTip="{l:Tr 'Type avec des champs, un constructeur, des méthodes ; héritage et interfaces'}">
+                                    <MenuItem.Icon><views:IconView Icon="ClassGeometry" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{l:Tr 'Structure'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Struct}" ToolTip="{l:Tr 'Type qui regroupe des champs'}">
+                                    <MenuItem.Icon><views:IconView Icon="StructGeometry" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{l:Tr 'Interface'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Interface}" ToolTip="{l:Tr 'Méthodes que les classes qui l\'implémentent doivent fournir'}">
+                                    <MenuItem.Icon><views:IconView Icon="InterfaceGeometry" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{l:Tr 'Énumération'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Enum}" ToolTip="{l:Tr 'Liste de valeurs nommées'}">
+                                    <MenuItem.Icon><views:IconView Icon="EnumGeometry" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
+                            </MenuItem>
+                            <MenuItem Header="{l:Tr 'Classe Java'}">
+                                <MenuItem Header="{l:Tr 'Écouteur d\'événements du jeu...'}" Command="{Binding Explorer.NewJavaClassCommand}" CommandParameter="{x:Static java:JavaClassKind.EventListener}" />
+                                <MenuItem Header="{l:Tr 'Classe utilitaire...'}" Command="{Binding Explorer.NewJavaClassCommand}" CommandParameter="{x:Static java:JavaClassKind.Utility}" />
+                                <MenuItem Header="{l:Tr 'Classe vide...'}" Command="{Binding Explorer.NewJavaClassCommand}" CommandParameter="{x:Static java:JavaClassKind.Empty}" />
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="{l:Tr 'Importer'}">
+                                <MenuItem Header="{l:Tr 'Textures (PNG)...'}" Command="{Binding ImportTexturesCommand}" />
+                                <MenuItem Header="{l:Tr 'Sons (OGG)...'}" Command="{Binding ImportSoundsCommand}" />
+                                <MenuItem Header="{l:Tr 'Élément d\'un autre projet (.asset.json)...'}" Command="{Binding ImportAssetCommand}" ToolTip="{l:Tr 'Ajoute au dossier ouvert un élément exporté depuis un autre projet'}" />
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="{l:Tr 'Nouveau dossier'}" Command="{Binding NewFolderCommand}" />
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.NewItem}" FontSize="13" VerticalAlignment="Center" />
+                        <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.ChevronDown}" FontSize="9" Margin="6,1,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+
+                <Border Style="{StaticResource ToolSeparator}" Margin="4,0,6,0" />
+
+                <Button Style="{StaticResource ToolButton}" Content="{StaticResource Glyph.Copy}" Command="{Binding DuplicateAssetCommand}"
+                        ToolTip="{l:Tr 'Dupliquer l\'élément sélectionné (Ctrl+D)'}" />
+                <Button Style="{StaticResource ToolButton}" Content="{StaticResource Glyph.Delete}" Command="{Binding DeleteAssetCommand}"
+                        ToolTip="{l:Tr 'Supprimer l\'élément sélectionné'}" />
+                <Button Style="{StaticResource ToolButton}" Content="{StaticResource Glyph.Rename}" Command="{Binding EditSelectedAssetCommand}"
+                        ToolTip="{l:Tr 'Éditer l\'élément sélectionné'}" />
+                <Button Style="{StaticResource ToolButton}" Command="{Binding OpenSelectedGraphCommand}" ToolTip="{l:Tr 'Ouvrir le graphe sélectionné'}">
+                    <Path Style="{StaticResource IconPathButton}" Width="14" Height="14" Data="{StaticResource NodeGraphGeometry}" />
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Content="{StaticResource Glyph.Code}" Command="{Binding OpenAssetJavaCommand}"
+                        ToolTip="{l:Tr 'Voir le code Java de l\'élément sélectionné (le code du mod est généré, sans compiler)'}" />
+
+                <Border Style="{StaticResource ToolSeparator}" />
+
+                <Button Style="{StaticResource ToolButton}" Content="{StaticResource Glyph.NewFolder}" Command="{Binding NewFolderCommand}"
+                        ToolTip="{l:Tr 'Créer un dossier dans le dossier ouvert du Dashboard'}" />
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</UserControl>

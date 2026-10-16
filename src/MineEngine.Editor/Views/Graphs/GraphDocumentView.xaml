@@ -1,4 +1,4 @@
-<UserControl x:Class="MineEngine.Editor.Views.Graphs.GraphDocumentView"
+﻿<UserControl x:Class="MineEngine.Editor.Views.Graphs.GraphDocumentView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:l="clr-namespace:MineEngine.Editor.Localization"
@@ -159,6 +159,46 @@
                 </DataTemplate.Triggers>
             </DataTemplate>
 
+            <!-- Redirection : un point sur le fil. Les deux côtés sont ses broches (on en tire un fil),
+                 le point se déplace comme l'en-tête d'un nœud. Taille : GraphDocumentViewModel.RerouteWidth × RerouteHeight. -->
+            <DataTemplate x:Key="RerouteTemplate" DataType="{x:Type graphs:GraphNodeViewModel}">
+                <Grid x:Name="NodeRoot" Tag="node" Width="30" Height="18" Background="Transparent"
+                      SizeChanged="OnNodeSizeChanged" Loaded="OnNodeLoaded" PreviewMouseLeftButtonDown="OnNodePreviewMouseDown"
+                      ToolTip="{Binding Description}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="9" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="9" />
+                    </Grid.ColumnDefinitions>
+                    <Border x:Name="In" Tag="pin" DataContext="{Binding RerouteInput}" Background="Transparent" Cursor="Cross">
+                        <Rectangle x:Name="InLine" Height="2.2" Width="5" HorizontalAlignment="Right"
+                                   Fill="{Binding Type, Converter={StaticResource PinBrush}}" />
+                    </Border>
+                    <Border x:Name="Out" Grid.Column="2" Tag="pin" DataContext="{Binding RerouteOutput}" Background="Transparent" Cursor="Cross">
+                        <Rectangle x:Name="OutLine" Height="2.2" Width="5" HorizontalAlignment="Left"
+                                   Fill="{Binding Type, Converter={StaticResource PinBrush}}" />
+                    </Border>
+                    <Ellipse x:Name="Knot" Tag="header" Grid.Column="1" Width="12" Height="12" Cursor="SizeAll" StrokeThickness="1.5"
+                             Fill="{Binding RerouteType, Converter={StaticResource PinBrush}}" Stroke="Transparent" />
+                </Grid>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsExecReroute}" Value="True">
+                        <Setter TargetName="Knot" Property="Fill" Value="{DynamicResource StrongTextBrush}" />
+                        <Setter TargetName="InLine" Property="Fill" Value="{DynamicResource StrongTextBrush}" />
+                        <Setter TargetName="OutLine" Property="Fill" Value="{DynamicResource StrongTextBrush}" />
+                        <Setter TargetName="InLine" Property="Height" Value="2.8" />
+                        <Setter TargetName="OutLine" Property="Height" Value="2.8" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                        <Setter TargetName="Knot" Property="Stroke" Value="{DynamicResource AccentLineBrush}" />
+                        <Setter TargetName="Knot" Property="Width" Value="14" />
+                        <Setter TargetName="Knot" Property="Height" Value="14" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <local:NodeTemplateSelector x:Key="NodeTemplates" NodeTemplate="{StaticResource NodeTemplate}" RerouteTemplate="{StaticResource RerouteTemplate}" />
+
             <!-- Fil entre deux broches. -->
             <DataTemplate x:Key="ConnectionTemplate" DataType="{x:Type graphs:GraphConnectionViewModel}">
                 <Path x:Name="Wire" Data="{Binding Geometry}" StrokeThickness="2.2" IsHitTestVisible="False"
@@ -187,7 +227,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <!-- Définition à gauche (pleine largeur pour une structure, une interface ou une énumération), corps en nœuds à droite. -->
+    <!-- Corps en nœuds sur toute la largeur (la définition est dans l'Inspecteur) ; une structure, une interface ou une énumération montre sa définition ici. -->
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition x:Name="DefinitionColumn" Width="320" MinWidth="220" />
@@ -205,7 +245,7 @@
           LostMouseCapture="OnRootLostMouseCapture" SizeChanged="OnRootSizeChanged">
 
         <!-- Quadrillage (déplacé et zoomé avec le monde) -->
-        <Rectangle x:Name="GridLayer" IsHitTestVisible="False" />
+        <Rectangle x:Name="GridLayer" IsHitTestVisible="False" Visibility="{DynamicResource GraphGridVisibility}" />
 
         <!-- Monde : fils, fil en cours, nœuds -->
         <Canvas x:Name="World" IsHitTestVisible="True">
@@ -223,7 +263,7 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
             <Path x:Name="PendingWire" StrokeThickness="2.2" StrokeDashArray="4 2" IsHitTestVisible="False" Visibility="Collapsed" />
-            <ItemsControl x:Name="NodesHost" ItemsSource="{Binding Nodes}" ItemTemplate="{StaticResource NodeTemplate}" Focusable="False">
+            <ItemsControl x:Name="NodesHost" ItemsSource="{Binding Nodes}" ItemTemplateSelector="{StaticResource NodeTemplates}" Focusable="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <Canvas />
@@ -284,7 +324,7 @@
                 <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" FontSize="12" MaxWidth="480" />
             </Border>
             <TextBlock FontSize="11" Foreground="{DynamicResource HintBrush}" TextWrapping="Wrap"
-                       Text="{l:Tr 'Clic droit : ajouter · Glisser une broche : relier · Alt+clic : débrancher · Clic droit glissé ou molette pressée : déplacer la vue · Molette : zoom · Suppr ou Retour arrière : effacer · Ctrl+D : dupliquer'}" />
+                       Text="{l:Tr 'Clic droit : ajouter · Glisser une broche : relier · Alt+clic : débrancher · Clic droit glissé ou molette pressée : déplacer la vue · Molette : zoom · Suppr ou Retour arrière : effacer · Ctrl+D : dupliquer · Double-clic sur un fil : redirection'}" />
         </StackPanel>
 
         <!-- Menu d'ajout de nœud (placé au point du clic) -->

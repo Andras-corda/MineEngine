@@ -4,6 +4,7 @@ using MineEngine.Core.Assets;
 using MineEngine.Core.Identifiers;
 using MineEngine.Core.IO;
 using MineEngine.Core.Json;
+using MineEngine.Project.Localization;
 using MineEngine.Project.Migration;
 using MineEngine.Project.Serialization;
 
@@ -98,6 +99,12 @@ public sealed class ProjectRepository
 
         layout.EnsureDirectories();
         var project = new ModProject(layout, settings, assets) { LoadNotes = [.. layoutNotes, .. migration.Notes] };
+        string languages = Path.Combine(layout.RootDirectory, ModLocalizationSerializer.FileName);
+        if (File.Exists(languages))
+        {
+            project.Localization = ModLocalizationSerializer.Deserialize(File.ReadAllText(languages), ModLocalizationSerializer.FileName);
+        }
+
         if (migration.HasChanges)
         {
             project.MarkDirty();
@@ -114,6 +121,18 @@ public sealed class ProjectRepository
         layout.EnsureDirectories();
 
         AtomicFile.WriteAllText(layout.ProjectFile, _settingsSerializer.Serialize(project.Settings));
+
+        // Langues du mod : le fichier n'existe que si le projet s'écarte des langues par défaut.
+        string languages = Path.Combine(layout.RootDirectory, ModLocalizationSerializer.FileName);
+        ModLocalization localization = project.Localization;
+        if (localization.Translations.IsEmpty && localization.Locales.SequenceEqual(ModLocalization.DefaultLocales))
+        {
+            File.Delete(languages);
+        }
+        else
+        {
+            AtomicFile.WriteAllText(languages, ModLocalizationSerializer.Serialize(localization));
+        }
 
         var writtenFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (Asset asset in project.Assets)

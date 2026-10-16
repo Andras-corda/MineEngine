@@ -49,49 +49,59 @@ public sealed class BuildPipeline
 
     /// <summary>Produit le .jar du mod dans le dossier build/libs du projet.</summary>
     public Task<BuildResult> BuildAsync(ModProject project, ILog log, CancellationToken cancellationToken) =>
-        RunAsync(project, log, runClient: false, cancellationToken);
+        RunAsync(project, log, GradleMode.Build, cancellationToken);
 
     /// <summary>Génère le mod puis lance Minecraft avec celui-ci (tâche runClient).</summary>
     public Task<BuildResult> RunClientAsync(ModProject project, ILog log, CancellationToken cancellationToken) =>
-        RunAsync(project, log, runClient: true, cancellationToken);
+        RunAsync(project, log, GradleMode.RunClient, cancellationToken);
 
-    private async Task<BuildResult> RunAsync(ModProject project, ILog log, bool runClient, CancellationToken cancellationToken)
+    /// <summary>
+    /// Régénère le projet puis demande à Gradle de retélécharger les dépendances et de relire la
+    /// configuration (comme « Reload Gradle Project » dans IntelliJ), sans compiler le mod.
+    /// </summary>
+    public Task<BuildResult> ReloadGradleAsync(ModProject project, ILog log, CancellationToken cancellationToken) =>
+        RunAsync(project, log, GradleMode.Reload, cancellationToken);
+
+    /// <summary>Tâches Gradle qui rechargent le projet : dépendances relues pour la compilation.</summary>
+    private static readonly IReadOnlyList<string> ReloadTasks = ["--refresh-dependencies", "dependencies", "--configuration", "compileClasspath"];
+
+    private enum GradleMode
+    {
+        Build,
+        RunClient,
+        Reload,
+    }
+
+    /// <summary>
+    /// Valide le projet et écrit le code du mod dans le workspace, sans compiler : sert à montrer
+    /// le Java d'un élément. Null si le projet contient des erreurs ou si aucun MDK n'est utilisable.
+    /// </summary>
+    public async Task<GenerationResult?> GenerateAsync(ModProject project, ILog log, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        ArgumentNullException.ThrowIfNull(log);
+        GenerationStep step = await GenerateCoreAsync(project, log, new DiagnosticBag(), cancellationToken).ConfigureAwait(false);
+        return step.Failure is null ? step.Generation : null;
+    }
+
+    private async Task<BuildResult> RunAsync(ModProject project, ILog log, GradleMode mode, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(log);
 
         var stopwatch = Stopwatch.StartNew();
         var diagnostics = new DiagnosticBag();
-
-        log.Info(Tr.F("[1/{0}] Validation du projet {1}", StepCount, project.Name));
-        IModLoaderBackend? backend = ResolveBackend(project, log, diagnostics);
-        if (backend is null)
+        GenerationStep step = await GenerateCoreAsync(project, log, diagnostics, cancellationToken).ConfigureAwait(false);
+        if (step.Failure is not null)
         {
-            return Fail(log, diagnostics, stopwatch, Tr.T("aucun MDK utilisable."));
+            return Fail(log, diagnostics, stopwatch, step.Failure);
         }
 
-        var validation = new DiagnosticBag();
-        ModIR? ir = await Task.Run(() => _irBuilder.Build(project, validation), cancellationToken).ConfigureAwait(false);
-        Report(log, validation);
-        diagnostics.AddRange(validation);
-        if (ir is null)
-        {
-            return Fail(log, diagnostics, stopwatch, Tr.T("le projet contient des erreurs."));
-        }
-
-        log.Info(Tr.F("[2/{0}] Génération du projet {1}", StepCount, backend.DisplayName));
+        IModLoaderBackend backend = step.Backend!;
+        ModIR ir = step.Ir!;
+        GenerationResult generation = step.Generation!;
         string workspace = project.Layout.WorkspaceDirectory;
-        ModGenerator generator = _generatorFactory(backend);
         IReadOnlyList<string> lockedFiles = project.Settings.LockedFiles;
-        GenerationResult generation = await Task.Run(
-            () => generator.GenerateAsync(ir, workspace, log, cancellationToken, lockedFiles), cancellationToken).ConfigureAwait(false);
-        Report(log, generation.Diagnostics);
-        diagnostics.AddRange(generation.Diagnostics);
-        if (!generation.Success)
-        {
-            return Fail(log, diagnostics, stopwatch, Tr.T("la génération a échoué."));
-        }
-
         log.Info(Tr.F("{0} fichiers générés dans {1}", generation.Files.Count, workspace));
         if (lockedFiles.Count > 0)
         {
@@ -105,10 +115,18 @@ public sealed class BuildPipeline
             return Fail(log, diagnostics, stopwatch, Tr.T("Java est introuvable."));
         }
 
-        IReadOnlyList<string> tasks = runClient ? backend.RunClientTasks : backend.BuildTasks;
-        log.Info(runClient
-            ? Tr.F("[4/{0}] Lancement de Minecraft avec Gradle (le premier build peut prendre plusieurs minutes)", StepCount)
-            : Tr.F("[4/{0}] Compilation avec Gradle (le premier build peut prendre plusieurs minutes)", StepCount));
+        IReadOnlyList<string> tasks = mode switch
+        {
+            GradleMode.RunClient => backend.RunClientTasks,
+            GradleMode.Reload => ReloadTasks,
+            _ => backend.BuildTasks,
+        };
+        log.Info(mode switch
+        {
+            GradleMode.RunClient => Tr.F("[4/{0}] Lancement de Minecraft avec Gradle (le premier build peut prendre plusieurs minutes)", StepCount),
+            GradleMode.Reload => Tr.F("[4/{0}] Rechargement du projet Gradle et de ses dépendances", StepCount),
+            _ => Tr.F("[4/{0}] Compilation avec Gradle (le premier build peut prendre plusieurs minutes)", StepCount),
+        });
         var gradleOutput = new List<string>();
         int exitCode = await _gradle
             .RunAsync(workspace, jdk, tasks, log, cancellationToken, line => { lock (gradleOutput) { gradleOutput.Add(line); } })
@@ -135,17 +153,55 @@ public sealed class BuildPipeline
             return Fail(log, diagnostics, stopwatch, Tr.T("Gradle a signalé une erreur."));
         }
 
-        string? jarPath = runClient ? null : FindJar(backend, ir.Mod, workspace, log, diagnostics);
+        string? jarPath = mode == GradleMode.Build ? FindJar(backend, ir.Mod, workspace, log, diagnostics) : null;
         if (diagnostics.HasErrors)
         {
             return Fail(log, diagnostics, stopwatch, Tr.T("le .jar est introuvable."));
         }
 
         stopwatch.Stop();
-        log.Success(runClient
-            ? Tr.F("Minecraft fermé ({0:mm\\:ss}).", stopwatch.Elapsed)
-            : Tr.F("Build réussi en {0:mm\\:ss} : {1}", stopwatch.Elapsed, jarPath));
+        log.Success(mode switch
+        {
+            GradleMode.RunClient => Tr.F("Minecraft fermé ({0:mm\\:ss}).", stopwatch.Elapsed),
+            GradleMode.Reload => Tr.F("Projet Gradle rechargé en {0:mm\\:ss}.", stopwatch.Elapsed),
+            _ => Tr.F("Build réussi en {0:mm\\:ss} : {1}", stopwatch.Elapsed, jarPath),
+        });
         return BuildResult.Succeeded(jarPath, diagnostics, stopwatch.Elapsed);
+    }
+
+    /// <summary>Résultat des étapes 1 et 2 : backend, Mod IR et fichiers générés, ou la raison de l'échec.</summary>
+    private sealed record GenerationStep(IModLoaderBackend? Backend, ModIR? Ir, GenerationResult? Generation, string? Failure);
+
+    /// <summary>Étapes 1 (validation, Mod IR) et 2 (génération du projet Minecraft).</summary>
+    private async Task<GenerationStep> GenerateCoreAsync(ModProject project, ILog log, DiagnosticBag diagnostics, CancellationToken cancellationToken)
+    {
+        log.Info(Tr.F("[1/{0}] Validation du projet {1}", StepCount, project.Name));
+        IModLoaderBackend? backend = ResolveBackend(project, log, diagnostics);
+        if (backend is null)
+        {
+            return new GenerationStep(null, null, null, Tr.T("aucun MDK utilisable."));
+        }
+
+        var validation = new DiagnosticBag();
+        ModIR? ir = await Task.Run(() => _irBuilder.Build(project, validation), cancellationToken).ConfigureAwait(false);
+        Report(log, validation);
+        diagnostics.AddRange(validation);
+        if (ir is null)
+        {
+            return new GenerationStep(backend, null, null, Tr.T("le projet contient des erreurs."));
+        }
+
+        log.Info(Tr.F("[2/{0}] Génération du projet {1}", StepCount, backend.DisplayName));
+        string workspace = project.Layout.WorkspaceDirectory;
+        ModGenerator generator = _generatorFactory(backend);
+        IReadOnlyList<string> lockedFiles = project.Settings.LockedFiles;
+        GenerationResult generation = await Task.Run(
+            () => generator.GenerateAsync(ir, workspace, log, cancellationToken, lockedFiles), cancellationToken).ConfigureAwait(false);
+        Report(log, generation.Diagnostics);
+        diagnostics.AddRange(generation.Diagnostics);
+        return generation.Success
+            ? new GenerationStep(backend, ir, generation, null)
+            : new GenerationStep(backend, ir, generation, Tr.T("la génération a échoué."));
     }
 
     /// <summary>Trouve le MDK du projet et le backend capable de l'utiliser.</summary>
@@ -167,7 +223,7 @@ public sealed class BuildPipeline
                 string wanted = settings.MdkId ?? $"{settings.LoaderId} {settings.MinecraftVersion}";
                 ReportError(log, diagnostics,
                     Tr.F("Le MDK '{0}' n'est pas installé. Installez-le avec Outils > Gestionnaire de MDK, ", wanted) +
-                    Tr.T("ou choisissez-en un autre dans Projet > Paramètres du projet."));
+                    Tr.T("ou choisissez-en un autre dans Espace de travail > Paramètres du projet."));
                 return null;
             }
 

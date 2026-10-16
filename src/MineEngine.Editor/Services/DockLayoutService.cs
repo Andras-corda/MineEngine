@@ -16,6 +16,12 @@ public sealed class DockLayoutService
     private readonly ILog _log;
     private string? _defaultLayout;
 
+    /// <summary>
+    /// Contenu de chaque panneau et onglet permanent au démarrage : un onglet absent d'une
+    /// disposition enregistrée (nouvelle version) retrouve ainsi son contenu.
+    /// </summary>
+    private Dictionary<string, object> _initialContents = [];
+
     public DockLayoutService(string layoutFile, ILog log)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(layoutFile);
@@ -28,6 +34,7 @@ public sealed class DockLayoutService
     {
         ArgumentNullException.ThrowIfNull(manager);
         _defaultLayout = Serialize(manager);
+        _initialContents = Contents(manager);
 
         if (!File.Exists(_layoutFile))
         {
@@ -80,10 +87,11 @@ public sealed class DockLayoutService
     /// </summary>
     private void Apply(DockingManager manager, string layout)
     {
-        Dictionary<string, object> contents = manager.Layout.Descendents()
-            .OfType<LayoutContent>()
-            .Where(c => c.ContentId is not null)
-            .ToDictionary(c => c.ContentId!, c => c.Content);
+        Dictionary<string, object> contents = Contents(manager);
+        foreach ((string id, object content) in _initialContents)
+        {
+            contents.TryAdd(id, content);
+        }
 
         var serializer = new XmlLayoutSerializer(manager);
         serializer.LayoutSerializationCallback += (_, e) =>
@@ -112,6 +120,12 @@ public sealed class DockLayoutService
             Apply(manager, _defaultLayout!);
         }
     }
+
+    private static Dictionary<string, object> Contents(DockingManager manager) =>
+        manager.Layout.Descendents()
+            .OfType<LayoutContent>()
+            .Where(c => c.ContentId is not null)
+            .ToDictionary(c => c.ContentId!, c => c.Content);
 
     /// <summary>
     /// Une fenêtre flottante vidée (ses panneaux masqués) reste dans la disposition

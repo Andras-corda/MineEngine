@@ -33,10 +33,6 @@ public partial class DashboardPanel : UserControl
         {
             bool compact = e.NewSize.Width < CompactWidth;
             WideColumn = compact ? new GridLength(0) : new GridLength(150);
-
-            // Écran étroit : les boutons de compilation passent sous le titre.
-            DockPanel.SetDock(HeaderActions, compact ? Dock.Bottom : Dock.Right);
-            HeaderActions.Margin = compact ? new Thickness(0, 10, 0, 0) : new Thickness(0);
         };
         PreviewKeyDown += OnPreviewKeyDown;
     }
@@ -67,18 +63,6 @@ public partial class DashboardPanel : UserControl
     {
         Page.ScrollToVerticalOffset(Page.VerticalOffset - e.Delta);
         e.Handled = true;
-    }
-
-    /// <summary>Le bouton Importer ouvre son menu sous lui (le DataContext suit celui du bouton).</summary>
-    private void OnImportClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button { ContextMenu: { } menu } button)
-        {
-            menu.DataContext = button.DataContext;
-            menu.PlacementTarget = button;
-            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-            menu.IsOpen = true;
-        }
     }
 
     /// <summary>Le clic droit sélectionne aussi l'élément, pour que le menu agisse sur lui.</summary>
@@ -183,6 +167,7 @@ public partial class DashboardPanel : UserControl
             return;
         }
 
+        OpenWithMenu.Fill(menu, main.AssetFile(asset), main);
         MenuItem? move = menu.Items.OfType<MenuItem>().FirstOrDefault(i => Equals(i.Tag, "move"));
         if (move is null)
         {

@@ -9,7 +9,7 @@
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white)
 [![Architecture diagram](https://gitdiagram.com/diagram-badge.svg)](https://gitdiagram.com/andras-corda/mineengine?utm_source=readme&utm_medium=badge)
 
-Minecraft mod creation environment, written in C# / WPF. Current version: **V0.4.5** (redesigned interface: contrasted grays, Roboto font, vector icons, English or French; visual programming with graphs: functions, procedures, classes, structures, interfaces and enumerations; MCreator-style project layout; integrated Java code editor; dark blue theme).
+Minecraft mod creation environment, written in C# / WPF. Current version: **V0.5.4** (reroute points on graph wires; drop guides in the theme colors; themes: dark, light, midnight blue, crimson red, forest green, gold, purple, high contrast, plus imported themes; accent color, interface size and editor options; importable interface languages; redesigned interface: contrasted grays, Roboto font, vector icons; visual programming with graphs: functions, procedures, classes, structures, interfaces and enumerations; MCreator-style project layout; integrated Java code editor; dark blue theme).
 
 Progress from version to version is tracked in [ROADMAP.md](ROADMAP.md).
 
@@ -56,7 +56,7 @@ Any Forge, NeoForge, or Fabric MDK can be installed, but the generator only prod
 
 1. **Tools > MDK Manager**: Install at least one MDK.
 2. The **Home** screen lists your projects (search, sort, recent): double-click to open one, or select **Add Project...** to reference an existing one. **File > Close Project** takes you back to the Home screen.
-3. **New Project...**: name, ID, version, authors, website, license, description, and MDK. Everything can be edited in **Project > Project Settings**, except for the ID.
+3. **New Project...**: name, ID, version, authors, website, license, description, and MDK. Everything can be edited in **Workspace > Project Settings**, except for the ID.
 4. Add content from the **Dashboard** or the **Project** menu: each element opens in its own editor tab (double-click to reopen it):
    - **Item**: Visuals, Type (simple, tools, weapons, armor), Properties, Food (with effects), Data (fuel, tags, crafting remainder), Events (linked to a graph);
    - **Block**: Visuals, Properties, Harvest, Item;
@@ -64,20 +64,22 @@ Any Forge, NeoForge, or Fabric MDK can be installed, but the generator only prod
    - **Recipe**: crafted with or without a workbench, or in a furnace;
    - **Graph**: in-game behaviors, or a function, procedure, class, structure, interface or enumeration, drawn in the node editor (see below);
    - **Import**: PNG images (Texture assets) and OGG sounds (Sound assets), reusable anywhere.
-5. **Build > Generate Mod** (Ctrl+Shift+B): The `.jar` file is produced in the project’s `build/libs/` folder.
-6. **Build > Launch Minecraft** (F5): Launches Minecraft with the mod. The content can be found in a Creative tab named after the mod.
+5. **Build & Run > Build the mod** (Ctrl+Shift+B): The `.jar` file is produced in the project’s `build/libs/` folder; **Export the mod (.jar)...** builds it and copies it where you choose.
+6. **Build & Run > Launch Minecraft** (F5): Launches Minecraft with the mod. The content can be found in a Creative tab named after the mod.
 
 ## Editor
 
 ### Interface
 - **Look**: Roboto font (bundled), contrasted neutral grays with a blue accent. Icons come from `Themes/Icons.xaml` (font glyphs and vector icons for blocks, items, mobs, recipes, graph kinds and loaders); rules in `docs/ICONS.md`.
 - **Home**: the sidebar holds New / Open / Add project and the pages (Home, My projects, Settings, MDKs, Help); the ☰ button collapses it to icons only.
-- **Layout**: Explorer on the left, tabs in the center, Details on the right, Output and Diagnostics at the bottom. Panels can be moved, stacked, or detached; the layout is saved. **View > Reset Layout** restores the default layout. Panels adapt to a narrow window.
+- **Menus**: Mine Engine (GitHub repository, website), File, Edit, Workspace (project settings, folders, Java classes, validation), Assets (add, import textures, sounds or `.asset.json` elements, export the selected element), Tools (MDK Manager, Settings), Build & Run (build, export the `.jar`, launch Minecraft, reload Gradle), Window (panels and layout).
+- **Toolbar** (under the menus): on the left, **+** (menu to add an item, block, mob, recipe, any kind of graph, or import textures and sounds), then for the selected element **Duplicate** (Ctrl+D), **Delete**, **Edit**, **Open graph**, **View Java code** (generates the mod code without compiling and opens the element's Java file at its line), and **New folder**; on the right, the **search** (Ctrl+F), **List** / **Tiles**, **Validate**, **Build** and **Run**.
+- **Layout**: Explorer on the left, tabs in the center, Details on the right, Output and Diagnostics at the bottom. Panels can be moved, stacked, or detached (the drop guides use the theme colors); the layout is saved. **Window > Reset Layout** restores the default layout. Panels adapt to a narrow window.
 - **Explorer** (VS Code-style): project tree, file search, creation, renaming, and trash; updates when files change on disk. The Structure section lists the classes, methods, or keys of the open file.
-- **Dashboard**: a permanent tab that lists the mod’s elements (like MCreator), either as a list or as thumbnails, with filters by type, search, validation status, and number of uses. Elements can be organized in **folders and subfolders**: breadcrumb trail, double-click to enter a folder, Backspace to go up, **New folder**, rename, delete (the content moves up), **Move to** in the context menu, or drag an element onto a folder or a breadcrumb segment. New elements are created in the open folder; the search covers all folders. Folders only organize the editor: they change neither the game nor the files.
+- **Dashboard**: a permanent tab that lists the mod’s elements (like MCreator), either as a list or as thumbnails, with search (toolbar), validation status, and number of uses. Elements can be organized in **folders and subfolders**: double-click to enter a folder, Backspace to go up, **New folder**, rename, delete (the content moves up), **Move to** in the context menu, or drag an element onto a folder. New elements are created in the open folder; the search covers all folders. Folders only organize the editor: they change neither the game nor the files.
 - **Layout buttons** (top right of the title bar, like VS Code): customize the layout (focus mode, show all, reset), show or hide the Explorer (Ctrl+B), Output and Diagnostics (Ctrl+J), Details (Ctrl+Alt+B).
 - **Code tabs**: Java editor (see below) with syntax highlighting, line numbers, breadcrumb trail and toolbar (Save, Search, Format). Ctrl+W closes the tab; within the tab, Ctrl+Z applies to the text.
-- **Details** (Unreal and Unity style): the selected target, followed by its properties: an asset’s inspector, or the properties of an open file.
+- **Details** (Unreal and Unity style): the selected target, followed by its properties: an asset’s inspector, the properties of an open file, or for a graph its summary and its **definition** (name, variables, parameters...).
 - **Undo / Redo** (Ctrl+Z / Ctrl+Y): any changes to the project, including adding and removing assets and project settings.
 - **References**: Textures, sounds, and items are identified by their internal IDs; you can rename an asset without breaking anything that uses it. The Inspector displays “Used by,” and deleting
 - **Old Projects**: A project from an earlier version is converted upon opening: `Project.json` becomes `<Name>.mineengine`, `Content/` becomes `elements/`, Java files from `Scripts/` move to `src/main/java` (in their package folder), `Generated/` is removed except its test worlds (`run/`). A zip of the old project is kept in `.mineengine/backups`.
@@ -91,14 +93,14 @@ A **graph** describes behaviors without writing any Java code, similar to Unreal
 
 - **+ Graph** in the Dashboard creates a graph and opens it; double-clicking a graph reopens it.
 - The white wire specifies the execution order; the colored wires carry values (red: Boolean, green: number, pink: text, blue: player, orange: position). An unconnected input is set directly on the node.
-- **Right-click**: add a node (search). **Drag a pin** toward another: connect; into empty space: select a node to connect to. **Alt+click**: disconnect. **Right-click and drag** or hold the scroll wheel: move the view; **scroll wheel**: zoom; **F**: show all; **Delete**, **Ctrl+D**, **Ctrl+A**.
+- **Right-click**: add a node (search). **Drag a pin** toward another: connect; into empty space: select a node to connect to. **Alt+click**: disconnect. **Right-click and drag** or hold the scroll wheel: move the view; **scroll wheel**: zoom; **F**: show all; **Delete**, **Ctrl+D**, **Ctrl+A**. **Double-click a wire**: add a **reroute** point (like Unreal) to route the wire elsewhere; it can be moved like a node, and deleting it keeps the wire. Reroutes change nothing in the generated Java.
 - Incomplete nodes are highlighted in red (error) or orange (warning); “Details” and “Diagnostics” list the issues, and clicking on a node displays it. Use Ctrl+Z to undo changes, and changes are saved with the project.
 - Upon compilation, each event graph becomes a Java class (MyGraphBehavior) subscribed to the Forge or NeoForge event bus.
 - **Backspace** or **Delete** removes the selected nodes (the entry node of a function cannot be removed).
 
 ### Programming with graphs
 
-**+ Graph** in the Dashboard (or **Project > Add a graph**) asks what the graph defines:
+**+** in the toolbar (or **Assets > Add a graph**) asks what the graph defines. The definition is edited in the Details panel; a structure, interface or enumeration has no canvas, so its definition fills the tab:
 
 | Kind | Definition panel | Node canvas |
 | --- | --- | --- |
@@ -119,13 +121,24 @@ A **graph** describes behaviors without writing any Java code, similar to Unreal
 
 Like in MCreator, a project is a regular Gradle project: Java code generated by Mine Engine and Java code written by hand live side by side in `src/main/java` and are compiled together.
 
-- **Project > New Java class** (or the `{}` button of the Explorer): event listener (`@SubscribeEvent` methods called by the game, with the right annotation for Forge or NeoForge), utility class or empty class. The class is created in the package of the selected folder, or in `<mod package>.custom`.
+- **Workspace > New Java class** (or the `{}` button of the Explorer): event listener (`@SubscribeEvent` methods called by the game, with the right annotation for Forge or NeoForge), utility class or empty class. The class is created in the package of the selected folder, or in `<mod package>.custom`.
 - **Generated code** is read-only: it is rewritten at every build. **Lock to edit** (banner of the tab) keeps Mine Engine from rewriting the file, so it can be edited by hand (also works for `build.gradle`); **Unlock** gives it back to Mine Engine. Locking is undoable and saved in the project file.
 - Mine Engine deletes only the generated files it no longer produces (list in `.mineengine/generated.json`); files written by hand are never touched.
 - **Editor**: foldable blocks, automatic indentation, closing of brackets and quotes, completion (Ctrl+Space or while typing: keywords, common Minecraft and loader classes, generated mod classes, words of the file; accepting a class adds its `import`), **Format** (Ctrl+Shift+F), search and replace (Ctrl+F), errors of the last build underlined in the code with a dot in the margin.
 
 ### Settings
-**Tools > Settings** (Ctrl+,): **Appearance** tab for light, dark (contrasted neutral grays, blue accent), or Windows-style themes, and the interface **language** (English by default, or French; applied at the next start); **Backup** tab for the automatic backup interval and the number of backup copies. The selection takes effect immediately and is saved in `%LOCALAPPDATA%\MineEngine\settings.json`.
+**Tools > Settings** (Ctrl+,):
+
+- **General**: reopen the last project at startup, automatic backup interval, number of backup copies, and a button to restore the defaults.
+- **Appearance**: the theme (same as Windows, dark, light, midnight blue, crimson red, forest green, gold, purple, high contrast, or an imported theme), the accent color and the interface size (80 % to 150 %). The theme and the accent are previewed immediately; Cancel restores the previous ones. **Import...** adds a theme file, **Export...** writes the current theme with all its colors, ready to be edited and imported again.
+- **Language**: English (default), French, or an imported language. **Export a template...** writes every interface text with its English version, to translate and import. Texts an imported language does not translate stay in English. A new language is used after a restart, which Mine Engine offers to do right away.
+- **Editors**: code editor text size and word wrap, graph grid display and snapping of moved nodes.
+
+Settings are saved in `%LOCALAPPDATA%\MineEngine\settings.json`; imported themes and languages are copied to `themes\` and `languages\` in the same folder.
+
+Theme file (`.json`): `{ "formatVersion": 1, "name": "My theme", "base": "dark", "colors": { "AccentBrush": "#2F7FD8", ... } }`. `base` is `dark` or `light`; missing colors come from that base, unknown keys are ignored.
+
+Language file (`.json`): `{ "formatVersion": 1, "code": "de", "name": "Deutsch", "culture": "de-DE", "translations": { "Nouveau bloc": "Neuer Block", ... } }`. Keys are the French source texts; a translation that is empty or does not keep the same `{0}`, `{1}`... values is skipped.
 
 ## Architecture
 

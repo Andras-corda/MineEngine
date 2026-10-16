@@ -24,6 +24,8 @@
                          DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                 <MenuItem Header="{l:Tr 'Ouvrir'}" CommandParameter="{Binding}"
                           Command="{Binding PlacementTarget.Tag.Explorer.OpenCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                <!-- Rempli à l'ouverture du menu (voir OpenWithMenu). -->
+                <MenuItem Header="{l:Tr 'Ouvrir avec'}" Tag="openWith" />
                 <Separator />
                 <MenuItem Header="{l:Tr 'Nouvelle classe Java'}">
                     <MenuItem Header="{l:Tr 'Écouteur d\'événements du jeu...'}" CommandParameter="{x:Static java:JavaClassKind.EventListener}"
@@ -111,6 +113,7 @@
                         <Setter Property="ContextMenu" Value="{StaticResource NodeMenu}" />
                         <Setter Property="ToolTip" Value="{Binding FullPath}" />
                         <EventSetter Event="MouseDoubleClick" Handler="OnNodeDoubleClick" />
+                        <EventSetter Event="ContextMenuOpening" Handler="OnNodeMenuOpening" />
                     </Style>
                 </TreeView.ItemContainerStyle>
                 <TreeView.ItemTemplate>

@@ -16,7 +16,7 @@ public enum ProjectFileKind
     /// <summary>Fichier généré verrouillé par l'utilisateur : il se modifie à la main et n'est plus réécrit.</summary>
     Locked,
 
-    /// <summary>Fichier .mineengine : il se modifie dans Projet > Paramètres du projet.</summary>
+    /// <summary>Fichier .mineengine : il se modifie dans Espace de travail > Paramètres du projet.</summary>
     ProjectFile,
 
     /// <summary>Produit par Gradle ou par le jeu (build/, run/, .gradle/).</summary>

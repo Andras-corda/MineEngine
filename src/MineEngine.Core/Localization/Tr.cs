@@ -18,7 +18,16 @@ public static class Tr
     {
         ArgumentNullException.ThrowIfNull(language);
         Catalog = TextCatalog.For(language);
-        var culture = CultureInfo.GetCultureInfo(language.CultureName);
+        CultureInfo culture;
+        try
+        {
+            culture = CultureInfo.GetCultureInfo(language.CultureName);
+        }
+        catch (CultureNotFoundException)
+        {
+            culture = CultureInfo.GetCultureInfo(UiLanguage.English.CultureName);
+        }
+
         CultureInfo.DefaultThreadCurrentCulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
         CultureInfo.CurrentCulture = culture;
@@ -28,7 +37,19 @@ public static class Tr
     /// <summary>Traduction d'un texte de l'interface.</summary>
     public static string T(string text) => Catalog.Translate(text);
 
-    /// <summary>Traduction d'un texte composite ({0}, {1}...), puis remplacement des valeurs.</summary>
-    public static string F(string format, params object?[] args) =>
-        string.Format(CultureInfo.CurrentCulture, Catalog.Translate(format), args);
+    /// <summary>
+    /// Traduction d'un texte composite ({0}, {1}...), puis remplacement des valeurs. Une traduction
+    /// mal formée (accolade oubliée dans un fichier de langue importé) retombe sur le texte source.
+    /// </summary>
+    public static string F(string format, params object?[] args)
+    {
+        try
+        {
+            return string.Format(CultureInfo.CurrentCulture, Catalog.Translate(format), args);
+        }
+        catch (FormatException)
+        {
+            return string.Format(CultureInfo.CurrentCulture, format, args);
+        }
+    }
 }

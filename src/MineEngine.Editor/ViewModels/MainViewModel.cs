@@ -93,7 +93,12 @@ public sealed partial class MainViewModel : ObservableObject
 
         _autoSaveTimer = new DispatcherTimer();
         _autoSaveTimer.Tick += (_, _) => AutoSave();
-        _preferences.Changed += (_, _) => ConfigureAutoSave();
+        _preferences.Changed += (_, _) =>
+        {
+            ConfigureAutoSave();
+            Shortcuts.Update(_preferences.Current.Shortcuts);
+        };
+        Shortcuts.Update(_preferences.Current.Shortcuts);
         ConfigureAutoSave();
 
         // Fichier
@@ -122,15 +127,27 @@ public sealed partial class MainViewModel : ObservableObject
         ValidateCommand = new RelayCommand(ValidateAndShow, () => HasProject);
 
         // Build
-        BuildCommand = new AsyncRelayCommand(() => RunPipelineAsync(runClient: false), () => HasProject && !IsBusy);
-        RunClientCommand = new AsyncRelayCommand(() => RunPipelineAsync(runClient: true), () => HasProject && !IsBusy);
+        BuildCommand = new AsyncRelayCommand(() => RunPipelineAsync(PipelineAction.Build), () => HasProject && !IsBusy);
+        RunClientCommand = new AsyncRelayCommand(() => RunPipelineAsync(PipelineAction.RunClient), () => HasProject && !IsBusy);
+        ExportModCommand = new AsyncRelayCommand(() => RunPipelineAsync(PipelineAction.Export), () => HasProject && !IsBusy);
+        ReloadGradleCommand = new AsyncRelayCommand(() => RunPipelineAsync(PipelineAction.ReloadGradle), () => HasProject && !IsBusy);
         CancelBuildCommand = new RelayCommand(() => _buildCancellation?.Cancel(), () => IsBusy);
         OpenBuildFolderCommand = new RelayCommand(() => OpenFolder(_project!.Model.Layout.BuildDirectory), () => HasProject);
 
         // Outils
         OpenMdkManagerCommand = new RelayCommand(_dialogs.ShowMdkManager, () => !IsBusy);
-        OpenSettingsCommand = new RelayCommand(_dialogs.ShowSettings);
+        OpenSettingsCommand = new RelayCommand(OpenSettings);
+
+        // Mine Engine
+        OpenRepositoryCommand = new RelayCommand(() => _shell.OpenUrl(EditorInfo.RepositoryUrl));
+        OpenWebsiteCommand = new RelayCommand(() => _shell.OpenUrl(EditorInfo.WebsiteUrl!), () => EditorInfo.WebsiteUrl is not null);
     }
+
+    /// <summary>
+    /// L'utilisateur a demandé de relancer Mine Engine (changement de langue) : la vue ferme la
+    /// fenêtre, ce qui propose d'enregistrer le projet, puis relance l'application sur le projet donné.
+    /// </summary>
+    public event EventHandler<string?>? RestartRequested;
 
     /// <summary>Demande à la vue d'afficher un panneau (par exemple l'Inspector après une navigation).</summary>
     public event EventHandler<string>? PanelRequested;
@@ -141,11 +158,18 @@ public sealed partial class MainViewModel : ObservableObject
 
     public ProjectExplorerViewModel Explorer { get; }
 
+    /// <summary>Raccourcis clavier en cours (affichés dans les menus, appliqués par la fenêtre).</summary>
+    public ShortcutMap Shortcuts { get; } = new();
+
+    /// <summary>Onglet Langues du projet ouvert (langues du mod et traductions).</summary>
+    public LanguagesViewModel? Languages { get; private set; }
+
     public ProjectViewModel? Project
     {
         get => _project;
         private set
         {
+            Languages?.Dispose();
             if (_project is not null)
             {
                 _project.PropertyChanged -= OnProjectPropertyChanged;
@@ -160,6 +184,8 @@ public sealed partial class MainViewModel : ObservableObject
             _buildDiagnostics = [];
             _javaCompletions = null;
             _project = value;
+            Languages = value is null ? null : new LanguagesViewModel(value, _dialogs, () => CanEdit);
+            OnPropertyChanged(nameof(Languages));
             if (_project is not null)
             {
                 _project.PropertyChanged += OnProjectPropertyChanged;
@@ -264,11 +290,40 @@ public sealed partial class MainViewModel : ObservableObject
 
     public ICommand CancelBuildCommand { get; }
 
+    /// <summary>Compile le mod puis copie le .jar à l'endroit choisi.</summary>
+    public ICommand ExportModCommand { get; }
+
+    /// <summary>Régénère le projet et fait relire à Gradle sa configuration et ses dépendances.</summary>
+    public ICommand ReloadGradleCommand { get; }
+
     public ICommand OpenBuildFolderCommand { get; }
 
     public ICommand OpenMdkManagerCommand { get; }
 
     public ICommand OpenSettingsCommand { get; }
+
+    /// <summary>Ouvre le dépôt GitHub de Mine Engine.</summary>
+    public ICommand OpenRepositoryCommand { get; }
+
+    /// <summary>Ouvre le site web de Mine Engine.</summary>
+    public ICommand OpenWebsiteCommand { get; }
+
+    private void OpenSettings()
+    {
+        if (_dialogs.ShowSettings())
+        {
+            RestartRequested?.Invoke(this, _project?.Model.Layout.RootDirectory);
+        }
+    }
+
+    /// <summary>Rouvre au démarrage le dernier projet ouvert, si l'option est cochée dans les paramètres.</summary>
+    public void ReopenLastProjectAtStartup()
+    {
+        if (_preferences.Current.ReopenLastProject && Hub.LastOpenedProject is { } directory)
+        {
+            TryOpen(directory);
+        }
+    }
 
     /// <summary>Ouvre un projet passé en argument de la ligne de commande.</summary>
     public void OpenProjectAtStartup(string path) => TryOpen(path);
@@ -516,7 +571,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (_mdks.Library.Find(settings.MdkId) is null)
         {
             diagnostics.Warning(
-                Tr.F("Le MDK '{0}' n'est pas installé. Choisissez-en un dans Projet > Paramètres du projet.", settings.MdkId ?? Tr.T("aucun")),
+                Tr.F("Le MDK '{0}' n'est pas installé. Choisissez-en un dans Espace de travail > Paramètres du projet.", settings.MdkId ?? Tr.T("aucun")),
                 Tr.T("Projet"));
         }
 
@@ -539,35 +594,77 @@ public sealed partial class MainViewModel : ObservableObject
         PanelRequested?.Invoke(this, DiagnosticsPanelId);
     }
 
-    private async Task RunPipelineAsync(bool runClient)
+    private enum PipelineAction
+    {
+        Build,
+        RunClient,
+        Export,
+        ReloadGradle,
+    }
+
+    private async Task RunPipelineAsync(PipelineAction action)
     {
         if (_project is null || (_project.IsDirty && !SaveProject(isAutoSave: false)))
         {
             return;
         }
 
+        string? exportPath = null;
+        if (action == PipelineAction.Export)
+        {
+            exportPath = _dialogs.AskFileToSave(Tr.T("Exporter le mod"), Tr.T("Mod Minecraft (*.jar)|*.jar"), _project.Model.Settings.ModId + ".jar");
+            if (exportPath is null)
+            {
+                return;
+            }
+        }
+
         // Le code Java ouvert dans les onglets est compilé tel qu'il est affiché.
         SaveDirtyDocuments();
         ModProject project = _project.Model;
         SetBusy(new CancellationTokenSource());
-        StatusText = runClient ? Tr.T("Lancement de Minecraft...") : Tr.T("Build en cours...");
+        StatusText = action switch
+        {
+            PipelineAction.RunClient => Tr.T("Lancement de Minecraft..."),
+            PipelineAction.ReloadGradle => Tr.T("Rechargement de Gradle..."),
+            _ => Tr.T("Build en cours..."),
+        };
         _log.Info(new string('-', 60));
 
         try
         {
-            BuildResult result = runClient
-                ? await _pipeline.RunClientAsync(project, _log, _buildCancellation!.Token)
-                : await _pipeline.BuildAsync(project, _log, _buildCancellation!.Token);
+            CancellationToken token = _buildCancellation!.Token;
+            BuildResult result = action switch
+            {
+                PipelineAction.RunClient => await _pipeline.RunClientAsync(project, _log, token),
+                PipelineAction.ReloadGradle => await _pipeline.ReloadGradleAsync(project, _log, token),
+                _ => await _pipeline.BuildAsync(project, _log, token),
+            };
 
             Diagnostics.SetBuildResults(result.Diagnostics.Where(d => d.Severity != DiagnosticSeverity.Info));
             _buildDiagnostics = [.. result.Diagnostics];
-            StatusText = result.Success ? (runClient ? Tr.T("Minecraft fermé") : Tr.T("Build réussi")) : Tr.T("Échec du build");
-            _lastBuildSummary = result.Success
-                ? (runClient ? Tr.F("Lancement réussi le {0:g} en {1:mm\\:ss}", DateTime.Now, result.Duration)
-                             : Tr.F("Build réussi le {0:g} en {1:mm\\:ss}", DateTime.Now, result.Duration))
-                  + (result.JarPath is null ? string.Empty : $" : {Path.GetFileName(result.JarPath)}")
-                : runClient ? Tr.F("Échec du lancement le {0:g}", DateTime.Now) : Tr.F("Échec du build le {0:g}", DateTime.Now);
-            OnPropertyChanged(nameof(LastBuildSummary));
+            if (action == PipelineAction.ReloadGradle)
+            {
+                StatusText = result.Success ? Tr.T("Projet Gradle rechargé") : Tr.T("Échec du rechargement de Gradle");
+            }
+            else
+            {
+                bool runClient = action == PipelineAction.RunClient;
+                StatusText = result.Success ? (runClient ? Tr.T("Minecraft fermé") : Tr.T("Build réussi")) : Tr.T("Échec du build");
+                _lastBuildSummary = result.Success
+                    ? (runClient ? Tr.F("Lancement réussi le {0:g} en {1:mm\\:ss}", DateTime.Now, result.Duration)
+                                 : Tr.F("Build réussi le {0:g} en {1:mm\\:ss}", DateTime.Now, result.Duration))
+                      + (result.JarPath is null ? string.Empty : $" : {Path.GetFileName(result.JarPath)}")
+                    : runClient ? Tr.F("Échec du lancement le {0:g}", DateTime.Now) : Tr.F("Échec du build le {0:g}", DateTime.Now);
+                OnPropertyChanged(nameof(LastBuildSummary));
+            }
+
+            if (result.Success && exportPath is not null && result.JarPath is not null)
+            {
+                File.Copy(result.JarPath, exportPath, overwrite: true);
+                _log.Success(Tr.F("Mod exporté : {0}", exportPath));
+                StatusText = Tr.F("Mod exporté : {0}", Path.GetFileName(exportPath));
+            }
 
             if (!result.Success)
             {

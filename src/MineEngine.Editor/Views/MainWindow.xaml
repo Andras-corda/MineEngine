@@ -40,17 +40,6 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Window.InputBindings>
-        <KeyBinding Key="N" Modifiers="Control" Command="{Binding NewProjectCommand}" />
-        <KeyBinding Key="O" Modifiers="Control" Command="{Binding OpenProjectCommand}" />
-        <KeyBinding Key="S" Modifiers="Control" Command="{Binding SaveProjectCommand}" />
-        <KeyBinding Key="B" Modifiers="Control+Shift" Command="{Binding BuildCommand}" />
-        <KeyBinding Key="F5" Command="{Binding RunClientCommand}" />
-        <KeyBinding Key="F7" Command="{Binding ValidateCommand}" />
-        <KeyBinding Key="OemComma" Modifiers="Control" Command="{Binding OpenSettingsCommand}" />
-        <KeyBinding Key="W" Modifiers="Control" Command="{Binding CloseActiveDocumentCommand}" />
-    </Window.InputBindings>
-
     <DockPanel>
         <!--
             Barre de titre (comme VS Code) : icône, titre au centre, boutons de disposition à droite,
@@ -100,19 +89,21 @@
             </StackPanel>
         </Grid>
 
-        <!-- Menus -->
+        <!-- Menus : Mine Engine, Fichier, Édition, Espace de travail, Éléments, Outils, Compilation et lancement, Fenêtre -->
         <Menu DockPanel.Dock="Top" Background="{DynamicResource SidebarBrush}">
+            <MenuItem Header="{l:Tr '_Mine Engine'}">
+                <MenuItem Header="{l:Tr 'Dépôt _GitHub'}" Command="{Binding OpenRepositoryCommand}"
+                          ToolTip="{l:Tr 'Code source, tickets et versions de Mine Engine'}" />
+                <MenuItem Header="{l:Tr '_Site web'}" Command="{Binding OpenWebsiteCommand}" />
+            </MenuItem>
             <MenuItem Header="{l:Tr '_Fichier'}">
-                <MenuItem Header="{l:Tr '_Nouveau projet...'}" Command="{Binding NewProjectCommand}" InputGestureText="Ctrl+N" />
-                <MenuItem Header="{l:Tr '_Ouvrir un projet...'}" Command="{Binding OpenProjectCommand}" InputGestureText="Ctrl+O" />
-                <MenuItem Header="{l:Tr '_Enregistrer tout'}" Command="{Binding SaveProjectCommand}" InputGestureText="Ctrl+S"
+                <MenuItem Header="{l:Tr '_Nouveau projet...'}" Command="{Binding NewProjectCommand}" InputGestureText="{Binding Shortcuts[file.newProject]}" />
+                <MenuItem Header="{l:Tr '_Ouvrir un projet...'}" Command="{Binding OpenProjectCommand}" InputGestureText="{Binding Shortcuts[file.openProject]}" />
+                <MenuItem Header="{l:Tr '_Enregistrer tout'}" Command="{Binding SaveProjectCommand}" InputGestureText="{Binding Shortcuts[file.saveAll]}"
                           ToolTip="{l:Tr 'Enregistre le projet et les fichiers modifiés dans les onglets'}" />
-                <MenuItem Header="{l:Tr 'Enregistrer le _fichier'}" Command="{Binding SaveDocumentCommand}" />
-                <MenuItem Header="{l:Tr 'Fermer l\'_onglet'}" Command="{Binding CloseActiveDocumentCommand}" InputGestureText="Ctrl+W" />
-                <MenuItem Header="{l:Tr '_Fermer le projet (retour à l\'accueil)'}" Command="{Binding CloseProjectCommand}" />
-                <Separator />
-                <MenuItem Header="{l:Tr 'Ouvrir le dossier du projet'}" Command="{Binding OpenProjectFolderCommand}" />
-                <MenuItem Header="{l:Tr 'Ouvrir le dossier des sauvegardes'}" Command="{Binding OpenBackupsFolderCommand}" />
+                <MenuItem Header="{l:Tr 'Enregistrer le _fichier'}" Command="{Binding SaveDocumentCommand}" InputGestureText="{Binding Shortcuts[file.saveFile]}" />
+                <MenuItem Header="{l:Tr 'Fermer l\'_onglet'}" Command="{Binding CloseActiveDocumentCommand}" InputGestureText="{Binding Shortcuts[file.closeTab]}" />
+                <MenuItem Header="{l:Tr '_Fermer le projet (retour à l\'accueil)'}" Command="{Binding CloseProjectCommand}" InputGestureText="{Binding Shortcuts[file.closeProject]}" />
                 <Separator />
                 <MenuItem Header="{l:Tr '_Quitter'}" Click="OnExitClick" />
             </MenuItem>
@@ -120,65 +111,21 @@
                 <MenuItem Header="{Binding UndoLabel}" Command="{Binding UndoCommand}" InputGestureText="Ctrl+Z" />
                 <MenuItem Header="{Binding RedoLabel}" Command="{Binding RedoCommand}" InputGestureText="Ctrl+Y" />
                 <Separator />
-                <MenuItem Header="{l:Tr '_Supprimer l\'élément sélectionné'}" Command="{Binding DeleteAssetCommand}" />
+                <MenuItem Header="{l:Tr '_Éditer l\'élément sélectionné'}" Command="{Binding EditSelectedAssetCommand}" InputGestureText="{Binding Shortcuts[edit.edit]}" />
+                <MenuItem Header="{l:Tr 'D_upliquer l\'élément sélectionné'}" Command="{Binding DuplicateAssetCommand}" InputGestureText="{Binding Shortcuts[edit.duplicate]}" />
+                <MenuItem Header="{l:Tr '_Supprimer l\'élément sélectionné'}" Command="{Binding DeleteAssetCommand}" InputGestureText="{Binding Shortcuts[edit.delete]}" />
+                <Separator />
+                <MenuItem Header="{l:Tr 'Ouvrir le _graphe sélectionné'}" Command="{Binding OpenSelectedGraphCommand}" InputGestureText="{Binding Shortcuts[edit.openGraph]}" />
+                <MenuItem Header="{l:Tr 'Voir le code _Java'}" Command="{Binding OpenAssetJavaCommand}" InputGestureText="{Binding Shortcuts[edit.viewJava]}" />
                 <MenuItem Header="{l:Tr '_Voir le fichier de l\'élément'}" Command="{Binding OpenAssetSourceCommand}" />
             </MenuItem>
-            <MenuItem Header="{l:Tr '_Affichage'}">
-                <MenuItem Header="{l:Tr '_Dashboard'}" Command="{Binding ShowDashboardCommand}" />
-                <MenuItem Header="{l:Tr '_Explorateur'}" Tag="explorer" Click="OnShowPanelClick" />
-                <MenuItem Header="{l:Tr 'Dé_tails / Inspecteur'}" Tag="inspector" Click="OnShowPanelClick" />
-                <MenuItem Header="{l:Tr '_Sortie'}" Tag="output" Click="OnShowPanelClick" />
-                <MenuItem Header="{l:Tr '_Diagnostics'}" Tag="diagnostics" Click="OnShowPanelClick" />
+            <MenuItem Header="{l:Tr 'Espace de _travail'}">
+                <MenuItem Header="{l:Tr '_Paramètres du projet...'}" Command="{Binding EditProjectSettingsCommand}" InputGestureText="{Binding Shortcuts[workspace.settings]}" />
                 <Separator />
-                <MenuItem Header="{l:Tr '_Réinitialiser la disposition'}" Click="OnResetLayoutClick" />
-            </MenuItem>
-            <MenuItem Header="{l:Tr '_Projet'}">
-                <MenuItem Header="{l:Tr '_Paramètres du projet...'}" Command="{Binding EditProjectSettingsCommand}" />
+                <MenuItem Header="{l:Tr 'Ouvrir le dossier du projet'}" Command="{Binding OpenProjectFolderCommand}" />
+                <MenuItem Header="{l:Tr 'Ouvrir le dossier des sauvegardes'}" Command="{Binding OpenBackupsFolderCommand}" />
                 <Separator />
-                <MenuItem Header="{l:Tr 'Ajouter un _item'}" Command="{Binding AddItemCommand}">
-                    <MenuItem.Icon><views:IconView Icon="ItemGeometry" IconSize="14" /></MenuItem.Icon>
-                </MenuItem>
-                <MenuItem Header="{l:Tr 'Ajouter un _bloc'}" Command="{Binding AddBlockCommand}">
-                    <MenuItem.Icon><views:IconView Icon="BlockGeometry" IconSize="14" /></MenuItem.Icon>
-                </MenuItem>
-                <MenuItem Header="{l:Tr 'Ajouter un _mob'}" Command="{Binding AddMobCommand}">
-                    <MenuItem.Icon><views:IconView Icon="MobGeometry" IconSize="14" /></MenuItem.Icon>
-                </MenuItem>
-                <MenuItem Header="{l:Tr 'Ajouter une _recette'}" Command="{Binding AddRecipeCommand}">
-                    <MenuItem.Icon><views:IconView Icon="RecipeGeometry" IconSize="14" /></MenuItem.Icon>
-                </MenuItem>
-                <MenuItem Header="{l:Tr 'Ajouter un _graphe'}">
-                    <MenuItem Header="{l:Tr 'Graphe d\'_événements'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Events}"
-                              ToolTip="{l:Tr 'Réactions aux événements du jeu (clic droit, connexion...)'}">
-                        <MenuItem.Icon><views:IconView Icon="NodeGraphGeometry" IconSize="14" /></MenuItem.Icon>
-                    </MenuItem>
-                    <Separator />
-                    <MenuItem Header="{l:Tr '_Fonction'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Function}"
-                              ToolTip="{l:Tr 'Suite d\'instructions qui renvoie des valeurs'}">
-                        <MenuItem.Icon><views:IconView Icon="FunctionGeometry" IconSize="14" /></MenuItem.Icon>
-                    </MenuItem>
-                    <MenuItem Header="{l:Tr '_Procédure'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Procedure}"
-                              ToolTip="{l:Tr 'Suite d\'instructions qui ne renvoie rien'}">
-                        <MenuItem.Icon><views:IconView Icon="ProcedureGeometry" IconSize="14" /></MenuItem.Icon>
-                    </MenuItem>
-                    <Separator />
-                    <MenuItem Header="{l:Tr '_Classe'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Class}"
-                              ToolTip="{l:Tr 'Type avec des champs, un constructeur, des méthodes ; héritage et interfaces'}">
-                        <MenuItem.Icon><views:IconView Icon="ClassGeometry" IconSize="14" /></MenuItem.Icon>
-                    </MenuItem>
-                    <MenuItem Header="{l:Tr '_Structure'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Struct}"
-                              ToolTip="{l:Tr 'Type qui regroupe des champs'}">
-                        <MenuItem.Icon><views:IconView Icon="StructGeometry" IconSize="14" /></MenuItem.Icon>
-                    </MenuItem>
-                    <MenuItem Header="{l:Tr '_Interface'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Interface}"
-                              ToolTip="{l:Tr 'Méthodes que les classes qui l\'implémentent doivent fournir'}">
-                        <MenuItem.Icon><views:IconView Icon="InterfaceGeometry" IconSize="14" /></MenuItem.Icon>
-                    </MenuItem>
-                    <MenuItem Header="{l:Tr 'É_numération'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Enum}"
-                              ToolTip="{l:Tr 'Liste de valeurs nommées'}">
-                        <MenuItem.Icon><views:IconView Icon="EnumGeometry" IconSize="14" /></MenuItem.Icon>
-                    </MenuItem>
-                </MenuItem>
+                <MenuItem Header="{l:Tr 'Nouveau _dossier'}" Command="{Binding NewFolderCommand}" InputGestureText="{Binding Shortcuts[workspace.newFolder]}" />
                 <MenuItem Header="{l:Tr 'Nouvelle classe _Java'}">
                     <MenuItem Header="{l:Tr 'Écouteur d\'événements du jeu...'}" Command="{Binding Explorer.NewJavaClassCommand}"
                               CommandParameter="{x:Static java:JavaClassKind.EventListener}" />
@@ -188,24 +135,104 @@
                               CommandParameter="{x:Static java:JavaClassKind.Empty}" />
                 </MenuItem>
                 <Separator />
-                <MenuItem Header="{l:Tr 'Importer des _textures (PNG)...'}" Command="{Binding ImportTexturesCommand}" />
-                <MenuItem Header="{l:Tr 'Importer des _sons (OGG)...'}" Command="{Binding ImportSoundsCommand}" />
-                <Separator />
-                <MenuItem Header="{l:Tr '_Valider le projet'}" Command="{Binding ValidateCommand}" InputGestureText="F7" />
+                <MenuItem Header="{l:Tr '_Valider le projet'}" Command="{Binding ValidateCommand}" InputGestureText="{Binding Shortcuts[workspace.validate]}" />
             </MenuItem>
-            <MenuItem Header="{l:Tr '_Compilation'}">
-                <MenuItem Header="{l:Tr '_Générer le mod (.jar)'}" Command="{Binding BuildCommand}" InputGestureText="Ctrl+Maj+B" />
-                <MenuItem Header="{l:Tr '_Lancer Minecraft'}" Command="{Binding RunClientCommand}" InputGestureText="F5" />
-                <MenuItem Header="{l:Tr '_Annuler le build'}" Command="{Binding CancelBuildCommand}" />
+            <MenuItem Header="{l:Tr 'Élé_ments'}">
+                <MenuItem Header="{l:Tr '_Ajouter'}">
+                    <MenuItem Header="{l:Tr 'Contenu du jeu'}">
+                        <MenuItem.Icon><views:IconView Icon="BlockGeometry" IconSize="14" /></MenuItem.Icon>
+                        <MenuItem Header="{l:Tr 'Item'}" Command="{Binding AddItemCommand}" InputGestureText="{Binding Shortcuts[assets.addItem]}">
+                            <MenuItem.Icon><views:IconView Icon="ItemGeometry" IconSize="14" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="{l:Tr 'Bloc'}" Command="{Binding AddBlockCommand}" InputGestureText="{Binding Shortcuts[assets.addBlock]}">
+                            <MenuItem.Icon><views:IconView Icon="BlockGeometry" IconSize="14" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="{l:Tr 'Mob'}" Command="{Binding AddMobCommand}" InputGestureText="{Binding Shortcuts[assets.addMob]}">
+                            <MenuItem.Icon><views:IconView Icon="MobGeometry" IconSize="14" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="{l:Tr 'Recette'}" Command="{Binding AddRecipeCommand}" InputGestureText="{Binding Shortcuts[assets.addRecipe]}">
+                            <MenuItem.Icon><views:IconView Icon="RecipeGeometry" IconSize="14" /></MenuItem.Icon>
+                        </MenuItem>
+                    </MenuItem>
+                    <MenuItem Header="{l:Tr 'Programmation nodale'}">
+                        <MenuItem.Icon><views:IconView Icon="NodeGraphGeometry" IconSize="14" /></MenuItem.Icon>
+                        <MenuItem Header="{l:Tr 'Graphe d\'événements'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Events}" ToolTip="{l:Tr 'Réactions aux événements du jeu (clic droit, connexion...)'}">
+                            <MenuItem.Icon><views:IconView Icon="NodeGraphGeometry" IconSize="14" /></MenuItem.Icon>
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem Header="{l:Tr 'Fonction'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Function}" ToolTip="{l:Tr 'Suite d\'instructions qui renvoie des valeurs'}">
+                            <MenuItem.Icon><views:IconView Icon="FunctionGeometry" IconSize="14" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="{l:Tr 'Procédure'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Procedure}" ToolTip="{l:Tr 'Suite d\'instructions qui ne renvoie rien'}">
+                            <MenuItem.Icon><views:IconView Icon="ProcedureGeometry" IconSize="14" /></MenuItem.Icon>
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem Header="{l:Tr 'Classe'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Class}" ToolTip="{l:Tr 'Type avec des champs, un constructeur, des méthodes ; héritage et interfaces'}">
+                            <MenuItem.Icon><views:IconView Icon="ClassGeometry" IconSize="14" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="{l:Tr 'Structure'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Struct}" ToolTip="{l:Tr 'Type qui regroupe des champs'}">
+                            <MenuItem.Icon><views:IconView Icon="StructGeometry" IconSize="14" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="{l:Tr 'Interface'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Interface}" ToolTip="{l:Tr 'Méthodes que les classes qui l\'implémentent doivent fournir'}">
+                            <MenuItem.Icon><views:IconView Icon="InterfaceGeometry" IconSize="14" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="{l:Tr 'Énumération'}" Command="{Binding AddGraphCommand}" CommandParameter="{x:Static graphs:GraphKind.Enum}" ToolTip="{l:Tr 'Liste de valeurs nommées'}">
+                            <MenuItem.Icon><views:IconView Icon="EnumGeometry" IconSize="14" /></MenuItem.Icon>
+                        </MenuItem>
+                    </MenuItem>
+                    <MenuItem Header="{l:Tr 'Classe Java'}">
+                        <MenuItem Header="{l:Tr 'Écouteur d\'événements du jeu...'}" Command="{Binding Explorer.NewJavaClassCommand}" CommandParameter="{x:Static java:JavaClassKind.EventListener}" />
+                        <MenuItem Header="{l:Tr 'Classe utilitaire...'}" Command="{Binding Explorer.NewJavaClassCommand}" CommandParameter="{x:Static java:JavaClassKind.Utility}" />
+                        <MenuItem Header="{l:Tr 'Classe vide...'}" Command="{Binding Explorer.NewJavaClassCommand}" CommandParameter="{x:Static java:JavaClassKind.Empty}" />
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Header="{l:Tr 'Importer'}">
+                        <MenuItem Header="{l:Tr 'Textures (PNG)...'}" Command="{Binding ImportTexturesCommand}" InputGestureText="{Binding Shortcuts[assets.importTextures]}" />
+                        <MenuItem Header="{l:Tr 'Sons (OGG)...'}" Command="{Binding ImportSoundsCommand}" InputGestureText="{Binding Shortcuts[assets.importSounds]}" />
+                        <MenuItem Header="{l:Tr 'Élément d\'un autre projet (.asset.json)...'}" Command="{Binding ImportAssetCommand}" ToolTip="{l:Tr 'Ajoute au dossier ouvert un élément exporté depuis un autre projet'}" />
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Header="{l:Tr 'Nouveau dossier'}" Command="{Binding NewFolderCommand}" InputGestureText="{Binding Shortcuts[workspace.newFolder]}" />
+                </MenuItem>
                 <Separator />
-                <MenuItem Header="{l:Tr 'Ouvrir le dossier des mods produits (build/libs)'}" Command="{Binding OpenBuildFolderCommand}" />
+                <MenuItem Header="{l:Tr '_Exporter l\'élément sélectionné...'}" Command="{Binding ExportAssetCommand}" InputGestureText="{Binding Shortcuts[assets.export]}"
+                          ToolTip="{l:Tr 'Fichier .asset.json de l\'élément, ou l\'image ou le son d\'une texture ou d\'un son'}" />
             </MenuItem>
             <MenuItem Header="{l:Tr '_Outils'}">
-                <MenuItem Header="{l:Tr 'Gestionnaire de _MDK...'}" Command="{Binding OpenMdkManagerCommand}" />
+                <MenuItem Header="{l:Tr 'Gestionnaire de _MDK...'}" Command="{Binding OpenMdkManagerCommand}" InputGestureText="{Binding Shortcuts[tools.mdk]}" />
                 <Separator />
-                <MenuItem Header="{l:Tr '_Paramètres...'}" Command="{Binding OpenSettingsCommand}" InputGestureText="Ctrl+," />
+                <MenuItem Header="{l:Tr '_Paramètres...'}" Command="{Binding OpenSettingsCommand}" InputGestureText="{Binding Shortcuts[tools.settings]}" />
+            </MenuItem>
+            <MenuItem Header="{l:Tr '_Compilation et lancement'}">
+                <MenuItem Header="{l:Tr '_Compiler le mod'}" Command="{Binding BuildCommand}" InputGestureText="{Binding Shortcuts[build.build]}" />
+                <MenuItem Header="{l:Tr '_Exporter le mod (.jar)...'}" Command="{Binding ExportModCommand}" InputGestureText="{Binding Shortcuts[build.export]}"
+                          ToolTip="{l:Tr 'Compile le mod puis copie le .jar à l\'endroit choisi'}" />
+                <MenuItem Header="{l:Tr '_Lancer Minecraft'}" Command="{Binding RunClientCommand}" InputGestureText="{Binding Shortcuts[build.run]}" />
+                <MenuItem Header="{l:Tr '_Recharger Gradle'}" Command="{Binding ReloadGradleCommand}" InputGestureText="{Binding Shortcuts[build.reloadGradle]}"
+                          ToolTip="{l:Tr 'Régénère le projet et fait relire à Gradle sa configuration et ses dépendances, sans compiler'}" />
+                <Separator />
+                <MenuItem Header="{l:Tr '_Arrêter'}" Command="{Binding CancelBuildCommand}" InputGestureText="{Binding Shortcuts[build.stop]}" />
+                <MenuItem Header="{l:Tr 'Ouvrir le dossier des mods produits (build/libs)'}" Command="{Binding OpenBuildFolderCommand}" />
+            </MenuItem>
+            <MenuItem Header="{l:Tr 'Fe_nêtre'}">
+                <MenuItem Header="{l:Tr '_Dashboard'}" Command="{Binding ShowDashboardCommand}" InputGestureText="{Binding Shortcuts[window.dashboard]}" />
+                <MenuItem Header="{l:Tr 'R_essources'}" Command="{Binding ShowResourcesCommand}" InputGestureText="{Binding Shortcuts[window.resources]}" />
+                <MenuItem Header="{l:Tr '_Langues du mod'}" Command="{Binding ShowLanguagesCommand}" InputGestureText="{Binding Shortcuts[window.languages]}" />
+                <Separator />
+                <MenuItem Header="{l:Tr '_Explorateur'}" Tag="explorer" Click="OnShowPanelClick" InputGestureText="Ctrl+B" />
+                <MenuItem Header="{l:Tr 'Dé_tails / Inspecteur'}" Tag="inspector" Click="OnShowPanelClick" InputGestureText="Ctrl+Alt+B" />
+                <MenuItem Header="{l:Tr '_Sortie'}" Tag="output" Click="OnShowPanelClick" />
+                <MenuItem Header="{l:Tr 'D_iagnostics'}" Tag="diagnostics" Click="OnShowPanelClick" />
+                <Separator />
+                <MenuItem Header="{l:Tr 'Mode concentration (masquer les panneaux)'}" Click="OnFocusModeClick" />
+                <MenuItem Header="{l:Tr 'Tout afficher'}" Click="OnShowAllPanelsClick" />
+                <MenuItem Header="{l:Tr '_Réinitialiser la disposition'}" Click="OnResetLayoutClick" />
             </MenuItem>
         </Menu>
+
+        <!-- Barre d'outils : ajout et actions sur l'élément sélectionné, recherche, affichage, compilation -->
+        <views:MainToolbar x:Name="Toolbar" DockPanel.Dock="Top"
+                           Visibility="{Binding HasProject, Converter={StaticResource BoolToVisibility}}" />
 
         <!-- Barre de statut : projet et problèmes à gauche ; position dans le fichier, compilation et version à droite -->
         <Border DockPanel.Dock="Bottom" Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
@@ -286,6 +313,12 @@
                         <dock:LayoutDocumentPane>
                             <dock:LayoutDocument x:Name="DashboardDocument" Title="{l:Tr 'Dashboard'}" ContentId="home" CanClose="False" CanFloat="False">
                                 <panels:DashboardPanel x:Name="DashboardPanel" />
+                            </dock:LayoutDocument>
+                            <dock:LayoutDocument Title="{l:Tr 'Ressources'}" ContentId="resources" CanClose="False" CanFloat="False">
+                                <panels:ResourcesPanel x:Name="ResourcesPanel" />
+                            </dock:LayoutDocument>
+                            <dock:LayoutDocument Title="{l:Tr 'Langues'}" ContentId="languages" CanClose="False" CanFloat="False">
+                                <panels:LanguagesPanel x:Name="LanguagesPanel" />
                             </dock:LayoutDocument>
                         </dock:LayoutDocumentPane>
                         <dock:LayoutAnchorablePane DockHeight="220" DockMinHeight="90">

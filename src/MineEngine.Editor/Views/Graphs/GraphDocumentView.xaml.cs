@@ -78,6 +78,9 @@ public partial class GraphDocumentView : UserControl
         UpdateGrid();
     }
 
+    /// <summary>Pas sur lequel caler les nœuds lâchés, si l'option des paramètres est cochée (sinon 0).</summary>
+    private double SnapSize => TryFindResource(Services.WpfInterfaceService.GraphSnapToGridKey) is true ? GridSize : 0;
+
     /// <summary>Quadrillage aligné sur le monde : il suit le déplacement et le zoom.</summary>
     private void UpdateGrid()
     {
@@ -156,13 +159,18 @@ public partial class GraphDocumentView : UserControl
         }
     }
 
-    /// <summary>Une structure, une interface ou une énumération n'a pas de corps : la définition prend toute la place.</summary>
+    /// <summary>
+    /// Un graphe avec des nœuds montre sa définition dans l'Inspecteur et prend toute la place ;
+    /// une structure, une interface ou une énumération n'a pas de nœuds : sa définition remplit l'onglet.
+    /// </summary>
     private void ShowBody(bool hasBody)
     {
         Root.Visibility = hasBody ? Visibility.Visible : Visibility.Collapsed;
-        DefinitionSplitter.Visibility = Root.Visibility;
-        DefinitionColumn.Width = hasBody ? new GridLength(320) : new GridLength(1, GridUnitType.Star);
-        DefinitionColumn.MaxWidth = hasBody ? 560 : double.PositiveInfinity;
+        DefinitionPane.Visibility = hasBody ? Visibility.Collapsed : Visibility.Visible;
+        DefinitionSplitter.Visibility = Visibility.Collapsed;
+        DefinitionColumn.MinWidth = 0;
+        DefinitionColumn.MaxWidth = double.PositiveInfinity;
+        DefinitionColumn.Width = hasBody ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
         BodyColumn.Width = hasBody ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
     }
 
@@ -227,6 +235,19 @@ public partial class GraphDocumentView : UserControl
         return FindTagged(hit?.VisualHit, "pin")?.DataContext as GraphPinViewModel;
     }
 
+    /// <summary>Fil passant à quelques pixels du point (coordonnées de l'écran), ou null.</summary>
+    private GraphConnectionViewModel? WireAt(Point screen)
+    {
+        if (Document is null)
+        {
+            return null;
+        }
+
+        Point world = ToWorld(screen);
+        var pen = new Pen(Brushes.Black, 10 / Scale);
+        return Document.Connections.LastOrDefault(c => c.Geometry.StrokeContains(pen, world));
+    }
+
     // ----- Souris -----
 
     private void OnNodePreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -277,6 +298,15 @@ public partial class GraphDocumentView : UserControl
 
             _moveOrigins = Document.SelectedNodes.ToDictionary(n => n, n => new Point(n.X, n.Y));
             Begin(Gesture.MoveNodes, position);
+            e.Handled = true;
+            return;
+        }
+
+        if (FindTagged(source, "node") is null && e.ClickCount == 2 && WireAt(position) is { } wire)
+        {
+            // Double-clic sur un fil : une redirection y est posée, comme dans Unreal.
+            Point world = ToWorld(position);
+            Document.InsertReroute(wire, world.X, world.Y);
             e.Handled = true;
             return;
         }
@@ -400,7 +430,7 @@ public partial class GraphDocumentView : UserControl
                 break;
 
             case Gesture.MoveNodes:
-                Document.CommitMove();
+                Document.CommitMove(SnapSize);
                 break;
 
             case Gesture.Wire when _wireSource is not null:
@@ -443,7 +473,7 @@ public partial class GraphDocumentView : UserControl
     {
         if (_gesture == Gesture.MoveNodes)
         {
-            Document?.CommitMove();
+            Document?.CommitMove(SnapSize);
         }
 
         if (_gesture != Gesture.None)

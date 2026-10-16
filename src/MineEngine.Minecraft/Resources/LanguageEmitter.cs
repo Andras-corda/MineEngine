@@ -2,30 +2,19 @@ using System.Text.Json.Nodes;
 using MineEngine.Core.Json;
 using MineEngine.IR.Model;
 using MineEngine.Minecraft.Generation;
+using MineEngine.Project.Localization;
 
 namespace MineEngine.Minecraft.Resources;
 
 /// <summary>
 /// Fichiers de langue : noms affichés des items, des blocs, des mobs, de l'onglet créatif
-/// et sous-titres des sons. Les noms saisis sont les mêmes dans toutes les langues ;
-/// seuls les textes ajoutés par Mine Engine (œufs d'apparition) sont traduits.
+/// et sous-titres des sons, dans chaque langue du mod (onglet Langues). Un texte prend la
+/// traduction saisie dans la langue, sinon le nom saisi sur l'élément ; les traductions de
+/// clés que Mine Engine n'écrit pas (textes du code Java) sont ajoutées telles quelles.
 /// </summary>
 public sealed class LanguageEmitter : IFileEmitter
 {
-    private readonly IReadOnlyList<string> _locales;
-
-    public LanguageEmitter(IReadOnlyList<string> locales)
-    {
-        ArgumentNullException.ThrowIfNull(locales);
-        _locales = locales;
-    }
-
     public string Name => Tr.T("Fichiers de langue");
-
-    private static string SpawnEggName(string locale, string mobName) =>
-        locale.StartsWith("fr", StringComparison.OrdinalIgnoreCase)
-            ? $"Œuf d'apparition de {mobName}"
-            : $"{mobName} Spawn Egg";
 
     public void Emit(GenerationContext context)
     {
@@ -62,12 +51,18 @@ public sealed class LanguageEmitter : IFileEmitter
             entries[paths.SubtitleTranslationKey(sound.Id)] = sound.Subtitle;
         }
 
-        foreach (string locale in _locales)
+        ModLocalization localization = context.Ir.Localization;
+        foreach (string locale in localization.Locales)
         {
             var localized = (JsonObject)entries.DeepClone();
             foreach (IRMob mob in context.Ir.Content.MobsWithSpawnEgg)
             {
-                localized[paths.ItemTranslationKey(mob.SpawnEgg!.ItemId)] = SpawnEggName(locale, mob.DisplayName);
+                localized[paths.ItemTranslationKey(mob.SpawnEgg!.ItemId)] = ModTranslationKeys.SpawnEggName(locale, mob.DisplayName);
+            }
+
+            foreach ((string key, string text) in localization.TranslationsFor(locale).OrderBy(t => t.Key, StringComparer.Ordinal))
+            {
+                localized[key] = text;
             }
 
             context.Files.WriteText(paths.Language(locale), JsonFormatting.ToText(localized));

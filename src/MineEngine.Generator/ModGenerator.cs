@@ -24,7 +24,7 @@ public sealed class ModGenerator
 
     public IModLoaderBackend Backend { get; }
 
-    /// <summary>Générateur avec les ressources standard : items, blocs, mobs, recettes, sons, langues anglaise et française.</summary>
+    /// <summary>Générateur avec les ressources standard : items, blocs, mobs, recettes, sons, langues du mod.</summary>
     public static ModGenerator CreateDefault(IModLoaderBackend backend)
     {
         var placeholder = new PlaceholderTexture(new PngEncoder());
@@ -35,7 +35,7 @@ public sealed class ModGenerator
             new MobResourcesEmitter(placeholder),
             new RecipesEmitter(),
             new SoundsEmitter(),
-            new LanguageEmitter(["en_us", "fr_fr"]),
+            new LanguageEmitter(),
             new TagsEmitter(),
         ]);
     }
@@ -61,7 +61,7 @@ public sealed class ModGenerator
         {
             context.Diagnostics.Error(
                 Tr.F("Le projet cible {0} {1}, mais le MDK choisi est {2}. ", ir.Mod.LoaderId, ir.Mod.MinecraftVersion, Backend.DisplayName) +
-                Tr.T("Choisissez un MDK correspondant dans Projet > Paramètres du projet."));
+                Tr.T("Choisissez un MDK correspondant dans Espace de travail > Paramètres du projet."));
             return CreateResult(context);
         }
 

@@ -109,6 +109,9 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
 
     public bool HasIssueErrors => _errorCount > 0;
 
+    /// <summary>Gravité pour le tri : 2 erreurs, 1 avertissements, 0 aucun problème.</summary>
+    public int IssueRank => _errorCount > 0 ? 2 : _warningCount > 0 ? 1 : 0;
+
     public bool HasIssueWarnings => _errorCount == 0 && _warningCount > 0;
 
     public int UsageCount => Context.Project.Assets.FindReferencesTo(Model.Id).Select(r => r.Source).Distinct().Count();
