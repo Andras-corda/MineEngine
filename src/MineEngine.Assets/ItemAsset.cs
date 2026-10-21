@@ -209,7 +209,7 @@ public sealed class ItemAsset : InventoryAsset
 
         if (CraftRemainder is { Kind: ContentReferenceKind.Asset } remainder)
         {
-            yield return new AssetReference(remainder.AssetId, AssetReferenceKind.Item, Tr.T("item rendu après fabrication"));
+            yield return new AssetReference(remainder.AssetId, AssetReferenceKind.Item, Tr.T("item returned after crafting"));
         }
     }
 
@@ -221,27 +221,27 @@ public sealed class ItemAsset : InventoryAsset
         {
             if (HasDurability)
             {
-                diagnostics.Info(Tr.T("La durabilité d'un outil ou d'une armure vient de son matériau : la valeur saisie est ignorée."), source, Id);
+                diagnostics.Info(Tr.T("The durability of a tool or armor comes from its material: the value entered is ignored."), source, Id);
             }
 
             if (MaxStackSize > 1)
             {
-                diagnostics.Info(Tr.T("Un outil ou une armure ne s'empile pas : la taille de pile sera 1."), source, Id);
+                diagnostics.Info(Tr.T("A tool or armor does not stack: the stack size will be 1."), source, Id);
             }
         }
         else if (HasDurability && MaxStackSize > 1)
         {
-            diagnostics.Warning(Tr.T("Un item avec durabilité ne s'empile pas : la taille de pile sera 1."), source, Id);
+            diagnostics.Warning(Tr.T("An item with durability does not stack: the stack size will be 1."), source, Id);
         }
 
         if (CraftRemainder is { Kind: ContentReferenceKind.Tag })
         {
-            diagnostics.Error(Tr.T("L'item rendu après fabrication doit être un item précis, pas un tag."), source, Id);
+            diagnostics.Error(Tr.T("The item returned after crafting must be a specific item, not a tag."), source, Id);
         }
 
         if (IsFood && FoodEffects.Count > 0 && FoodEffects.GroupBy(e => e.Effect).Any(g => g.Count() > 1))
         {
-            diagnostics.Info(Tr.T("Un même effet est donné plusieurs fois en mangeant ; Minecraft n'applique que le plus fort."), source, Id);
+            diagnostics.Info(Tr.T("The same effect is given several times when eaten; Minecraft only applies the strongest."), source, Id);
         }
     }
 }

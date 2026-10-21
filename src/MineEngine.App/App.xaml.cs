@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Threading;
+using MineEngine.Core.Diagnostics;
 using MineEngine.Core.Logging;
 using MineEngine.Editor;
 using MineEngine.Editor.Themes;
@@ -20,6 +21,8 @@ public partial class App : Application
     {
         base.OnStartup(e);
         DispatcherUnhandledException += OnDispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
         EditorFonts.Apply(this); // Fonts de l'éditeur 
         _compositionRoot = new CompositionRoot(this); // Relie les dépendances et initialise les services de l'application
@@ -33,6 +36,15 @@ public partial class App : Application
             );
         MainWindow = window;
         window.Show();
+
+        // A session that ended without closing normally is reported (no dialog: the Output says it).
+        string? previousLog = Directory.Exists(_compositionRoot.LogsDirectory)
+            ? Directory.EnumerateFiles(_compositionRoot.LogsDirectory, "mineengine-*.log").OrderByDescending(File.GetLastWriteTime).FirstOrDefault()
+            : null;
+        if (_compositionRoot.CrashReporter.BeginSession(previousLog) is { } previous)
+        {
+            _compositionRoot.Log.Warning(Tr.F("Mine Engine did not close normally last time. A report was saved: {0}", previous.File));
+        }
 
         // Vérifie les MDK installés et affiche un message d'avertissement si aucun n'est trouvé
         _compositionRoot.Log.Info(
@@ -69,6 +81,7 @@ public partial class App : Application
     /// <param name="e"></param>
     protected override void OnExit(ExitEventArgs e)
     {
+        _compositionRoot?.CrashReporter.EndSession();
         _compositionRoot?.Dispose();
         base.OnExit(e);
     }
@@ -81,11 +94,37 @@ public partial class App : Application
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         _compositionRoot?.Log.Error(Tr.T("Unexpected error : ") + e.Exception);
-        MessageBox.Show(
-            Tr.T("An unexpected error has occurred : \n\n") + e.Exception.Message + Tr.T("\n\nThe details are displayed in the Output console."),
-            "Mine Engine",
-            MessageBoxButton.OK,
-            MessageBoxImage.Error);
+        string? report = _compositionRoot?.MainViewModel.ReportError(e.Exception);
+        string message = Tr.T("An unexpected error has occurred : \n\n") + e.Exception.Message + Tr.T("\n\nThe details are displayed in the Output console.");
+        if (report is not null)
+        {
+            message += "\n\n" + Tr.F("A crash report was saved:\n{0}\n\nOpen it?", report);
+            if (MessageBox.Show(message, "Mine Engine", MessageBoxButton.YesNo, MessageBoxImage.Error) == MessageBoxResult.Yes)
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(report) { UseShellExecute = true });
+            }
+        }
+        else
+        {
+            MessageBox.Show(message, "Mine Engine", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+
         e.Handled = true;
+    }
+
+    /// <summary>Error outside the interface thread: Mine Engine stops; the report is written first.</summary>
+    private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is Exception exception)
+        {
+            _compositionRoot?.CrashReporter.Report(exception, e.IsTerminating ? CrashKind.Fatal : CrashKind.Error);
+        }
+    }
+
+    /// <summary>Error of a background task that nobody waited for: reported, the editor keeps running.</summary>
+    private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        _compositionRoot?.CrashReporter.Report(e.Exception, CrashKind.Error);
+        e.SetObserved();
     }
 }

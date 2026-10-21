@@ -24,12 +24,11 @@ public sealed record GraphIssueItem(string Message, Guid? NodeId, bool IsError);
 /// du projet : tout est annulable, et l'annulation remet l'éditeur à jour. Les nœuds qui
 /// utilisent d'autres définitions (appel, objet) suivent leurs modifications.
 /// </summary>
-public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
+public sealed class GraphDocumentViewModel : DocumentViewModel, INodeLibraryHost, IDisposable
 {
     private readonly GraphAsset _asset;
     private readonly AssetEditingContext _context;
     private readonly Dictionary<Guid, GraphNodeViewModel> _nodes = [];
-    private ProgramModel? _program;
     private bool _refreshPending;
     private string _paletteSearch = string.Empty;
     private string? _statusText;
@@ -38,11 +37,14 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
     private IReadOnlyList<GraphIssueItem> _issues = [];
 
     /// <param name="createMember">Crée une définition intégrée à une classe (méthode, type imbriqué) et l'ouvre.</param>
-    public GraphDocumentViewModel(GraphAsset asset, AssetEditingContext context, string displayPath, Action<GraphKind, Guid> createMember)
+    /// <param name="options">Options shared by the graph tabs (snapping); a new set when null.</param>
+    public GraphDocumentViewModel(
+        GraphAsset asset, AssetEditingContext context, string displayPath, Action<GraphKind, Guid> createMember, GraphViewOptions? options = null)
         : base("graph:" + asset.Id.ToString("N"), displayPath)
     {
         _asset = asset ?? throw new ArgumentNullException(nameof(asset));
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        Options = options ?? new GraphViewOptions(false, _ => { });
         Definition = new DefinitionViewModel(asset, context, () => Program, createMember);
         _asset.Changed += OnAssetChanged;
         _context.Project.Assets.Changed += OnRegistryChanged;
@@ -50,13 +52,16 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
     }
 
     /// <summary>Définitions du projet, relues après chaque modification d'un graphe.</summary>
-    public ProgramModel Program => _program ??= ProgramModel.From(_context.Project.Assets);
+    public ProgramModel Program => _context.Project.Assets.Program;
 
     /// <summary>Décrit les nœuds de ce graphe et la compatibilité des types.</summary>
     public IGraphContext Context => Program.ContextFor(_asset);
 
     /// <summary>Panneau "Définition" : signature, variables, héritage...</summary>
     public DefinitionViewModel Definition { get; }
+
+    /// <summary>Snapping to the grid (button of the graph toolbar).</summary>
+    public GraphViewOptions Options { get; }
 
     public GraphKind Kind => _asset.Kind;
 
@@ -116,17 +121,20 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
             int warnings = _issues.Count - errors;
             return (errors, warnings) switch
             {
-                (0, 0) => Tr.T("Aucun problème"),
+                (0, 0) => Tr.T("No problems"),
                 _ => string.Join(", ", new[]
                 {
-                    errors > 0 ? (errors == 1 ? Tr.T("1 erreur") : Tr.F("{0} erreurs", errors)) : null,
-                    warnings > 0 ? (warnings == 1 ? Tr.T("1 avertissement") : Tr.F("{0} avertissements", warnings)) : null,
+                    errors > 0 ? (errors == 1 ? Tr.T("1 error") : Tr.F("{0} errors", errors)) : null,
+                    warnings > 0 ? (warnings == 1 ? Tr.T("1 warning") : Tr.F("{0} warnings", warnings)) : null,
                 }.OfType<string>()),
             };
         }
     }
 
     public int EventCount => Nodes.Count(n => n.Info.IsEntryPoint);
+
+    /// <summary>Nodes of the program (without the comments and the tooltips).</summary>
+    public int NodeCount => Nodes.Count(n => !n.IsAnnotation);
 
     /// <summary>Message passager de l'éditeur (fil refusé...), ou null.</summary>
     public string? StatusText
@@ -186,6 +194,42 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         }
     }
 
+    /// <summary>Project assets: the Nodes window follows their changes (new functions, classes...).</summary>
+    public AssetRegistry Assets => _context.Project.Assets;
+
+    /// <summary>Every node that can be added to this graph, without filter (Nodes window).</summary>
+    public IEnumerable<NodeTemplate> AvailableNodes => ProgramPalette.AvailableNodes(Program, _asset);
+
+    /// <summary>Point of the graph at the center of its view, kept up to date by the view.</summary>
+    public Point ViewCenter { get; set; }
+
+    /// <summary>True if the node can be added here (an event cannot go in a function, a member must still exist).</summary>
+    public bool CanAdd(NodeTemplate template) =>
+        AvailableNodes.Any(t => t.Info.Kind == template.Info.Kind && t.Target == template.Target && t.Member == template.Member);
+
+    public IReadOnlyList<NodeLibraryItem> LibraryItems => [.. AvailableNodes.Select(t => NodeLibraryItem.ForGraph(new NodeChoiceViewModel(t)))];
+
+    public void AddFromLibrary(object payload)
+    {
+        if (payload is NodeChoiceViewModel choice)
+        {
+            AddNodeAtCenter(choice);
+        }
+    }
+
+    /// <summary>Adds a node at the center of the view (double-click in the Nodes window).</summary>
+    public GraphNodeViewModel? AddNodeAtCenter(NodeChoiceViewModel choice)
+    {
+        ArgumentNullException.ThrowIfNull(choice);
+        if (!CanAdd(choice.Template))
+        {
+            return null;
+        }
+
+        PendingSource = null;
+        return AddNode(choice, new Point(ViewCenter.X - 90, ViewCenter.Y - 40));
+    }
+
     // ----- Modifications -----
 
     /// <summary>Ajoute un nœud ; s'il y a une broche en attente, le relie à sa première broche compatible.</summary>
@@ -208,7 +252,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         }
 
         PendingSource = null;
-        Apply(graph, Tr.F("Ajouter « {0} »", info.Title));
+        Apply(graph, Tr.F("Add \"{0}\"", info.Title));
         GraphNodeViewModel added = _nodes[node.Id];
         SelectOnly(added);
         return added;
@@ -219,7 +263,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
     {
         if (first.IsInput == second.IsInput)
         {
-            StatusText = Tr.T("Reliez une sortie (à droite d'un nœud) à une entrée (à gauche).");
+            StatusText = Tr.T("Connect an output (on the right of a node) to an input (on the left).");
             return false;
         }
 
@@ -233,7 +277,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         }
 
         StatusText = null;
-        Apply(_asset.Graph.Connect(connection, context), Tr.T("Relier des nœuds"));
+        Apply(_asset.Graph.Connect(connection, context), Tr.T("Connect nodes"));
         return true;
     }
 
@@ -243,7 +287,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         NodeGraph graph = _asset.Graph.DisconnectPin(pin.Node.Id, pin.Name);
         if (graph.Connections.Length != _asset.Graph.Connections.Length)
         {
-            Apply(graph, Tr.T("Débrancher une broche"));
+            Apply(graph, Tr.T("Disconnect a pin"));
         }
     }
 
@@ -264,7 +308,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         GraphConnection[] links = wire.IsExec
             ? [model with { ToNode = reroute.Id, ToPin = NodeInfo.ExecInput }, model with { FromNode = reroute.Id, FromPin = NodeInfo.ExecThen }]
             : [model with { ToNode = reroute.Id, ToPin = Reroutes.ValueInput }, model with { FromNode = reroute.Id, FromPin = Reroutes.ValueOutput }];
-        Apply(_asset.Graph.Disconnect(model).Merge([reroute], links), Tr.T("Ajouter une redirection"));
+        Apply(_asset.Graph.Disconnect(model).Merge([reroute], links), Tr.T("Add a reroute"));
         SelectOnly(Nodes.FirstOrDefault(n => n.Id == reroute.Id));
     }
 
@@ -276,14 +320,14 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
     {
         if (SelectedNodes.Any(n => n.IsEntry))
         {
-            StatusText = Tr.T("Le nœud d'entrée ne se supprime pas : c'est le début de la fonction.");
+            StatusText = Tr.T("The entry node cannot be deleted: it is the start of the function.");
         }
 
         List<Guid> ids = [.. SelectedNodes.Where(n => !n.IsEntry).Select(n => n.Id)];
         if (ids.Count > 0)
         {
             NodeGraph graph = Reroutes.Bypass(_asset.Graph, ids).RemoveNodes(ids);
-            Apply(graph, ids.Count == 1 ? Tr.T("Supprimer un nœud") : Tr.F("Supprimer {0} nœuds", ids.Count));
+            Apply(graph, ids.Count == 1 ? Tr.T("Delete a node") : Tr.F("Delete {0} nodes", ids.Count));
         }
     }
 
@@ -297,11 +341,17 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         }
 
         Dictionary<Guid, Guid> map = originals.ToDictionary(n => n.Id, _ => Guid.NewGuid());
-        List<GraphNode> copies = [.. originals.Select(n => n with { Id = map[n.Id], X = n.X + 40, Y = n.Y + 40 })];
+        // A copied tooltip describes the copies of its nodes (or the originals that were not copied).
+        List<GraphNode> copies =
+        [
+            .. originals.Select(n => n.Kind == GraphNodeKind.Tooltip
+                ? GraphAnnotations.WithTargets(n, GraphAnnotations.Targets(n).Select(t => map.GetValueOrDefault(t, t))) with { Id = map[n.Id], X = n.X + 40, Y = n.Y + 40 }
+                : n with { Id = map[n.Id], X = n.X + 40, Y = n.Y + 40 }),
+        ];
         IEnumerable<GraphConnection> links = _asset.Graph.Connections
             .Where(c => map.ContainsKey(c.FromNode) && map.ContainsKey(c.ToNode))
             .Select(c => c with { FromNode = map[c.FromNode], ToNode = map[c.ToNode] });
-        Apply(_asset.Graph.Merge(copies, links), originals.Count == 1 ? Tr.T("Dupliquer un nœud") : Tr.F("Dupliquer {0} nœuds", originals.Count));
+        Apply(_asset.Graph.Merge(copies, links), originals.Count == 1 ? Tr.T("Duplicate a node") : Tr.F("Duplicate {0} nodes", originals.Count));
 
         foreach (GraphNodeViewModel node in Nodes)
         {
@@ -320,12 +370,66 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
             .ToDictionary(n => n.Id, n => (Snap(n.X, gridSize), Snap(n.Y, gridSize)));
         if (moved.Count > 0)
         {
-            Apply(_asset.Graph.MoveNodes(moved), moved.Count == 1 ? Tr.T("Déplacer un nœud") : Tr.F("Déplacer {0} nœuds", moved.Count));
+            Apply(_asset.Graph.MoveNodes(moved), moved.Count == 1 ? Tr.T("Move a node") : Tr.F("Move {0} nodes", moved.Count));
         }
     }
 
     private static double Snap(double value, double gridSize) =>
         gridSize > 0 ? Math.Round(value / gridSize) * gridSize : Math.Round(value);
+
+    /// <summary>Places nodes at the given positions in one step (alignment, distribution).</summary>
+    public void MoveNodesTo(IReadOnlyDictionary<Guid, (double X, double Y)> positions, string description)
+    {
+        ArgumentNullException.ThrowIfNull(positions);
+        Dictionary<Guid, (double X, double Y)> moved = positions
+            .Where(p => _asset.Graph.FindNode(p.Key) is { } node && (Math.Abs(node.X - p.Value.X) > 0.01 || Math.Abs(node.Y - p.Value.Y) > 0.01))
+            .ToDictionary(p => p.Key, p => (Math.Round(p.Value.X), Math.Round(p.Value.Y)));
+        if (moved.Count > 0)
+        {
+            Apply(_asset.Graph.MoveNodes(moved), description);
+        }
+    }
+
+    // ----- Comments and tooltips -----
+
+    /// <summary>Frames <paramref name="area"/> (the selected nodes) with a comment, like C in Blueprints.</summary>
+    public GraphNodeViewModel AddComment(Rect area)
+    {
+        GraphNode comment = GraphAnnotations.CreateComment(area.X, area.Y, area.Width, area.Height, Tr.T("Comment"));
+        Apply(_asset.Graph.AddNode(comment), Tr.T("Add a comment"));
+        GraphNodeViewModel added = _nodes[comment.Id];
+        SelectOnly(added);
+        return added;
+    }
+
+    /// <summary>Adds a tooltip bubble at <paramref name="position"/> for the selected nodes; its message is set in Properties.</summary>
+    public GraphNodeViewModel? AddTooltip(Point position)
+    {
+        List<Guid> targets = [.. SelectedNodes.Where(n => !n.IsTooltip).Select(n => n.Id)];
+        if (targets.Count == 0)
+        {
+            StatusText = Tr.T("Select the nodes (or the comment) to describe, then press T.");
+            return null;
+        }
+
+        GraphNode tooltip = GraphAnnotations.CreateTooltip(targets, position.X, position.Y, Tr.T("Describe these nodes"));
+        Apply(_asset.Graph.AddNode(tooltip), Tr.T("Add a tooltip"));
+        GraphNodeViewModel added = _nodes[tooltip.Id];
+        SelectOnly(added);
+        StatusText = Tr.T("Write the message of the tooltip in Properties: it is shown when the mouse is over these nodes.");
+        return added;
+    }
+
+    /// <summary>Writes the size of a comment resized with the mouse (one step).</summary>
+    public void ResizeComment(GraphNodeViewModel comment, double gridSize = 0)
+    {
+        ArgumentNullException.ThrowIfNull(comment);
+        if (_asset.Graph.FindNode(comment.Id) is { Kind: GraphNodeKind.Comment } current)
+        {
+            Apply(_asset.Graph.ReplaceNode(GraphAnnotations.Resize(current, Snap(comment.Width, gridSize), Snap(comment.Height, gridSize))),
+                Tr.T("Resize a comment"));
+        }
+    }
 
     /// <summary>Valeur saisie sur une entrée. Les frappes successives sur le même champ forment une seule étape.</summary>
     public void SetValue(GraphNodeViewModel node, string pin, string value)
@@ -336,7 +440,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         }
 
         bool sameField = _lastValueEdit == (node.Id, pin);
-        Apply(_asset.Graph.ReplaceNode(current.WithValue(pin, value)), Tr.F("Modifier « {0} »", node.Title), merge: sameField);
+        Apply(_asset.Graph.ReplaceNode(current.WithValue(pin, value)), Tr.F("Change \"{0}\"", node.Title), merge: sameField);
         _lastValueEdit = (node.Id, pin);
     }
 
@@ -417,7 +521,6 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
 
     private void OnAssetChanged(object? sender, AssetChangedEventArgs e)
     {
-        _program = null;
         switch (e.PropertyName)
         {
             case nameof(GraphAsset.Graph):
@@ -441,7 +544,6 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
     {
         if (e.Asset is GraphAsset && !ReferenceEquals(e.Asset, _asset))
         {
-            _program = null;
             ScheduleRefresh();
         }
     }
@@ -458,7 +560,6 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
         Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, () =>
         {
             _refreshPending = false;
-            _program = null;
             Definition.Refresh();
             Sync();
         });
@@ -501,28 +602,54 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
             }
         }
 
-        foreach (GraphConnectionViewModel old in Connections)
-        {
-            old.Dispose();
-        }
-
-        Connections.Clear();
+        // Wires that did not change keep their ViewModel: only added, removed or re-pinned wires are rebuilt.
         var connected = new HashSet<GraphPinViewModel>();
+        var wanted = new Dictionary<GraphConnection, (GraphPinViewModel From, GraphPinViewModel To)>();
         foreach (GraphConnection connection in graph.Connections)
         {
             GraphPinViewModel? from = _nodes.GetValueOrDefault(connection.FromNode)?.FindPin(connection.FromPin, input: false);
             GraphPinViewModel? to = _nodes.GetValueOrDefault(connection.ToNode)?.FindPin(connection.ToPin, input: true);
             if (from is not null && to is not null)
             {
-                Connections.Add(new GraphConnectionViewModel(connection, from, to));
+                wanted[connection] = (from, to);
                 connected.Add(from);
                 connected.Add(to);
             }
         }
 
+        for (int i = Connections.Count - 1; i >= 0; i--)
+        {
+            GraphConnectionViewModel old = Connections[i];
+            if (wanted.TryGetValue(old.Model, out var pins) && ReferenceEquals(pins.From, old.From) && ReferenceEquals(pins.To, old.To))
+            {
+                wanted.Remove(old.Model);
+            }
+            else
+            {
+                old.Dispose();
+                Connections.RemoveAt(i);
+            }
+        }
+
+        foreach ((GraphConnection connection, (GraphPinViewModel from, GraphPinViewModel to)) in wanted)
+        {
+            Connections.Add(new GraphConnectionViewModel(connection, from, to));
+        }
+
         foreach (GraphPinViewModel pin in Nodes.SelectMany(n => n.AllPins))
         {
             pin.IsConnected = connected.Contains(pin);
+        }
+
+        // Messages of the tooltips, shown over the nodes they describe.
+        ILookup<Guid, string> tooltips = graph.Nodes
+            .Where(n => n.Kind == GraphNodeKind.Tooltip)
+            .SelectMany(t => GraphAnnotations.Targets(t).Select(target => (Target: target, Text: GraphAnnotations.Text(t))))
+            .Where(t => t.Text.Length > 0)
+            .ToLookup(t => t.Target, t => t.Text);
+        foreach (GraphNodeViewModel node in Nodes)
+        {
+            node.AttachedTooltip = tooltips[node.Id].Any() ? string.Join("\n\n", tooltips[node.Id]) : null;
         }
 
         IReadOnlyList<GraphIssue> issues = ProgramValidator.Validate(_asset, Program);
@@ -536,9 +663,10 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, IDisposable
             .Select(i => new GraphIssueItem(i.Message, i.NodeId, i.Severity == DiagnosticSeverity.Error))];
         Outline = [.. Nodes.Where(n => n.Info.IsEntryPoint)
             .OrderBy(n => n.Y).ThenBy(n => n.X)
-            .Select(n => new OutlineItem(n.Title, OutlineKind.Event, 0, 0, n.Id, n.IsEntry ? Tr.T("entrée") : Tr.T("événement")))];
+            .Select(n => new OutlineItem(n.Title, OutlineKind.Event, 0, 0, n.Id, n.IsEntry ? Tr.T("input") : Tr.T("event")))];
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(EventCount));
+        OnPropertyChanged(nameof(NodeCount));
         OnPropertyChanged(nameof(SelectedNode));
     }
 

@@ -65,101 +65,101 @@ public static class MobGoalCatalog
     {
         new()
         {
-            Kind = MobGoalKind.Swim, Label = Tr.T("Nager"),
-            Description = Tr.T("Reste à la surface de l'eau au lieu de couler."),
+            Kind = MobGoalKind.Swim, Label = Tr.T("Swim"),
+            Description = Tr.T("Stays on the surface of water instead of sinking."),
         },
         new()
         {
-            Kind = MobGoalKind.Panic, Label = Tr.T("Paniquer quand il est blessé"),
-            Description = Tr.T("Court dans tous les sens après avoir reçu un coup, comme une vache."),
-            SpeedLabel = Tr.T("Vitesse de fuite"), DefaultSpeed = 1.25,
+            Kind = MobGoalKind.Panic, Label = Tr.T("Panic when hurt"),
+            Description = Tr.T("Runs around after being hit, like a cow."),
+            SpeedLabel = Tr.T("Flee speed"), DefaultSpeed = 1.25,
         },
         new()
         {
-            Kind = MobGoalKind.MeleeAttack, Label = Tr.T("Attaquer au corps à corps"),
-            Description = Tr.T("Poursuit sa cible et la frappe. Il faut aussi un comportement qui choisit une cible."),
-            SpeedLabel = Tr.T("Vitesse de poursuite"), DefaultSpeed = 1.2,
-            FlagLabel = Tr.T("Continue la poursuite même sans voir la cible"),
+            Kind = MobGoalKind.MeleeAttack, Label = Tr.T("Melee attack"),
+            Description = Tr.T("Chases its target and hits it. A behavior that picks a target is also needed."),
+            SpeedLabel = Tr.T("Chase speed"), DefaultSpeed = 1.2,
+            FlagLabel = Tr.T("Keeps chasing even without seeing the target"),
         },
         new()
         {
-            Kind = MobGoalKind.LeapAtTarget, Label = Tr.T("Bondir sur la cible"),
-            Description = Tr.T("Saute sur sa cible quand elle est proche, comme une araignée."),
-            DistanceLabel = Tr.T("Hauteur du bond"), DefaultDistance = 0.4,
+            Kind = MobGoalKind.LeapAtTarget, Label = Tr.T("Leap at target"),
+            Description = Tr.T("Leaps at its target when it is close, like a spider."),
+            DistanceLabel = Tr.T("Leap height"), DefaultDistance = 0.4,
         },
         new()
         {
-            Kind = MobGoalKind.RandomStroll, Label = Tr.T("Se promener"),
-            Description = Tr.T("Marche au hasard en évitant l'eau."),
-            SpeedLabel = Tr.T("Vitesse de marche"), DefaultSpeed = 1,
+            Kind = MobGoalKind.RandomStroll, Label = Tr.T("Wander"),
+            Description = Tr.T("Walks around randomly, avoiding water."),
+            SpeedLabel = Tr.T("Walk speed"), DefaultSpeed = 1,
         },
         new()
         {
-            Kind = MobGoalKind.LookAtPlayer, Label = Tr.T("Regarder les joueurs"),
-            Description = Tr.T("Tourne la tête vers les joueurs proches."),
-            DistanceLabel = Tr.T("Distance de vue"), DefaultDistance = 8,
+            Kind = MobGoalKind.LookAtPlayer, Label = Tr.T("Look at players"),
+            Description = Tr.T("Turns its head toward nearby players."),
+            DistanceLabel = Tr.T("Sight distance"), DefaultDistance = 8,
         },
         new()
         {
-            Kind = MobGoalKind.RandomLookAround, Label = Tr.T("Regarder autour de lui"),
-            Description = Tr.T("Tourne la tête au hasard quand il ne fait rien."),
+            Kind = MobGoalKind.RandomLookAround, Label = Tr.T("Look around"),
+            Description = Tr.T("Turns its head randomly when idle."),
         },
         new()
         {
-            Kind = MobGoalKind.Tempt, Label = Tr.T("Suivre un joueur qui tient un item"),
-            Description = Tr.T("Suit le joueur qui tient l'item choisi, comme une vache attirée par du blé."),
-            SpeedLabel = Tr.T("Vitesse"), DefaultSpeed = 1.2,
-            ItemLabel = Tr.T("Item qui l'attire"),
+            Kind = MobGoalKind.Tempt, Label = Tr.T("Follow a player holding an item"),
+            Description = Tr.T("Follows the player holding the chosen item, like a cow drawn to wheat."),
+            SpeedLabel = Tr.T("Speed"), DefaultSpeed = 1.2,
+            ItemLabel = Tr.T("Item that attracts it"),
         },
         new()
         {
-            Kind = MobGoalKind.Breed, Label = Tr.T("Se reproduire"),
-            Description = Tr.T("Cherche un partenaire après avoir été nourri avec son item de reproduction."),
-            SpeedLabel = Tr.T("Vitesse"), DefaultSpeed = 1,
+            Kind = MobGoalKind.Breed, Label = Tr.T("Breed"),
+            Description = Tr.T("Looks for a partner after being fed its breeding item."),
+            SpeedLabel = Tr.T("Speed"), DefaultSpeed = 1,
             RequiresAnimal = true,
         },
         new()
         {
-            Kind = MobGoalKind.FollowParent, Label = Tr.T("Suivre ses parents"),
-            Description = Tr.T("Les bébés suivent un adulte de leur espèce."),
-            SpeedLabel = Tr.T("Vitesse"), DefaultSpeed = 1.1,
+            Kind = MobGoalKind.FollowParent, Label = Tr.T("Follow parents"),
+            Description = Tr.T("Babies follow an adult of their species."),
+            SpeedLabel = Tr.T("Speed"), DefaultSpeed = 1.1,
             RequiresAnimal = true,
         },
         new()
         {
-            Kind = MobGoalKind.AvoidEntity, Label = Tr.T("Fuir une créature"),
-            Description = Tr.T("S'éloigne des créatures choisies quand elles approchent."),
-            SpeedLabel = Tr.T("Vitesse de fuite"), DefaultSpeed = 1.2,
-            DistanceLabel = Tr.T("Distance d'alerte"), DefaultDistance = 8,
-            TargetLabel = Tr.T("Créatures à fuir"),
+            Kind = MobGoalKind.AvoidEntity, Label = Tr.T("Flee from a creature"),
+            Description = Tr.T("Moves away from the chosen creatures when they come close."),
+            SpeedLabel = Tr.T("Flee speed"), DefaultSpeed = 1.2,
+            DistanceLabel = Tr.T("Alert distance"), DefaultDistance = 8,
+            TargetLabel = Tr.T("Creatures to flee"),
         },
         new()
         {
-            Kind = MobGoalKind.FleeSun, Label = Tr.T("Fuir le soleil"),
-            Description = Tr.T("Cherche l'ombre pendant la journée, comme un zombie."),
-            SpeedLabel = Tr.T("Vitesse"), DefaultSpeed = 1,
+            Kind = MobGoalKind.FleeSun, Label = Tr.T("Avoid the sun"),
+            Description = Tr.T("Looks for shade during the day, like a zombie."),
+            SpeedLabel = Tr.T("Speed"), DefaultSpeed = 1,
         },
         new()
         {
-            Kind = MobGoalKind.MoveTowardsTarget, Label = Tr.T("Se rapprocher de la cible"),
-            Description = Tr.T("Marche vers sa cible tant qu'elle est à portée."),
-            SpeedLabel = Tr.T("Vitesse"), DefaultSpeed = 0.9,
-            DistanceLabel = Tr.T("Portée"), DefaultDistance = 32,
+            Kind = MobGoalKind.MoveTowardsTarget, Label = Tr.T("Move toward target"),
+            Description = Tr.T("Walks toward its target while it is in range."),
+            SpeedLabel = Tr.T("Speed"), DefaultSpeed = 0.9,
+            DistanceLabel = Tr.T("Range"), DefaultDistance = 32,
         },
         new()
         {
-            Kind = MobGoalKind.HurtByTarget, Label = Tr.T("Riposter"),
-            Description = Tr.T("Prend pour cible la créature qui l'a frappé."),
+            Kind = MobGoalKind.HurtByTarget, Label = Tr.T("Fight back"),
+            Description = Tr.T("Targets the creature that hit it."),
             Selector = MobGoalSelector.Target,
-            FlagLabel = Tr.T("Appelle ses semblables à l'aide"),
+            FlagLabel = Tr.T("Calls its kind for help"),
         },
         new()
         {
-            Kind = MobGoalKind.AttackNearest, Label = Tr.T("Cibler les créatures proches"),
-            Description = Tr.T("Prend pour cible la créature choisie la plus proche."),
+            Kind = MobGoalKind.AttackNearest, Label = Tr.T("Target nearby creatures"),
+            Description = Tr.T("Targets the nearest chosen creature."),
             Selector = MobGoalSelector.Target,
-            TargetLabel = Tr.T("Créatures ciblées"),
-            FlagLabel = Tr.T("Doit voir la cible"), DefaultFlag = true,
+            TargetLabel = Tr.T("Targeted creatures"),
+            FlagLabel = Tr.T("Must see the target"), DefaultFlag = true,
         },
     }.ToDictionary(i => i.Kind);
 
@@ -168,7 +168,7 @@ public static class MobGoalCatalog
     public static MobGoalInfo Get(MobGoalKind kind) =>
         Infos.TryGetValue(kind, out MobGoalInfo? info)
             ? info
-            : throw new ArgumentOutOfRangeException(nameof(kind), kind, Tr.T("Comportement inconnu."));
+            : throw new ArgumentOutOfRangeException(nameof(kind), kind, Tr.T("Unknown behavior."));
 
     /// <summary>IA de départ d'un nouveau mob de la famille donnée.</summary>
     public static IReadOnlyList<MobGoal> DefaultGoals(MobKind kind) => kind switch

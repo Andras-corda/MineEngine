@@ -57,7 +57,7 @@
 
             <!-- Sortes d'éléments -->
             <StackPanel DockPanel.Dock="Left" Width="190" Margin="0,0,16,0">
-                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'SORTES'}" Margin="10,0,0,8" />
+                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'KINDS'}" Margin="10,0,0,8" />
                 <ItemsControl ItemsSource="{Binding Categories}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:AssetTypeFilter}">
@@ -71,26 +71,30 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+
+                <!-- Import of asset files -->
+                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'IMPORT'}" Margin="10,16,0,8" />
+                <Button Margin="0,0,0,6" Padding="10,5" HorizontalAlignment="Stretch" Content="{l:Tr 'Import textures...'}"
+                        Command="{Binding DataContext.ImportTexturesCommand, ElementName=Root}" ToolTip="{l:Tr 'Textures (PNG)...'}" />
+                <Button Margin="0,0,0,6" Padding="10,5" HorizontalAlignment="Stretch" Content="{l:Tr 'Import sounds...'}"
+                        Command="{Binding DataContext.ImportSoundsCommand, ElementName=Root}" ToolTip="{l:Tr 'Sounds (OGG)...'}" />
+                <Button Padding="10,5" HorizontalAlignment="Stretch" Content="{l:Tr 'Import 3D models...'}"
+                        Command="{Binding DataContext.ImportModelsCommand, ElementName=Root}"
+                        ToolTip="{l:Tr 'Blockbench (.bbmodel) or Java JSON, with their textures, for items, blocks and mobs; GeckoLib, OBJ and glTF are kept as sources'}" />
             </StackPanel>
 
             <!-- Tri et recherche -->
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
                 <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0" FontSize="12" Foreground="{DynamicResource HintBrush}">
-                    <Run Text="{Binding VisibleCount, Mode=OneWay}" /><Run Text="{l:Tr ' élément(s)'}" />
+                    <Run Text="{Binding VisibleCount, Mode=OneWay}" /><Run Text="{l:Tr ' element(s)'}" />
                 </TextBlock>
                 <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="30" Height="28" Margin="6,0,0,0"
                         Content="{StaticResource Glyph.Sort}" Command="{Binding ToggleOrderCommand}"
-                        ToolTip="{l:Tr 'Inverser l\'ordre'}" />
+                        ToolTip="{l:Tr 'Reverse the order'}" />
                 <ComboBox DockPanel.Dock="Right" Width="210" Margin="8,0,0,0" ItemsSource="{Binding SortChoices}"
-                          SelectedItem="{Binding SelectedSort}" DisplayMemberPath="Label" ToolTip="{l:Tr 'Trier par'}" />
-                <Grid>
-                    <TextBox x:Name="SearchBox" Padding="28,4,8,4" MinHeight="28" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Search}" FontSize="12" Margin="10,0,0,0"
-                               VerticalAlignment="Center" IsHitTestVisible="False" Foreground="{DynamicResource HintBrush}" />
-                    <TextBlock Text="{l:Tr 'Rechercher dans les ressources...'}" Margin="29,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
-                               Foreground="{DynamicResource HintBrush}"
-                               Visibility="{Binding Text, ElementName=SearchBox, Converter={StaticResource EmptyToVisible}}" />
-                </Grid>
+                          SelectedItem="{Binding SelectedSort}" DisplayMemberPath="Label" ToolTip="{l:Tr 'Sort by'}" />
+                <!-- The search is the one of the toolbar. -->
+                <Border />
             </DockPanel>
 
             <!-- En-têtes de colonnes -->
@@ -103,15 +107,15 @@
                     <ColumnDefinition Width="90" />
                     <ColumnDefinition Width="90" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="1" Style="{StaticResource PanelCaption}" Text="{l:Tr 'ÉLÉMENT'}" />
-                <TextBlock Grid.Column="2" Style="{StaticResource PanelCaption}" Text="{l:Tr 'DOSSIER'}" />
-                <TextBlock Grid.Column="3" Style="{StaticResource PanelCaption}" Text="{l:Tr 'ÉTAT'}" />
-                <TextBlock Grid.Column="4" Style="{StaticResource PanelCaption}" Text="{l:Tr 'UTILISÉ PAR'}" />
-                <TextBlock Grid.Column="5" Style="{StaticResource PanelCaption}" Text="{l:Tr 'SORTE'}" HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="1" Style="{StaticResource PanelCaption}" Text="{l:Tr 'ELEMENT'}" />
+                <TextBlock Grid.Column="2" Style="{StaticResource PanelCaption}" Text="{l:Tr 'FOLDER'}" />
+                <TextBlock Grid.Column="3" Style="{StaticResource PanelCaption}" Text="{l:Tr 'STATUS'}" />
+                <TextBlock Grid.Column="4" Style="{StaticResource PanelCaption}" Text="{l:Tr 'USED BY'}" />
+                <TextBlock Grid.Column="5" Style="{StaticResource PanelCaption}" Text="{l:Tr 'KIND'}" HorizontalAlignment="Right" />
             </Grid>
 
             <Grid>
-                <TextBlock Text="{l:Tr 'Aucun élément ne correspond.'}" Margin="8,12" Foreground="{DynamicResource HintBrush}"
+                <TextBlock Text="{l:Tr 'No texture, sound or 3D model matches. Import them with the buttons on the left.'}" Margin="8,12" Foreground="{DynamicResource HintBrush}"
                            Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
                 <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedAsset}" Background="Transparent" BorderThickness="0"
                          ItemContainerStyle="{StaticResource ResourceItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"

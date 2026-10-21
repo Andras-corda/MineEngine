@@ -20,14 +20,14 @@ public sealed class RecipeAssetViewModel : AssetViewModel
         [
             .. Enumerable.Range(0, RecipeAsset.GridSize).Select(index => new ReferencePickerViewModel(
                 context, ReferenceDomain.Ingredient, () => _recipe.Grid[index],
-                v => Change(Tr.T("Modifier la grille"), nameof(RecipeAsset.Grid), () => _recipe.Grid, g => _recipe.Grid = g, _recipe.WithGridSlot(index, v)))),
+                v => Change(Tr.T("Change grid"), nameof(RecipeAsset.Grid), () => _recipe.Grid, g => _recipe.Grid = g, _recipe.WithGridSlot(index, v)))),
         ];
         SmeltingInput = new ReferencePickerViewModel(
             context, ReferenceDomain.Ingredient, () => _recipe.SmeltingInput,
-            v => Change(Tr.T("Modifier l'ingrédient"), nameof(RecipeAsset.SmeltingInput), () => _recipe.SmeltingInput, r => _recipe.SmeltingInput = r, v));
+            v => Change(Tr.T("Change ingredient"), nameof(RecipeAsset.SmeltingInput), () => _recipe.SmeltingInput, r => _recipe.SmeltingInput = r, v));
         Result = new ReferencePickerViewModel(
             context, ReferenceDomain.Item, () => _recipe.Result,
-            v => Change(Tr.T("Modifier le résultat"), nameof(RecipeAsset.Result), () => _recipe.Result, r => _recipe.Result = r, v));
+            v => Change(Tr.T("Change result"), nameof(RecipeAsset.Result), () => _recipe.Result, r => _recipe.Result = r, v));
     }
 
     public IReadOnlyList<Choice<RecipeKind>> KindChoices => GameDataChoices.RecipeKinds;
@@ -39,7 +39,7 @@ public sealed class RecipeAssetViewModel : AssetViewModel
         {
             if (value != _recipe.Kind)
             {
-                Change(Tr.T("Modifier le type de recette"), nameof(RecipeAsset.Kind), () => _recipe.Kind, v => _recipe.Kind = v, value);
+                Change(Tr.T("Change recipe type"), nameof(RecipeAsset.Kind), () => _recipe.Kind, v => _recipe.Kind = v, value);
                 Context.History.Seal();
             }
         }
@@ -50,8 +50,8 @@ public sealed class RecipeAssetViewModel : AssetViewModel
     public bool IsSmelting => _recipe.Kind == RecipeKind.Smelting;
 
     public string GridHint => _recipe.Kind == RecipeKind.Shaped
-        ? Tr.T("Disposez les ingrédients comme sur l'établi. Le motif peut être placé n'importe où dans la grille du jeu.")
-        : Tr.T("Les ingrédients peuvent être placés dans n'importe quel ordre.");
+        ? Tr.T("Arrange the ingredients as on the crafting table. The pattern can be placed anywhere in the game grid.")
+        : Tr.T("The ingredients can be placed in any order.");
 
     /// <summary>Cases de la grille, ligne par ligne.</summary>
     public IReadOnlyList<ReferencePickerViewModel> GridSlots { get; }
@@ -65,14 +65,14 @@ public sealed class RecipeAssetViewModel : AssetViewModel
     public double ResultCount
     {
         get => _recipe.ResultCount;
-        set => SetNumber(Tr.T("Modifier la quantité produite"), nameof(RecipeAsset.ResultCount), value, () => _recipe.ResultCount,
+        set => SetNumber(Tr.T("Change result count"), nameof(RecipeAsset.ResultCount), value, () => _recipe.ResultCount,
             v => _recipe.ResultCount = v, v => Math.Clamp((int)Math.Round(v), 1, RecipeAsset.MaxResultCount));
     }
 
     public double Experience
     {
         get => _recipe.Experience;
-        set => SetNumber(Tr.T("Modifier l'expérience"), nameof(RecipeAsset.Experience), value, () => _recipe.Experience,
+        set => SetNumber(Tr.T("Change experience"), nameof(RecipeAsset.Experience), value, () => _recipe.Experience,
             v => _recipe.Experience = v, v => (float)Math.Clamp(v, 0, RecipeAsset.MaxExperience));
     }
 
@@ -80,7 +80,7 @@ public sealed class RecipeAssetViewModel : AssetViewModel
     public double CookingSeconds
     {
         get => _recipe.CookingTime / 20.0;
-        set => SetNumber(Tr.T("Modifier la durée de cuisson"), nameof(RecipeAsset.CookingTime), value, () => _recipe.CookingTime,
+        set => SetNumber(Tr.T("Change cooking time"), nameof(RecipeAsset.CookingTime), value, () => _recipe.CookingTime,
             v => _recipe.CookingTime = v, v => Math.Clamp((int)Math.Round(v * 20), 1, RecipeAsset.MaxCookingTime));
     }
 

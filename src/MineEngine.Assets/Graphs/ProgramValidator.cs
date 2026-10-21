@@ -36,34 +36,34 @@ public static class ProgramValidator
             && (typeName.Length == 0 || ReservedTypeNames.Contains(typeName)))
         {
             Error(typeName.Length == 0
-                ? Tr.T("Donnez un nom à ce type (lettres ou chiffres).")
-                : Tr.F("« {0} » est déjà le nom d'un type de Minecraft ou du code généré : choisissez un autre nom.", typeName));
+                ? Tr.T("Give this type a name (letters or digits).")
+                : Tr.F("\"{0}\" is already the name of a Minecraft type or of generated code: choose another name.", typeName));
         }
 
         if (graph.Kind.IsCallable() && ProgramModel.MemberName(graph).Length == 0)
         {
-            Error(Tr.F("Donnez un nom à cette {0} (lettres ou chiffres).", graph.Kind.Label().ToLowerInvariant()));
+            Error(Tr.F("Give this {0} a name (letters or digits).", graph.Kind.Label().ToLowerInvariant()));
         }
 
-        ValidateNames(Tr.T("paramètre"), graph.Parameters.Select(p => p.Name), Error);
+        ValidateNames(Tr.T("parameter"), graph.Parameters.Select(p => p.Name), Error);
         if (graph.Kind.IsCallable() || graph.Kind == GraphKind.Events)
         {
             // Paramètres et variables d'une fonction sont tous des variables du code : pas deux fois le même nom.
-            ValidateNames(Tr.T("paramètre ou de variable"), graph.Parameters.Concat(graph.Variables).Select(p => p.Name), Error);
+            ValidateNames(Tr.T("parameter or variable"), graph.Parameters.Concat(graph.Variables).Select(p => p.Name), Error);
         }
 
-        ValidateNames(Tr.T("valeur renvoyée"), graph.Returns.Select(p => p.Name), Error);
+        ValidateNames(Tr.T("return value"), graph.Returns.Select(p => p.Name), Error);
         ValidateNames(graph.Kind is GraphKind.Class or GraphKind.Struct ? "champ" : "variable", graph.Variables.Select(p => p.Name), Error);
         ValidateNames("constante", graph.Constants.Select(c => c.Name), Error, constant: true);
         foreach (MethodSignature method in graph.Methods)
         {
-            ValidateNames(Tr.F("paramètre de « {0} »", method.Name), method.Parameters.Select(p => p.Name), Error);
+            ValidateNames(Tr.F("\"{0}\" parameter", method.Name), method.Parameters.Select(p => p.Name), Error);
         }
 
-        ValidateNames(Tr.T("méthode"), graph.Methods.Select(m => m.Name), Error);
+        ValidateNames(Tr.T("method"), graph.Methods.Select(m => m.Name), Error);
         foreach (MethodSignature method in graph.Methods.Where(m => m.Returns.Count > 1))
         {
-            Error(Tr.F("« {0} » : une méthode d'interface renvoie au plus une valeur.", method.Name));
+            Error(Tr.F("\"{0}\": an interface method returns at most one value.", method.Name));
         }
 
         foreach (VariableDefinition variable in graph.Parameters.Concat(graph.Returns).Concat(graph.Variables)
@@ -75,16 +75,16 @@ public static class ProgramValidator
         switch (graph.Kind)
         {
             case GraphKind.Function when graph.Returns.Count == 0:
-                Warning(Tr.T("Cette fonction ne renvoie aucune valeur : ajoutez-en une, ou faites-en une procédure."));
+                Warning(Tr.T("This function returns no value: add one, or make it a procedure."));
                 break;
             case GraphKind.Class:
                 ValidateClass(graph, program, Error);
                 break;
             case GraphKind.Enum when graph.Constants.Count == 0:
-                Error(Tr.T("Une énumération a besoin d'au moins une valeur."));
+                Error(Tr.T("An enumeration needs at least one value."));
                 break;
             case GraphKind.Struct when graph.Variables.Count == 0:
-                Warning(Tr.T("Cette structure n'a aucun champ."));
+                Warning(Tr.T("This struct has no field."));
                 break;
         }
 
@@ -111,7 +111,7 @@ public static class ProgramValidator
         {
             if (graph.IsStatic)
             {
-                error(Tr.T("« Statique » ne concerne que les méthodes d'une classe."));
+                error(Tr.T("\"Static\" only applies to the methods of a class."));
             }
 
             return;
@@ -119,15 +119,31 @@ public static class ProgramValidator
 
         if (program.Find(ownerId) is not { } owner)
         {
-            error(Tr.T("La classe à laquelle cette définition était intégrée a été supprimée."));
+            error(Tr.T("The class this definition was nested in was deleted."));
+        }
+        else if (owner.Kind == GraphKind.Library)
+        {
+            // A library only holds functions and procedures, public and static (see ProjectViewModel.AddGraph).
+            if (!graph.Kind.IsCallable())
+            {
+                error(Tr.T("A function library only holds functions and procedures."));
+            }
+            else if (graph.Access != AccessLevel.Public || !graph.IsStatic)
+            {
+                error(Tr.T("The functions of a library are public and static."));
+            }
+        }
+        else if (graph.Kind == GraphKind.Library)
+        {
+            error(Tr.T("A function library cannot be nested in a class."));
         }
         else if (owner.Kind != GraphKind.Class || graph.Kind == GraphKind.Events)
         {
-            error(Tr.T("Seules les fonctions, les procédures et les types peuvent être intégrés, et seulement à une classe."));
+            error(Tr.T("Only functions, procedures and types can be nested, and only in a class."));
         }
         else if (program.IsInside(owner, graph))
         {
-            error(Tr.T("Une définition ne peut pas être intégrée à elle-même."));
+            error(Tr.T("A definition cannot be nested in itself."));
         }
     }
 
@@ -139,11 +155,11 @@ public static class ProgramValidator
             string identifier = constant ? ProgramNames.Constant(name) : ProgramNames.Identifier(name);
             if (identifier.Length == 0)
             {
-                error(Tr.F("Un nom de {0} est vide ou sans lettre ni chiffre.", role));
+                error(Tr.F("A {0} name is empty or has no letter or digit.", role));
             }
             else if (!seen.Add(identifier))
             {
-                error(Tr.F("Deux noms de {0} désignent la même chose : « {1} ».", role, name));
+                error(Tr.F("Two {0} names refer to the same thing: \"{1}\".", role, name));
             }
         }
     }
@@ -157,16 +173,16 @@ public static class ProgramValidator
 
         if (program.Find(id) is not { } type || !type.Kind.IsType())
         {
-            error(Tr.F("« {0} » utilise un type qui a été supprimé.", variable.Name));
+            error(Tr.F("\"{0}\" uses a type that was deleted.", variable.Name));
         }
         else if (!program.IsVisible(type, graph))
         {
-            error(Tr.F("« {0} » utilise le type {1}, qui n'est pas accessible ici (privé).", variable.Name, ProgramModel.Name(type)));
+            error(Tr.F("\"{0}\" uses the type {1}, which is not accessible here (private).", variable.Name, ProgramModel.Name(type)));
         }
         else if (variable.Type.Kind == PinType.Enum && !string.IsNullOrEmpty(variable.DefaultValue)
                  && !type.Constants.Any(c => c.Id.ToString("D") == variable.DefaultValue))
         {
-            error(Tr.F("« {0} » : la valeur par défaut n'existe plus dans {1}.", variable.Name, ProgramModel.Name(type)));
+            error(Tr.F("\"{0}\": the default value no longer exists in {1}.", variable.Name, ProgramModel.Name(type)));
         }
     }
 
@@ -176,19 +192,19 @@ public static class ProgramValidator
         {
             if (program.Find(baseId) is not { } parent)
             {
-                error(Tr.T("La classe parente a été supprimée."));
+                error(Tr.T("The parent class was deleted."));
             }
             else if (parent.Kind != GraphKind.Class)
             {
-                error(Tr.F("{0} n'est pas une classe : on ne peut hériter que d'une classe (une interface s'implémente).", ProgramModel.Name(parent)));
+                error(Tr.F("{0} is not a class: you can only inherit from a class (an interface is implemented).", ProgramModel.Name(parent)));
             }
             else if (program.Ancestors(parent).Any(a => a.Id == graph.Id) || parent.Id == graph.Id)
             {
-                error(Tr.T("Héritage circulaire : la classe hérite d'elle-même."));
+                error(Tr.T("Circular inheritance: the class inherits from itself."));
             }
             else if (!program.IsVisible(parent, graph))
             {
-                error(Tr.F("La classe parente {0} n'est pas accessible ici (privée).", ProgramModel.Name(parent)));
+                error(Tr.F("The parent class {0} is not accessible here (private).", ProgramModel.Name(parent)));
             }
         }
 
@@ -197,7 +213,7 @@ public static class ProgramValidator
         {
             if (program.Find(interfaceId) is not { Kind: GraphKind.Interface } contract)
             {
-                error(Tr.T("Une interface implémentée a été supprimée ou n'est pas une interface."));
+                error(Tr.T("An implemented interface was deleted or is not an interface."));
                 continue;
             }
 
@@ -206,12 +222,12 @@ public static class ProgramValidator
                 GraphAsset? implementation = methods.FirstOrDefault(m => signature.Matches(ProgramModel.MemberName(m), m.Parameters, m.Returns));
                 if (implementation is null)
                 {
-                    error(Tr.F("La classe doit avoir une méthode « {0} » (interface {1}), ", signature.Name, ProgramModel.Name(contract)) +
-                          Tr.T("avec les mêmes types de paramètres et de valeurs renvoyées."));
+                    error(Tr.F("The class must have a method \"{0}\" (interface {1}), ", signature.Name, ProgramModel.Name(contract)) +
+                          Tr.T("with the same parameter and return types."));
                 }
                 else if (implementation.Access != AccessLevel.Public)
                 {
-                    error(Tr.F("« {0} » implémente l'interface {1} : elle doit être publique.", ProgramModel.Name(implementation), ProgramModel.Name(contract)));
+                    error(Tr.F("\"{0}\" implements interface {1}: it must be public.", ProgramModel.Name(implementation), ProgramModel.Name(contract)));
                 }
             }
         }
@@ -233,16 +249,16 @@ public static class ProgramValidator
                                  && overridden.Returns.Select(p => p.Type).SequenceEqual(method.Returns.Select(p => p.Type));
             if (!sameSignature)
             {
-                error(Tr.F("« {0} » porte le nom d'une méthode de {1} : ", ProgramModel.Name(method), ProgramModel.Name(parent)) +
-                      Tr.T("pour la redéfinir, gardez les mêmes paramètres et valeurs renvoyées (sinon, changez de nom)."));
+                error(Tr.F("\"{0}\" has the name of a method of {1}: ", ProgramModel.Name(method), ProgramModel.Name(parent)) +
+                      Tr.T("to override it, keep the same parameters and return values (otherwise, change its name)."));
             }
             else if (overridden.Access == AccessLevel.Private)
             {
-                error(Tr.F("« {0} » redéfinit une méthode privée de {1} : rendez-la protégée ou publique.", ProgramModel.Name(method), ProgramModel.Name(parent)));
+                error(Tr.F("\"{0}\" overrides a private method of {1}: make it protected or public.", ProgramModel.Name(method), ProgramModel.Name(parent)));
             }
             else if (method.Access > overridden.Access)
             {
-                error(Tr.F("« {0} » redéfinit une méthode {1} : elle ne peut pas être moins accessible.", ProgramModel.Name(method), overridden.Access.Label().ToLowerInvariant()));
+                error(Tr.F("\"{0}\" overrides a {1} method: it cannot be less accessible.", ProgramModel.Name(method), overridden.Access.Label().ToLowerInvariant()));
             }
 
             return;
@@ -257,14 +273,14 @@ public static class ProgramValidator
         GraphNode? first = entry is null ? null : body.NextNode(entry.Id, NodeInfo.ExecThen);
         foreach (GraphNode super in body.Nodes.Where(n => n.Kind == GraphNodeKind.SuperConstructor && n.Id != first?.Id))
         {
-            issues.Add(new GraphIssue(DiagnosticSeverity.Error, Tr.T("Le constructeur parent doit suivre directement l'entrée du constructeur."), super.Id));
+            issues.Add(new GraphIssue(DiagnosticSeverity.Error, Tr.T("The parent constructor must directly follow the constructor entry."), super.Id));
         }
 
         if (program.Find(graph.BaseClassId) is { Kind: GraphKind.Class, Parameters.Count: > 0 } parent
             && first?.Kind != GraphNodeKind.SuperConstructor)
         {
             issues.Add(new GraphIssue(DiagnosticSeverity.Error,
-                Tr.F("Le constructeur de {0} a des paramètres : reliez l'entrée à « Constructeur parent » en premier.", ProgramModel.Name(parent)),
+                Tr.F("The {0} constructor has parameters: connect the entry to \"Parent constructor\" first.", ProgramModel.Name(parent)),
                 entry?.Id));
         }
     }

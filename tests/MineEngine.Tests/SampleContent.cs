@@ -105,6 +105,11 @@ internal static class SampleContent
         AddGraphs(project, ruby, sword, rubyOre, goblinHurt);
         AddEquipment(project, ruby);
         ProgramSample.AddTo(project);
+        PuppeteerSample.AddTo(project, goblinHurt);
+        NodeLibrarySample.AddTo(project);
+        BlockbenchSample.AddTo(project, [swordTexture, goblinTexture]);
+        GameplaySample.AddTo(project, ruby, swordTexture);
+        LibrarySample.AddTo(project);
     }
 
     /// <summary>V0.4.1 : outils, armures, nourriture à effets, combustible, tags et événements d'items.</summary>

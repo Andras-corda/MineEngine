@@ -30,19 +30,19 @@ public static partial class LanguageFileSerializer
             int version = root["formatVersion"]?.GetValue<int>() ?? FormatVersion;
             if (version > FormatVersion)
             {
-                throw new InvalidDataException(Tr.F("{0} a été créé par une version plus récente de Mine Engine.", sourceName));
+                throw new InvalidDataException(Tr.F("{0} was created by a newer version of Mine Engine.", sourceName));
             }
 
             string code = (root["code"]?.GetValue<string>() ?? string.Empty).Trim().ToLowerInvariant();
             if (!CodePattern().IsMatch(code))
             {
-                throw new InvalidDataException(Tr.F("Code de langue invalide dans {0} : « {1} » (exemples : de, es, pt-br).", sourceName, code));
+                throw new InvalidDataException(Tr.F("Invalid language code in {0}: \"{1}\" (examples: de, es, pt-br).", sourceName, code));
             }
 
             string name = (root["name"]?.GetValue<string>() ?? string.Empty).Trim();
             if (name.Length == 0)
             {
-                throw new InvalidDataException(Tr.F("{0} n'indique pas le nom de la langue.", sourceName));
+                throw new InvalidDataException(Tr.F("{0} does not give the language name.", sourceName));
             }
 
             string culture = (root["culture"]?.GetValue<string>() ?? code).Trim();
@@ -72,7 +72,7 @@ public static partial class LanguageFileSerializer
         }
         catch (Exception exception) when (exception is InvalidOperationException or FormatException or JsonException)
         {
-            throw new InvalidDataException(Tr.F("{0} n'est pas un fichier de langue valide : {1}", sourceName, exception.Message), exception);
+            throw new InvalidDataException(Tr.F("{0} is not a valid language file: {1}", sourceName, exception.Message), exception);
         }
     }
 

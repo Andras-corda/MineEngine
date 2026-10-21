@@ -20,8 +20,17 @@ public partial class DashboardPanel : UserControl
     private Point? _dragStart;
     private ListBoxItem? _dragItem;
 
+    /// <summary>Clicked element of a multiple selection: it is selected alone on release, unless dragged.</summary>
+    private ListBoxItem? _pendingSingle;
+
     public static readonly DependencyProperty WideColumnProperty =
         DependencyProperty.Register(nameof(WideColumn), typeof(GridLength), typeof(DashboardPanel), new PropertyMetadata(new GridLength(150)));
+
+    public static readonly DependencyProperty TileScaleProperty =
+        DependencyProperty.Register(nameof(TileScale), typeof(double), typeof(DashboardPanel), new PropertyMetadata(1.0));
+
+    private const double MinTileScale = 0.6;
+    private const double MaxTileScale = 2.5;
 
     /// <summary>Largeur des colonnes "État" et "Utilisé par" ; nulle quand le panneau est étroit.</summary>
     private const double CompactWidth = 640;
@@ -43,7 +52,40 @@ public partial class DashboardPanel : UserControl
         set => SetValue(WideColumnProperty, value);
     }
 
+    /// <summary>Size of the tiles of the grid view (Ctrl+wheel).</summary>
+    public double TileScale
+    {
+        get => (double)GetValue(TileScaleProperty);
+        set => SetValue(TileScaleProperty, value);
+    }
+
     private MainViewModel? Main => DataContext as MainViewModel;
+
+    /// <summary>Ctrl+wheel zooms the tiles in or out, like the Windows Explorer.</summary>
+    private void OnPageMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (Keyboard.Modifiers != ModifierKeys.Control || Main?.Project is not { IsTileView: true })
+        {
+            return;
+        }
+
+        TileScale = Math.Clamp(Math.Round(TileScale * (e.Delta > 0 ? 1.1 : 1 / 1.1), 2), MinTileScale, MaxTileScale);
+        e.Handled = true;
+    }
+
+    /// <summary>The selection of the visible list (list or tiles) becomes the one of the project.</summary>
+    private void OnAssetSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // The hidden list follows SelectedAsset alone: it must not reduce the selection.
+        if (sender is ListBox { IsVisible: true } list && Main?.Project is { } project)
+        {
+            project.SelectedAssets = [.. list.SelectedItems.OfType<AssetViewModel>().OrderBy(a => list.Items.IndexOf(a))];
+        }
+    }
+
+    /// <summary>Elements a drag or a menu acts on: the whole selection if the element is part of it.</summary>
+    private IReadOnlyList<AssetViewModel> TargetsOf(AssetViewModel asset) =>
+        Main?.Project?.SelectedAssets is { } selected && selected.Contains(asset) ? selected : [asset];
 
     private void OnAssetDoubleClick(object sender, MouseButtonEventArgs e)
     {
@@ -65,11 +107,15 @@ public partial class DashboardPanel : UserControl
         e.Handled = true;
     }
 
-    /// <summary>Le clic droit sélectionne aussi l'élément, pour que le menu agisse sur lui.</summary>
+    /// <summary>
+    /// Le clic droit sélectionne aussi l'élément, pour que le menu agisse sur lui ; sur un élément
+    /// d'une sélection multiple, la sélection reste (le menu agit sur toute la sélection).
+    /// </summary>
     private void OnAssetRightClick(object sender, MouseButtonEventArgs e)
     {
-        if (sender is ListBoxItem item)
+        if (sender is ListBoxItem { IsSelected: false } item && ItemsControl.ItemsControlFromItemContainer(item) is ListBox list)
         {
+            list.SelectedItems.Clear();
             item.IsSelected = true;
         }
     }
@@ -101,6 +147,28 @@ public partial class DashboardPanel : UserControl
     {
         _dragStart = e.GetPosition(this);
         _dragItem = sender as ListBoxItem;
+        _pendingSingle = null;
+
+        // A plain click on an element of a multiple selection keeps it, so that it can be dragged.
+        if (e.ClickCount == 1 && Keyboard.Modifiers == ModifierKeys.None && _dragItem is { IsSelected: true } item
+            && ItemsControl.ItemsControlFromItemContainer(item) is ListBox { SelectedItems.Count: > 1 })
+        {
+            _pendingSingle = item;
+            item.Focus();
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>Released without dragging: the clicked element is now selected alone.</summary>
+    private void OnAssetMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_pendingSingle is { } item && ReferenceEquals(sender, item) && ItemsControl.ItemsControlFromItemContainer(item) is ListBox list)
+        {
+            list.SelectedItems.Clear();
+            item.IsSelected = true;
+        }
+
+        _pendingSingle = null;
     }
 
     /// <summary>Au-delà du seuil de Windows, l'élément sous la souris part en glisser-déposer.</summary>
@@ -118,7 +186,8 @@ public partial class DashboardPanel : UserControl
         }
 
         _dragStart = null;
-        DragDrop.DoDragDrop(_dragItem, new DataObject(AssetDragFormat, asset), DragDropEffects.Move);
+        _pendingSingle = null;
+        DragDrop.DoDragDrop(_dragItem, new DataObject(AssetDragFormat, TargetsOf(asset)), DragDropEffects.Move);
     }
 
     /// <summary>Destination d'un dépôt : le dossier sous la souris, ou le segment du fil d'Ariane.</summary>
@@ -131,7 +200,8 @@ public partial class DashboardPanel : UserControl
 
     private void OnFolderDragOver(object sender, DragEventArgs e)
     {
-        bool accepted = e.Data.GetData(AssetDragFormat) is AssetViewModel asset && DropTarget(sender) is { } target && asset.Model.Folder != target;
+        bool accepted = e.Data.GetData(AssetDragFormat) is IReadOnlyList<AssetViewModel> assets && DropTarget(sender) is { } target
+                        && assets.Any(a => a.Model.Folder != target);
         e.Effects = accepted ? DragDropEffects.Move : DragDropEffects.None;
         if (sender is ListBoxItem item)
         {
@@ -152,9 +222,9 @@ public partial class DashboardPanel : UserControl
     private void OnFolderDrop(object sender, DragEventArgs e)
     {
         OnFolderDragLeave(sender, e);
-        if (e.Data.GetData(AssetDragFormat) is AssetViewModel asset && DropTarget(sender) is { } target && Main is { } main)
+        if (e.Data.GetData(AssetDragFormat) is IReadOnlyList<AssetViewModel> assets && DropTarget(sender) is { } target && Main is { } main)
         {
-            main.MoveAssetsToFolder([asset], target);
+            main.MoveAssetsToFolder(assets, target);
             e.Handled = true;
         }
     }
@@ -177,8 +247,9 @@ public partial class DashboardPanel : UserControl
         move.Items.Clear();
         foreach (FolderChoice choice in project.FolderChoices)
         {
-            var item = new MenuItem { Header = choice.Label, IsEnabled = choice.Path != asset.Model.Folder };
-            item.Click += (_, _) => main.MoveAssetsToFolder([asset], choice.Path);
+            IReadOnlyList<AssetViewModel> targets = TargetsOf(asset);
+            var item = new MenuItem { Header = choice.Label, IsEnabled = targets.Any(a => a.Model.Folder != choice.Path) };
+            item.Click += (_, _) => main.MoveAssetsToFolder(targets, choice.Path);
             move.Items.Add(item);
         }
     }

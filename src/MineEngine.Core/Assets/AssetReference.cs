@@ -17,6 +17,15 @@ public enum AssetReferenceKind
 
     /// <summary>Une définition de programme (graphe : fonction, classe, structure, interface, énumération).</summary>
     Definition,
+
+    /// <summary>Un arbre de comportement Puppeteer.</summary>
+    BehaviorTree,
+
+    /// <summary>A 3D model the game can use for an item or a block (Blockbench or Java JSON).</summary>
+    Model,
+
+    /// <summary>A 3D model turned into a Java entity model for a mob (Blockbench only).</summary>
+    EntityModel,
 }
 
 /// <summary>

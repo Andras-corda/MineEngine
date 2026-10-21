@@ -10,11 +10,22 @@ public sealed class WindowsShellService : IShellService
         Process.Start(new ProcessStartInfo { FileName = directory, UseShellExecute = true });
     }
 
+    public void RevealFile(string file)
+    {
+        if (!File.Exists(file))
+        {
+            OpenFolder(Path.GetDirectoryName(file) ?? file);
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"/select,\"{file}\"", UseShellExecute = true });
+    }
+
     public void OpenWith(string program, string file)
     {
         if (!File.Exists(program))
         {
-            throw new FileNotFoundException(Tr.F("Programme introuvable : {0}", program), program);
+            throw new FileNotFoundException(Tr.F("Program not found: {0}", program), program);
         }
 
         var start = new ProcessStartInfo(program) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(file) ?? string.Empty };

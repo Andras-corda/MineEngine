@@ -91,11 +91,11 @@ public static class JavaCompletionData
 
     private static readonly JavaCompletionEntry[] Snippets =
     [
-        new("sout", JavaCompletionKind.Snippet, Tr.T("Écrit une ligne dans la console"), "System.out.println();"),
-        new("fori", JavaCompletionKind.Snippet, Tr.T("Boucle for avec un compteur"), "for (int i = 0; i < count; i++) {\n}"),
-        new("subscribe", JavaCompletionKind.Snippet, Tr.T("Méthode appelée par un événement du jeu"),
+        new("sout", JavaCompletionKind.Snippet, Tr.T("Writes a line to the console"), "System.out.println();"),
+        new("fori", JavaCompletionKind.Snippet, Tr.T("For loop with a counter"), "for (int i = 0; i < count; i++) {\n}"),
+        new("subscribe", JavaCompletionKind.Snippet, Tr.T("Method called by a game event"),
             "@SubscribeEvent\npublic static void onEvent(PlayerEvent.PlayerLoggedInEvent event) {\n}"),
-        new("psvm", JavaCompletionKind.Snippet, Tr.T("Méthode statique publique"), "public static void method() {\n}"),
+        new("psvm", JavaCompletionKind.Snippet, Tr.T("Public static method"), "public static void method() {\n}"),
     ];
 
     /// <summary>Toutes les propositions pour un loader ; <paramref name="modTypes"/> : classes générées du mod (noms complets).</summary>
@@ -107,7 +107,7 @@ public static class JavaCompletionData
             .Select(TypeEntry);
         return
         [
-            .. Keywords.Select(k => new JavaCompletionEntry(k, JavaCompletionKind.Keyword, Tr.T("Mot-clé Java"), k)),
+            .. Keywords.Select(k => new JavaCompletionEntry(k, JavaCompletionKind.Keyword, Tr.T("Java keyword"), k)),
             .. types,
             .. Snippets,
         ];

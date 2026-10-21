@@ -96,12 +96,12 @@ public abstract class CodeDocumentViewModel : DocumentViewModel
         ".mcmeta" => "JSON (mcmeta)",
         ".md" => "Markdown",
         ".toml" => "TOML",
-        ".properties" => Tr.T("Propriétés"),
+        ".properties" => Tr.T("Properties"),
         ".gradle" => "Gradle",
-        ".txt" or "" => Tr.T("Texte"),
+        ".txt" or "" => Tr.T("Text"),
         ".xml" => "XML",
-        ".bat" or ".cmd" => Tr.T("Script Windows"),
-        ".sh" => Tr.T("Script shell"),
+        ".bat" or ".cmd" => Tr.T("Windows script"),
+        ".sh" => Tr.T("Shell script"),
         _ => Extension.TrimStart('.').ToUpperInvariant(),
     };
 
@@ -127,7 +127,7 @@ public abstract class CodeDocumentViewModel : DocumentViewModel
             string text = Document.Text;
             if (text.Contains("\n\t", StringComparison.Ordinal))
             {
-                return Tr.T("Tabulations");
+                return Tr.T("Tabs");
             }
 
             // Les lignes de commentaire " * " (javadoc) ne comptent pas.
@@ -137,7 +137,7 @@ public abstract class CodeDocumentViewModel : DocumentViewModel
                 .Where(n => n > 1)
                 .DefaultIfEmpty(4)
                 .Min();
-            return Tr.F("{0} espaces", smallest);
+            return Tr.F("{0} spaces", smallest);
         }
     }
 

@@ -104,8 +104,8 @@ public sealed class ItemsAndFoldersTests
 
         IReadOnlyList<GraphIssue> issues = GraphValidator.Validate(builder.Build());
 
-        Assert.Contains(issues, i => i.NodeId == click.Id && i.Message.Contains("item du mod"));
-        Assert.Contains(issues, i => i.NodeId == cancel.Id && i.Message.Contains("ne peut pas être annulé"));
+        Assert.Contains(issues, i => i.NodeId == click.Id && i.Message.Contains("item from the mod"));
+        Assert.Contains(issues, i => i.NodeId == cancel.Id && i.Message.Contains("cannot be canceled"));
     }
 
     [Fact]

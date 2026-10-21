@@ -34,7 +34,8 @@ public sealed class CatalogGraphContext : IGraphContext
 
     public NodeInfo Describe(GraphNode node) =>
         Reroutes.IsReroute(node) ? Reroutes.Describe(node, TypeLabel)
-        : NodeCatalog.Find(node.Kind) ?? NodeCatalog.Missing(node.Kind, Tr.T("Définition introuvable"));
+        : GraphAnnotations.IsAnnotation(node) ? GraphAnnotations.Describe(node)
+        : NodeCatalog.Find(node.Kind) ?? NodeCatalog.Missing(node.Kind, Tr.T("Definition not found"));
 
     public bool CanFeed(DataType from, DataType to) => TypeRules.CanFeedBuiltIn(from, to);
 

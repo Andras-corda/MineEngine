@@ -69,7 +69,7 @@ public sealed partial class ModLocalization
         locale = Normalize(locale);
         if (!IsValidLocale(locale))
         {
-            throw new ArgumentException(Tr.F("Code de langue invalide : « {0} » (exemples : de_de, es_es, pt_br).", locale), nameof(locale));
+            throw new ArgumentException(Tr.F("Invalid language code: \"{0}\" (examples: de_de, es_es, pt_br).", locale), nameof(locale));
         }
 
         return Locales.Contains(locale) ? this : new ModLocalization(Locales.Add(locale), Translations);

@@ -3,8 +3,8 @@ using MineEngine.Core.IO;
 namespace MineEngine.Core.Localization;
 
 /// <summary>
-/// Langues disponibles : celles livrées avec Mine Engine et celles importées par l'utilisateur,
-/// copiées dans un dossier sous la forme &lt;code&gt;.json.
+/// Available languages: those shipped with Mine Engine and those imported by the user, copied
+/// into a folder as &lt;code&gt;.json.
 /// </summary>
 public sealed class LanguageLibrary
 {
@@ -16,7 +16,7 @@ public sealed class LanguageLibrary
         _directory = Path.GetFullPath(directory);
     }
 
-    /// <summary>Langues livrées puis langues importées (par nom) ; un fichier illisible est ignoré.</summary>
+    /// <summary>Shipped languages, then imported ones (by name); an unreadable file is skipped.</summary>
     public IReadOnlyList<UiLanguage> All()
     {
         var languages = new List<UiLanguage>(UiLanguage.All);
@@ -38,13 +38,13 @@ public sealed class LanguageLibrary
         return languages;
     }
 
-    /// <summary>Langue d'après son code, livrée ou importée ; l'anglais si elle n'existe plus.</summary>
+    /// <summary>Language from its code, shipped or imported; English when it no longer exists.</summary>
     public UiLanguage Find(string? code) =>
         All().FirstOrDefault(l => string.Equals(l.Code, code, StringComparison.OrdinalIgnoreCase)) ?? UiLanguage.Default;
 
     /// <summary>
-    /// Vérifie un fichier de langue puis le copie dans la bibliothèque (il remplace une langue
-    /// importée de même code) ; renvoie le contenu lu, avec le nombre de traductions écartées.
+    /// Checks a language file, then copies it into the library with English keys (it replaces an
+    /// imported language with the same code); returns what was read, with the number of rejected translations.
     /// </summary>
     public LanguageFile Import(string sourceFile)
     {
@@ -52,27 +52,27 @@ public sealed class LanguageLibrary
         LanguageFile read = LanguageFileSerializer.Read(File.ReadAllText(sourceFile), Path.GetFileName(sourceFile));
         if (UiLanguage.All.Any(l => l.Code == read.Language.Code))
         {
-            throw new InvalidDataException(Tr.F("La langue « {0} » est déjà livrée avec Mine Engine : choisissez un autre code.", read.Language.Code));
+            throw new InvalidDataException(Tr.F("The language \"{0}\" already ships with Mine Engine: choose another code.", read.Language.Code));
         }
 
         if (read.Translations.Count == 0)
         {
-            throw new InvalidDataException(Tr.F("{0} ne contient aucune traduction utilisable.", Path.GetFileName(sourceFile)));
+            throw new InvalidDataException(Tr.F("{0} contains no usable translation.", Path.GetFileName(sourceFile)));
         }
 
         string target = FileOf(read.Language.Code);
         Directory.CreateDirectory(_directory);
-        AtomicFile.WriteAllText(target, LanguageFileSerializer.Write(read.Language, read.Translations));
+        AtomicFile.WriteAllText(target, LanguageFileSerializer.Write(read.Language, TextCatalog.ToEnglishKeys(read.Translations)));
         return read with { Language = read.Language with { FilePath = target } };
     }
 
-    /// <summary>Retire une langue importée ; les langues livrées ne peuvent pas être retirées.</summary>
+    /// <summary>Removes an imported language; shipped languages cannot be removed.</summary>
     public void Remove(UiLanguage language)
     {
         ArgumentNullException.ThrowIfNull(language);
         if (language.IsBuiltIn)
         {
-            throw new InvalidOperationException(Tr.T("Les langues livrées avec Mine Engine ne peuvent pas être supprimées."));
+            throw new InvalidOperationException(Tr.T("Languages shipped with Mine Engine cannot be deleted."));
         }
 
         if (File.Exists(language.FilePath))
@@ -82,19 +82,18 @@ public sealed class LanguageLibrary
     }
 
     /// <summary>
-    /// Écrit un modèle de traduction : chaque texte de l'interface avec sa version anglaise,
-    /// à remplacer par la traduction dans la nouvelle langue.
+    /// Writes a translation template: every interface text with itself (English) as value, to be
+    /// replaced by the translation in the new language.
     /// </summary>
     public static void ExportTemplate(string targetFile)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(targetFile);
-        TextCatalog english = TextCatalog.For(UiLanguage.English);
         var template = new UiLanguage("xx", "Language name", "en-US");
         AtomicFile.WriteAllText(targetFile, LanguageFileSerializer.Write(
-            template, english.TranslatedTexts.Select(t => KeyValuePair.Create(t, english.Translate(t)))));
+            template, TextCatalog.SourceTexts.Select(t => KeyValuePair.Create(t, t))));
     }
 
-    /// <summary>Part des textes de l'interface traduits dans une langue (de 0 à 1).</summary>
+    /// <summary>Share of the interface texts translated in a language (from 0 to 1).</summary>
     public static double Completeness(UiLanguage language)
     {
         ArgumentNullException.ThrowIfNull(language);
@@ -103,10 +102,10 @@ public sealed class LanguageLibrary
             return 1;
         }
 
-        TextCatalog english = TextCatalog.For(UiLanguage.English);
         LanguageFile file = LanguageFileSerializer.Read(File.ReadAllText(language.FilePath!), Path.GetFileName(language.FilePath!));
-        int translated = english.TranslatedTexts.Count(file.Translations.ContainsKey);
-        return english.Count == 0 ? 1 : (double)translated / english.Count;
+        Dictionary<string, string> translations = TextCatalog.ToEnglishKeys(file.Translations);
+        List<string> texts = [.. TextCatalog.SourceTexts];
+        return texts.Count == 0 ? 1 : (double)texts.Count(translations.ContainsKey) / texts.Count;
     }
 
     private static UiLanguage? TryRead(string file)

@@ -4,14 +4,16 @@ using System.Text.Json;
 namespace MineEngine.Core.Localization;
 
 /// <summary>
-/// Traductions d'une langue de l'interface. Les textes sont écrits en français dans le code
-/// (langue source) ; chaque autre langue fournit un fichier Localization/&lt;code&gt;.json intégré
-/// à MineEngine.Core, qui associe chaque texte français à sa traduction. Un texte absent du
-/// fichier reste en français. Une langue importée complète l'anglais : un texte qu'elle ne
-/// traduit pas s'affiche en anglais, puis en français s'il n'existe pas non plus en anglais.
+/// Translations of one interface language. Texts are written in English in the code (the source
+/// language); every other shipped language provides a Localization/&lt;code&gt;.json file embedded in
+/// MineEngine.Core that maps each English text to its translation. A text missing from the file
+/// stays in English. An imported language works the same way; a file written for an older version
+/// (keyed by the former French source texts) is converted to English keys when it is read.
 /// </summary>
 public sealed class TextCatalog
 {
+    private static readonly Lazy<IReadOnlyDictionary<string, string>> LazyFrench = new(() => Embedded(UiLanguage.French.Code));
+
     private readonly IReadOnlyDictionary<string, string> _translations;
 
     private TextCatalog(UiLanguage language, IReadOnlyDictionary<string, string> translations)
@@ -20,18 +22,21 @@ public sealed class TextCatalog
         _translations = translations;
     }
 
-    /// <summary>Langue source : les textes sont rendus tels quels.</summary>
-    public static TextCatalog Source { get; } = new(UiLanguage.French, new Dictionary<string, string>());
+    /// <summary>Source language: texts are shown as they are written in the code.</summary>
+    public static TextCatalog Source { get; } = new(UiLanguage.English, new Dictionary<string, string>());
+
+    /// <summary>Every English text of the interface (those of the French file, which translates them all).</summary>
+    public static IEnumerable<string> SourceTexts => LazyFrench.Value.Keys;
 
     public UiLanguage Language { get; }
 
-    /// <summary>Textes source qui ont une traduction dans cette langue.</summary>
+    /// <summary>Source texts that have a translation in this language.</summary>
     public IEnumerable<string> TranslatedTexts => _translations.Keys;
 
-    /// <summary>Nombre de textes source traduits.</summary>
+    /// <summary>Number of translated source texts.</summary>
     public int Count => _translations.Count;
 
-    /// <summary>Catalogue d'une langue ; la langue source n'a pas de fichier.</summary>
+    /// <summary>Catalog of a language; the source language has no file.</summary>
     public static TextCatalog For(UiLanguage language)
     {
         ArgumentNullException.ThrowIfNull(language);
@@ -43,23 +48,47 @@ public sealed class TextCatalog
         if (!language.IsBuiltIn)
         {
             LanguageFile file = LanguageFileSerializer.Read(File.ReadAllText(language.FilePath!), Path.GetFileName(language.FilePath!));
-            var merged = new Dictionary<string, string>(Embedded(UiLanguage.English.Code), StringComparer.Ordinal);
-            foreach ((string text, string translation) in file.Translations)
-            {
-                merged[text] = translation;
-            }
-
-            return new TextCatalog(language, merged);
+            return new TextCatalog(language, ToEnglishKeys(file.Translations));
         }
 
-        return new TextCatalog(language, Embedded(language.Code));
+        return new TextCatalog(language, language.Code == UiLanguage.French.Code ? LazyFrench.Value : Embedded(language.Code));
+    }
+
+    /// <summary>
+    /// Translations keyed by English source texts. A key that is a former French source text
+    /// (language file made before English became the source language) is replaced by its English text.
+    /// </summary>
+    public static Dictionary<string, string> ToEnglishKeys(IEnumerable<KeyValuePair<string, string>> translations)
+    {
+        ArgumentNullException.ThrowIfNull(translations);
+        IReadOnlyDictionary<string, string> french = LazyFrench.Value;
+        Dictionary<string, string> englishOf = FrenchToEnglish();
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach ((string text, string translation) in translations)
+        {
+            string key = !french.ContainsKey(text) && englishOf.TryGetValue(text, out string? english) ? english : text;
+            result.TryAdd(key, translation);
+        }
+
+        return result;
     }
 
     public bool Contains(string text) => _translations.ContainsKey(text);
 
-    /// <summary>Traduction d'un texte source, ou le texte lui-même s'il n'est pas traduit.</summary>
+    /// <summary>Translation of a source text, or the text itself when it is not translated.</summary>
     public string Translate(string text) =>
         text is not null && _translations.TryGetValue(text, out string? translation) ? translation : text!;
+
+    private static Dictionary<string, string> FrenchToEnglish()
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach ((string english, string french) in LazyFrench.Value)
+        {
+            result.TryAdd(french, english);
+        }
+
+        return result;
+    }
 
     private static Dictionary<string, string> Embedded(string code)
     {

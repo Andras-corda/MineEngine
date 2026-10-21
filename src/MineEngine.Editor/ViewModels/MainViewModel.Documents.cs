@@ -12,6 +12,7 @@ using MineEngine.Editor.Settings;
 using MineEngine.Editor.ViewModels.Assets;
 using MineEngine.Editor.ViewModels.Documents;
 using MineEngine.Editor.ViewModels.Graphs;
+using MineEngine.Editor.ViewModels.Puppeteer;
 using MineEngine.Generator;
 using MineEngine.IR.Model;
 using MineEngine.Minecraft.Generation;
@@ -67,11 +68,71 @@ public sealed partial class MainViewModel
                 OnPropertyChanged(nameof(ActiveCodeDocument));
                 OnPropertyChanged(nameof(HasActiveCodeDocument));
                 Details = value ?? (IDetailsTarget?)_project?.SelectedAsset;
+                NodeLibrary.Document = value as INodeLibraryHost;
+                RecordNavigation();
             }
         }
     }
 
     public bool HasActiveDocument => _activeDocument is not null;
+
+    /// <summary>
+    /// View of the project shown in the work area from the toolbar (DashboardTabId, ResourcesTabId,
+    /// LanguagesTabId), or null when a document tab is shown. Set by the window.
+    /// </summary>
+    public string? ActiveWorkspaceView
+    {
+        get => _activeWorkspaceView;
+        set
+        {
+            if (SetProperty(ref _activeWorkspaceView, value))
+            {
+                OnPropertyChanged(nameof(IsDashboardShown));
+                OnPropertyChanged(nameof(IsResourcesShown));
+                OnPropertyChanged(nameof(IsLanguagesShown));
+                OnPropertyChanged(nameof(ShowsViewModeButtons));
+                OnPropertyChanged(nameof(SearchText));
+                OnPropertyChanged(nameof(SearchHint));
+                RecordNavigation();
+            }
+        }
+    }
+
+    public bool IsDashboardShown => _activeWorkspaceView == DashboardTabId;
+
+    public bool IsResourcesShown => _activeWorkspaceView == ResourcesTabId;
+
+    public bool IsLanguagesShown => _activeWorkspaceView == LanguagesTabId;
+
+    /// <summary>List and grid buttons: they only change the Dashboard, hidden over Resources and Languages.</summary>
+    public bool ShowsViewModeButtons => !IsResourcesShown && !IsLanguagesShown;
+
+    /// <summary>Search of the toolbar: it filters the view shown (Resources, Languages), otherwise the Dashboard.</summary>
+    public string SearchText
+    {
+        get => (IsResourcesShown ? _project?.Resources.SearchText : IsLanguagesShown ? Languages?.SearchText : _project?.SearchText) ?? string.Empty;
+        set
+        {
+            if (IsResourcesShown && _project is not null)
+            {
+                _project.Resources.SearchText = value;
+            }
+            else if (IsLanguagesShown && Languages is not null)
+            {
+                Languages.SearchText = value;
+            }
+            else if (_project is not null)
+            {
+                _project.SearchText = value;
+            }
+
+            OnPropertyChanged();
+        }
+    }
+
+    public string SearchHint => IsResourcesShown ? Tr.T("Search the resources...") : IsLanguagesShown ? Tr.T("Search for a key or a text...") : Tr.T("Search...");
+
+    private string? _activeWorkspaceView = DashboardTabId;
 
     /// <summary>Onglet actif s'il contient du texte (curseur, encodage... dans la barre de statut).</summary>
     public CodeDocumentViewModel? ActiveCodeDocument => _activeDocument as CodeDocumentViewModel;
@@ -114,6 +175,9 @@ public sealed partial class MainViewModel
     /// <summary>Ouvre l'éditeur nodal d'un graphe (paramètre : son ViewModel, sinon l'asset sélectionné).</summary>
     public ICommand OpenGraphEditorCommand { get; private set; } = null!;
 
+    /// <summary>Ouvre un arbre de comportement dans Puppeteer (paramètre : son ViewModel, sinon l'asset sélectionné).</summary>
+    public ICommand OpenBehaviorTreeCommand { get; private set; } = null!;
+
     /// <summary>Ouvre l'élément sélectionné dans son onglet d'édition (barre d'outils).</summary>
     public ICommand EditSelectedAssetCommand { get; private set; } = null!;
 
@@ -131,6 +195,52 @@ public sealed partial class MainViewModel
 
     /// <summary>Génère le code du mod puis ouvre le fichier Java de l'élément sélectionné, à sa première ligne.</summary>
     public ICommand OpenAssetJavaCommand { get; private set; } = null!;
+
+    // ----- Tab menu (right-click on a tab of the work area) -----
+
+    /// <summary>File shown by a tab: the code file, or the .asset.json file of an element; null without a project.</summary>
+    public string? DocumentFilePath(DocumentViewModel document) => document switch
+    {
+        FileDocumentViewModel file => file.FullPath,
+        _ when _project is not null => _project.Model.Layout.ToAbsolutePath(document.DisplayPath),
+        _ => null,
+    };
+
+    /// <summary>Element edited by a tab (element editor, graph, Puppeteer tree), or null for a code file.</summary>
+    public static Guid? DocumentAssetId(DocumentViewModel document) => document switch
+    {
+        AssetEditorDocumentViewModel editor => editor.AssetId,
+        GraphDocumentViewModel graph => graph.AssetId,
+        BehaviorTreeDocumentViewModel tree => tree.AssetId,
+        _ => null,
+    };
+
+    /// <summary>Saves a tab (code files only have something to save; elements are saved with the project).</summary>
+    public void SaveDocument(DocumentViewModel document)
+    {
+        if (document is { IsReadOnly: false, IsDirty: true })
+        {
+            document.Save();
+        }
+    }
+
+    /// <summary>Opens the Windows file explorer on the file of a tab.</summary>
+    public void RevealDocument(DocumentViewModel document)
+    {
+        if (DocumentFilePath(document) is { } path)
+        {
+            _shell.RevealFile(path);
+        }
+    }
+
+    /// <summary>Selects the element of a tab and shows it in the Dashboard.</summary>
+    public void SelectDocumentAsset(DocumentViewModel document)
+    {
+        if (_project is not null && DocumentAssetId(document) is { } id && _project.SelectAsset(id))
+        {
+            DocumentActivationRequested?.Invoke(this, null);
+        }
+    }
 
     /// <summary>Appelé par la vue quand l'utilisateur ferme un onglet ; faux pour l'annuler.</summary>
     public bool RequestCloseDocument(DocumentViewModel document)
@@ -182,15 +292,24 @@ public sealed partial class MainViewModel
             asset => (asset ?? _project?.SelectedAsset)?.Model is GraphAsset);
         EditSelectedAssetCommand = new RelayCommand(
             () => OpenAsset(_project!.SelectedAsset!.Model), () => HasProject && _project?.SelectedAsset is not null);
+        OpenBehaviorTreeCommand = new RelayCommand<AssetViewModel?>(
+            asset =>
+            {
+                if ((asset ?? _project?.SelectedAsset)?.Model is BehaviorTreeAsset tree)
+                {
+                    OpenBehaviorTreeDocument(tree);
+                }
+            },
+            asset => (asset ?? _project?.SelectedAsset)?.Model is BehaviorTreeAsset);
         OpenSelectedGraphCommand = new RelayCommand(
             () => OpenGraphDocument((GraphAsset)_project!.SelectedAsset!.Model), () => _project?.SelectedAsset?.Model is GraphAsset);
         ExportAssetCommand = new RelayCommand(ExportSelectedAsset, () => HasProject && _project?.SelectedAsset is not null);
         ImportAssetCommand = new RelayCommand(ImportAssetFiles, () => CanEdit);
         DuplicateAssetCommand = new RelayCommand(
-            () => Execute(Tr.T("Dupliquer"), () =>
+            () => Execute(Tr.T("Duplicate"), () =>
             {
                 Asset copy = _project!.DuplicateAsset(_project.SelectedAsset!);
-                StatusText = Tr.F("'{0}' créé (Ctrl+Z pour annuler)", copy.ResourceId);
+                StatusText = Tr.F("'{0}' created (Ctrl+Z to undo)", copy.ResourceId);
             }),
             () => CanEdit && ProjectViewModel.CanDuplicate(_project?.SelectedAsset));
         OpenAssetJavaCommand = new AsyncRelayCommand(OpenAssetJavaAsync, () => CanEdit && _project?.SelectedAsset is not null);
@@ -231,7 +350,7 @@ public sealed partial class MainViewModel
         if (moved.Count > 0)
         {
             _project.History.Execute(FolderOperations.MoveAssets(moved, folder));
-            StatusText = moved.Count == 1 ? Tr.F("« {0} » déplacé", moved[0].DisplayName) : Tr.F("{0} éléments déplacés", moved.Count);
+            StatusText = moved.Count == 1 ? Tr.F("\"{0}\" moved", moved[0].DisplayName) : Tr.F("{0} elements moved", moved.Count);
         }
     }
 
@@ -241,14 +360,14 @@ public sealed partial class MainViewModel
         RenameFolderCommand = new RelayCommand<FolderItemViewModel>(RenameFolder, _ => CanEdit);
         DeleteFolderCommand = new RelayCommand<FolderItemViewModel>(DeleteFolder, _ => CanEdit);
         MoveAssetToFolderCommand = new RelayCommand<string>(
-            folder => MoveAssetsToFolder([_project!.SelectedAsset!], folder ?? string.Empty),
+            folder => MoveAssetsToFolder(_project!.SelectedAssets, folder ?? string.Empty),
             _ => CanEdit && _project?.SelectedAsset is not null);
     }
 
     private void NewFolder()
     {
         string parent = _project!.CurrentFolder;
-        string? name = AskFolderName(Tr.T("Nouveau dossier"), Tr.T("Nom du dossier :"), Tr.T("Nouveau dossier"), parent);
+        string? name = AskFolderName(Tr.T("New folder"), Tr.T("Folder name:"), Tr.T("New folder"), parent);
         if (name is null)
         {
             return;
@@ -262,21 +381,21 @@ public sealed partial class MainViewModel
     private void RenameFolder(FolderItemViewModel folder)
     {
         string parent = AssetFolders.Parent(folder.Path);
-        string? name = AskFolderName(Tr.T("Renommer le dossier"), Tr.F("Nouveau nom de « {0} » :", folder.Name), folder.Name, parent, folder.Name);
+        string? name = AskFolderName(Tr.T("Rename folder"), Tr.F("New name for \"{0}\":", folder.Name), folder.Name, parent, folder.Name);
         if (name is null || name == folder.Name)
         {
             return;
         }
 
         _project!.History.Execute(FolderOperations.Move(
-            _project.Model, folder.Path, AssetFolders.Combine(parent, name), Tr.F("Renommer le dossier « {0} »", folder.Name)));
+            _project.Model, folder.Path, AssetFolders.Combine(parent, name), Tr.F("Rename folder \"{0}\"", folder.Name)));
     }
 
     private void DeleteFolder(FolderItemViewModel folder)
     {
-        string where = AssetFolders.Parent(folder.Path) is { Length: > 0 } parent ? Tr.F("« {0} »", AssetFolders.Name(parent)) : Tr.T("la racine");
+        string where = AssetFolders.Parent(folder.Path) is { Length: > 0 } parent ? Tr.F("\"{0}\"", AssetFolders.Name(parent)) : Tr.T("the root");
         if (folder.AssetCount + folder.FolderCount > 0
-            && !_dialogs.Confirm(Tr.T("Supprimer le dossier"), Tr.F("Supprimer le dossier « {0} » ? Son contenu ({1}) remonte dans {2}.", folder.Name, folder.ContentLabel.ToLowerInvariant(), where)))
+            && !_dialogs.Confirm(Tr.T("Delete folder"), Tr.F("Delete folder \"{0}\"? Its contents ({1}) move up to {2}.", folder.Name, folder.ContentLabel.ToLowerInvariant(), where)))
         {
             return;
         }
@@ -297,11 +416,11 @@ public sealed partial class MainViewModel
 
             if (!AssetFolders.IsValidName(name))
             {
-                _dialogs.ShowError(title, Tr.T("Nom invalide : pas de « / », de « \\ » ni de caractère interdit par Windows (64 caractères au plus)."));
+                _dialogs.ShowError(title, Tr.T("Invalid name: no \"/\", \"\\\" or character forbidden by Windows (64 characters at most)."));
             }
             else if (name != current && FolderOperations.Exists(_project!.Model, AssetFolders.Combine(parent, name)))
             {
-                _dialogs.ShowError(title, Tr.F("Un dossier « {0} » existe déjà ici.", name));
+                _dialogs.ShowError(title, Tr.F("A folder \"{0}\" already exists here.", name));
             }
             else
             {
@@ -334,6 +453,17 @@ public sealed partial class MainViewModel
         }
 
         _project.SelectAsset(asset.Id);
+        if (asset is BehaviorTreeAsset tree)
+        {
+            OpenBehaviorTreeDocument(tree);
+            if (nodeId is { } item && _activeDocument is BehaviorTreeDocumentViewModel puppeteer)
+            {
+                puppeteer.Show(item);
+            }
+
+            return;
+        }
+
         if (asset is GraphAsset graph)
         {
             OpenGraphDocument(graph);
@@ -366,7 +496,8 @@ public sealed partial class MainViewModel
         }
 
         foreach (DocumentViewModel document in Documents.Where(d =>
-                     d.Id == AssetEditorDocumentViewModel.IdFor(e.Asset.Id) || d.Id == "graph:" + e.Asset.Id.ToString("N")).ToList())
+                     d.Id == AssetEditorDocumentViewModel.IdFor(e.Asset.Id) || d.Id == "graph:" + e.Asset.Id.ToString("N")
+                     || d.Id == BehaviorTreeDocumentViewModel.IdFor(e.Asset.Id)).ToList())
         {
             RemoveDocument(document);
         }
@@ -398,7 +529,41 @@ public sealed partial class MainViewModel
                                          graph,
                                          _assetViewModels.CreateContext(_project.Model, assetId => _project.SelectAsset(assetId)),
                                          _project.Model.Layout.ToRelativePath(_project.Model.Layout.GetAssetFilePath(graph)),
-                                         (kind, owner) => AddGraph(kind, owner)));
+                                         (kind, owner) => AddGraph(kind, owner),
+                                         GraphOptions));
+        Activate(document);
+    }
+
+    private GraphViewOptions? _graphOptions;
+
+    /// <summary>Options of every graph tab (snapping to the grid), kept in the preferences.</summary>
+    public GraphViewOptions GraphOptions => _graphOptions ??= CreateGraphOptions();
+
+    private GraphViewOptions CreateGraphOptions()
+    {
+        var options = new GraphViewOptions(_preferences.Current.GraphSnapToGrid, snap =>
+        {
+            EditorSettings settings = _preferences.Current.Clone();
+            settings.GraphSnapToGrid = snap;
+            _preferences.Update(settings);
+        });
+        _preferences.Changed += (_, _) => options.Follow(_preferences.Current.GraphSnapToGrid);
+        return options;
+    }
+
+    /// <summary>Ouvre (ou active) l'onglet Puppeteer d'un arbre de comportement.</summary>
+    private void OpenBehaviorTreeDocument(BehaviorTreeAsset tree)
+    {
+        if (_project is null)
+        {
+            return;
+        }
+
+        DocumentViewModel document = Documents.FirstOrDefault(d => d.Id == BehaviorTreeDocumentViewModel.IdFor(tree.Id))
+                                     ?? AddDocument(new BehaviorTreeDocumentViewModel(
+                                         tree,
+                                         _assetViewModels.CreateContext(_project.Model, assetId => _project.SelectAsset(assetId)),
+                                         _project.Model.Layout.ToRelativePath(_project.Model.Layout.GetAssetFilePath(tree))));
         Activate(document);
     }
 
@@ -456,13 +621,13 @@ public sealed partial class MainViewModel
 
         Guid assetId = selected.Model.Id;
         SetBusy(new CancellationTokenSource());
-        StatusText = Tr.T("Génération du code Java...");
+        StatusText = Tr.T("Generating Java code...");
         try
         {
             GenerationResult? result = await _pipeline.GenerateAsync(_project.Model, _log, _buildCancellation!.Token);
             if (result is null)
             {
-                StatusText = Tr.T("Le code n'a pas pu être généré : voir Diagnostics et la sortie.");
+                StatusText = Tr.T("The code could not be generated: see Diagnostics and the output.");
                 return;
             }
 
@@ -473,16 +638,16 @@ public sealed partial class MainViewModel
                 .FirstOrDefault();
             if (entry is null)
             {
-                StatusText = Tr.F("'{0}' ne produit pas de code Java (seulement des fichiers de données).", selected.Header);
+                StatusText = Tr.F("'{0}' produces no Java code (only data files).", selected.Header);
                 return;
             }
 
             OpenFileAtLine(Path.Combine(result.WorkspaceDirectory, entry.File.Replace('/', Path.DirectorySeparatorChar)), entry.FirstLine);
-            StatusText = Tr.F("Code Java de '{0}'", selected.Header);
+            StatusText = Tr.F("Java code of '{0}'", selected.Header);
         }
         catch (OperationCanceledException)
         {
-            StatusText = Tr.T("Génération annulée");
+            StatusText = Tr.T("Generation cancelled");
         }
         finally
         {
@@ -500,21 +665,21 @@ public sealed partial class MainViewModel
             ? AssetSerializer.FileExtension
             : Path.GetExtension(fileName);
         string? target = _dialogs.AskFileToSave(
-            Tr.T("Exporter l'élément"), Tr.F("Fichier {0} (*{1})|*{2}", extension, extension, extension), fileName);
-        if (target is not null && Execute(Tr.T("Exporter l'élément"), () => _project.ExportAsset(selected, target)))
+            Tr.T("Export the element"), Tr.F("{0} file (*{1})|*{2}", extension, extension, extension), fileName);
+        if (target is not null && Execute(Tr.T("Export the element"), () => _project.ExportAsset(selected, target)))
         {
-            StatusText = Tr.F("'{0}' exporté dans {1}", selected.Header, target);
+            StatusText = Tr.F("'{0}' exported to {1}", selected.Header, target);
         }
     }
 
     private void ImportAssetFiles()
     {
-        string filter = Tr.F("Élément Mine Engine (*{0})|*{1}", AssetSerializer.FileExtension, AssetSerializer.FileExtension);
-        if (_dialogs.AskFileToOpen(Tr.T("Importer un élément"), filter) is { } file
-            && Execute(Tr.T("Importer un élément"), () =>
+        string filter = Tr.F("Mine Engine element (*{0})|*{1}", AssetSerializer.FileExtension, AssetSerializer.FileExtension);
+        if (_dialogs.AskFileToOpen(Tr.T("Import an element"), filter) is { } file
+            && Execute(Tr.T("Import an element"), () =>
             {
                 Asset asset = _project!.ImportAssetFile(file);
-                StatusText = Tr.F("'{0}' importé (Ctrl+Z pour annuler)", asset.ResourceId);
+                StatusText = Tr.F("'{0}' imported (Ctrl+Z to undo)", asset.ResourceId);
             }))
         {
             Details = _project!.SelectedAsset;
@@ -527,13 +692,13 @@ public sealed partial class MainViewModel
 
     /// <summary>Ouvre un fichier avec un programme externe ; une erreur (programme déplacé) est affichée.</summary>
     public void OpenWith(ExternalProgram program, string file) =>
-        Execute(Tr.F("Ouvrir avec {0}", program.Name), () => _shell.OpenWith(program.Path, file));
+        Execute(Tr.F("Open with {0}", program.Name), () => _shell.OpenWith(program.Path, file));
 
     /// <summary>Ouvre un fichier avec l'application associée par Windows.</summary>
-    public void OpenWithDefault(string file) => Execute(Tr.T("Ouvrir"), () => _shell.OpenFile(file));
+    public void OpenWithDefault(string file) => Execute(Tr.T("Open"), () => _shell.OpenFile(file));
 
     /// <summary>Fenêtre « Ouvrir avec » de Windows.</summary>
-    public void ChooseProgram(string file) => Execute(Tr.T("Ouvrir avec"), () => _shell.ShowOpenWithDialog(file));
+    public void ChooseProgram(string file) => Execute(Tr.T("Open with"), () => _shell.ShowOpenWithDialog(file));
 
     /// <summary>Fichier d'un élément pour « Ouvrir avec » : l'image ou le son d'une texture ou d'un son, sinon son .asset.json.</summary>
     public string? AssetFile(AssetViewModel asset)
@@ -552,7 +717,7 @@ public sealed partial class MainViewModel
     {
         if (!File.Exists(fullPath))
         {
-            StatusText = Tr.T("Fichier introuvable : ") + Path.GetFileName(fullPath);
+            StatusText = Tr.T("File not found: ") + Path.GetFileName(fullPath);
             return;
         }
 

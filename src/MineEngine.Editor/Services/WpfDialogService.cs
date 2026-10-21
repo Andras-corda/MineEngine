@@ -45,14 +45,16 @@ public sealed class WpfDialogService : IDialogService
 
     public NewProjectRequest? AskNewProject()
     {
-        var viewModel = ProjectPropertiesViewModel.ForNewProject(_mdks, _defaultProjectsDirectory, PickProjectsFolder, ShowMdkManager);
+        var viewModel = ProjectPropertiesViewModel.ForNewProject(_mdks, _defaultProjectsDirectory, PickProjectsFolder, ShowMdkManager)
+            .WithIconPicker(PickIcon);
         var window = new ProjectPropertiesWindow(viewModel) { Owner = Owner };
         return window.ShowDialog() == true ? new NewProjectRequest(viewModel.ParentDirectory, viewModel.CreateSettings()) : null;
     }
 
-    public bool EditProjectSettings(ProjectSettings settings)
+    public bool EditProjectSettings(ProjectSettings settings, string projectRoot)
     {
-        var viewModel = ProjectPropertiesViewModel.ForExistingProject(_mdks, settings, PickProjectsFolder, ShowMdkManager);
+        var viewModel = ProjectPropertiesViewModel.ForExistingProject(_mdks, settings, projectRoot, PickProjectsFolder, ShowMdkManager)
+            .WithIconPicker(PickIcon);
         var window = new ProjectPropertiesWindow(viewModel) { Owner = Owner };
         if (window.ShowDialog() != true)
         {
@@ -62,6 +64,8 @@ public sealed class WpfDialogService : IDialogService
         viewModel.ApplyTo(settings);
         return true;
     }
+
+    private string? PickIcon() => AskFileToOpen(Tr.T("Mod icon"), Tr.T("PNG images (*.png)|*.png"));
 
     public void ShowMdkManager()
     {
@@ -99,8 +103,8 @@ public sealed class WpfDialogService : IDialogService
     {
         var dialog = new OpenFileDialog
         {
-            Title = Tr.T("Ouvrir un projet Mine Engine"),
-            Filter = Tr.F("Projet Mine Engine (*{0})|*{1};{2}|Tous les fichiers (*.*)|*.*", ProjectLayout.ProjectFileExtension, ProjectLayout.ProjectFileExtension, ProjectLayout.LegacyProjectFileName),
+            Title = Tr.T("Open a Mine Engine project"),
+            Filter = Tr.F("Mine Engine project (*{0})|*{1};{2}|All files (*.*)|*.*", ProjectLayout.ProjectFileExtension, ProjectLayout.ProjectFileExtension, ProjectLayout.LegacyProjectFileName),
             InitialDirectory = Directory.Exists(_defaultProjectsDirectory) ? _defaultProjectsDirectory : string.Empty,
         };
         return ShowDialog(dialog) ? dialog.FileName : null;
@@ -110,18 +114,32 @@ public sealed class WpfDialogService : IDialogService
     {
         var dialog = new OpenFileDialog
         {
-            Title = Tr.T("Choisir une texture"),
-            Filter = Tr.T("Images PNG (*.png)|*.png"),
+            Title = Tr.T("Choose a texture"),
+            Filter = Tr.T("PNG images (*.png)|*.png"),
         };
         return ShowDialog(dialog) ? dialog.FileName : null;
     }
+
+    public bool ShowModelImport(ViewModels.Assets.ModelImportViewModel viewModel) =>
+        new Views.ModelImportWindow(viewModel) { Owner = Owner }.ShowDialog() == true;
 
     public IReadOnlyList<string> AskTextureFiles()
     {
         var dialog = new OpenFileDialog
         {
-            Title = Tr.T("Importer des textures"),
-            Filter = Tr.T("Images PNG (*.png)|*.png"),
+            Title = Tr.T("Import textures"),
+            Filter = Tr.T("PNG images (*.png)|*.png"),
+            Multiselect = true,
+        };
+        return ShowDialog(dialog) ? dialog.FileNames : [];
+    }
+
+    public IReadOnlyList<string> AskModelFiles()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = Tr.T("Import 3D models"),
+            Filter = Tr.T("3D models") + $" ({MineEngine.Assets.ModelFormats.DialogPattern})|{MineEngine.Assets.ModelFormats.DialogPattern}",
             Multiselect = true,
         };
         return ShowDialog(dialog) ? dialog.FileNames : [];
@@ -131,8 +149,8 @@ public sealed class WpfDialogService : IDialogService
     {
         var dialog = new OpenFileDialog
         {
-            Title = Tr.T("Importer des sons"),
-            Filter = Tr.T("Sons OGG Vorbis (*.ogg)|*.ogg"),
+            Title = Tr.T("Import sounds"),
+            Filter = Tr.T("OGG Vorbis sounds (*.ogg)|*.ogg"),
             Multiselect = true,
         };
         return ShowDialog(dialog) ? dialog.FileNames : [];
@@ -142,8 +160,8 @@ public sealed class WpfDialogService : IDialogService
     {
         var dialog = new OpenFileDialog
         {
-            Title = Tr.T("Importer un MDK"),
-            Filter = Tr.T("Archive de MDK (*.zip)|*.zip"),
+            Title = Tr.T("Import an MDK"),
+            Filter = Tr.T("MDK archive (*.zip)|*.zip"),
         };
         return ShowDialog(dialog) ? dialog.FileName : null;
     }
@@ -157,7 +175,7 @@ public sealed class WpfDialogService : IDialogService
     public UnsavedChangesChoice AskUnsavedChanges(string projectName)
     {
         MessageBoxResult result = ShowMessage(
-            Tr.F("Le projet '{0}' contient des modifications non enregistrées.\n\nVoulez-vous les enregistrer ?", projectName),
+            Tr.F("The project '{0}' has unsaved changes.\n\nDo you want to save them?", projectName),
             ApplicationTitle,
             MessageBoxButton.YesNoCancel,
             MessageBoxImage.Warning);
@@ -185,7 +203,7 @@ public sealed class WpfDialogService : IDialogService
     public UnsavedChangesChoice AskUnsavedFile(string fileName)
     {
         MessageBoxResult result = ShowMessage(
-            Tr.F("Le fichier '{0}' contient des modifications non enregistrées.\n\nVoulez-vous les enregistrer ?", fileName),
+            Tr.F("The file '{0}' has unsaved changes.\n\nDo you want to save them?", fileName),
             ApplicationTitle,
             MessageBoxButton.YesNoCancel,
             MessageBoxImage.Warning);
@@ -206,7 +224,7 @@ public sealed class WpfDialogService : IDialogService
     {
         var dialog = new OpenFolderDialog
         {
-            Title = Tr.T("Dossier dans lequel créer le projet"),
+            Title = Tr.T("Folder in which to create the project"),
             InitialDirectory = Directory.Exists(_defaultProjectsDirectory) ? _defaultProjectsDirectory : string.Empty,
         };
         return ShowDialog(dialog) ? dialog.FolderName : null;

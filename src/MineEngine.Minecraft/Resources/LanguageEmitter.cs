@@ -14,7 +14,7 @@ namespace MineEngine.Minecraft.Resources;
 /// </summary>
 public sealed class LanguageEmitter : IFileEmitter
 {
-    public string Name => Tr.T("Fichiers de langue");
+    public string Name => Tr.T("Language files");
 
     public void Emit(GenerationContext context)
     {
@@ -51,6 +51,48 @@ public sealed class LanguageEmitter : IFileEmitter
             entries[paths.SubtitleTranslationKey(sound.Id)] = sound.Subtitle;
         }
 
+        // V0.6.2 and V0.6.3.
+        IRContent content = context.Ir.Content;
+        foreach (IRCreativeTab tab in content.CreativeTabs)
+        {
+            entries[paths.CreativeTabTranslationKeyFor(tab.Id)] = tab.Title;
+        }
+
+        if (content.Keybinds.Count > 0)
+        {
+            entries[paths.KeyCategoryTranslationKey] = context.Mod.Name;
+        }
+
+        foreach (IRKeybind keybind in content.Keybinds)
+        {
+            entries[paths.KeyTranslationKey(keybind.Id)] = keybind.Name;
+        }
+
+        foreach (IREnchantment enchantment in content.Enchantments)
+        {
+            entries[paths.EnchantmentTranslationKey(enchantment.Id)] = enchantment.Name;
+        }
+
+        foreach (IRFluid fluid in content.Fluids)
+        {
+            entries[paths.BlockTranslationKey(fluid.Id)] = fluid.Name;
+            entries[paths.FluidTypeTranslationKey(fluid.Id)] = fluid.Name;
+        }
+
+        foreach (IRGameRule rule in content.GameRules)
+        {
+            entries[ResourcePaths.GameRuleTranslationKey(rule.Id)] = rule.Name;
+            if (rule.Description.Length > 0)
+            {
+                entries[ResourcePaths.GameRuleTranslationKey(rule.Id) + ".description"] = rule.Description;
+            }
+        }
+
+        foreach (IREffect effect in content.Effects)
+        {
+            entries[paths.EffectTranslationKey(effect.Id)] = effect.Name;
+        }
+
         ModLocalization localization = context.Ir.Localization;
         foreach (string locale in localization.Locales)
         {
@@ -58,6 +100,19 @@ public sealed class LanguageEmitter : IFileEmitter
             foreach (IRMob mob in context.Ir.Content.MobsWithSpawnEgg)
             {
                 localized[paths.ItemTranslationKey(mob.SpawnEgg!.ItemId)] = ModTranslationKeys.SpawnEggName(locale, mob.DisplayName);
+            }
+
+            foreach (IRFluid fluid in content.Fluids.Where(f => f.BucketId is not null))
+            {
+                localized[paths.ItemTranslationKey(fluid.BucketId!)] = ModTranslationKeys.DerivedName(TranslationSource.Bucket, locale, fluid.Name);
+            }
+
+            foreach (IREffect effect in content.Effects.Where(e => e.PotionTicks > 0))
+            {
+                foreach ((string form, TranslationSource source) in ModTranslationKeys.PotionForms)
+                {
+                    localized[ResourcePaths.PotionTranslationKey(form, effect.Id)] = ModTranslationKeys.DerivedName(source, locale, effect.Name);
+                }
             }
 
             foreach ((string key, string text) in localization.TranslationsFor(locale).OrderBy(t => t.Key, StringComparer.Ordinal))

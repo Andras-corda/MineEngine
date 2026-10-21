@@ -376,7 +376,7 @@ public partial class CodeDocumentView : UserControl
             .Select(m => m.Value)
             .Where(w => w != prefix && labels.Add(w))
             .Take(2000)
-            .Select(w => new JavaCompletionEntry(w, JavaCompletionKind.Keyword, Tr.T("Présent dans le fichier"), w));
+            .Select(w => new JavaCompletionEntry(w, JavaCompletionKind.Keyword, Tr.T("Present in the file"), w));
         return known.Concat(words).OrderBy(e => e.Label, StringComparer.OrdinalIgnoreCase).Select(e => new JavaCompletionItem(e));
     }
 

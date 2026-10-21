@@ -137,7 +137,7 @@ public sealed class GraphAsset : Asset
         {
             if (node.Target is { } target)
             {
-                yield return new AssetReference(target, AssetReferenceKind.Definition, Tr.F("nœud {0}", node));
+                yield return new AssetReference(target, AssetReferenceKind.Definition, Tr.F("node {0}", node));
             }
 
             if (NodeCatalog.Find(node.Kind) is not { } info)
@@ -157,7 +157,7 @@ public sealed class GraphAsset : Asset
                         PinType.Sound => AssetReferenceKind.Sound,
                         _ => AssetReferenceKind.Item,
                     };
-                    yield return new AssetReference(reference.AssetId, kind, Tr.F("nœud « {0} »", info.Title));
+                    yield return new AssetReference(reference.AssetId, kind, Tr.F("node \"{0}\"", info.Title));
                 }
             }
         }
@@ -165,22 +165,22 @@ public sealed class GraphAsset : Asset
         foreach (Guid type in Parameters.Concat(Returns).Concat(Variables).Concat(Methods.SelectMany(m => m.Parameters.Concat(m.Returns)))
                      .Select(v => v.Type.Definition).OfType<Guid>().Distinct())
         {
-            yield return new AssetReference(type, AssetReferenceKind.Definition, Tr.T("type d'une variable"));
+            yield return new AssetReference(type, AssetReferenceKind.Definition, Tr.T("variable type"));
         }
 
         if (BaseClassId is { } baseClass)
         {
-            yield return new AssetReference(baseClass, AssetReferenceKind.Definition, Tr.T("classe parente"));
+            yield return new AssetReference(baseClass, AssetReferenceKind.Definition, Tr.T("parent class"));
         }
 
         foreach (Guid implemented in InterfaceIds)
         {
-            yield return new AssetReference(implemented, AssetReferenceKind.Definition, Tr.T("interface implémentée"));
+            yield return new AssetReference(implemented, AssetReferenceKind.Definition, Tr.T("implemented interface"));
         }
 
         if (OwnerId is { } owner)
         {
-            yield return new AssetReference(owner, AssetReferenceKind.Definition, Tr.T("classe propriétaire"));
+            yield return new AssetReference(owner, AssetReferenceKind.Definition, Tr.T("owner class"));
         }
     }
 

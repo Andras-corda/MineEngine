@@ -62,7 +62,7 @@ public sealed class MdkCatalog
         string archive = Path.Combine(Path.GetTempPath(), "mineengine-download-" + Guid.NewGuid().ToString("N") + ".zip");
         try
         {
-            log.Info(Tr.F("Téléchargement de {0} depuis {1} ...", download.DisplayName, download.Source));
+            log.Info(Tr.F("Downloading {0} from {1} ...", download.DisplayName, download.Source));
             using (HttpResponseMessage response = await _httpClient
                        .GetAsync(download.Source, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
                        .ConfigureAwait(false))
@@ -72,8 +72,8 @@ public sealed class MdkCatalog
                 await response.Content.CopyToAsync(file, cancellationToken).ConfigureAwait(false);
             }
 
-            MdkDescriptor mdk = library.ImportArchive(archive, Tr.T("Téléchargé depuis ") + download.Source);
-            log.Success(Tr.T("MDK installé : ") + mdk.DisplayName);
+            MdkDescriptor mdk = library.ImportArchive(archive, Tr.T("Downloaded from ") + download.Source);
+            log.Success(Tr.T("MDK installed: ") + mdk.DisplayName);
             return mdk;
         }
         finally

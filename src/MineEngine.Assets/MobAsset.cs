@@ -43,6 +43,7 @@ public sealed class MobAsset : TexturedAsset
     private bool _persistent;
 
     private IReadOnlyList<MobGoal> _goals = MobGoalCatalog.DefaultGoals(MobKind.Monster);
+    private Guid? _behaviorTreeId;
     private ContentReference? _breedingItem;
 
     private ContentReference? _ambientSound;
@@ -67,7 +68,7 @@ public sealed class MobAsset : TexturedAsset
     public override AssetType Type => AssetType.Mob;
 
     protected override string MissingTextureMessage =>
-        Tr.T("Aucune texture ; celle de la créature d'origine du modèle sera utilisée.");
+        Tr.T("No texture; the texture of the model's original creature will be used.");
 
     // ----- Apparence -----
 
@@ -192,6 +193,19 @@ public sealed class MobAsset : TexturedAsset
         }
     }
 
+    /// <summary>
+    /// Arbre de comportement Puppeteer qui pilote le mob, ou null. Quand il est choisi, il
+    /// remplace la liste de comportements (<see cref="Goals"/>, gardée pour y revenir).
+    /// </summary>
+    public Guid? BehaviorTreeId
+    {
+        get => _behaviorTreeId;
+        set => SetField(ref _behaviorTreeId, value);
+    }
+
+    /// <summary>Vrai si l'IA du mob est un arbre Puppeteer plutôt que la liste de comportements.</summary>
+    public bool UsesBehaviorTree => _behaviorTreeId is not null;
+
     /// <summary>Item qui déclenche la reproduction (famille Animal).</summary>
     public ContentReference? BreedingItem
     {
@@ -297,19 +311,24 @@ public sealed class MobAsset : TexturedAsset
             yield return reference;
         }
 
-        foreach (MobGoal goal in Goals.Where(g => g.Info.UsesItem && g.Item is { Kind: ContentReferenceKind.Asset }))
+        if (BehaviorTreeId is { } tree)
+        {
+            yield return new AssetReference(tree, AssetReferenceKind.BehaviorTree, Tr.T("behavior tree"));
+        }
+
+        foreach (MobGoal goal in ActiveGoals.Where(g => g.Info.UsesItem && g.Item is { Kind: ContentReferenceKind.Asset }))
         {
             yield return new AssetReference(goal.Item!.AssetId, AssetReferenceKind.Item, "IA : " + goal.Info.Label.ToLowerInvariant());
         }
 
         if (Kind == MobKind.Animal && BreedingItem is { Kind: ContentReferenceKind.Asset } breeding)
         {
-            yield return new AssetReference(breeding.AssetId, AssetReferenceKind.Item, Tr.T("item de reproduction"));
+            yield return new AssetReference(breeding.AssetId, AssetReferenceKind.Item, Tr.T("breeding item"));
         }
 
         foreach ((ContentReference? sound, string role) in new[]
                  {
-                     (AmbientSound, Tr.T("son ambiant")), (HurtSound, Tr.T("son de blessure")), (DeathSound, Tr.T("son de mort")),
+                     (AmbientSound, Tr.T("ambient sound")), (HurtSound, Tr.T("hurt sound")), (DeathSound, Tr.T("death sound")),
                  })
         {
             if (sound is { Kind: ContentReferenceKind.Asset })
@@ -324,96 +343,108 @@ public sealed class MobAsset : TexturedAsset
         }
     }
 
+    public override bool UsesCustomModel => Model == MobModel.Custom && CustomModelId is not null;
+
+    protected override AssetReferenceKind CustomModelKind => AssetReferenceKind.EntityModel;
+
     public override void Validate(DiagnosticBag diagnostics)
     {
         base.Validate(diagnostics);
         string source = ToString();
 
-        foreach (MobGoal goal in Goals)
+        if (Model == MobModel.Custom && CustomModelId is null)
+        {
+            diagnostics.Error(Tr.T("Model \"3D model\": choose the Blockbench model of the mob."), source, Id);
+        }
+
+        foreach (MobGoal goal in ActiveGoals)
         {
             MobGoalInfo info = goal.Info;
             if (info.RequiresAnimal && Kind != MobKind.Animal)
             {
-                diagnostics.Error(Tr.F("Le comportement « {0} » n'est possible que pour un mob de la famille Animal.", info.Label), source, Id);
+                diagnostics.Error(Tr.F("The behavior \"{0}\" is only possible for a mob of the Animal family.", info.Label), source, Id);
             }
 
             if (info.UsesItem && goal.Item is null)
             {
-                diagnostics.Error(Tr.F("Le comportement « {0} » n'a pas d'item.", info.Label), source, Id);
+                diagnostics.Error(Tr.F("The behavior \"{0}\" has no item.", info.Label), source, Id);
             }
 
             if (info.UsesItem && goal.Item is { Kind: ContentReferenceKind.Tag })
             {
-                diagnostics.Error(Tr.F("Le comportement « {0} » doit utiliser un item précis, pas un tag.", info.Label), source, Id);
+                diagnostics.Error(Tr.F("The behavior \"{0}\" must use a specific item, not a tag.", info.Label), source, Id);
             }
         }
 
-        foreach (MobGoalKind kind in Goals.GroupBy(g => g.Kind).Where(g => g.Count() > 1).Select(g => g.Key))
+        foreach (MobGoalKind kind in ActiveGoals.GroupBy(g => g.Kind).Where(g => g.Count() > 1).Select(g => g.Key))
         {
-            diagnostics.Info(Tr.F("Le comportement « {0} » apparaît plusieurs fois.", MobGoalCatalog.Get(kind).Label), source, Id);
+            diagnostics.Info(Tr.F("The behavior \"{0}\" appears several times.", MobGoalCatalog.Get(kind).Label), source, Id);
         }
 
-        bool attacks = Goals.Any(g => g.Kind == MobGoalKind.MeleeAttack);
-        bool targets = Goals.Any(g => g.Info.Selector == MobGoalSelector.Target);
+        bool attacks = ActiveGoals.Any(g => g.Kind == MobGoalKind.MeleeAttack);
+        bool targets = ActiveGoals.Any(g => g.Info.Selector == MobGoalSelector.Target);
         if (attacks && !targets)
         {
             diagnostics.Warning(
-                Tr.T("Le mob sait attaquer mais ne choisit jamais de cible : ajoutez « Riposter » ou « Cibler les créatures proches »."),
+                Tr.T("The mob can attack but never picks a target: add \"Fight back\" or \"Target nearby creatures\"."),
                 source,
                 Id);
         }
 
         if (targets && !attacks && Kind == MobKind.Monster)
         {
-            diagnostics.Info(Tr.T("Le mob choisit des cibles mais n'a aucun comportement d'attaque."), source, Id);
+            diagnostics.Info(Tr.T("The mob picks targets but has no attack behavior."), source, Id);
         }
 
-        if (Kind == MobKind.Animal && BreedingItem is null && Goals.Any(g => g.Kind == MobGoalKind.Breed))
+        if (Kind == MobKind.Animal && BreedingItem is null && ActiveGoals.Any(g => g.Kind == MobGoalKind.Breed))
         {
-            diagnostics.Warning(Tr.T("Sans item de reproduction, le comportement « Se reproduire » ne se déclenchera jamais."), source, Id);
+            diagnostics.Warning(Tr.T("Without a breeding item, the \"Breed\" behavior will never trigger."), source, Id);
         }
 
         if (Kind == MobKind.Animal && BreedingItem is { Kind: ContentReferenceKind.Tag })
         {
-            diagnostics.Error(Tr.T("L'item de reproduction doit être un item précis, pas un tag."), source, Id);
+            diagnostics.Error(Tr.T("The breeding item must be a specific item, not a tag."), source, Id);
         }
 
         foreach ((ContentReference? sound, string label) in new[]
                  {
-                     (AmbientSound, "ambiant"), (HurtSound, Tr.T("de blessure")), (DeathSound, Tr.T("de mort")),
+                     (AmbientSound, "ambiant"), (HurtSound, Tr.T("hurt")), (DeathSound, Tr.T("death")),
                  })
         {
             if (sound is { Kind: ContentReferenceKind.Tag })
             {
-                diagnostics.Error(Tr.F("Le son {0} ne peut pas être un tag.", label), source, Id);
+                diagnostics.Error(Tr.F("The {0} sound cannot be a tag.", label), source, Id);
             }
         }
 
         if (Drops.Any(d => d.Item.Kind == ContentReferenceKind.Tag))
         {
-            diagnostics.Error(Tr.T("Le butin doit être composé d'items précis, pas de tags."), source, Id);
+            diagnostics.Error(Tr.T("Loot must be made of specific items, not tags."), source, Id);
         }
 
         if (SpawnsNaturally && SpawnBiomes.Count == 0)
         {
-            diagnostics.Warning(Tr.T("L'apparition naturelle est activée mais aucun biome n'est choisi."), source, Id);
+            diagnostics.Warning(Tr.T("Natural spawning is enabled but no biome is chosen."), source, Id);
         }
 
         if (SpawnMinGroup > SpawnMaxGroup)
         {
-            diagnostics.Warning(Tr.T("La taille de groupe minimale dépasse la maximale : elles seront inversées."), source, Id);
+            diagnostics.Warning(Tr.T("The minimum group size is greater than the maximum: they will be swapped."), source, Id);
         }
 
         if (HasSpawnEgg && ResourceId.Value.Length + SpawnEggSuffixLength > ResourceId.MaxLength)
         {
-            diagnostics.Error(Tr.T("L'identifiant est trop long pour créer l'œuf d'apparition (« _spawn_egg » est ajouté)."), source, Id);
+            diagnostics.Error(Tr.T("The identifier is too long to create the spawn egg (\"_spawn_egg\" is added)."), source, Id);
         }
 
         if (BurnsInDaylight && FireImmune)
         {
-            diagnostics.Info(Tr.T("Le mob résiste au feu : il ne brûlera pas au soleil."), source, Id);
+            diagnostics.Info(Tr.T("The mob is fire resistant: it will not burn in sunlight."), source, Id);
         }
     }
+
+    /// <summary>Comportements réellement utilisés : aucun quand un arbre Puppeteer pilote le mob.</summary>
+    private IEnumerable<MobGoal> ActiveGoals => UsesBehaviorTree ? [] : Goals;
 
     private static double Clamp(double value, double min, double max, double fallback) =>
         double.IsFinite(value) ? Math.Clamp(value, min, max) : fallback;

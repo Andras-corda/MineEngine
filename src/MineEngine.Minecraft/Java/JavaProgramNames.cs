@@ -183,6 +183,7 @@ public sealed class JavaProgramNames
         PinType.Item => "Item",
         PinType.Block => "Block",
         PinType.Sound => "SoundEvent",
+        PinType.ItemStack => "ItemStack",
         PinType.Object or PinType.Enum => type.Definition is { } id ? TypeName(id) : "Object",
         _ => "Object",
     };
@@ -195,6 +196,7 @@ public sealed class JavaProgramNames
         PinType.Item => ["net.minecraft.world.item.Item"],
         PinType.Block => ["net.minecraft.world.level.block.Block"],
         PinType.Sound => ["net.minecraft.sounds.SoundEvent"],
+        PinType.ItemStack => ["net.minecraft.world.item.ItemStack"],
         _ => [],
     };
 

@@ -29,6 +29,10 @@ public abstract class ResourceEmitter : IFileEmitter
         {
             context.Files.WriteBytes(relativePath, _placeholder.GetPngBytes());
         }
+        else if (texture.Png is { } png)
+        {
+            context.Files.WriteBytes(relativePath, png);
+        }
         else
         {
             context.Files.CopyFile(texture.SourceFile!, relativePath);

@@ -74,7 +74,7 @@ public sealed class GeneratedFileWriter
         string target = Path.GetFullPath(Path.Combine(_rootDirectory, relativePath));
         if (!target.StartsWith(_rootDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException(Tr.F("Le chemin '{0}' sort du dossier de génération.", relativePath));
+            throw new InvalidOperationException(Tr.F("The path '{0}' goes outside the generation folder.", relativePath));
         }
 
         return target;

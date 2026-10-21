@@ -21,6 +21,9 @@ public sealed class IRMob
 
     public MobModel Model { get; init; } = MobModel.Zombie;
 
+    /// <summary>Blockbench model of the project when <see cref="Model"/> is Custom (see <see cref="IRModel"/>).</summary>
+    public ResourceId? CustomModel { get; init; }
+
     public MobKind Kind { get; init; } = MobKind.Monster;
 
     /// <summary>Texture du mod, ou null pour reprendre celle de la créature d'origine du modèle.</summary>
@@ -49,6 +52,9 @@ public sealed class IRMob
     public bool BurnsInDaylight { get; init; }
 
     public bool Persistent { get; init; }
+
+    /// <summary>Arbre Puppeteer qui pilote le mob (il remplace alors <see cref="Goals"/>), ou null.</summary>
+    public ResourceId? BehaviorTree { get; init; }
 
     /// <summary>Comportements par ordre de priorité.</summary>
     public IReadOnlyList<IRMobGoal> Goals { get; init; } = [];

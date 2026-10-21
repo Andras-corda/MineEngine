@@ -19,7 +19,7 @@ public sealed class OutputViewModel : ObservableObject, ILog
     public OutputViewModel()
     {
         _uiContext = SynchronizationContext.Current
-            ?? throw new InvalidOperationException(Tr.T("La console doit être créée sur le thread de l'interface."));
+            ?? throw new InvalidOperationException(Tr.T("The console must be created on the UI thread."));
         _uiThreadId = Environment.CurrentManagedThreadId;
         ClearCommand = new RelayCommand(Entries.Clear, () => Entries.Count > 0);
     }
@@ -30,6 +30,12 @@ public sealed class OutputViewModel : ObservableObject, ILog
 
     public void Write(LogLevel level, string message)
     {
+        // Detailed messages (timings, generated files...) are shown only in debug mode.
+        if (level == LogLevel.Debug && !Core.Diagnostics.EngineDebug.Enabled)
+        {
+            return;
+        }
+
         var entry = new LogEntry(DateTime.Now, level, message);
         if (Environment.CurrentManagedThreadId == _uiThreadId)
         {

@@ -13,6 +13,9 @@ public abstract partial class ModJavaEmitter
     /// <summary>Bus des événements du jeu (clics, connexions...) et son import.</summary>
     protected abstract (string Expression, string Import) GameEventBus { get; }
 
+    /// <summary>Lines that start the handler of an event when the loader reads it differently (tick of Forge), or null.</summary>
+    protected virtual IReadOnlyList<string>? EventPrologue(GraphNodeKind eventKind) => null;
+
     /// <summary>Classe Java de l'événement d'un nœud événement : import et nom tel qu'écrit dans le code.</summary>
     protected abstract (string Import, string TypeName) GameEventType(GraphNodeKind eventKind);
 
@@ -43,11 +46,13 @@ public abstract partial class ModJavaEmitter
         foreach ((IREventHandler handler, string method) in HandlerMethods(behavior))
         {
             body.Line().Line($"/** {NodeCatalog.Get(handler.Event).Title}. */");
-            if (handler.IsItemEvent)
+            if (handler.IsDirectCall)
             {
-                // Événement d'item : appelé par la classe de l'item, côté serveur, avec le joueur déjà connu.
+                // Événement d'item, de commande ou de touche : appelé directement, côté serveur, avec le joueur déjà connu.
                 imports.UnionWith(["net.minecraft.core.BlockPos", "net.minecraft.world.entity.player.Player", "net.minecraft.world.level.Level"]);
-                body.OpenBlock($"public static void {method}(Player player, Level level, BlockPos position)");
+                body.OpenBlock(handler.Event == GraphNodeKind.OnCommand
+                    ? $"public static void {method}(Player player, Level level, BlockPos position, int number, String text, Player target)"
+                    : $"public static void {method}(Player player, Level level, BlockPos position)");
             }
             else
             {
@@ -55,7 +60,9 @@ public abstract partial class ModJavaEmitter
                 imports.Add(eventImport);
                 registered.Add(method);
                 body.OpenBlock($"private static void {method}({eventType} event)");
-                foreach (string line in java.Prologue(handler.Event))
+                // The prologue of BehaviorJava is always read: it brings the imports.
+                IReadOnlyList<string> prologue = java.Prologue(handler.Event);
+                foreach (string line in EventPrologue(handler.Event) ?? prologue)
                 {
                     body.Line(line);
                 }
@@ -148,6 +155,10 @@ public abstract partial class ModJavaEmitter
                     WriteIf(w, java, branch, "if", nodeLines);
                     break;
 
+                case IRLoopStatement loop:
+                    WriteLoop(w, java, loop, nodeLines);
+                    break;
+
                 default:
                     foreach (string line in java.Statement(statement))
                     {
@@ -157,7 +168,7 @@ public abstract partial class ModJavaEmitter
                     break;
             }
 
-            nodeLines.Add((first, statement is IRIfStatement ? first : w.NextLineNumber - 1, statement.NodeId));
+            nodeLines.Add((first, statement is IRIfStatement or IRLoopStatement ? first : w.NextLineNumber - 1, statement.NodeId));
         }
     }
 
@@ -193,6 +204,32 @@ public abstract partial class ModJavaEmitter
             WriteStatements(w, java, branch.Else, nodeLines);
         }
 
+        w.CloseBlock();
+    }
+
+    /// <summary>Most turns of a "While" loop: a loop that never ends must not freeze the server.</summary>
+    private const int MaxWhileTurns = 10000;
+
+    /// <summary>Java loop of a Repeat, While or For each player node (V0.6.5).</summary>
+    private static void WriteLoop(JavaSourceWriter w, BehaviorJava java, IRLoopStatement loop, List<(int, int, Guid)> nodeLines)
+    {
+        string suffix = loop.NodeId.ToString("N")[..8];
+        switch (loop.Kind)
+        {
+            case GraphNodeKind.Repeat:
+                string turn = loop.Outputs[0];
+                w.OpenBlock($"for ({turn} = 1; {turn} <= {java.Expression(loop.Arguments[0])}; {turn}++)");
+                break;
+            case GraphNodeKind.While:
+                w.OpenBlock($"for (int guard_{suffix} = 0; guard_{suffix} < {MaxWhileTurns} && {java.Expression(loop.Arguments[0])}; guard_{suffix}++)");
+                break;
+            default:
+                w.OpenBlock($"for (Player each_{suffix} : level.players())")
+                    .Line($"{loop.Outputs[0]} = each_{suffix};");
+                break;
+        }
+
+        WriteStatements(w, java, loop.Body, nodeLines);
         w.CloseBlock();
     }
 

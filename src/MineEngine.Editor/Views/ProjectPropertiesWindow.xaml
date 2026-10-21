@@ -34,31 +34,32 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Style="{StaticResource FieldLabel}" Text="{l:Tr 'Nom du mod'}" />
+                <TextBlock Grid.Row="0" Style="{StaticResource FieldLabel}" Text="{l:Tr 'Mod name'}" />
                 <TextBox x:Name="ModNameBox" Grid.Row="0" Grid.Column="1" Style="{StaticResource FieldBox}"
                          Text="{Binding ModName, UpdateSourceTrigger=PropertyChanged}" />
 
-                <TextBlock Grid.Row="1" Style="{StaticResource FieldLabel}" Text="{l:Tr 'Identifiant (mod id)'}" />
+                <TextBlock Grid.Row="1" Style="{StaticResource FieldLabel}" Text="{l:Tr 'Identifier (mod id)'}" />
                 <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource FieldBox}" FontFamily="Consolas"
                          IsReadOnly="{Binding IsNewProject, Converter={StaticResource InverseBool}}"
                          Text="{Binding ModIdText, UpdateSourceTrigger=PropertyChanged}" />
                 <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource FieldHint}" Text="{Binding ModIdRule}" />
 
-                <TextBlock Grid.Row="3" Style="{StaticResource FieldLabel}" Text="{l:Tr 'Version du mod'}" />
+                <TextBlock Grid.Row="3" Style="{StaticResource FieldLabel}" Text="{l:Tr 'Mod version'}" />
                 <TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource FieldBox}" Width="140" HorizontalAlignment="Left"
                          Text="{Binding ModVersion, UpdateSourceTrigger=PropertyChanged}" />
 
-                <TextBlock Grid.Row="4" Style="{StaticResource FieldLabel}" Text="{l:Tr 'Auteurs'}" />
+                <TextBlock Grid.Row="4" Style="{StaticResource FieldLabel}" Text="{l:Tr 'Authors'}" />
                 <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource FieldBox}"
                          Text="{Binding Authors, UpdateSourceTrigger=PropertyChanged}" />
 
-                <TextBlock Grid.Row="5" Style="{StaticResource FieldLabel}" Text="{l:Tr 'Site web'}" />
+                <TextBlock Grid.Row="5" Style="{StaticResource FieldLabel}" Text="{l:Tr 'Website'}" />
                 <TextBox Grid.Row="5" Grid.Column="1" Style="{StaticResource FieldBox}"
                          Text="{Binding Website, UpdateSourceTrigger=PropertyChanged}" />
 
-                <TextBlock Grid.Row="6" Style="{StaticResource FieldLabel}" Text="{l:Tr 'Licence'}" />
+                <TextBlock Grid.Row="6" Style="{StaticResource FieldLabel}" Text="{l:Tr 'License'}" />
                 <ComboBox Grid.Row="6" Grid.Column="1" IsEditable="True" Margin="0,4" Width="240" HorizontalAlignment="Left"
                           ItemsSource="{Binding LicenseOptions}"
                           Text="{Binding License, UpdateSourceTrigger=PropertyChanged}" />
@@ -67,11 +68,37 @@
                 <TextBox Grid.Row="7" Grid.Column="1" Style="{StaticResource FieldBox}"
                          AcceptsReturn="True" TextWrapping="Wrap" Height="64" VerticalScrollBarVisibility="Auto"
                          Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Grid.Row="8" Style="{StaticResource FieldLabel}" Text="{l:Tr 'Icon'}" VerticalAlignment="Top" Margin="0,8,12,0" />
+                <StackPanel Grid.Row="8" Grid.Column="1" Margin="0,4">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="64" Height="64" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource CardBorderBrush}"
+                                Background="{DynamicResource BadgeBrush}">
+                            <Grid>
+                                <Image Source="{Binding IconPreview, Converter={StaticResource FilePathToImage}}" Margin="4"
+                                       RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                                <TextBlock Text="{l:Tr 'No icon'}" FontSize="10" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource HintBrush}"
+                                           Visibility="{Binding HasIcon, Converter={StaticResource InverseBoolToVisibility}}" />
+                            </Grid>
+                        </Border>
+                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding IconLabel}" FontFamily="Consolas" Margin="0,0,0,6" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="{l:Tr 'Choose...'}" Padding="12,4" Margin="0,0,6,0" Command="{Binding ChooseIconCommand}" />
+                                <Button Content="{l:Tr 'Remove'}" Padding="12,4" Command="{Binding RemoveIconCommand}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource FieldHint}" Foreground="{DynamicResource LogErrorBrush}" Text="{Binding IconError}"
+                               Visibility="{Binding IconError, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}" />
+                    <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" MaxWidth="420" HorizontalAlignment="Left"
+                               Text="{l:Tr 'Shown in the in-game mod list. Square PNG, 128 x 128 pixels or more; it is copied into the project as icon.png.'}" />
+                </StackPanel>
             </Grid>
         </GroupBox>
 
         <!-- Cible Minecraft -->
-        <GroupBox Header="{l:Tr 'Version de Minecraft'}" Padding="8,4" Margin="0,0,0,10">
+        <GroupBox Header="{l:Tr 'Minecraft version'}" Padding="8,4" Margin="0,0,0,10">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" SharedSizeGroup="Label" />
@@ -90,7 +117,7 @@
                           SelectedItem="{Binding SelectedMdk}"
                           DisplayMemberPath="DisplayName"
                           IsEnabled="{Binding HasMdks}" />
-                <Button Grid.Column="2" Content="{l:Tr 'Gérer les MDK...'}" Command="{Binding ManageMdksCommand}" Padding="10,2" Margin="6,4,0,4" />
+                <Button Grid.Column="2" Content="{l:Tr 'Manage MDKs...'}" Command="{Binding ManageMdksCommand}" Padding="10,2" Margin="6,4,0,4" />
 
                 <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding SelectedMdkDetails}" Margin="0,2,0,2" />
                 <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Style="{StaticResource FieldHint}" Text="{Binding MdkHint}" />
@@ -98,7 +125,7 @@
         </GroupBox>
 
         <!-- Emplacement (création uniquement) -->
-        <GroupBox Header="{l:Tr 'Emplacement'}" Padding="8,4" Margin="0,0,0,10"
+        <GroupBox Header="{l:Tr 'Location'}" Padding="8,4" Margin="0,0,0,10"
                   Visibility="{Binding IsNewProject, Converter={StaticResource BoolToVisibility}}">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -111,20 +138,20 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:Tr 'Dossier parent'}" />
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{l:Tr 'Parent folder'}" />
                 <TextBox Grid.Column="1" Style="{StaticResource FieldBox}"
                          Text="{Binding ParentDirectory, UpdateSourceTrigger=PropertyChanged}" />
-                <Button Grid.Column="2" Content="{l:Tr 'Parcourir...'}" Command="{Binding BrowseCommand}" Padding="10,2" Margin="6,4,0,4" />
+                <Button Grid.Column="2" Content="{l:Tr 'Browse...'}" Command="{Binding BrowseCommand}" Padding="10,2" Margin="6,4,0,4" />
 
                 <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Style="{StaticResource FieldHint}"
-                           Text="{Binding TargetDirectory, StringFormat={l:Tr 'Le projet sera créé dans : {0}'}}" />
+                           Text="{Binding TargetDirectory, StringFormat={l:Tr 'The project will be created in: {0}'}}" />
             </Grid>
         </GroupBox>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
             <Button Content="{Binding ConfirmLabel}" Command="{Binding ConfirmCommand}" IsDefault="True" MinWidth="110" Margin="0,0,8,0"
                     Style="{DynamicResource AccentButtonStyle}" />
-            <Button Content="{l:Tr 'Annuler'}" IsCancel="True" MinWidth="110" />
+            <Button Content="{l:Tr 'Cancel'}" IsCancel="True" MinWidth="110" />
         </StackPanel>
     </StackPanel>
 </Window>

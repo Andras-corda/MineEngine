@@ -22,6 +22,15 @@ public sealed class DockLayoutService
     /// </summary>
     private Dictionary<string, object> _initialContents = [];
 
+    /// <summary>
+    /// Titles of the panels and permanent tabs in the current language: a saved layout keeps the
+    /// titles of the language it was saved in, they are replaced when it is applied.
+    /// </summary>
+    private Dictionary<string, string> _initialTitles = [];
+
+    // Side panels (anchorables) of the original layout, as opposed to the fixed tabs (documents).
+    private HashSet<string> _initialAnchorables = [];
+
     public DockLayoutService(string layoutFile, ILog log)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(layoutFile);
@@ -35,6 +44,10 @@ public sealed class DockLayoutService
         ArgumentNullException.ThrowIfNull(manager);
         _defaultLayout = Serialize(manager);
         _initialContents = Contents(manager);
+        _initialTitles = manager.Layout.Descendents().OfType<LayoutContent>()
+            .Where(c => c.ContentId is not null && c.Title is not null)
+            .ToDictionary(c => c.ContentId!, c => c.Title);
+        _initialAnchorables = [.. manager.Layout.Descendents().OfType<LayoutAnchorable>().Select(a => a.ContentId).OfType<string>()];
 
         if (!File.Exists(_layoutFile))
         {
@@ -47,7 +60,7 @@ public sealed class DockLayoutService
         }
         catch (Exception exception) when (exception is IOException or InvalidOperationException or System.Xml.XmlException)
         {
-            _log.Warning(Tr.T("Disposition des panneaux illisible, disposition par défaut utilisée : ") + exception.Message);
+            _log.Warning(Tr.T("Unreadable panel layout, default layout used: ") + exception.Message);
             Reset(manager);
         }
     }
@@ -61,7 +74,7 @@ public sealed class DockLayoutService
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
-            _log.Warning(Tr.T("Impossible d'enregistrer la disposition des panneaux : ") + exception.Message);
+            _log.Warning(Tr.T("Unable to save the panel layout: ") + exception.Message);
         }
     }
 
@@ -99,6 +112,10 @@ public sealed class DockLayoutService
             if (e.Model.ContentId is { } id && contents.TryGetValue(id, out object? content))
             {
                 e.Content = content;
+                if (_initialTitles.TryGetValue(id, out string? title))
+                {
+                    e.Model.Title = title;
+                }
             }
             else
             {
@@ -115,10 +132,38 @@ public sealed class DockLayoutService
             .Select(c => c.ContentId)
             .OfType<string>()
             .ToHashSet();
-        if (!contents.Keys.All(restored.Contains) && !ReferenceEquals(layout, _defaultLayout))
+        string[] missing = [.. contents.Keys.Where(id => !restored.Contains(id))];
+        if (missing.Length > 0 && !ReferenceEquals(layout, _defaultLayout) && !AddBesideExplorer(manager, missing, contents))
         {
             Apply(manager, _defaultLayout!);
         }
+    }
+
+    /// <summary>
+    /// A panel added by a newer version (the Nodes window...) joins the pane of the Explorer, so
+    /// that the layout arranged by the user is kept. False if one of them is not a side panel.
+    /// </summary>
+    private bool AddBesideExplorer(DockingManager manager, IReadOnlyList<string> missing, Dictionary<string, object> contents)
+    {
+        LayoutAnchorablePane? pane = manager.Layout.Descendents().OfType<LayoutAnchorable>().FirstOrDefault(a => a.ContentId == "explorer")?.Parent as LayoutAnchorablePane
+                                     ?? manager.Layout.Descendents().OfType<LayoutAnchorablePane>().FirstOrDefault();
+        if (pane is null || missing.Any(id => !_initialAnchorables.Contains(id)))
+        {
+            return false;
+        }
+
+        foreach (string id in missing)
+        {
+            pane.Children.Add(new LayoutAnchorable
+            {
+                ContentId = id,
+                Title = _initialTitles.GetValueOrDefault(id),
+                Content = contents[id],
+                CanClose = false,
+            });
+        }
+
+        return true;
     }
 
     private static Dictionary<string, object> Contents(DockingManager manager) =>

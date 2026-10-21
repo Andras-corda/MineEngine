@@ -47,8 +47,17 @@ public sealed class AssetViewModelFactory
             RecipeAsset recipe => new RecipeAssetViewModel(recipe, context, label),
             TextureAsset texture => new TextureAssetViewModel(texture, context, label),
             SoundAsset sound => new SoundAssetViewModel(sound, context, label),
+            ModelAsset model => new ModelAssetViewModel(model, context, label),
             GraphAsset graph => new GraphAssetViewModel(graph, context, label),
-            _ => throw new NotSupportedException(Tr.F("L'éditeur ne sait pas encore afficher les assets de type {0}.", asset.Type)),
+            BehaviorTreeAsset tree => new BehaviorTreeAssetViewModel(tree, context, label),
+            CommandAsset command => new CommandAssetViewModel(command, context, label),
+            CreativeTabAsset tab => new CreativeTabAssetViewModel(tab, context, label),
+            KeybindAsset keybind => new KeybindAssetViewModel(keybind, context, label),
+            EnchantmentAsset enchantment => new EnchantmentAssetViewModel(enchantment, context, label),
+            FluidAsset fluid => new FluidAssetViewModel(fluid, context, label),
+            GameRuleAsset rule => new GameRuleAssetViewModel(rule, context, label),
+            EffectAsset effect => new EffectAssetViewModel(effect, context, label),
+            _ => throw new NotSupportedException(Tr.F("The editor cannot display assets of type {0} yet.", asset.Type)),
         };
     }
 }

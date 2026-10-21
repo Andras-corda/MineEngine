@@ -35,6 +35,12 @@ public sealed class ProjectSettings
 
     public string License { get; set; } = "All Rights Reserved";
 
+    /// <summary>
+    /// Icon of the mod shown in the in-game mod list: a PNG file, path relative to the project
+    /// ("icon.png"), or empty for none.
+    /// </summary>
+    public string IconFile { get; set; } = string.Empty;
+
     /// <summary>Page du mod (affichée dans la liste des mods en jeu), ou vide.</summary>
     public string Website { get; set; } = string.Empty;
 
@@ -89,7 +95,7 @@ public sealed class ProjectSettings
         ArgumentNullException.ThrowIfNull(other);
         if (other.ModId != ModId)
         {
-            throw new ArgumentException(Tr.T("Les paramètres d'un autre mod ne peuvent pas être recopiés."), nameof(other));
+            throw new ArgumentException(Tr.T("The settings of another mod cannot be copied."), nameof(other));
         }
 
         ModName = other.ModName;
@@ -97,6 +103,7 @@ public sealed class ProjectSettings
         Authors = other.Authors;
         Description = other.Description;
         License = other.License;
+        IconFile = other.IconFile;
         Website = other.Website;
         MdkId = other.MdkId;
         MinecraftVersion = other.MinecraftVersion;

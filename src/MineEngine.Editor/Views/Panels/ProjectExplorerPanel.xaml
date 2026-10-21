@@ -22,39 +22,39 @@
             <!-- Menu contextuel d'un nœud ; Tag du nœud = MainViewModel. -->
             <ContextMenu x:Key="NodeMenu" x:Shared="False"
                          DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                <MenuItem Header="{l:Tr 'Ouvrir'}" CommandParameter="{Binding}"
+                <MenuItem Header="{l:Tr 'Open'}" CommandParameter="{Binding}"
                           Command="{Binding PlacementTarget.Tag.Explorer.OpenCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 <!-- Rempli à l'ouverture du menu (voir OpenWithMenu). -->
-                <MenuItem Header="{l:Tr 'Ouvrir avec'}" Tag="openWith" />
+                <MenuItem Header="{l:Tr 'Open with'}" Tag="openWith" />
                 <Separator />
-                <MenuItem Header="{l:Tr 'Nouvelle classe Java'}">
-                    <MenuItem Header="{l:Tr 'Écouteur d\'événements du jeu...'}" CommandParameter="{x:Static java:JavaClassKind.EventListener}"
+                <MenuItem Header="{l:Tr 'New Java class'}">
+                    <MenuItem Header="{l:Tr 'Game event listener...'}" CommandParameter="{x:Static java:JavaClassKind.EventListener}"
                               Command="{Binding PlacementTarget.Tag.Explorer.NewJavaClassCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                    <MenuItem Header="{l:Tr 'Classe utilitaire...'}" CommandParameter="{x:Static java:JavaClassKind.Utility}"
+                    <MenuItem Header="{l:Tr 'Utility class...'}" CommandParameter="{x:Static java:JavaClassKind.Utility}"
                               Command="{Binding PlacementTarget.Tag.Explorer.NewJavaClassCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                    <MenuItem Header="{l:Tr 'Classe vide...'}" CommandParameter="{x:Static java:JavaClassKind.Empty}"
+                    <MenuItem Header="{l:Tr 'Empty class...'}" CommandParameter="{x:Static java:JavaClassKind.Empty}"
                               Command="{Binding PlacementTarget.Tag.Explorer.NewJavaClassCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 </MenuItem>
-                <MenuItem Header="{l:Tr 'Nouveau fichier...'}"
+                <MenuItem Header="{l:Tr 'New file...'}"
                           Command="{Binding PlacementTarget.Tag.Explorer.NewFileCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                <MenuItem Header="{l:Tr 'Nouveau dossier...'}"
+                <MenuItem Header="{l:Tr 'New folder...'}"
                           Command="{Binding PlacementTarget.Tag.Explorer.NewFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 <Separator />
-                <MenuItem Header="{l:Tr 'Renommer...'}" CommandParameter="{Binding}"
+                <MenuItem Header="{l:Tr 'Rename...'}" CommandParameter="{Binding}"
                           Command="{Binding PlacementTarget.Tag.Explorer.RenameCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                <MenuItem Header="{l:Tr 'Mettre à la corbeille'}" CommandParameter="{Binding}"
+                <MenuItem Header="{l:Tr 'Move to Recycle Bin'}" CommandParameter="{Binding}"
                           Command="{Binding PlacementTarget.Tag.Explorer.DeleteCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 <Separator />
-                <MenuItem Header="{l:Tr 'Copier le chemin'}" CommandParameter="{Binding}"
+                <MenuItem Header="{l:Tr 'Copy path'}" CommandParameter="{Binding}"
                           Command="{Binding PlacementTarget.Tag.Explorer.CopyPathCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                <MenuItem Header="{l:Tr 'Afficher dans l\'Explorateur Windows'}" CommandParameter="{Binding}"
+                <MenuItem Header="{l:Tr 'Show in Windows Explorer'}" CommandParameter="{Binding}"
                           Command="{Binding PlacementTarget.Tag.Explorer.RevealCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
             </ContextMenu>
 
             <DataTemplate x:Key="NodeContent" DataType="{x:Type panels:FileNodeViewModel}">
                 <DockPanel Background="Transparent">
                     <Ellipse DockPanel.Dock="Right" Width="7" Height="7" Margin="8,0,4,0" Fill="{DynamicResource AccentLineBrush}"
-                             Visibility="{Binding IsModified, Converter={StaticResource BoolToVisibility}}" ToolTip="{l:Tr 'Modifications non enregistrées'}" />
+                             Visibility="{Binding IsModified, Converter={StaticResource BoolToVisibility}}" ToolTip="{l:Tr 'Unsaved changes'}" />
                     <views:IconView DockPanel.Dock="Left" Icon="{Binding Icon}" IconSize="12"
                                Margin="0,0,7,0" VerticalAlignment="Center" Foreground="{DynamicResource HintBrush}" />
                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
@@ -76,16 +76,16 @@
         <!-- En-tête et actions -->
         <DockPanel Grid.Row="0" Margin="12,8,6,4">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Code}" ToolTip="{l:Tr 'Nouvelle classe Java (écouteur d\'événements)'}"
+                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Code}" ToolTip="{l:Tr 'New Java class (event listener)'}"
                         Command="{Binding Explorer.NewJavaClassCommand}" CommandParameter="{x:Static java:JavaClassKind.EventListener}" />
-                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.File}" ToolTip="{l:Tr 'Nouveau fichier'}" Command="{Binding Explorer.NewFileCommand}" />
-                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.NewFolder}" ToolTip="{l:Tr 'Nouveau dossier'}" Command="{Binding Explorer.NewFolderCommand}" />
-                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Refresh}" ToolTip="{l:Tr 'Actualiser'}" Command="{Binding Explorer.RefreshCommand}" />
-                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronUp}" ToolTip="{l:Tr 'Tout réduire'}" Command="{Binding Explorer.CollapseAllCommand}" />
-                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.FolderOpen}" ToolTip="{l:Tr 'Ouvrir le dossier du projet dans Windows'}"
+                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.File}" ToolTip="{l:Tr 'New file'}" Command="{Binding Explorer.NewFileCommand}" />
+                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.NewFolder}" ToolTip="{l:Tr 'New folder'}" Command="{Binding Explorer.NewFolderCommand}" />
+                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Refresh}" ToolTip="{l:Tr 'Refresh'}" Command="{Binding Explorer.RefreshCommand}" />
+                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronUp}" ToolTip="{l:Tr 'Collapse all'}" Command="{Binding Explorer.CollapseAllCommand}" />
+                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.FolderOpen}" ToolTip="{l:Tr 'Open the project folder in Windows'}"
                         Command="{Binding Explorer.RevealProjectCommand}" />
             </StackPanel>
-            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'EXPLORATEUR'}" />
+            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'EXPLORER'}" />
         </DockPanel>
 
         <!-- Recherche -->
@@ -93,14 +93,14 @@
             <TextBox x:Name="SearchBox" Padding="26,4,6,4" Text="{Binding Explorer.SearchText, UpdateSourceTrigger=PropertyChanged}" />
             <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Search}" FontSize="11" Margin="9,0,0,0" VerticalAlignment="Center"
                        IsHitTestVisible="False" Foreground="{DynamicResource HintBrush}" />
-            <TextBlock Text="{l:Tr 'Rechercher un fichier...'}" Margin="27,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+            <TextBlock Text="{l:Tr 'Search files...'}" Margin="27,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
                        Foreground="{DynamicResource HintBrush}"
                        Visibility="{Binding Text, ElementName=SearchBox, Converter={StaticResource EmptyToVisible}}" />
         </Grid>
 
         <!-- Arborescence, ou résultats de recherche -->
         <Grid Grid.Row="2">
-            <TextBlock Text="{l:Tr 'Aucun projet ouvert.'}" Margin="14,6" Foreground="{DynamicResource HintBrush}"
+            <TextBlock Text="{l:Tr 'No project open.'}" Margin="14,6" Foreground="{DynamicResource HintBrush}"
                        Visibility="{Binding HasProject, Converter={StaticResource InverseBoolToVisibility}}" />
             <TreeView x:Name="Tree" ItemsSource="{Binding Explorer.Roots}" Background="Transparent" BorderThickness="0"
                       Visibility="{Binding Explorer.IsSearching, Converter={StaticResource InverseBoolToVisibility}}"
@@ -143,7 +143,7 @@
             </TextBlock>
             <Grid>
                 <TextBlock Margin="14,0,14,0" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource HintBrush}"
-                           Text="{l:Tr 'Ouvrez un fichier de code (double-clic dans l\'arborescence) pour voir sa structure.'}"
+                           Text="{l:Tr 'Open a code file (double-click in the tree) to see its structure.'}"
                            Visibility="{Binding HasActiveDocument, Converter={StaticResource InverseBoolToVisibility}}" />
                 <ListBox ItemsSource="{Binding ActiveDocument.Outline}" Background="Transparent" BorderThickness="0"
                          Visibility="{Binding HasActiveDocument, Converter={StaticResource BoolToVisibility}}"

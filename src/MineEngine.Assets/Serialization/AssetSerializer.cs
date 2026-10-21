@@ -62,30 +62,30 @@ public sealed class AssetSerializer
         if (version > FormatVersion)
         {
             throw new InvalidDataException(
-                Tr.F("{0} a été créé par une version plus récente de Mine Engine (format {1}).", sourceName, version));
+                Tr.F("{0} was created by a newer version of Mine Engine (format {1}).", sourceName, version));
         }
 
         if (version < FormatVersion)
         {
             throw new InvalidDataException(
-                Tr.F("{0} utilise un ancien format (format {1}) : ouvrez le projet pour le convertir.", sourceName, version));
+                Tr.F("{0} uses an old format (format {1}): open the project to convert it.", sourceName, version));
         }
 
         string typeName = RequireString(root, "type", sourceName);
         if (!_catalog.TryGet(typeName, out IAssetDefinition? definition))
         {
-            throw new InvalidDataException(Tr.F("{0} : type d'asset inconnu '{1}'.", sourceName, typeName));
+            throw new InvalidDataException(Tr.F("{0}: unknown asset type '{1}'.", sourceName, typeName));
         }
 
         if (!Guid.TryParse(RequireString(root, "guid", sourceName), out Guid id) || id == Guid.Empty)
         {
-            throw new InvalidDataException(Tr.F("{0} : identifiant interne (guid) invalide.", sourceName));
+            throw new InvalidDataException(Tr.F("{0}: invalid internal identifier (guid).", sourceName));
         }
 
         string resourceIdText = RequireString(root, "resourceId", sourceName);
         if (!ResourceId.TryParse(resourceIdText, out ResourceId? resourceId))
         {
-            throw new InvalidDataException(Tr.F("{0} : identifiant '{1}' invalide.", sourceName, resourceIdText));
+            throw new InvalidDataException(Tr.F("{0}: invalid identifier '{1}'.", sourceName, resourceIdText));
         }
 
         string displayName = root["displayName"]?.GetValue<string>() ?? string.Empty;
@@ -100,5 +100,5 @@ public sealed class AssetSerializer
 
     private static string RequireString(JsonObject root, string name, string sourceName) =>
         root[name]?.GetValue<string>()
-        ?? throw new InvalidDataException(Tr.F("{0} : la propriété '{1}' est obligatoire.", sourceName, name));
+        ?? throw new InvalidDataException(Tr.F("{0}: property '{1}' is required.", sourceName, name));
 }

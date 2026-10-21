@@ -13,17 +13,22 @@ public sealed class MobResourcesEmitter : ResourceEmitter
     {
     }
 
-    public override string Name => Tr.T("Ressources des mobs");
+    public override string Name => Tr.T("Mob resources");
 
     public override void Emit(GenerationContext context)
     {
         ResourcePaths paths = context.Paths;
         foreach (IRMob mob in context.Ir.Content.Mobs)
         {
-            // Sans texture, le moteur de rendu reprend celle de la créature d'origine.
+            // Sans texture, le moteur de rendu reprend celle de la créature d'origine ; un modèle 3D
+            // donne la sienne, ou la texture de remplacement s'il n'en a aucune.
             if (mob.Texture is not null)
             {
                 WriteTexture(context, mob.Texture, paths.EntityTexture(mob.Id));
+            }
+            else if (mob.CustomModel is { } custom && context.Ir.Content.Models.FirstOrDefault(m => m.Id == custom) is { Textures.Count: 0 })
+            {
+                WriteTexture(context, IRTexture.Placeholder, paths.EntityTexture(mob.Id));
             }
 
             if (mob.SpawnEgg is { } egg)

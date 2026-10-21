@@ -62,7 +62,7 @@ public sealed class GraphPinViewModel : ObservableObject
     /// <summary>Faux pour un champ du nœud qui n'accepte pas de fil (valeur d'une constante).</summary>
     public bool CanConnect => Info.Connectable;
 
-    public string ToolTipText => IsExec ? Tr.T("Exécution") : $"{Label} ({Node.Document.TypeLabel(Type)})";
+    public string ToolTipText => IsExec ? Tr.T("Execution") : $"{Label} ({Node.Document.TypeLabel(Type)})";
 
     public bool IsConnected
     {

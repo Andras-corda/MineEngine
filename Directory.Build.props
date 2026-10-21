@@ -7,8 +7,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Company>Mine Engine</Company>
     <Product>Mine Engine</Product>
-    <Version>0.5.4</Version>
-    <NeutralLanguage>fr</NeutralLanguage>
+    <Version>0.6.5</Version>
+    <NeutralLanguage>en</NeutralLanguage>
+    <Copyright>Copyright (c) 2026 Andras Corda</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 

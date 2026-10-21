@@ -70,10 +70,10 @@ public sealed partial class AssetFormatMigrator
             }
 
             result.AddRange(textures.Created);
-            notes.Add(Tr.F("{0} asset(s) convertis au format de la V0.3.", outdated.Count));
+            notes.Add(Tr.F("{0} asset(s) converted to the V0.3 format.", outdated.Count));
             if (textures.Created.Count > 0)
             {
-                notes.Add(Tr.F("{0} texture(s) transformée(s) en assets Texture.", textures.Created.Count));
+                notes.Add(Tr.F("{0} texture(s) turned into Texture assets.", textures.Created.Count));
             }
         }
 

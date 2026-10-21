@@ -1,0 +1,244 @@
+using System.Text.Json.Nodes;
+using MineEngine.Core.Assets;
+using MineEngine.Core.GameData;
+using MineEngine.Core.Identifiers;
+
+namespace MineEngine.Assets.Definitions;
+
+/// <summary>Command of the mod (V0.6.2).</summary>
+public sealed class CommandAssetDefinition : AssetDefinition<CommandAsset>
+{
+    public override AssetType Type => AssetType.Command;
+
+    public override string Label => Tr.T("Command");
+
+    public override string DefaultResourceIdBase => "new_command";
+
+    public override string DefaultDisplayName => Tr.T("New command");
+
+    protected override CommandAsset Create(Guid id, ResourceId resourceId, string displayName) => new(id, resourceId, displayName);
+
+    protected override void ReadProperties(CommandAsset asset, JsonPropertyReader reader)
+    {
+        asset.PermissionLevel = reader.GetInt32("permission", 0);
+        asset.Argument = reader.GetEnum("argument", CommandArgumentKind.None);
+        asset.ArgumentName = reader.GetString("argumentName") ?? "value";
+        asset.Minimum = reader.GetInt32("minimum", 0);
+        asset.Maximum = reader.GetInt32("maximum", 100);
+        asset.Feedback = reader.GetString("feedback") ?? string.Empty;
+    }
+
+    protected override void WriteProperties(CommandAsset asset, JsonObject properties)
+    {
+        properties["permission"] = asset.PermissionLevel;
+        properties["argument"] = asset.Argument.ToString();
+        properties["argumentName"] = asset.ArgumentName;
+        properties["minimum"] = asset.Minimum;
+        properties["maximum"] = asset.Maximum;
+        properties["feedback"] = asset.Feedback;
+    }
+}
+
+/// <summary>Creative tab (V0.6.2).</summary>
+public sealed class CreativeTabAssetDefinition : AssetDefinition<CreativeTabAsset>
+{
+    public override AssetType Type => AssetType.CreativeTab;
+
+    public override string Label => Tr.T("Creative tab");
+
+    public override string DefaultResourceIdBase => "new_tab";
+
+    public override string DefaultDisplayName => Tr.T("New tab");
+
+    protected override CreativeTabAsset Create(Guid id, ResourceId resourceId, string displayName) => new(id, resourceId, displayName);
+
+    protected override void ReadProperties(CreativeTabAsset asset, JsonPropertyReader reader)
+    {
+        asset.Icon = reader.GetReference("icon");
+        asset.Items = [.. reader.GetReferenceList("items").OfType<ContentReference>()];
+    }
+
+    protected override void WriteProperties(CreativeTabAsset asset, JsonObject properties)
+    {
+        properties["icon"] = asset.Icon?.ToStorageText();
+        properties["items"] = new JsonArray([.. asset.Items.Select(i => (JsonNode)JsonValue.Create(i.ToStorageText()))]);
+    }
+}
+
+/// <summary>Keybind (V0.6.2).</summary>
+public sealed class KeybindAssetDefinition : AssetDefinition<KeybindAsset>
+{
+    public override AssetType Type => AssetType.Keybind;
+
+    public override string Label => Tr.T("Keybind");
+
+    public override string DefaultResourceIdBase => "new_key";
+
+    public override string DefaultDisplayName => Tr.T("New key");
+
+    protected override KeybindAsset Create(Guid id, ResourceId resourceId, string displayName) => new(id, resourceId, displayName);
+
+    protected override void ReadProperties(KeybindAsset asset, JsonPropertyReader reader) =>
+        asset.DefaultKey = reader.GetString("key") ?? "R";
+
+    protected override void WriteProperties(KeybindAsset asset, JsonObject properties) =>
+        properties["key"] = asset.DefaultKey;
+}
+
+/// <summary>Enchantment (V0.6.3).</summary>
+public sealed class EnchantmentAssetDefinition : AssetDefinition<EnchantmentAsset>
+{
+    public override AssetType Type => AssetType.Enchantment;
+
+    public override string Label => Tr.T("Enchantment");
+
+    public override string DefaultResourceIdBase => "new_enchantment";
+
+    public override string DefaultDisplayName => Tr.T("New enchantment");
+
+    protected override EnchantmentAsset Create(Guid id, ResourceId resourceId, string displayName) => new(id, resourceId, displayName);
+
+    protected override void ReadProperties(EnchantmentAsset asset, JsonPropertyReader reader)
+    {
+        asset.Target = reader.GetEnum("target", EnchantmentTarget.Weapon);
+        asset.Rarity = reader.GetEnum("rarity", EnchantmentRarity.Uncommon);
+        asset.MaxLevel = reader.GetInt32("maxLevel", 3);
+        asset.Treasure = reader.GetBoolean("treasure", false);
+        asset.Curse = reader.GetBoolean("curse", false);
+        asset.DamageBonus = reader.GetSingle("damageBonus", 0f);
+    }
+
+    protected override void WriteProperties(EnchantmentAsset asset, JsonObject properties)
+    {
+        properties["target"] = asset.Target.ToString();
+        properties["rarity"] = asset.Rarity.ToString();
+        properties["maxLevel"] = asset.MaxLevel;
+        properties["treasure"] = asset.Treasure;
+        properties["curse"] = asset.Curse;
+        properties["damageBonus"] = asset.DamageBonus;
+    }
+}
+
+/// <summary>Fluid (V0.6.3).</summary>
+public sealed class FluidAssetDefinition : AssetDefinition<FluidAsset>
+{
+    public override AssetType Type => AssetType.Fluid;
+
+    public override string Label => Tr.T("Fluid");
+
+    public override string DefaultResourceIdBase => "new_fluid";
+
+    public override string DefaultDisplayName => Tr.T("New fluid");
+
+    protected override FluidAsset Create(Guid id, ResourceId resourceId, string displayName) => new(id, resourceId, displayName);
+
+    protected override void ReadProperties(FluidAsset asset, JsonPropertyReader reader)
+    {
+        asset.Color = reader.GetString("color") ?? "#3F76E4";
+        asset.LightLevel = reader.GetInt32("light", 0);
+        asset.FlowSpeed = reader.GetInt32("flowSpeed", 5);
+        asset.SpreadDistance = reader.GetInt32("spreadDistance", 4);
+        asset.LevelDecrease = reader.GetInt32("levelDecrease", 1);
+        asset.Infinite = reader.GetBoolean("infinite", true);
+        asset.Density = reader.GetInt32("density", 1000);
+        asset.Viscosity = reader.GetInt32("viscosity", 1000);
+        asset.HasBucket = reader.GetBoolean("bucket", true);
+        asset.StillTextureId = reader.GetGuid("stillTexture");
+        asset.FlowingTextureId = reader.GetGuid("flowingTexture");
+        asset.BucketTextureId = reader.GetGuid("bucketTexture");
+    }
+
+    protected override void WriteProperties(FluidAsset asset, JsonObject properties)
+    {
+        properties["color"] = asset.Color;
+        properties["light"] = asset.LightLevel;
+        properties["flowSpeed"] = asset.FlowSpeed;
+        properties["spreadDistance"] = asset.SpreadDistance;
+        properties["levelDecrease"] = asset.LevelDecrease;
+        properties["infinite"] = asset.Infinite;
+        properties["density"] = asset.Density;
+        properties["viscosity"] = asset.Viscosity;
+        properties["bucket"] = asset.HasBucket;
+        properties["stillTexture"] = asset.StillTextureId?.ToString("D");
+        properties["flowingTexture"] = asset.FlowingTextureId?.ToString("D");
+        properties["bucketTexture"] = asset.BucketTextureId?.ToString("D");
+    }
+}
+
+/// <summary>Game rule (V0.6.3).</summary>
+public sealed class GameRuleAssetDefinition : AssetDefinition<GameRuleAsset>
+{
+    public override AssetType Type => AssetType.GameRule;
+
+    public override string Label => Tr.T("Game rule");
+
+    public override string DefaultResourceIdBase => "new_rule";
+
+    public override string DefaultDisplayName => Tr.T("New game rule");
+
+    protected override GameRuleAsset Create(Guid id, ResourceId resourceId, string displayName) => new(id, resourceId, displayName);
+
+    protected override void ReadProperties(GameRuleAsset asset, JsonPropertyReader reader)
+    {
+        asset.Kind = reader.GetEnum("kind", GameRuleKind.Boolean);
+        asset.Category = reader.GetEnum("category", GameRuleCategory.Misc);
+        asset.DefaultBoolean = reader.GetBoolean("defaultBoolean", true);
+        asset.DefaultNumber = reader.GetInt32("defaultNumber", 0);
+        asset.Description = reader.GetString("description") ?? string.Empty;
+    }
+
+    protected override void WriteProperties(GameRuleAsset asset, JsonObject properties)
+    {
+        properties["kind"] = asset.Kind.ToString();
+        properties["category"] = asset.Category.ToString();
+        properties["defaultBoolean"] = asset.DefaultBoolean;
+        properties["defaultNumber"] = asset.DefaultNumber;
+        properties["description"] = asset.Description;
+    }
+}
+
+/// <summary>Status effect (V0.6.3).</summary>
+public sealed class EffectAssetDefinition : AssetDefinition<EffectAsset>
+{
+    public override AssetType Type => AssetType.Effect;
+
+    public override string Label => Tr.T("Effect");
+
+    public override string DefaultResourceIdBase => "new_effect";
+
+    public override string DefaultDisplayName => Tr.T("New effect");
+
+    protected override EffectAsset Create(Guid id, ResourceId resourceId, string displayName) => new(id, resourceId, displayName);
+
+    protected override void ReadProperties(EffectAsset asset, JsonPropertyReader reader)
+    {
+        asset.Category = reader.GetEnum("category", EffectCategory.Beneficial);
+        asset.Color = reader.GetString("color") ?? "#9B59D0";
+        asset.IconTextureId = reader.GetGuid("icon");
+        asset.SpeedPercent = reader.GetInt32("speedPercent", 0);
+        asset.AttackDamage = reader.GetSingle("attackDamage", 0f);
+        asset.Armor = reader.GetSingle("armor", 0f);
+        asset.MaxHealth = reader.GetSingle("maxHealth", 0f);
+        asset.HealAmount = reader.GetSingle("heal", 0f);
+        asset.DamageAmount = reader.GetSingle("damage", 0f);
+        asset.Interval = reader.GetInt32("interval", 40);
+        asset.HasPotion = reader.GetBoolean("potion", true);
+        asset.PotionSeconds = reader.GetInt32("potionSeconds", 60);
+    }
+
+    protected override void WriteProperties(EffectAsset asset, JsonObject properties)
+    {
+        properties["category"] = asset.Category.ToString();
+        properties["color"] = asset.Color;
+        properties["icon"] = asset.IconTextureId?.ToString("D");
+        properties["speedPercent"] = asset.SpeedPercent;
+        properties["attackDamage"] = asset.AttackDamage;
+        properties["armor"] = asset.Armor;
+        properties["maxHealth"] = asset.MaxHealth;
+        properties["heal"] = asset.HealAmount;
+        properties["damage"] = asset.DamageAmount;
+        properties["interval"] = asset.Interval;
+        properties["potion"] = asset.HasPotion;
+        properties["potionSeconds"] = asset.PotionSeconds;
+    }
+}

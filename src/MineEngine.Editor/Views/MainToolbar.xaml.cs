@@ -32,10 +32,13 @@ public partial class MainToolbar : UserControl
         }
     }
 
-    /// <summary>La recherche et le mode d'affichage portent sur le Dashboard : on l'affiche.</summary>
+    /// <summary>
+    /// The search filters Resources and Languages when they are shown; from a document tab, it
+    /// searches the Dashboard, which is shown.
+    /// </summary>
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
     {
-        if (SearchBox.IsKeyboardFocused)
+        if (SearchBox.IsKeyboardFocused && DataContext is MainViewModel { IsResourcesShown: false, IsLanguagesShown: false })
         {
             ShowDashboard();
         }

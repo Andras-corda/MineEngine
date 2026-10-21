@@ -24,7 +24,7 @@ public sealed class TextureSlotViewModel : ObservableObject
     private readonly AssetEditingContext _context;
     private readonly Func<Guid?> _getter;
     private readonly Action<Guid?> _setter;
-    private readonly string _emptyLabel;
+    private string _emptyLabel;
     private string _label;
 
     public TextureSlotViewModel(
@@ -44,7 +44,7 @@ public sealed class TextureSlotViewModel : ObservableObject
         _getter = getter ?? throw new ArgumentNullException(nameof(getter));
         _setter = setter ?? throw new ArgumentNullException(nameof(setter));
         ImportCommand = new RelayCommand(Import);
-        ClearCommand = new RelayCommand(() => Set(Tr.T("Retirer une texture"), null), () => _getter() is not null);
+        ClearCommand = new RelayCommand(() => Set(Tr.T("Remove a texture"), null), () => _getter() is not null);
         OpenCommand = new RelayCommand(() => _context.SelectAsset(_getter()!.Value), () => Texture is not null);
     }
 
@@ -55,6 +55,19 @@ public sealed class TextureSlotViewModel : ObservableObject
     {
         get => _label;
         set => SetProperty(ref _label, value);
+    }
+
+    /// <summary>Label of the empty choice ("None (texture of the original creature)").</summary>
+    public string EmptyLabel
+    {
+        get => _emptyLabel;
+        set
+        {
+            if (SetProperty(ref _emptyLabel, value))
+            {
+                Refresh();
+            }
+        }
     }
 
     public IReadOnlyList<TextureOption> Options =>
@@ -74,7 +87,7 @@ public sealed class TextureSlotViewModel : ObservableObject
             Guid? id = value == Guid.Empty ? null : value;
             if (id != _getter())
             {
-                Set(Tr.T("Changer une texture"), id);
+                Set(Tr.T("Change a texture"), id);
             }
         }
     }
@@ -86,7 +99,7 @@ public sealed class TextureSlotViewModel : ObservableObject
     {
         null => _emptyLabel,
         _ when Texture is { } texture => texture.FilePath,
-        _ => Tr.T("Texture supprimée : choisissez-en une autre"),
+        _ => Tr.T("Texture deleted: choose another one"),
     };
 
     public ICommand ImportCommand { get; }
@@ -121,10 +134,10 @@ public sealed class TextureSlotViewModel : ObservableObject
             ModProject project = _context.Project;
             TextureAsset texture = _context.Importer.ImportTexture(project, file);
             _context.History.Execute(new CompositeCommand(
-                Tr.T("Importer une texture"),
+                Tr.T("Import a texture"),
                 [
                     new AddAssetCommand(project.Assets, texture, Tr.T("Texture")),
-                    new PropertyChangeCommand<Guid?>(Tr.T("Changer une texture"), _asset, PropertyName, _getter, _setter, texture.Id),
+                    new PropertyChangeCommand<Guid?>(Tr.T("Change a texture"), _asset, PropertyName, _getter, _setter, texture.Id),
                 ]));
             _context.History.Seal();
         }

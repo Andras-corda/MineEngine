@@ -40,7 +40,7 @@ public sealed class ShortcutRowViewModel : ObservableObject
         }
     }
 
-    public string DisplayGesture => _gesture.Length == 0 ? Tr.T("Aucun") : ShortcutCatalog.Display(_gesture);
+    public string DisplayGesture => _gesture.Length == 0 ? Tr.T("None") : ShortcutCatalog.Display(_gesture);
 
     public bool IsDefault => _gesture == Definition.DefaultGesture;
 

@@ -27,7 +27,7 @@ public sealed class ModLoaderBackendRegistry
         ArgumentNullException.ThrowIfNull(mdk);
         IModLoaderBackendProvider provider = _providers.FirstOrDefault(p => p.Supports(mdk))
             ?? throw new NotSupportedException(
-                Tr.F("Le générateur ne prend pas encore en charge {0}. Versions prises en charge : {1}.", mdk.DisplayName, SupportDescription));
+                Tr.F("The generator does not support {0} yet. Supported versions: {1}.", mdk.DisplayName, SupportDescription));
         return provider.Create(mdk);
     }
 }

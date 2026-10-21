@@ -20,8 +20,8 @@ public sealed class DiagnosticItemViewModel
 
     public string SeverityLabel => Severity switch
     {
-        DiagnosticSeverity.Error => Tr.T("Erreur"),
-        DiagnosticSeverity.Warning => Tr.T("Avertissement"),
+        DiagnosticSeverity.Error => Tr.T("Error"),
+        DiagnosticSeverity.Warning => Tr.T("Warning"),
         _ => Tr.T("Info"),
     };
 
@@ -78,15 +78,15 @@ public sealed class DiagnosticsViewModel : ObservableObject
         {
             int errors = ErrorCount;
             int warnings = WarningCount;
-            return (errors > 1 ? Tr.F("{0} erreurs", errors) : Tr.F("{0} erreur", errors))
+            return (errors > 1 ? Tr.F("{0} errors", errors) : Tr.F("{0} error", errors))
                 + " · "
-                + (warnings > 1 ? Tr.F("{0} avertissements", warnings) : Tr.F("{0} avertissement", warnings));
+                + (warnings > 1 ? Tr.F("{0} warnings", warnings) : Tr.F("{0} warning", warnings));
         }
     }
 
     public string Summary => Items.Count == 0
-        ? Tr.T("Aucun problème")
-        : Tr.F("{0} erreur(s), {1} avertissement(s)", ErrorCount, WarningCount);
+        ? Tr.T("No problems")
+        : Tr.F("{0} error(s), {1} warning(s)", ErrorCount, WarningCount);
 
     /// <summary>Remplace les résultats de validation (les résultats du dernier build sont conservés).</summary>
     public void SetValidationResults(IEnumerable<Diagnostic> diagnostics) => Replace(ValidationOrigin, diagnostics);

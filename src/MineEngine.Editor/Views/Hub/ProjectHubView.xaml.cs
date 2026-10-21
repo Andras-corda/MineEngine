@@ -63,7 +63,7 @@ public partial class ProjectHubView : UserControl
         Sidebar.Tag = compact;
         SidebarCaption.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
         SidebarFooter.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
-        SidebarToggle.ToolTip = compact ? Tr.T("Agrandir la barre latérale") : Tr.T("Réduire la barre latérale");
+        SidebarToggle.ToolTip = compact ? Tr.T("Expand sidebar") : Tr.T("Collapse sidebar");
         SidebarToggle.IsEnabled = !narrow;
         PageGrid.Margin = narrow ? new Thickness(18, 18, 18, 16) : new Thickness(36, 28, 36, 24);
     }

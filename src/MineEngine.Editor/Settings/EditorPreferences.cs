@@ -35,6 +35,7 @@ public sealed class EditorPreferences
     public void Load()
     {
         Current = _store.Load();
+        Core.Diagnostics.EngineDebug.Enabled = Current.DebugMode;
         UseLanguage(Languages.Find(Current.LanguageCode));
         Themes.Apply(Current.ThemeId, Current.AccentColor);
         Interface.Apply(Current);
@@ -45,6 +46,7 @@ public sealed class EditorPreferences
     {
         ArgumentNullException.ThrowIfNull(settings);
         Current = settings.Clone();
+        Core.Diagnostics.EngineDebug.Enabled = Current.DebugMode;
         Themes.Apply(Current.ThemeId, Current.AccentColor);
         Interface.Apply(Current);
         _store.Save(Current);

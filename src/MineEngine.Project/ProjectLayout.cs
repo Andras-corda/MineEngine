@@ -59,6 +59,9 @@ public sealed class ProjectLayout
 
     public string SoundsDirectory => Path.Combine(RootDirectory, "Sounds");
 
+    /// <summary>Imported 3D models.</summary>
+    public string ModelsDirectory => Path.Combine(RootDirectory, "Models");
+
     public string SourceDirectory => Path.Combine(RootDirectory, "src");
 
     public string JavaSourceDirectory => ToAbsolutePath(JavaSourceFolder);
@@ -107,7 +110,7 @@ public sealed class ProjectLayout
     {
         char[] invalid = Path.GetInvalidFileNameChars();
         string cleaned = new string((projectName ?? string.Empty).Where(c => !invalid.Contains(c)).ToArray()).Trim().TrimEnd('.');
-        return (cleaned.Length > 0 ? cleaned : Tr.T("Projet")) + ProjectFileExtension;
+        return (cleaned.Length > 0 ? cleaned : Tr.T("Project")) + ProjectFileExtension;
     }
 
     public void EnsureDirectories()
@@ -134,6 +137,15 @@ public sealed class ProjectLayout
         AssetType.Texture => "textures",
         AssetType.Sound => "sounds",
         AssetType.Graph => "graphs",
+        AssetType.BehaviorTree => "ai",
+        AssetType.Model => "models",
+        AssetType.Command => "commands",
+        AssetType.CreativeTab => "tabs",
+        AssetType.Keybind => "keybinds",
+        AssetType.Enchantment => "enchantments",
+        AssetType.Fluid => "fluids",
+        AssetType.GameRule => "gamerules",
+        AssetType.Effect => "effects",
         _ => type.ToString().ToLowerInvariant(),
     };
 

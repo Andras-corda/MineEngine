@@ -212,9 +212,43 @@ public sealed class GeneratorTests
             french.Select(e => e.Key).Order(StringComparer.Ordinal));
     }
 
-    private static async Task<string> GenerateAsync(string directory, FakeBackend backend)
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Block_and_item_nodes_use_the_api_of_the_minecraft_version(bool modern)
+    {
+        using var temp = new TemporaryDirectory();
+        FakeBackend backend = modern
+            ? new FakeBackend(ModLoaderKind.NeoForge, "1.21.1", new NeoForgeJavaEmitter())
+            : new FakeBackend(ModLoaderKind.Forge, "1.20.1", new ForgeJavaEmitter());
+        string workspace = await GenerateAsync(temp.Path, backend, project => NodeLibrarySample.AddTo(project));
+        string java = Directory.EnumerateFiles(Path.Combine(workspace, "src/main/java"), "*.java", SearchOption.AllDirectories)
+            .Select(File.ReadAllText).Single(text => text.Contains("useBlock(level,", StringComparison.Ordinal));
+
+        // Each helper is written once, with the helpers it calls.
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(java, @"private static \S+ enchantment\("));
+        Assert.Contains("private static void loadBlockData(", java);
+        Assert.Contains("private static <T extends Comparable<T>> BlockState withProperty(", java);
+        Assert.Contains("level.destroyBlock(", java);
+        Assert.Contains("import net.minecraft.world.item.ItemStack;", java);
+        if (modern)
+        {
+            Assert.Contains("useWithoutItem(level, player, hit)", java);
+            Assert.Contains("stack.set(DataComponents.CUSTOM_NAME", java);
+            Assert.Contains("new SingleRecipeInput(stack)", java);
+        }
+        else
+        {
+            Assert.Contains("use(level, player, InteractionHand.MAIN_HAND, hit)", java);
+            Assert.Contains("stack.setHoverName(", java);
+            Assert.Contains("new SimpleContainer(stack)", java);
+        }
+    }
+
+    private static async Task<string> GenerateAsync(string directory, FakeBackend backend, Action<ModProject>? addContent = null)
     {
         ModProject project = CreateSampleProject(directory, backend.LoaderId, backend.MinecraftVersion.Id);
+        addContent?.Invoke(project);
         ModIR ir = ModIRBuilder.CreateDefault().Build(project, new DiagnosticBag())!;
         string workspace = Path.Combine(directory, "workspace");
 
@@ -237,7 +271,7 @@ public sealed class GeneratorTests
     }
 
     /// <summary>Backend sans MDK réel, pour tester la génération seule.</summary>
-    private sealed class FakeBackend : IModLoaderBackend
+    internal sealed class FakeBackend : IModLoaderBackend
     {
         private readonly IFileEmitter _javaEmitter;
 

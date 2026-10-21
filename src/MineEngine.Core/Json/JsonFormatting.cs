@@ -30,10 +30,10 @@ public static class JsonFormatting
         }
         catch (JsonException exception)
         {
-            throw new InvalidDataException(Tr.F("JSON invalide dans {0} : {1}", sourceName, exception.Message), exception);
+            throw new InvalidDataException(Tr.F("Invalid JSON in {0}: {1}", sourceName, exception.Message), exception);
         }
 
         return node as JsonObject
-            ?? throw new InvalidDataException(Tr.F("{0} doit contenir un objet JSON.", sourceName));
+            ?? throw new InvalidDataException(Tr.F("{0} must contain a JSON object.", sourceName));
     }
 }

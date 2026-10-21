@@ -41,6 +41,9 @@ public enum BlockModelKind
 
     /// <summary>Deux plans en croix, comme une fleur ou une pousse.</summary>
     Cross,
+
+    /// <summary>A 3D model of the project (Blockbench or Java JSON).</summary>
+    Custom,
 }
 
 /// <summary>Emplacement de texture d'un bloc.</summary>
@@ -127,6 +130,9 @@ public enum MobModel
     Slime,
     Silverfish,
     SnowGolem,
+
+    /// <summary>A Blockbench model of the project, turned into a Java entity model.</summary>
+    Custom,
 }
 
 /// <summary>Famille d'un mob : décide de sa classe Java, de son apparition et de sa reproduction.</summary>
@@ -203,4 +209,77 @@ public enum RecipeKind
 
     /// <summary>Four.</summary>
     Smelting,
+}
+
+/// <summary>Argument typed after a command of the mod (V0.6.2).</summary>
+public enum CommandArgumentKind
+{
+    /// <summary>No argument: "/heal".</summary>
+    None,
+
+    /// <summary>A whole number between a minimum and a maximum: "/heal 5".</summary>
+    Number,
+
+    /// <summary>One word: "/warp home".</summary>
+    Word,
+
+    /// <summary>Everything typed after the command, spaces included: "/shout Hello everyone".</summary>
+    Message,
+
+    /// <summary>A connected player: "/heal Steve".</summary>
+    Player,
+}
+
+/// <summary>Items an enchantment of the mod can be put on (V0.6.3).</summary>
+public enum EnchantmentTarget
+{
+    Weapon,
+    Sword,
+    Armor,
+    Helmet,
+    Chestplate,
+    Leggings,
+    Boots,
+    Tool,
+    Bow,
+    Crossbow,
+    Trident,
+    FishingRod,
+    Breakable,
+}
+
+/// <summary>How often an enchantment is offered (its weight in the enchanting table).</summary>
+public enum EnchantmentRarity
+{
+    Common,
+    Uncommon,
+    Rare,
+    VeryRare,
+}
+
+/// <summary>Value of a game rule of the mod (V0.6.3).</summary>
+public enum GameRuleKind
+{
+    Boolean,
+    Number,
+}
+
+/// <summary>Section of the "Edit game rules" screen where a game rule of the mod is shown.</summary>
+public enum GameRuleCategory
+{
+    Player,
+    Mobs,
+    Spawning,
+    Drops,
+    Updates,
+    Chat,
+    Misc,
+}
+
+/// <summary>Kind of a status effect of the mod: good, bad, or neither (V0.6.3).</summary>
+public enum EffectCategory
+{
+    Beneficial,
+    Harmful,
+    Neutral,
 }

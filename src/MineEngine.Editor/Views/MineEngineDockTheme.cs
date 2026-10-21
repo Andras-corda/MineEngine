@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using AvalonDock.Controls;
 using AvalonDock.Themes;
@@ -19,6 +20,28 @@ public sealed class MineEngineDockTheme : DictionaryTheme
         // Le bouton menu en haut à droite des onglets (liste des documents) n'est pas gardé :
         // les onglets restent accessibles par leur en-tête et par Ctrl+Tab.
         EventManager.RegisterClassHandler(typeof(DropDownButton), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnDropDownLoaded));
+
+        // The Dashboard, Resources and Languages are opened from the toolbar: their tabs are not shown.
+        EventManager.RegisterClassHandler(typeof(TabItem), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnTabLoaded));
+        EventManager.RegisterClassHandler(typeof(TabItem), FrameworkElement.SizeChangedEvent, new SizeChangedEventHandler((sender, e) => OnTabLoaded(sender, e)));
+    }
+
+    /// <summary>Documents opened from the toolbar, whose tab is hidden in the work area.</summary>
+    public static IReadOnlySet<string> ToolbarDocuments { get; } = new HashSet<string>(StringComparer.Ordinal) { "home", "resources", "languages" };
+
+    private static void OnTabLoaded(object sender, RoutedEventArgs e)
+    {
+        // The tab panel of AvalonDock sets the visibility of its tabs itself (overflow): the tab is given no width instead.
+        if (sender is TabItem tab && tab.MaxWidth > 0
+            && (tab.Content as AvalonDock.Layout.LayoutContent ?? tab.DataContext as AvalonDock.Layout.LayoutContent) is { ContentId: { } id }
+            && ToolbarDocuments.Contains(id))
+        {
+            tab.MaxWidth = 0;
+            tab.Padding = new Thickness(0);
+            tab.Margin = new Thickness(0);
+            tab.IsTabStop = false;
+            tab.IsHitTestVisible = false;
+        }
     }
 
     public MineEngineDockTheme(bool isDark, Func<string, Brush> palette)

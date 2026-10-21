@@ -37,6 +37,15 @@ public sealed class AssetCatalog
             new TextureAssetDefinition(),
             new SoundAssetDefinition(),
             new GraphAssetDefinition(),
+            new BehaviorTreeAssetDefinition(),
+            new ModelAssetDefinition(),
+            new CommandAssetDefinition(),
+            new CreativeTabAssetDefinition(),
+            new KeybindAssetDefinition(),
+            new EnchantmentAssetDefinition(),
+            new FluidAssetDefinition(),
+            new GameRuleAssetDefinition(),
+            new EffectAssetDefinition(),
         ]);
 
     /// <summary>
@@ -49,7 +58,7 @@ public sealed class AssetCatalog
         ArgumentNullException.ThrowIfNull(definition);
         if (!_definitions.TryAdd(definition.Type, definition))
         {
-            throw new InvalidOperationException(Tr.F("Le type d'asset {0} est déjà enregistré.", definition.Type));
+            throw new InvalidOperationException(Tr.F("Asset type {0} is already registered.", definition.Type));
         }
     }
 
@@ -67,7 +76,7 @@ public sealed class AssetCatalog
         }
 
         throw new KeyNotFoundException(
-            Tr.F("Aucune définition pour le type d'asset {0}.", type));
+            Tr.F("No definition for asset type {0}.", type));
     }
 
     /// <summary>

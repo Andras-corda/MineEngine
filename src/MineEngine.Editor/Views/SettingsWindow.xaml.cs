@@ -62,7 +62,7 @@ public partial class SettingsWindow : Window
         catch (NotSupportedException)
         {
             // Une lettre ou un chiffre seul n'est pas un raccourci : il faut Ctrl, Maj ou Alt.
-            row.Conflict = Tr.T("Ajoutez Ctrl, Maj ou Alt à cette touche.");
+            row.Conflict = Tr.T("Add Ctrl, Shift or Alt to this key.");
         }
     }
 }

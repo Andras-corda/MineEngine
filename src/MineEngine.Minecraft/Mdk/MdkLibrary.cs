@@ -64,7 +64,7 @@ public sealed class MdkLibrary
             }
             catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
             {
-                log.Warning(Tr.F("Dossier de MDK ignoré ({0}) : {1}", Path.GetFileName(directory), exception.Message));
+                log.Warning(Tr.F("MDK folder ignored ({0}): {1}", Path.GetFileName(directory), exception.Message));
             }
         }
 
@@ -77,12 +77,12 @@ public sealed class MdkLibrary
 
             try
             {
-                MdkDescriptor mdk = Install(ExtractArchive(archive), Tr.T("Archive déposée : ") + Path.GetFileName(archive), deleteSource: true);
-                log.Info(Tr.T("MDK détecté et installé : ") + mdk.DisplayName);
+                MdkDescriptor mdk = Install(ExtractArchive(archive), Tr.T("Dropped archive: ") + Path.GetFileName(archive), deleteSource: true);
+                log.Info(Tr.T("MDK detected and installed: ") + mdk.DisplayName);
             }
             catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
             {
-                log.Warning(Tr.F("Archive ignorée ({0}) : {1}", Path.GetFileName(archive), exception.Message));
+                log.Warning(Tr.F("Archive ignored ({0}): {1}", Path.GetFileName(archive), exception.Message));
             }
         }
 
@@ -104,8 +104,8 @@ public sealed class MdkLibrary
     public MdkDescriptor ImportDirectory(string directory)
     {
         string root = _inspector.FindRoot(directory)
-            ?? throw new InvalidDataException(Tr.F("Aucun MDK trouvé dans '{0}'.", directory));
-        MdkDescriptor mdk = Install(root, Tr.T("Dossier importé : ") + directory, deleteSource: false);
+            ?? throw new InvalidDataException(Tr.F("No MDK found in '{0}'.", directory));
+        MdkDescriptor mdk = Install(root, Tr.T("Imported folder: ") + directory, deleteSource: false);
         Changed?.Invoke(this, EventArgs.Empty);
         return mdk;
     }
@@ -116,7 +116,7 @@ public sealed class MdkLibrary
         ArgumentNullException.ThrowIfNull(mdk);
         if (!Path.GetFullPath(mdk.Directory).StartsWith(RootDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException(Tr.T("Ce MDK n'est pas rangé dans la bibliothèque."));
+            throw new InvalidOperationException(Tr.T("This MDK is not stored in the library."));
         }
 
         if (Directory.Exists(mdk.Directory))
@@ -147,7 +147,7 @@ public sealed class MdkLibrary
         var mdk = new MdkDescriptor(
             MdkDescriptor.CreateId(inspection.Loader, inspection.MinecraftVersion, inspection.LoaderVersion),
             inspection.Loader, inspection.MinecraftVersion, inspection.LoaderVersion, inspection.JavaVersion,
-            inspection.GradleVersion, root, Tr.T("Dossier déposé : ") + Path.GetFileName(directory), DateTime.Now);
+            inspection.GradleVersion, root, Tr.T("Dropped folder: ") + Path.GetFileName(directory), DateTime.Now);
         AtomicFile.WriteAllText(Path.Combine(root, MdkManifestSerializer.FileName), _manifests.Serialize(mdk));
         return mdk;
     }
@@ -160,7 +160,7 @@ public sealed class MdkLibrary
             string id = MdkDescriptor.CreateId(inspection.Loader, inspection.MinecraftVersion, inspection.LoaderVersion);
             if (Find(id) is not null || Directory.Exists(Path.Combine(RootDirectory, id)))
             {
-                throw new IOException(Tr.F("Le MDK {0} est déjà installé.", id));
+                throw new IOException(Tr.F("MDK {0} is already installed.", id));
             }
 
             string target = Path.Combine(RootDirectory, id);
@@ -188,7 +188,7 @@ public sealed class MdkLibrary
     {
         if (!File.Exists(archiveFile))
         {
-            throw new FileNotFoundException(Tr.T("Archive introuvable."), archiveFile);
+            throw new FileNotFoundException(Tr.T("Archive not found."), archiveFile);
         }
 
         string temporary = Path.Combine(Path.GetTempPath(), "mineengine-mdk-" + Guid.NewGuid().ToString("N"));
@@ -199,14 +199,14 @@ public sealed class MdkLibrary
         catch (InvalidDataException)
         {
             TryDeleteTemporary(temporary);
-            throw new InvalidDataException(Tr.F("'{0}' n'est pas une archive .zip valide.", Path.GetFileName(archiveFile)));
+            throw new InvalidDataException(Tr.F("'{0}' is not a valid .zip archive.", Path.GetFileName(archiveFile)));
         }
 
         string? root = _inspector.FindRoot(temporary);
         if (root is null)
         {
             TryDeleteTemporary(temporary);
-            throw new InvalidDataException(Tr.F("L'archive '{0}' ne contient pas de MDK (gradlew.bat introuvable).", Path.GetFileName(archiveFile)));
+            throw new InvalidDataException(Tr.F("The archive '{0}' does not contain an MDK (gradlew.bat not found).", Path.GetFileName(archiveFile)));
         }
 
         return root;

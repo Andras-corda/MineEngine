@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows.Input;
 using System.Windows.Threading;
 using MineEngine.Assets.Graphs;
+using MineEngine.Editor.ViewModels.Graphs;
 using MineEngine.Build;
 using MineEngine.Core.Assets;
 using MineEngine.Core.Diagnostics;
@@ -27,9 +28,14 @@ namespace MineEngine.Editor.ViewModels;
 public sealed partial class MainViewModel : ObservableObject
 {
     public const string InspectorPanelId = "inspector";
+
+    /// <summary>Shows the Details / Inspector panel (double-click on a Puppeteer node).</summary>
+    public void ShowInspector() => PanelRequested?.Invoke(this, InspectorPanelId);
     public const string DiagnosticsPanelId = "diagnostics";
     public const string OutputPanelId = "output";
     public const string ExplorerPanelId = "explorer";
+
+    public const string NodesPanelId = "nodes";
 
     private const string ApplicationName = "Mine Engine";
     private static readonly TimeSpan BackupInterval = TimeSpan.FromMinutes(10);
@@ -49,7 +55,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private ProjectViewModel? _project;
     private CancellationTokenSource? _buildCancellation;
-    private string _statusText = Tr.T("Prêt");
+    private string _statusText = Tr.T("Ready");
     private string? _lastBuildSummary;
 
     public MainViewModel(
@@ -100,6 +106,7 @@ public sealed partial class MainViewModel : ObservableObject
         };
         Shortcuts.Update(_preferences.Current.Shortcuts);
         ConfigureAutoSave();
+        InitializeDebug();
 
         // Fichier
         NewProjectCommand = new RelayCommand(NewProject, () => !IsBusy);
@@ -121,9 +128,12 @@ public sealed partial class MainViewModel : ObservableObject
         AddBlockCommand = new RelayCommand(() => AddAndEdit(AssetType.Block), () => CanEdit);
         AddMobCommand = new RelayCommand(() => AddAndEdit(AssetType.Mob), () => CanEdit);
         AddRecipeCommand = new RelayCommand(() => AddAndEdit(AssetType.Recipe), () => CanEdit);
+        AddBehaviorTreeCommand = new RelayCommand(() => AddAndEdit(AssetType.BehaviorTree), () => CanEdit);
+        AddOfTypeCommand = new RelayCommand<AssetType>(type => AddAndEdit(type), _ => CanEdit);
         AddGraphCommand = new RelayCommand<GraphKind>(kind => AddGraph(kind), _ => CanEdit);
         ImportTexturesCommand = new RelayCommand(ImportTextures, () => CanEdit);
         ImportSoundsCommand = new RelayCommand(ImportSounds, () => CanEdit);
+        ImportModelsCommand = new RelayCommand(ImportModels, () => CanEdit);
         ValidateCommand = new RelayCommand(ValidateAndShow, () => HasProject);
 
         // Build
@@ -158,6 +168,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     public ProjectExplorerViewModel Explorer { get; }
 
+    /// <summary>Nodes window: the nodes of the active graph, to drag onto it.</summary>
+    public NodeLibraryViewModel NodeLibrary { get; } = new();
+
     /// <summary>Raccourcis clavier en cours (affichés dans les menus, appliqués par la fenêtre).</summary>
     public ShortcutMap Shortcuts { get; } = new();
 
@@ -184,6 +197,7 @@ public sealed partial class MainViewModel : ObservableObject
             _buildDiagnostics = [];
             _javaCompletions = null;
             _project = value;
+            ResetNavigation();
             Languages = value is null ? null : new LanguagesViewModel(value, _dialogs, () => CanEdit);
             OnPropertyChanged(nameof(Languages));
             if (_project is not null)
@@ -222,15 +236,18 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Version de l'éditeur ("V0.3").</summary>
     public string VersionLabel => EditorInfo.VersionLabel;
 
+    /// <summary>GitHub repository of Mine Engine (shown on the home page).</summary>
+    public string RepositoryUrl => EditorInfo.RepositoryUrl;
+
     /// <summary>Deuxième partie de la barre de statut : projet ouvert ou "Aucun projet ouvert".</summary>
-    public string ProjectStatus => _project is null ? Tr.T("Aucun projet ouvert") : _project.Name;
+    public string ProjectStatus => _project is null ? Tr.T("No project open") : _project.Name;
 
     public bool IsBusy => _buildCancellation is not null;
 
     public bool CanEdit => HasProject && !IsBusy;
 
     public string WindowTitle => _project is null
-        ? Tr.F("{0} — Sélection de projet", ApplicationName)
+        ? Tr.F("{0} — Project selection", ApplicationName)
         : $"{_project.Name}{(_project.IsDirty || HasDirtyDocuments ? " *" : string.Empty)} — {ApplicationName}";
 
     public string StatusText
@@ -239,11 +256,11 @@ public sealed partial class MainViewModel : ObservableObject
         private set => SetProperty(ref _statusText, value);
     }
 
-    public string LastBuildSummary => _lastBuildSummary ?? Tr.T("Aucun build depuis l'ouverture du projet.");
+    public string LastBuildSummary => _lastBuildSummary ?? Tr.T("No build since the project was opened.");
 
-    public string UndoLabel => _project?.History.UndoDescription is { } description ? Tr.F("_Annuler : {0}", description) : Tr.T("_Annuler");
+    public string UndoLabel => _project?.History.UndoDescription is { } description ? Tr.F("_Undo: {0}", description) : Tr.T("_Undo");
 
-    public string RedoLabel => _project?.History.RedoDescription is { } description ? Tr.F("_Rétablir : {0}", description) : Tr.T("_Rétablir");
+    public string RedoLabel => _project?.History.RedoDescription is { } description ? Tr.F("_Redo: {0}", description) : Tr.T("_Redo");
 
     public ICommand NewProjectCommand { get; }
 
@@ -273,6 +290,12 @@ public sealed partial class MainViewModel : ObservableObject
 
     public ICommand AddRecipeCommand { get; }
 
+    /// <summary>Crée un arbre de comportement et l'ouvre dans Puppeteer.</summary>
+    public ICommand AddBehaviorTreeCommand { get; }
+
+    /// <summary>Adds an element of the type given as parameter and opens it (commands, tabs, keybinds, enchantments...).</summary>
+    public ICommand AddOfTypeCommand { get; }
+
     /// <summary>Crée un graphe nodal et l'ouvre dans l'éditeur.</summary>
     public ICommand AddGraphCommand { get; }
 
@@ -281,6 +304,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>Importe des sons OGG comme assets Sound.</summary>
     public ICommand ImportSoundsCommand { get; }
+
+    /// <summary>Imports 3D models (Java JSON, Blockbench, GeckoLib, OBJ, glTF) as Model assets.</summary>
+    public ICommand ImportModelsCommand { get; }
 
     public ICommand ValidateCommand { get; }
 
@@ -333,7 +359,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (IsBusy)
         {
-            if (!_dialogs.Confirm(ApplicationName, Tr.T("Un build est en cours. Voulez-vous l'arrêter et quitter ?")))
+            if (!_dialogs.Confirm(ApplicationName, Tr.T("A build is running. Do you want to stop it and quit?")))
             {
                 return false;
             }
@@ -357,13 +383,19 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        Execute(Tr.T("Création du projet"), () =>
+        Execute(Tr.T("Project creation"), () =>
         {
             ModProject model = _repository.Create(request.ParentDirectory, request.Settings);
+            if (model.Settings.IconFile.Length > 0)
+            {
+                ProjectIcon.Adopt(model.Layout, model.Settings);
+                _repository.Save(model);
+            }
+
             Project = new ProjectViewModel(model, _assetViewModels);
             Hub.Remember(model.Layout.RootDirectory);
-            _log.Info(Tr.F("Projet créé : {0} (MDK {1})", model.Layout.RootDirectory, model.Settings.MdkId));
-            StatusText = Tr.T("Projet créé");
+            _log.Info(Tr.F("Project created: {0} (MDK {1})", model.Layout.RootDirectory, model.Settings.MdkId));
+            StatusText = Tr.T("Project created");
         });
     }
 
@@ -383,18 +415,18 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void TryOpen(string path)
     {
-        Execute(Tr.T("Ouverture du projet"), () =>
+        Execute(Tr.T("Opening project"), () =>
         {
             ModProject model = _repository.Open(path);
             Project = new ProjectViewModel(model, _assetViewModels);
             Hub.Remember(model.Layout.RootDirectory);
-            _log.Info(Tr.F("Projet ouvert : {0} ({1} assets)", model.Layout.RootDirectory, model.Assets.Count));
+            _log.Info(Tr.F("Project open: {0} ({1} assets)", model.Layout.RootDirectory, model.Assets.Count));
             foreach (string note in model.LoadNotes)
             {
-                _log.Warning(Tr.T("Conversion du projet : ") + note + Tr.T(" Enregistrez pour écrire le nouveau format."));
+                _log.Warning(Tr.T("Project conversion: ") + note + Tr.T(" Save to write the new format."));
             }
 
-            StatusText = model.LoadNotes.Count > 0 ? Tr.T("Projet converti au format de la V0.3 (à enregistrer)") : Tr.T("Projet ouvert");
+            StatusText = model.LoadNotes.Count > 0 ? Tr.T("Project converted to the V0.3 format (needs saving)") : Tr.T("Project open");
         });
     }
 
@@ -406,7 +438,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         ModProject model = _project.Model;
-        bool saved = Execute(Tr.T("Enregistrement"), () =>
+        bool saved = Execute(Tr.T("Saving"), () =>
         {
             _repository.Save(model);
             if (!isAutoSave)
@@ -415,8 +447,8 @@ public sealed partial class MainViewModel : ObservableObject
             }
 
             StatusText = isAutoSave
-                ? Tr.F("Enregistrement automatique à {0:HH:mm:ss}", DateTime.Now)
-                : Tr.F("Enregistré à {0:HH:mm:ss}", DateTime.Now);
+                ? Tr.F("Autosaved at {0:HH:mm:ss}", DateTime.Now)
+                : Tr.F("Saved at {0:HH:mm:ss}", DateTime.Now);
         });
 
         if (saved)
@@ -426,7 +458,7 @@ public sealed partial class MainViewModel : ObservableObject
             Explorer.Refresh();
             if (isAutoSave)
             {
-                _log.Info(Tr.T("Projet enregistré automatiquement."));
+                _log.Info(Tr.T("Project autosaved."));
             }
         }
 
@@ -440,12 +472,12 @@ public sealed partial class MainViewModel : ObservableObject
             ProjectBackup? backup = _backups.CreateIfDue(model, BackupInterval, _preferences.Current.BackupsToKeep);
             if (backup is not null)
             {
-                _log.Debug(Tr.T("Sauvegarde de secours créée : ") + backup.File);
+                _log.Debug(Tr.T("Backup created: ") + backup.File);
             }
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
         {
-            _log.Warning(Tr.T("La sauvegarde de secours a échoué : ") + exception.Message);
+            _log.Warning(Tr.T("The backup failed: ") + exception.Message);
         }
     }
 
@@ -476,7 +508,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         Project = null;
-        StatusText = Tr.T("Prêt");
+        StatusText = Tr.T("Ready");
         Hub.Refresh();
         return true;
     }
@@ -492,6 +524,13 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void DeleteSelectedAsset()
     {
+        IReadOnlyList<AssetViewModel> all = _project?.SelectedAssets ?? [];
+        if (all.Count > 1)
+        {
+            DeleteSelectedAssets(all);
+            return;
+        }
+
         AssetViewModel? selected = _project?.SelectedAsset;
         if (selected is null)
         {
@@ -502,22 +541,56 @@ public sealed partial class MainViewModel : ObservableObject
         IReadOnlyList<AssetLinkViewModel> usedBy = selected.UsedBy;
         if (usedBy.Count > 0
             && !_dialogs.Confirm(
-                Tr.T("Supprimer un asset utilisé"),
-                Tr.F("'{0}' est utilisé par :\n{1}\n\n", selected.Header, string.Join("\n", usedBy.Select(l => "  - " + l.Label))) +
-                Tr.T("Le supprimer quand même ? Ces liens seront signalés dans Diagnostics (Ctrl+Z pour annuler).")))
+                Tr.T("Delete a used asset"),
+                Tr.F("'{0}' is used by:\n{1}\n\n", selected.Header, string.Join("\n", usedBy.Select(l => "  - " + l.Label))) +
+                Tr.T("Delete it anyway? These links will be reported in Diagnostics (Ctrl+Z to undo).")))
         {
             return;
         }
 
         _project!.RemoveAsset(selected);
-        StatusText = Tr.F("'{0}' supprimé (Ctrl+Z pour annuler)", selected.Header);
+        StatusText = Tr.F("'{0}' deleted (Ctrl+Z to undo)", selected.Header);
+    }
+
+    /// <summary>Several elements selected in the Dashboard: one confirmation, one step to undo.</summary>
+    private void DeleteSelectedAssets(IReadOnlyList<AssetViewModel> selected)
+    {
+        int used = selected.Count(a => a.UsedBy.Any(link => !selected.Any(s => s.Model.Id == link.TargetId)));
+        string message = Tr.F("Delete these {0} elements?", selected.Count) + "\n\n"
+            + string.Join("\n", selected.Take(12).Select(a => "  - " + a.Header)) + (selected.Count > 12 ? "\n  ..." : string.Empty);
+        if (used > 0)
+        {
+            message += "\n\n" + Tr.F("{0} of them are used by other elements: these links will be reported in Diagnostics.", used);
+        }
+
+        if (!_dialogs.Confirm(Tr.T("Delete elements"), message + "\n\n" + Tr.T("(Ctrl+Z to undo)")))
+        {
+            return;
+        }
+
+        _project!.RemoveAssets(selected);
+        StatusText = Tr.F("{0} elements deleted (Ctrl+Z to undo)", selected.Count);
     }
 
     private void ImportTextures() =>
         ImportFiles(_dialogs.AskTextureFiles(), (project, file, reserved) => _assetViewModels.Importer.ImportTexture(project, file, reserved), Tr.T("Texture"));
 
+    private void ImportModels()
+    {
+        if (_project is null)
+        {
+            return;
+        }
+
+        IReadOnlyList<string> errors = _project.ImportModels(_dialogs.AskModelFiles(), _assetViewModels.Importer, _dialogs);
+        if (errors.Count > 0)
+        {
+            _dialogs.ShowError(Tr.T("Import"), string.Join("\n", errors));
+        }
+    }
+
     private void ImportSounds() =>
-        ImportFiles(_dialogs.AskSoundFiles(), (project, file, reserved) => _assetViewModels.Importer.ImportSound(project, file, reserved), Tr.T("Son"));
+        ImportFiles(_dialogs.AskSoundFiles(), (project, file, reserved) => _assetViewModels.Importer.ImportSound(project, file, reserved), Tr.T("Sound"));
 
     private void ImportFiles(IReadOnlyList<string> files, Func<ModProject, string, ISet<ResourceId>, Asset> import, string label)
     {
@@ -530,7 +603,7 @@ public sealed partial class MainViewModel : ObservableObject
         int imported = files.Count - errors.Count;
         if (imported > 0)
         {
-            StatusText = Tr.F("{0} fichier(s) importé(s)", imported);
+            StatusText = Tr.F("{0} file(s) imported", imported);
         }
 
         if (errors.Count > 0)
@@ -548,14 +621,16 @@ public sealed partial class MainViewModel : ObservableObject
 
         ProjectSettings current = _project.Model.Settings;
         ProjectSettings draft = current.Clone();
-        if (!_dialogs.EditProjectSettings(draft))
+        if (!_dialogs.EditProjectSettings(draft, _project.Model.Layout.RootDirectory))
         {
             return;
         }
 
+        ProjectIcon.Adopt(_project.Model.Layout, draft);
+
         _project.History.Execute(new ChangeProjectSettingsCommand(current, draft));
         _project.RefreshSettings();
-        _log.Info(Tr.F("Paramètres du projet modifiés (MDK {0}).", current.MdkId));
+        _log.Info(Tr.F("Project settings changed (MDK {0}).", current.MdkId));
     }
 
     /// <summary>Valide le projet et met à jour le panneau Diagnostics.</summary>
@@ -571,11 +646,15 @@ public sealed partial class MainViewModel : ObservableObject
         if (_mdks.Library.Find(settings.MdkId) is null)
         {
             diagnostics.Warning(
-                Tr.F("Le MDK '{0}' n'est pas installé. Choisissez-en un dans Espace de travail > Paramètres du projet.", settings.MdkId ?? Tr.T("aucun")),
-                Tr.T("Projet"));
+                Tr.F("MDK '{0}' is not installed. Choose one in Workspace > Project Settings.", settings.MdkId ?? Tr.T("none")),
+                Tr.T("Project"));
         }
 
-        _project.Model.Assets.Validate(diagnostics);
+        using (EngineDebug.Measure(_log, Tr.T("Validation")))
+        {
+            _project.Model.Assets.Validate(diagnostics);
+        }
+
         Diagnostics.SetValidationResults(diagnostics);
 
         // État de chaque élément affiché dans le Dashboard.
@@ -590,7 +669,7 @@ public sealed partial class MainViewModel : ObservableObject
     private void ValidateAndShow()
     {
         Validate();
-        StatusText = Tr.T("Validation : ") + Diagnostics.Summary;
+        StatusText = Tr.T("Validation: ") + Diagnostics.Summary;
         PanelRequested?.Invoke(this, DiagnosticsPanelId);
     }
 
@@ -612,7 +691,7 @@ public sealed partial class MainViewModel : ObservableObject
         string? exportPath = null;
         if (action == PipelineAction.Export)
         {
-            exportPath = _dialogs.AskFileToSave(Tr.T("Exporter le mod"), Tr.T("Mod Minecraft (*.jar)|*.jar"), _project.Model.Settings.ModId + ".jar");
+            exportPath = _dialogs.AskFileToSave(Tr.T("Export the mod"), Tr.T("Minecraft mod (*.jar)|*.jar"), _project.Model.Settings.ModId + ".jar");
             if (exportPath is null)
             {
                 return;
@@ -625,9 +704,9 @@ public sealed partial class MainViewModel : ObservableObject
         SetBusy(new CancellationTokenSource());
         StatusText = action switch
         {
-            PipelineAction.RunClient => Tr.T("Lancement de Minecraft..."),
-            PipelineAction.ReloadGradle => Tr.T("Rechargement de Gradle..."),
-            _ => Tr.T("Build en cours..."),
+            PipelineAction.RunClient => Tr.T("Launching Minecraft..."),
+            PipelineAction.ReloadGradle => Tr.T("Reloading Gradle..."),
+            _ => Tr.T("Building..."),
         };
         _log.Info(new string('-', 60));
 
@@ -645,25 +724,25 @@ public sealed partial class MainViewModel : ObservableObject
             _buildDiagnostics = [.. result.Diagnostics];
             if (action == PipelineAction.ReloadGradle)
             {
-                StatusText = result.Success ? Tr.T("Projet Gradle rechargé") : Tr.T("Échec du rechargement de Gradle");
+                StatusText = result.Success ? Tr.T("Gradle project reloaded") : Tr.T("Gradle reload failed");
             }
             else
             {
                 bool runClient = action == PipelineAction.RunClient;
-                StatusText = result.Success ? (runClient ? Tr.T("Minecraft fermé") : Tr.T("Build réussi")) : Tr.T("Échec du build");
+                StatusText = result.Success ? (runClient ? Tr.T("Minecraft closed") : Tr.T("Build succeeded")) : Tr.T("Build failed");
                 _lastBuildSummary = result.Success
-                    ? (runClient ? Tr.F("Lancement réussi le {0:g} en {1:mm\\:ss}", DateTime.Now, result.Duration)
-                                 : Tr.F("Build réussi le {0:g} en {1:mm\\:ss}", DateTime.Now, result.Duration))
+                    ? (runClient ? Tr.F("Launch succeeded on {0:g} in {1:mm\\:ss}", DateTime.Now, result.Duration)
+                                 : Tr.F("Build succeeded on {0:g} in {1:mm\\:ss}", DateTime.Now, result.Duration))
                       + (result.JarPath is null ? string.Empty : $" : {Path.GetFileName(result.JarPath)}")
-                    : runClient ? Tr.F("Échec du lancement le {0:g}", DateTime.Now) : Tr.F("Échec du build le {0:g}", DateTime.Now);
+                    : runClient ? Tr.F("Launch failed on {0:g}", DateTime.Now) : Tr.F("Build failed on {0:g}", DateTime.Now);
                 OnPropertyChanged(nameof(LastBuildSummary));
             }
 
             if (result.Success && exportPath is not null && result.JarPath is not null)
             {
                 File.Copy(result.JarPath, exportPath, overwrite: true);
-                _log.Success(Tr.F("Mod exporté : {0}", exportPath));
-                StatusText = Tr.F("Mod exporté : {0}", Path.GetFileName(exportPath));
+                _log.Success(Tr.F("Mod exported: {0}", exportPath));
+                StatusText = Tr.F("Mod exported: {0}", Path.GetFileName(exportPath));
             }
 
             if (!result.Success)
@@ -673,13 +752,15 @@ public sealed partial class MainViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            _log.Warning(Tr.T("Opération annulée."));
-            StatusText = Tr.T("Build annulé");
+            _log.Warning(Tr.T("Operation canceled."));
+            StatusText = Tr.T("Build canceled");
         }
         catch (Exception exception)
         {
-            _log.Error(Tr.T("Erreur inattendue : ") + exception.Message);
-            StatusText = Tr.T("Échec du build");
+            // An error of the engine itself (generation, build): it gets a crash report.
+            _log.Error(Tr.T("Unexpected error: ") + exception.Message);
+            ReportError(exception);
+            StatusText = Tr.T("Build failed");
         }
         finally
         {
@@ -737,7 +818,7 @@ public sealed partial class MainViewModel : ObservableObject
             }
             else
             {
-                StatusText = Tr.T("Cet élément n'existe plus.");
+                StatusText = Tr.T("This element no longer exists.");
             }
 
             return;
@@ -749,7 +830,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    private void OpenFolder(string directory) => Execute(Tr.T("Ouverture du dossier"), () => _shell.OpenFolder(directory));
+    private void OpenFolder(string directory) => Execute(Tr.T("Opening folder"), () => _shell.OpenFolder(directory));
 
     /// <summary>Exécute une action et affiche l'erreur à l'utilisateur si elle échoue.</summary>
     private bool Execute(string operation, Action action)
@@ -762,7 +843,7 @@ public sealed partial class MainViewModel : ObservableObject
         catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException
                                               or ArgumentException or InvalidOperationException or NotSupportedException)
         {
-            _log.Error(Tr.F("{0} : {1}", operation, exception.Message));
+            _log.Error(Tr.F("{0}: {1}", operation, exception.Message));
             _dialogs.ShowError(operation, exception.Message);
             return false;
         }
@@ -798,6 +879,16 @@ public sealed partial class MainViewModel : ObservableObject
         if (e.PropertyName == nameof(ProjectViewModel.SelectedAsset))
         {
             Details = _project?.SelectedAsset ?? (IDetailsTarget?)_activeDocument;
+        }
+
+        if (e.PropertyName == nameof(ProjectViewModel.CurrentFolder))
+        {
+            RecordNavigation();
+        }
+
+        if (e.PropertyName == nameof(ProjectViewModel.SearchText))
+        {
+            OnPropertyChanged(nameof(SearchText));
         }
     }
 }

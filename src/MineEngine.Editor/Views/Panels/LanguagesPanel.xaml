@@ -36,14 +36,14 @@
 
             <!-- Langues du mod -->
             <DockPanel DockPanel.Dock="Left" Width="230" Margin="0,0,16,0">
-                <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelCaption}" Text="{l:Tr 'LANGUES DU MOD'}" Margin="2,0,0,8" />
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelCaption}" Text="{l:Tr 'MOD LANGUAGES'}" Margin="2,0,0,8" />
                 <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
                     <WrapPanel>
-                        <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Ajouter...'}" Command="{Binding AddLocaleCommand}" Margin="0,0,6,6" />
-                        <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Supprimer'}" Command="{Binding RemoveLocaleCommand}" Margin="0,0,6,6" />
+                        <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Add...'}" Command="{Binding AddLocaleCommand}" Margin="0,0,6,6" />
+                        <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Delete'}" Command="{Binding RemoveLocaleCommand}" Margin="0,0,6,6" />
                     </WrapPanel>
                     <TextBlock Style="{StaticResource FieldHint}" Margin="2,4,0,0"
-                               Text="{l:Tr 'Chaque langue devient un fichier assets/&lt;mod&gt;/lang/&lt;langue&gt;.json du mod. Minecraft choisit celle du joueur, sinon l\'anglais.'}" />
+                               Text="{l:Tr 'Each language becomes an assets/&lt;mod&gt;/lang/&lt;language&gt;.json file of the mod. Minecraft picks the player\'s language, otherwise English.'}" />
                 </StackPanel>
                 <ListBox ItemsSource="{Binding Locales}" SelectedItem="{Binding SelectedLocale}" Background="Transparent" BorderThickness="0">
                     <ListBox.ItemTemplate>
@@ -63,23 +63,17 @@
             <!-- Actions et filtres -->
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
-                    <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Ajouter une clé...'}" Command="{Binding AddKeyCommand}"
-                            ToolTip="{l:Tr 'Texte affiché par votre code Java (message, écran...) : il n\'est écrit que dans les langues où vous le traduisez.'}" />
-                    <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Importer...'}" Command="{Binding ImportCommand}"
-                            ToolTip="{l:Tr 'Fichier de langue Minecraft (.json) ; la langue est tirée du nom du fichier (de_de.json).'}" />
-                    <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Exporter...'}" Command="{Binding ExportCommand}" Margin="0"
-                            ToolTip="{l:Tr 'Fichier de langue complet de la langue choisie, tel que le mod l\'utilisera.'}" />
+                    <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Add a key...'}" Command="{Binding AddKeyCommand}"
+                            ToolTip="{l:Tr 'Text shown by your Java code (message, screen...): it is only written in the languages where you translate it.'}" />
+                    <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Import...'}" Command="{Binding ImportCommand}"
+                            ToolTip="{l:Tr 'Minecraft language file (.json); the language comes from the file name (de_de.json).'}" />
+                    <Button Style="{StaticResource ToolText}" Content="{l:Tr 'Export...'}" Command="{Binding ExportCommand}" Margin="0"
+                            ToolTip="{l:Tr 'Complete language file of the chosen language, as the mod will use it.'}" />
                 </StackPanel>
                 <CheckBox DockPanel.Dock="Right" Margin="12,0,6,0" VerticalAlignment="Center" IsChecked="{Binding UntranslatedOnly}"
-                          Content="{l:Tr 'Non traduits seulement'}" />
-                <Grid>
-                    <TextBox x:Name="SearchBox" Padding="28,4,8,4" MinHeight="28" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Search}" FontSize="12" Margin="10,0,0,0"
-                               VerticalAlignment="Center" IsHitTestVisible="False" Foreground="{DynamicResource HintBrush}" />
-                    <TextBlock Text="{l:Tr 'Rechercher une clé ou un texte...'}" Margin="29,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
-                               Foreground="{DynamicResource HintBrush}"
-                               Visibility="{Binding Text, ElementName=SearchBox, Converter={StaticResource EmptyToVisible}}" />
-                </Grid>
+                          Content="{l:Tr 'Untranslated only'}" />
+                <!-- The search is the one of the toolbar. -->
+                <Border />
             </DockPanel>
 
             <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource FieldHint}" Margin="2,6,0,0" Text="{Binding Message}" />
@@ -93,10 +87,10 @@
                     <ColumnDefinition Width="3*" />
                     <ColumnDefinition Width="30" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'CLÉ'}" />
-                <TextBlock Grid.Column="1" Style="{StaticResource PanelCaption}" Text="{l:Tr 'ORIGINE'}" />
-                <TextBlock Grid.Column="2" Style="{StaticResource PanelCaption}" Text="{l:Tr 'TEXTE PAR DÉFAUT'}" />
-                <TextBlock Grid.Column="3" Style="{StaticResource PanelCaption}" Text="{l:Tr 'TRADUCTION'}" />
+                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'KEY'}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource PanelCaption}" Text="{l:Tr 'ORIGIN'}" />
+                <TextBlock Grid.Column="2" Style="{StaticResource PanelCaption}" Text="{l:Tr 'DEFAULT TEXT'}" />
+                <TextBlock Grid.Column="3" Style="{StaticResource PanelCaption}" Text="{l:Tr 'TRANSLATION'}" />
             </Grid>
 
             <ListBox ItemsSource="{Binding VisibleRows}" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource RowItem}"
@@ -127,7 +121,7 @@
                                            Visibility="{Binding Text, ElementName=Translation, Converter={StaticResource EmptyToVisible}}" />
                             </Grid>
                             <Button Grid.Column="4" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" HorizontalAlignment="Right"
-                                    ToolTip="{l:Tr 'Retirer la traduction (le texte par défaut revient)'}"
+                                    ToolTip="{l:Tr 'Remove the translation (the default text comes back)'}"
                                     Command="{Binding DataContext.Languages.ClearTranslationCommand, ElementName=Root}" CommandParameter="{Binding}"
                                     Visibility="{Binding IsTranslated, Converter={StaticResource BoolToVisibility}}" />
                         </Grid>

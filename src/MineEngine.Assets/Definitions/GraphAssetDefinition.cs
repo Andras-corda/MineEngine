@@ -15,11 +15,11 @@ public sealed class GraphAssetDefinition : AssetDefinition<GraphAsset>
 {
     public override AssetType Type => AssetType.Graph;
 
-    public override string Label => Tr.T("Graphe");
+    public override string Label => Tr.T("Graph");
 
     public override string DefaultResourceIdBase => "new_graph";
 
-    public override string DefaultDisplayName => Tr.T("Nouveau graphe");
+    public override string DefaultDisplayName => Tr.T("New graph");
 
     protected override GraphAsset Create(Guid id, ResourceId resourceId, string displayName) => new(id, resourceId, displayName);
 

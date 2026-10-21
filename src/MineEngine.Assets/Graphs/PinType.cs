@@ -17,6 +17,9 @@ public enum PinType
     Block,
     Sound,
 
+    /// <summary>A stack of items (an item, a count, damage, enchantments...), like the one held in hand.</summary>
+    ItemStack,
+
     /// <summary>Instance d'une classe, d'une structure ou d'une interface du projet.</summary>
     Object,
 
@@ -39,15 +42,16 @@ public sealed record DataType(PinType Kind, Guid? Definition = null)
     public static readonly DataType Item = new(PinType.Item);
     public static readonly DataType Block = new(PinType.Block);
     public static readonly DataType Sound = new(PinType.Sound);
+    public static readonly DataType ItemStack = new(PinType.ItemStack);
 
     /// <summary>Types intégrés proposés pour une variable ou un paramètre (sans l'exécution).</summary>
-    public static IReadOnlyList<DataType> BuiltIn { get; } = [Boolean, Number, Text, Player, Position, Item, Block, Sound];
+    public static IReadOnlyList<DataType> BuiltIn { get; } = [Boolean, Number, Text, Player, Position, Item, ItemStack, Block, Sound];
 
     /// <summary>Type défini dans le projet : classe, structure ou interface (Object), ou énumération (Enum).</summary>
     public static DataType UserType(Guid definition, bool isEnum) => new(isEnum ? PinType.Enum : PinType.Object, definition);
 
     public static implicit operator DataType(PinType kind) => kind is PinType.Object or PinType.Enum
-        ? throw new ArgumentException(Tr.T("Un type du projet doit désigner sa définition."), nameof(kind))
+        ? throw new ArgumentException(Tr.T("A project type must point to its definition."), nameof(kind))
         : new DataType(kind);
 
     public bool IsExec => Kind == PinType.Exec;
@@ -64,17 +68,18 @@ public sealed record DataType(PinType Kind, Guid? Definition = null)
     /// <summary>Libellé d'un type intégré ; un type du projet est nommé par <see cref="IGraphContext.TypeLabel"/>.</summary>
     public string BuiltInLabel => Kind switch
     {
-        PinType.Exec => Tr.T("Exécution"),
-        PinType.Boolean => Tr.T("Booléen"),
-        PinType.Number => Tr.T("Nombre"),
-        PinType.Text => Tr.T("Texte"),
-        PinType.Player => Tr.T("Joueur"),
+        PinType.Exec => Tr.T("Execution"),
+        PinType.Boolean => Tr.T("Boolean"),
+        PinType.Number => Tr.T("Number"),
+        PinType.Text => Tr.T("Text"),
+        PinType.Player => Tr.T("Player"),
         PinType.Position => Tr.T("Position"),
         PinType.Item => Tr.T("Item"),
-        PinType.Block => Tr.T("Bloc"),
-        PinType.Sound => Tr.T("Son"),
-        PinType.Object => Tr.T("Objet"),
-        _ => Tr.T("Énumération"),
+        PinType.Block => Tr.T("Block"),
+        PinType.Sound => Tr.T("Sound"),
+        PinType.ItemStack => Tr.T("Item stack"),
+        PinType.Object => Tr.T("Object"),
+        _ => Tr.T("Enumeration"),
     };
 
     /// <summary>Texte enregistré dans les fichiers : "number", "object:guid", "enum:guid".</summary>

@@ -19,7 +19,15 @@ public sealed class LoweringContext
     private readonly List<IRSound> _sounds = [];
     private readonly List<IRBehavior> _behaviors = [];
     private readonly List<IRDefinition> _definitions = [];
-    private ProgramModel? _program;
+    private readonly List<IRBehaviorTree> _behaviorTrees = [];
+    private readonly List<IRModel> _models = [];
+    private readonly List<IRCommand> _commands = [];
+    private readonly List<IRCreativeTab> _creativeTabs = [];
+    private readonly List<IRKeybind> _keybinds = [];
+    private readonly List<IREnchantment> _enchantments = [];
+    private readonly List<IRFluid> _fluids = [];
+    private readonly List<IRGameRule> _gameRules = [];
+    private readonly List<IREffect> _effects = [];
 
     public LoweringContext(ModProject project, DiagnosticBag diagnostics)
     {
@@ -47,8 +55,32 @@ public sealed class LoweringContext
 
     public void AddDefinition(IRDefinition definition) => _definitions.Add(definition);
 
+    public void AddBehaviorTree(IRBehaviorTree tree) => _behaviorTrees.Add(tree);
+
+    public void AddModel(IRModel model) => _models.Add(model);
+
+    public void AddCommand(IRCommand command) => _commands.Add(command);
+
+    public void AddCreativeTab(IRCreativeTab tab) => _creativeTabs.Add(tab);
+
+    public void AddKeybind(IRKeybind keybind) => _keybinds.Add(keybind);
+
+    public void AddEnchantment(IREnchantment enchantment) => _enchantments.Add(enchantment);
+
+    public void AddFluid(IRFluid fluid) => _fluids.Add(fluid);
+
+    public void AddGameRule(IRGameRule rule) => _gameRules.Add(rule);
+
+    public void AddEffect(IREffect effect) => _effects.Add(effect);
+
+    /// <summary>Identifier of the 3D model an element is shown with, or null (missing models are reported by the validation).</summary>
+    public ResourceId? ResolveCustomModel(TexturedAsset owner) =>
+        owner.UsesCustomModel && owner.CustomModelId is { } id && Project.Assets.Find(id) is ModelAsset { IsUsedByTheGame: true } model
+            ? model.ResourceId
+            : null;
+
     /// <summary>Définitions de programme du projet (fonctions, classes...), construites au premier besoin.</summary>
-    public ProgramModel Program => _program ??= ProgramModel.From(Project.Assets);
+    public ProgramModel Program => Project.Assets.Program;
 
     /// <summary>
     /// Fichier d'une texture du projet. Sans texture, ou si son fichier manque, la
@@ -71,7 +103,7 @@ public sealed class LoweringContext
 
         if (reference.Kind == ContentReferenceKind.Tag)
         {
-            Diagnostics.Error(Tr.F("{0} : un tag n'est pas accepté ici.", role), owner.ToString(), owner.Id);
+            Diagnostics.Error(Tr.F("{0}: a tag is not accepted here.", role), owner.ToString(), owner.Id);
             return null;
         }
 
@@ -107,14 +139,26 @@ public sealed class LoweringContext
             asset.CreativeTabs);
     }
 
-    public IRContent BuildContent() => new(_items, _blocks, _mobs, _recipes, _sounds, _behaviors) { Definitions = [.. _definitions.OrderBy(d => d.ResourceId)] };
+    public IRContent BuildContent() => new(_items, _blocks, _mobs, _recipes, _sounds, _behaviors)
+    {
+        Definitions = [.. _definitions.OrderBy(d => d.ResourceId)],
+        BehaviorTrees = [.. _behaviorTrees.OrderBy(t => t.Id)],
+        Models = [.. _models.OrderBy(m => m.Id)],
+        Commands = [.. _commands.OrderBy(c => c.Id)],
+        CreativeTabs = [.. _creativeTabs.OrderBy(t => t.Id)],
+        Keybinds = [.. _keybinds.OrderBy(k => k.Id)],
+        Enchantments = [.. _enchantments.OrderBy(e => e.Id)],
+        Fluids = [.. _fluids.OrderBy(f => f.Id)],
+        GameRules = [.. _gameRules.OrderBy(r => r.Id)],
+        Effects = [.. _effects.OrderBy(e => e.Id)],
+    };
 
     private NamespacedId? ResolveAsset(Asset owner, Guid assetId, string role)
     {
         Asset? target = Project.Assets.Find(assetId);
         if (target is null)
         {
-            Diagnostics.Error(Tr.F("{0} : l'asset visé a été supprimé.", role), owner.ToString(), owner.Id);
+            Diagnostics.Error(Tr.F("{0}: the target asset was deleted.", role), owner.ToString(), owner.Id);
             return null;
         }
 
@@ -132,7 +176,7 @@ public sealed class LoweringContext
         if (file is null)
         {
             Diagnostics.Warning(
-                Tr.F("Le fichier de la texture '{0}' ({1}) est introuvable ; une texture de remplacement sera utilisée.", texture.ResourceId, texture.FilePath),
+                Tr.F("The texture file '{0}' ({1}) was not found; a placeholder texture will be used.", texture.ResourceId, texture.FilePath),
                 owner.ToString(),
                 owner.Id);
         }

@@ -32,7 +32,7 @@ public interface IDialogService
     NewProjectRequest? AskNewProject();
 
     /// <summary>Affiche les paramètres du projet ; vrai si l'utilisateur a validé des modifications.</summary>
-    bool EditProjectSettings(ProjectSettings settings);
+    bool EditProjectSettings(ProjectSettings settings, string projectRoot);
 
     void ShowMdkManager();
 
@@ -55,6 +55,12 @@ public interface IDialogService
     /// <summary>Un ou plusieurs sons OGG à importer ; liste vide si l'utilisateur annule.</summary>
     IReadOnlyList<string> AskSoundFiles();
 
+    /// <summary>One or more 3D models to import; empty list if the user cancels.</summary>
+    IReadOnlyList<string> AskModelFiles();
+
+    /// <summary>Import window of a 3D model (textures, variants, layers, element to create); true to import.</summary>
+    bool ShowModelImport(ViewModels.Assets.ModelImportViewModel viewModel);
+
     string? AskMdkArchive();
 
     string? AskFolder(string title);
@@ -76,6 +82,9 @@ public interface IDialogService
 public interface IShellService
 {
     void OpenFolder(string directory);
+
+    /// <summary>Opens the Windows file explorer with the file selected.</summary>
+    void RevealFile(string file);
 
     /// <summary>Ouvre un fichier avec l'application associée par Windows.</summary>
     void OpenFile(string file);

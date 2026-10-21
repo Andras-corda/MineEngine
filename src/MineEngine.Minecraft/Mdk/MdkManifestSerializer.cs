@@ -30,11 +30,11 @@ public sealed class MdkManifestSerializer
         JsonObject root = JsonFormatting.ParseObject(json, FileName);
 
         string id = root["id"]?.GetValue<string>()
-            ?? throw new InvalidDataException(Tr.F("{0} : la propriété 'id' est obligatoire.", FileName));
+            ?? throw new InvalidDataException(Tr.F("{0}: property 'id' is required.", FileName));
         string versionText = root["minecraftVersion"]?.GetValue<string>() ?? string.Empty;
         if (!MinecraftVersion.TryParse(versionText, out MinecraftVersion? minecraftVersion))
         {
-            throw new InvalidDataException(Tr.F("{0} : version de Minecraft '{1}' invalide.", FileName, versionText));
+            throw new InvalidDataException(Tr.F("{0}: invalid Minecraft version '{1}'.", FileName, versionText));
         }
 
         DateTime installedAt = DateTime.TryParse(

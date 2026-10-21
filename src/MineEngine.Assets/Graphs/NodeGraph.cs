@@ -75,12 +75,12 @@ public sealed class NodeGraph
         GraphNode? to = FindNode(connection.ToNode);
         if (from is null || to is null)
         {
-            return Tr.T("Nœud introuvable.");
+            return Tr.T("Node not found.");
         }
 
         if (from.Id == to.Id)
         {
-            return Tr.T("Un nœud ne peut pas être relié à lui-même.");
+            return Tr.T("A node cannot be connected to itself.");
         }
 
         NodeInfo fromInfo = context.Describe(from);
@@ -89,7 +89,7 @@ public sealed class NodeGraph
         {
             return connection.ToPin == NodeInfo.ExecInput && toInfo.HasExecInput
                 ? null
-                : Tr.T("Un fil d'exécution (blanc) doit arriver sur l'entrée d'exécution d'une condition ou d'une action.");
+                : Tr.T("An execution wire (white) must end on the execution input of a condition or an action.");
         }
 
         PinInfo? output = fromInfo.FindOutput(connection.FromPin);
@@ -97,21 +97,21 @@ public sealed class NodeGraph
         if (output is null || input is null)
         {
             return connection.ToPin == NodeInfo.ExecInput
-                ? Tr.T("Une valeur ne peut pas être reliée à une entrée d'exécution.")
-                : Tr.T("Broche introuvable.");
+                ? Tr.T("A value cannot be connected to an execution input.")
+                : Tr.T("Pin not found.");
         }
 
         if (!input.Connectable)
         {
-            return Tr.F("L'entrée « {0} » se règle directement sur le nœud.", input.Label);
+            return Tr.F("The input \"{0}\" is set directly on the node.", input.Label);
         }
 
         if (!context.CanFeed(output.Type, input.Type))
         {
-            return Tr.F("Types incompatibles : {0} vers {1}.", context.TypeLabel(output.Type), context.TypeLabel(input.Type));
+            return Tr.F("Incompatible types: {0} to {1}.", context.TypeLabel(output.Type), context.TypeLabel(input.Type));
         }
 
-        return CreatesValueCycle(from.Id, to.Id) ? Tr.T("Ce fil créerait une boucle de valeurs.") : null;
+        return CreatesValueCycle(from.Id, to.Id) ? Tr.T("This wire would create a value loop.") : null;
     }
 
     /// <summary>

@@ -28,14 +28,14 @@ public sealed class ProjectCardViewModel : ObservableObject
 
     /// <summary>Loader et version ciblés ("NeoForge 1.21.1").</summary>
     public string Badge => _summary is null
-        ? Tr.T("INTROUVABLE")
+        ? Tr.T("NOT FOUND")
         : $"{LoaderName(_summary.Settings.LoaderId)} {_summary.Settings.MinecraftVersion}".Trim();
 
     public string Description => _summary switch
     {
-        null => Tr.T("Le dossier a été déplacé ou supprimé."),
+        null => Tr.T("The folder was moved or deleted."),
         { Settings.Description: { Length: > 0 } text } => text.ReplaceLineEndings(" "),
-        _ => Tr.T("Aucune description"),
+        _ => Tr.T("No description"),
     };
 
     /// <summary>Identifiant et contenu : "e2emod · 3 items · 5 blocs · 3 mobs".</summary>
@@ -51,9 +51,10 @@ public sealed class ProjectCardViewModel : ObservableObject
             var parts = new List<string> { _summary.Settings.ModId.Value };
             foreach ((AssetType type, string singular, string plural) in new[]
                      {
-                         (AssetType.Item, Tr.T("{0} item"), Tr.T("{0} items")), (AssetType.Block, Tr.T("{0} bloc"), Tr.T("{0} blocs")),
-                         (AssetType.Mob, Tr.T("{0} mob"), Tr.T("{0} mobs")), (AssetType.Recipe, Tr.T("{0} recette"), Tr.T("{0} recettes")),
-                         (AssetType.Graph, Tr.T("{0} graphe"), Tr.T("{0} graphes")),
+                         (AssetType.Item, Tr.T("{0} item"), Tr.T("{0} items")), (AssetType.Block, Tr.T("{0} block"), Tr.T("{0} blocks")),
+                         (AssetType.Mob, Tr.T("{0} mob"), Tr.T("{0} mobs")), (AssetType.Recipe, Tr.T("{0} recipe"), Tr.T("{0} recipes")),
+                         (AssetType.Graph, Tr.T("{0} graph"), Tr.T("{0} graphs")),
+                         (AssetType.BehaviorTree, Tr.T("{0} AI tree"), Tr.T("{0} AI trees")),
                      })
             {
                 int count = _summary.Count(type);
@@ -65,7 +66,7 @@ public sealed class ProjectCardViewModel : ObservableObject
 
             if (parts.Count == 1)
             {
-                parts.Add(Tr.T("vide"));
+                parts.Add(Tr.T("empty"));
             }
 
             return string.Join(" · ", parts);
@@ -98,24 +99,27 @@ public sealed class ProjectCardViewModel : ObservableObject
         {
             if (_known.LastOpened is not { } date)
             {
-                return Tr.T("Jamais ouvert");
+                return Tr.T("Never opened");
             }
 
             int days = (DateTime.Today - date.LocalDateTime.Date).Days;
             return days switch
             {
-                <= 0 => Tr.T("Ouvert aujourd'hui à ") + date.LocalDateTime.ToString("HH:mm", CultureInfo.CurrentCulture),
-                1 => Tr.T("Ouvert hier"),
-                < 30 => Tr.F("Ouvert il y a {0} jours", days),
-                _ => Tr.T("Ouvert le ") + date.LocalDateTime.ToString("D", CultureInfo.CurrentCulture),
+                <= 0 => Tr.T("Opened today at ") + date.LocalDateTime.ToString("HH:mm", CultureInfo.CurrentCulture),
+                1 => Tr.T("Opened yesterday"),
+                < 30 => Tr.F("Opened {0} days ago", days),
+                _ => Tr.T("Opened on ") + date.LocalDateTime.ToString("D", CultureInfo.CurrentCulture),
             };
         }
     }
 
-    public string MdkLabel => _summary?.Settings.MdkId is { Length: > 0 } mdk ? mdk : Tr.T("Aucun MDK choisi");
+    public string MdkLabel => _summary?.Settings.MdkId is { Length: > 0 } mdk ? mdk : Tr.T("No MDK chosen");
 
-    /// <summary>Première texture du projet pour l'icône, ou null.</summary>
-    public string? IconTexture => _summary?.PreviewTextures.FirstOrDefault();
+    /// <summary>Icon of the card: the icon of the mod (project settings), otherwise the first texture of the project, or null.</summary>
+    public string? IconTexture =>
+        _summary is not null && MineEngine.Project.ProjectIcon.Resolve(RootDirectory, _summary.Settings.IconFile) is { } icon && File.Exists(icon)
+            ? icon
+            : _summary?.PreviewTextures.FirstOrDefault();
 
     public bool HasIconTexture => IconTexture is not null;
 

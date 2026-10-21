@@ -240,65 +240,72 @@ public sealed class BlockAsset : InventoryAsset
 
         foreach ((BlockTextureSlot slot, Guid texture) in _extraTextures.OrderBy(t => t.Key))
         {
-            yield return new AssetReference(texture, AssetReferenceKind.Texture, Tr.F("texture {0}", slot.ToString().ToLowerInvariant()));
+            yield return new AssetReference(texture, AssetReferenceKind.Texture, Tr.F("{0} texture", slot.ToString().ToLowerInvariant()));
         }
 
         if (DropKind == BlockDropKind.OtherItem && DropItem is { Kind: ContentReferenceKind.Asset } drop)
         {
-            yield return new AssetReference(drop.AssetId, AssetReferenceKind.Item, Tr.T("item laissé"));
+            yield return new AssetReference(drop.AssetId, AssetReferenceKind.Item, Tr.T("dropped item"));
         }
     }
 
     public static bool IsValidStrength(float value) => float.IsFinite(value) && value is >= 0f and <= MaxStrength;
+
+    public override bool UsesCustomModel => Model == BlockModelKind.Custom && CustomModelId is not null;
 
     public override void Validate(DiagnosticBag diagnostics)
     {
         base.Validate(diagnostics);
         string source = ToString();
 
+        if (Model == BlockModelKind.Custom && CustomModelId is null)
+        {
+            diagnostics.Error(Tr.T("Shape \"3D model\": choose the model of the block."), source, Id);
+        }
+
         if (RequiresCorrectTool && HarvestTool == HarvestTool.None)
         {
-            diagnostics.Warning(Tr.T("« Outil requis » est coché mais aucun outil n'est choisi : le bloc ne laissera jamais rien tomber."), source, Id);
+            diagnostics.Warning(Tr.T("\"Requires tool\" is checked but no tool is chosen: the block will never drop anything."), source, Id);
         }
 
         if (ToolTier != ToolTier.Any && HarvestTool == HarvestTool.None)
         {
-            diagnostics.Warning(Tr.T("Un niveau d'outil est choisi sans outil : il sera ignoré."), source, Id);
+            diagnostics.Warning(Tr.T("A tool level is chosen without a tool: it will be ignored."), source, Id);
         }
 
         if (DropKind == BlockDropKind.OtherItem && DropItem is null)
         {
-            diagnostics.Error(Tr.T("Choisissez l'item laissé par le bloc (un item du projet ou du jeu, comme « diamond »)."), source, Id);
+            diagnostics.Error(Tr.T("Choose the item dropped by the block (an item from the project or the game, such as \"diamond\")."), source, Id);
         }
 
         if (DropKind == BlockDropKind.OtherItem && DropItem is { Kind: ContentReferenceKind.Tag })
         {
-            diagnostics.Error(Tr.T("Un bloc ne peut pas laisser un tag : choisissez un item précis."), source, Id);
+            diagnostics.Error(Tr.T("A block cannot drop a tag: choose a specific item."), source, Id);
         }
 
         if (DropKind == BlockDropKind.Self && !HasItemForm)
         {
-            diagnostics.Warning(Tr.T("Le bloc se récupère lui-même mais n'a pas de forme item : il ne laissera rien tomber."), source, Id);
+            diagnostics.Warning(Tr.T("The block drops itself but has no item form: it will drop nothing."), source, Id);
         }
 
         if (DropMin > DropMax)
         {
-            diagnostics.Warning(Tr.T("La quantité minimale laissée dépasse la maximale : elles seront inversées."), source, Id);
+            diagnostics.Warning(Tr.T("The minimum dropped quantity is greater than the maximum: they will be swapped."), source, Id);
         }
 
         if (ExperienceMin > ExperienceMax)
         {
-            diagnostics.Warning(Tr.T("L'expérience minimale dépasse la maximale : elles seront inversées."), source, Id);
+            diagnostics.Warning(Tr.T("The minimum experience is greater than the maximum: they will be swapped."), source, Id);
         }
 
         if (DropsExperience && Model == BlockModelKind.Column)
         {
-            diagnostics.Warning(Tr.T("Un bloc colonne ne peut pas donner d'expérience : elle sera ignorée."), source, Id);
+            diagnostics.Warning(Tr.T("A pillar block cannot give experience: it will be ignored."), source, Id);
         }
 
         if (Model == BlockModelKind.Cross && RenderType == BlockRenderType.Solid)
         {
-            diagnostics.Info(Tr.T("Un bloc en croix est presque toujours transparent : choisissez « Découpe » pour sa texture."), source, Id);
+            diagnostics.Info(Tr.T("A cross block is almost always transparent: choose \"Cutout\" for its texture."), source, Id);
         }
     }
 
@@ -306,7 +313,7 @@ public sealed class BlockAsset : InventoryAsset
     {
         if (!IsValidStrength(value))
         {
-            throw new ArgumentOutOfRangeException(nameof(value), value, Tr.F("La valeur doit être comprise entre 0 et {0}.", MaxStrength));
+            throw new ArgumentOutOfRangeException(nameof(value), value, Tr.F("The value must be between 0 and {0}.", MaxStrength));
         }
 
         return value;

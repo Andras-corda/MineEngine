@@ -4,8 +4,8 @@ using System.Text.RegularExpressions;
 namespace MineEngine.Tests;
 
 /// <summary>
-/// Les textes de l'interface sont écrits en français (Tr.T, Tr.F, {l:Tr} dans le XAML)
-/// et chacun doit avoir sa traduction anglaise dans Localization/en.json.
+/// Interface texts are written in English (Tr.T, Tr.F, {l:Tr} in XAML) and each one must have
+/// its French translation in Localization/fr.json.
 /// </summary>
 public sealed partial class LocalizationTests
 {
@@ -15,38 +15,47 @@ public sealed partial class LocalizationTests
         Assert.Equal(UiLanguage.English, UiLanguage.Default);
         Assert.Equal(UiLanguage.English, UiLanguage.FromCode("xx"));
         Assert.Equal(UiLanguage.French, UiLanguage.FromCode("FR"));
+        Assert.True(UiLanguage.English.IsSource);
     }
 
     [Fact]
-    public void French_needs_no_translation_and_English_translates()
+    public void English_needs_no_translation_and_French_translates()
     {
-        Assert.Equal("Nouveau bloc", TextCatalog.For(UiLanguage.French).Translate("Nouveau bloc"));
-        Assert.Equal("New block", TextCatalog.For(UiLanguage.English).Translate("Nouveau bloc"));
-        Assert.Equal("Texte inconnu", TextCatalog.For(UiLanguage.English).Translate("Texte inconnu"));
+        Assert.Equal("New item", TextCatalog.For(UiLanguage.English).Translate("New item"));
+        Assert.Equal("Nouvel item", TextCatalog.For(UiLanguage.French).Translate("New item"));
+        Assert.Equal("Unknown text", TextCatalog.For(UiLanguage.French).Translate("Unknown text"));
     }
 
     [Fact]
-    public void Every_interface_text_has_an_English_translation()
+    public void Language_files_keyed_by_former_French_texts_get_English_keys()
     {
-        TextCatalog english = TextCatalog.For(UiLanguage.English);
+        Dictionary<string, string> converted = TextCatalog.ToEnglishKeys([KeyValuePair.Create("Nouvel item", "Neues Item")]);
+
+        Assert.Equal("Neues Item", converted["New item"]);
+    }
+
+    [Fact]
+    public void Every_interface_text_has_a_French_translation()
+    {
+        TextCatalog french = TextCatalog.For(UiLanguage.French);
         List<string> texts = [.. SourceTexts().Distinct()];
-        Assert.True(texts.Count > 1000, $"Seulement {texts.Count} textes trouvés dans src : la recherche est cassée.");
-        List<string> missing = [.. texts.Where(t => !english.Contains(t)).Order()];
-        Assert.True(missing.Count == 0, "Textes sans traduction anglaise :\n" + string.Join("\n", missing));
+        Assert.True(texts.Count > 1000, $"Only {texts.Count} texts found in src: the search is broken.");
+        List<string> missing = [.. texts.Where(t => !french.Contains(t)).Order()];
+        Assert.True(missing.Count == 0, "Texts without a French translation:" + Environment.NewLine + string.Join(Environment.NewLine, missing));
     }
 
     [Fact]
     public void Translations_keep_the_same_placeholders()
     {
-        TextCatalog english = TextCatalog.For(UiLanguage.English);
-        List<string> wrong = [.. english.TranslatedTexts.Where(t => Placeholders(t) != Placeholders(english.Translate(t)))];
-        Assert.True(wrong.Count == 0, "Valeurs {0}, {1}... différentes :\n" + string.Join("\n", wrong));
+        TextCatalog french = TextCatalog.For(UiLanguage.French);
+        List<string> wrong = [.. french.TranslatedTexts.Where(t => Placeholders(t) != Placeholders(french.Translate(t)))];
+        Assert.True(wrong.Count == 0, "Different {0}, {1}... values:" + Environment.NewLine + string.Join(Environment.NewLine, wrong));
     }
 
     private static string Placeholders(string text) =>
         string.Join(",", PlaceholderPattern().Matches(text).Select(m => m.Groups[1].Value).Distinct().Order());
 
-    /// <summary>Textes passés à Tr.T / Tr.F dans le code et à {l:Tr '...'} dans le XAML.</summary>
+    /// <summary>Texts passed to Tr.T / Tr.F in the code and to {l:Tr '...'} in XAML.</summary>
     private static IEnumerable<string> SourceTexts()
     {
         string src = Path.Combine(RepositoryRoot(), "src");
@@ -91,7 +100,7 @@ public sealed partial class LocalizationTests
             }
         }
 
-        throw new DirectoryNotFoundException("MineEngine.sln introuvable.");
+        throw new DirectoryNotFoundException("MineEngine.sln not found.");
     }
 
     [GeneratedRegex("""Tr\.[TF]\(\s*"((?:[^"\\]|\\.)*)"(?=\s*[,)])""")]

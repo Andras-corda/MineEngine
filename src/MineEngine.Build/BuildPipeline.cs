@@ -102,17 +102,17 @@ public sealed class BuildPipeline
         GenerationResult generation = step.Generation!;
         string workspace = project.Layout.WorkspaceDirectory;
         IReadOnlyList<string> lockedFiles = project.Settings.LockedFiles;
-        log.Info(Tr.F("{0} fichiers générés dans {1}", generation.Files.Count, workspace));
+        log.Info(Tr.F("{0} files generated in {1}", generation.Files.Count, workspace));
         if (lockedFiles.Count > 0)
         {
-            log.Info(Tr.F("{0} fichier(s) verrouillé(s) conservé(s) tel(s) quel(s).", lockedFiles.Count));
+            log.Info(Tr.F("{0} locked file(s) kept as is.", lockedFiles.Count));
         }
 
-        log.Info(Tr.F("[3/{0}] Recherche d'un JDK", StepCount));
+        log.Info(Tr.F("[3/{0}] Looking for a JDK", StepCount));
         JdkInstallation? jdk = FindJdk(backend.Mdk, log, diagnostics);
         if (jdk is null)
         {
-            return Fail(log, diagnostics, stopwatch, Tr.T("Java est introuvable."));
+            return Fail(log, diagnostics, stopwatch, Tr.T("Java was not found."));
         }
 
         IReadOnlyList<string> tasks = mode switch
@@ -123,9 +123,9 @@ public sealed class BuildPipeline
         };
         log.Info(mode switch
         {
-            GradleMode.RunClient => Tr.F("[4/{0}] Lancement de Minecraft avec Gradle (le premier build peut prendre plusieurs minutes)", StepCount),
-            GradleMode.Reload => Tr.F("[4/{0}] Rechargement du projet Gradle et de ses dépendances", StepCount),
-            _ => Tr.F("[4/{0}] Compilation avec Gradle (le premier build peut prendre plusieurs minutes)", StepCount),
+            GradleMode.RunClient => Tr.F("[4/{0}] Launching Minecraft with Gradle (the first build can take several minutes)", StepCount),
+            GradleMode.Reload => Tr.F("[4/{0}] Reloading the Gradle project and its dependencies", StepCount),
+            _ => Tr.F("[4/{0}] Compiling with Gradle (the first build can take several minutes)", StepCount),
         });
         var gradleOutput = new List<string>();
         int exitCode = await _gradle
@@ -143,28 +143,28 @@ public sealed class BuildPipeline
             diagnostics.Add(message);
             if (message.AssetId is not null)
             {
-                log.Write(message.Severity == DiagnosticSeverity.Error ? LogLevel.Error : LogLevel.Warning, Tr.T("Origine : ") + message);
+                log.Write(message.Severity == DiagnosticSeverity.Error ? LogLevel.Error : LogLevel.Warning, Tr.T("Origin: ") + message);
             }
         }
 
         if (exitCode != 0)
         {
-            ReportError(log, diagnostics, Tr.F("Gradle s'est terminé avec le code {0}. Consultez la sortie ci-dessus.", exitCode));
-            return Fail(log, diagnostics, stopwatch, Tr.T("Gradle a signalé une erreur."));
+            ReportError(log, diagnostics, Tr.F("Gradle exited with code {0}. See the output above.", exitCode));
+            return Fail(log, diagnostics, stopwatch, Tr.T("Gradle reported an error."));
         }
 
         string? jarPath = mode == GradleMode.Build ? FindJar(backend, ir.Mod, workspace, log, diagnostics) : null;
         if (diagnostics.HasErrors)
         {
-            return Fail(log, diagnostics, stopwatch, Tr.T("le .jar est introuvable."));
+            return Fail(log, diagnostics, stopwatch, Tr.T("the .jar was not found."));
         }
 
         stopwatch.Stop();
         log.Success(mode switch
         {
-            GradleMode.RunClient => Tr.F("Minecraft fermé ({0:mm\\:ss}).", stopwatch.Elapsed),
-            GradleMode.Reload => Tr.F("Projet Gradle rechargé en {0:mm\\:ss}.", stopwatch.Elapsed),
-            _ => Tr.F("Build réussi en {0:mm\\:ss} : {1}", stopwatch.Elapsed, jarPath),
+            GradleMode.RunClient => Tr.F("Minecraft closed ({0:mm\\:ss}).", stopwatch.Elapsed),
+            GradleMode.Reload => Tr.F("Gradle project reloaded in {0:mm\\:ss}.", stopwatch.Elapsed),
+            _ => Tr.F("Build succeeded in {0:mm\\:ss}: {1}", stopwatch.Elapsed, jarPath),
         });
         return BuildResult.Succeeded(jarPath, diagnostics, stopwatch.Elapsed);
     }
@@ -175,33 +175,41 @@ public sealed class BuildPipeline
     /// <summary>Étapes 1 (validation, Mod IR) et 2 (génération du projet Minecraft).</summary>
     private async Task<GenerationStep> GenerateCoreAsync(ModProject project, ILog log, DiagnosticBag diagnostics, CancellationToken cancellationToken)
     {
-        log.Info(Tr.F("[1/{0}] Validation du projet {1}", StepCount, project.Name));
+        log.Info(Tr.F("[1/{0}] Validating project {1}", StepCount, project.Name));
         IModLoaderBackend? backend = ResolveBackend(project, log, diagnostics);
         if (backend is null)
         {
-            return new GenerationStep(null, null, null, Tr.T("aucun MDK utilisable."));
+            return new GenerationStep(null, null, null, Tr.T("no usable MDK."));
         }
 
         var validation = new DiagnosticBag();
-        ModIR? ir = await Task.Run(() => _irBuilder.Build(project, validation), cancellationToken).ConfigureAwait(false);
+        ModIR? ir;
+        using (EngineDebug.Measure(log, Tr.T("Validation and Mod IR")))
+        {
+            ir = await Task.Run(() => _irBuilder.Build(project, validation), cancellationToken).ConfigureAwait(false);
+        }
         Report(log, validation);
         diagnostics.AddRange(validation);
         if (ir is null)
         {
-            return new GenerationStep(backend, null, null, Tr.T("le projet contient des erreurs."));
+            return new GenerationStep(backend, null, null, Tr.T("the project contains errors."));
         }
 
-        log.Info(Tr.F("[2/{0}] Génération du projet {1}", StepCount, backend.DisplayName));
+        log.Info(Tr.F("[2/{0}] Generating project {1}", StepCount, backend.DisplayName));
         string workspace = project.Layout.WorkspaceDirectory;
         ModGenerator generator = _generatorFactory(backend);
         IReadOnlyList<string> lockedFiles = project.Settings.LockedFiles;
-        GenerationResult generation = await Task.Run(
-            () => generator.GenerateAsync(ir, workspace, log, cancellationToken, lockedFiles), cancellationToken).ConfigureAwait(false);
+        GenerationResult generation;
+        using (EngineDebug.Measure(log, Tr.T("Generation")))
+        {
+            generation = await Task.Run(
+                () => generator.GenerateAsync(ir, workspace, log, cancellationToken, lockedFiles), cancellationToken).ConfigureAwait(false);
+        }
         Report(log, generation.Diagnostics);
         diagnostics.AddRange(generation.Diagnostics);
         return generation.Success
             ? new GenerationStep(backend, ir, generation, null)
-            : new GenerationStep(backend, ir, generation, Tr.T("la génération a échoué."));
+            : new GenerationStep(backend, ir, generation, Tr.T("generation failed."));
     }
 
     /// <summary>Trouve le MDK du projet et le backend capable de l'utiliser.</summary>
@@ -222,18 +230,18 @@ public sealed class BuildPipeline
             {
                 string wanted = settings.MdkId ?? $"{settings.LoaderId} {settings.MinecraftVersion}";
                 ReportError(log, diagnostics,
-                    Tr.F("Le MDK '{0}' n'est pas installé. Installez-le avec Outils > Gestionnaire de MDK, ", wanted) +
-                    Tr.T("ou choisissez-en un autre dans Espace de travail > Paramètres du projet."));
+                    Tr.F("MDK '{0}' is not installed. Install it with Tools > MDK Manager, ", wanted) +
+                    Tr.T("or choose another one in Workspace > Project Settings."));
                 return null;
             }
 
-            log.Warning(Tr.F("Le MDK '{0}' est introuvable ; {1} est utilisé à la place.", settings.MdkId, mdk.DisplayName));
+            log.Warning(Tr.F("MDK '{0}' was not found; {1} is used instead.", settings.MdkId, mdk.DisplayName));
         }
 
         if (!_backends.Supports(mdk))
         {
             ReportError(log, diagnostics,
-                Tr.F("Le générateur ne prend pas encore en charge {0}. Versions prises en charge : {1}.", mdk.DisplayName, _backends.SupportDescription));
+                Tr.F("The generator does not support {0} yet. Supported versions: {1}.", mdk.DisplayName, _backends.SupportDescription));
             return null;
         }
 
@@ -247,14 +255,14 @@ public sealed class BuildPipeline
         if (jdk is null)
         {
             ReportError(log, diagnostics,
-                Tr.F("Aucun JDK entre {0} et {1} n'a été trouvé (Gradle {2}). ", GradleJavaCompatibility.MinimumJava, maximum, mdk.GradleVersion ?? "?") +
-                Tr.F("Installez un JDK {0} (par exemple Eclipse Temurin) puis relancez le build.", mdk.JavaVersion));
+                Tr.F("No JDK between {0} and {1} was found (Gradle {2}). ", GradleJavaCompatibility.MinimumJava, maximum, mdk.GradleVersion ?? "?") +
+                Tr.F("Install a JDK {0} (for example Eclipse Temurin), then run the build again.", mdk.JavaVersion));
             return null;
         }
 
         if (jdk.MajorVersion != mdk.JavaVersion)
         {
-            log.Warning(Tr.F("{0} sera utilisé pour lancer Gradle ; Gradle téléchargera Java {1} pour compiler.", jdk, mdk.JavaVersion));
+            log.Warning(Tr.F("{0} will be used to run Gradle; Gradle will download Java {1} to compile.", jdk, mdk.JavaVersion));
         }
 
         return jdk;
@@ -266,7 +274,7 @@ public sealed class BuildPipeline
         string builtJar = backend.GetOutputJarPath(workspace, mod);
         if (!File.Exists(builtJar))
         {
-            ReportError(log, diagnostics, Tr.F("Le fichier attendu '{0}' n'a pas été produit par Gradle.", builtJar));
+            ReportError(log, diagnostics, Tr.F("The expected file '{0}' was not produced by Gradle.", builtJar));
             return null;
         }
 
@@ -297,7 +305,7 @@ public sealed class BuildPipeline
     private static BuildResult Fail(ILog log, DiagnosticBag diagnostics, Stopwatch stopwatch, string reason)
     {
         stopwatch.Stop();
-        log.Error(Tr.F("Build interrompu : {0}", reason));
+        log.Error(Tr.F("Build stopped: {0}", reason));
         return BuildResult.Failed(diagnostics, stopwatch.Elapsed);
     }
 }

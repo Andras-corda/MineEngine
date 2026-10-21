@@ -1,15 +1,15 @@
 namespace MineEngine.Tests;
 
-/// <summary>Langues importées : format du fichier, repli sur l'anglais, modèle de traduction.</summary>
+/// <summary>Imported languages: file format, fallback to English, translation template, former French keys.</summary>
 public sealed class LanguageLibraryTests
 {
     private const string German = """
         { "formatVersion": 1, "code": "de", "name": "Deutsch", "culture": "de-DE",
           "translations": {
-            "Nouveau bloc": "Neuer Block",
+            "New block": "Neuer Block",
             "Déplacer {0} nœuds": "{0} Knoten verschieben",
-            "Supprimer « {0} »": "Löschen",
-            "Enregistrer": ""
+            "Delete \"{0}\"": "Löschen",
+            "Save": ""
           } }
         """;
 
@@ -48,9 +48,10 @@ public sealed class LanguageLibraryTests
         Assert.Equal(3, library.All().Count);
 
         TextCatalog catalog = TextCatalog.For(german);
-        Assert.Equal("Neuer Block", catalog.Translate("Nouveau bloc"));
-        Assert.Equal(TextCatalog.For(UiLanguage.English).Translate("Enregistrer"), catalog.Translate("Enregistrer"));
-        Assert.Equal("Texte inconnu", catalog.Translate("Texte inconnu"));
+        Assert.Equal("Neuer Block", catalog.Translate("New block"));
+        Assert.Equal("{0} Knoten verschieben", catalog.Translate("Move {0} nodes"));
+        Assert.Equal("Save", catalog.Translate("Save"));
+        Assert.Equal("Unknown text", catalog.Translate("Unknown text"));
 
         double completeness = LanguageLibrary.Completeness(german);
         Assert.InRange(completeness, 0.0001, 0.01);
@@ -67,20 +68,19 @@ public sealed class LanguageLibraryTests
         using var temp = new TemporaryDirectory();
         var library = new LanguageLibrary(Path.Combine(temp.Path, "languages"));
         string source = Path.Combine(temp.Path, "en.json");
-        File.WriteAllText(source, """{ "code": "en", "name": "English", "translations": { "Nouveau bloc": "Block" } }""");
+        File.WriteAllText(source, """{ "code": "en", "name": "English", "translations": { "New block": "Block" } }""");
         Assert.Throws<InvalidDataException>(() => library.Import(source));
     }
 
     [Fact]
-    public void Template_lists_every_text_with_its_English_version()
+    public void Template_lists_every_English_text()
     {
         using var temp = new TemporaryDirectory();
         string template = Path.Combine(temp.Path, "template.json");
         LanguageLibrary.ExportTemplate(template);
 
         LanguageFile file = LanguageFileSerializer.Read(File.ReadAllText(template), "template.json");
-        TextCatalog english = TextCatalog.For(UiLanguage.English);
-        Assert.Equal(english.Count, file.Translations.Count);
-        Assert.Equal("New block", file.Translations["Nouveau bloc"]);
+        Assert.Equal(TextCatalog.SourceTexts.Count(), file.Translations.Count);
+        Assert.Equal("New item", file.Translations["New item"]);
     }
 }

@@ -20,10 +20,10 @@
 
             <!-- Menu contextuel d'une carte de projet (un exemplaire par carte). -->
             <ContextMenu x:Key="ProjectMenu" x:Shared="False">
-                <MenuItem Header="{l:Tr 'Ouvrir le projet'}" Click="OnOpenMenuClick" />
-                <MenuItem Header="{l:Tr 'Ouvrir le dossier'}" Click="OnOpenFolderMenuClick" />
+                <MenuItem Header="{l:Tr 'Open project'}" Click="OnOpenMenuClick" />
+                <MenuItem Header="{l:Tr 'Open folder'}" Click="OnOpenFolderMenuClick" />
                 <Separator />
-                <MenuItem Header="{l:Tr 'Retirer de la liste'}" Click="OnRemoveMenuClick" />
+                <MenuItem Header="{l:Tr 'Remove from list'}" Click="OnRemoveMenuClick" />
             </ContextMenu>
 
             <!-- Icône d'un projet : sa première texture, sinon un cube. -->
@@ -62,7 +62,7 @@
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
                     <Button x:Name="SidebarToggle" DockPanel.Dock="Left" Style="{StaticResource IconButton}" Width="32" Height="30"
                             Margin="13,0,0,0" FontSize="14" Content="{StaticResource Glyph.Menu}" Command="{Binding Hub.ToggleSidebarCommand}" />
-                    <TextBlock x:Name="SidebarCaption" Text="{l:Tr 'ESPACE DE TRAVAIL'}" Style="{StaticResource SectionCaption}"
+                    <TextBlock x:Name="SidebarCaption" Text="{l:Tr 'WORKSPACE'}" Style="{StaticResource SectionCaption}"
                                VerticalAlignment="Center" Margin="8,0,0,0" />
                 </DockPanel>
 
@@ -72,23 +72,23 @@
                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="11,7">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" />
-                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'Nouveau projet...'}" />
+                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'New project...'}" />
                         </StackPanel>
-                        <Button.ToolTip><l:Tr Text="Nouveau projet..." /></Button.ToolTip>
+                        <Button.ToolTip><l:Tr Text="New project..." /></Button.ToolTip>
                     </Button>
                     <Button Style="{StaticResource NavButton}" Command="{Binding OpenProjectCommand}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.OpenFile}" />
-                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'Ouvrir un projet...'}" />
+                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'Open a project...'}" />
                         </StackPanel>
-                        <Button.ToolTip><l:Tr Text="Ouvrir un projet..." /></Button.ToolTip>
+                        <Button.ToolTip><l:Tr Text="Open a project..." /></Button.ToolTip>
                     </Button>
                     <Button Style="{StaticResource NavButton}" Command="{Binding Hub.AddExistingCommand}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewFolder}" />
-                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'Ajouter un projet...'}" />
+                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'Add a project...'}" />
                         </StackPanel>
-                        <Button.ToolTip><l:Tr Text="Ajouter un projet existant à la liste, sans l'ouvrir" /></Button.ToolTip>
+                        <Button.ToolTip><l:Tr Text="Add an existing project to the list, without opening it" /></Button.ToolTip>
                     </Button>
                     <Border Height="1" Background="{DynamicResource CardBorderBrush}" Margin="16,10" />
                 </StackPanel>
@@ -99,24 +99,24 @@
                             Command="{Binding Hub.NavigateCommand}" CommandParameter="{x:Static hub:HubPage.Home}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Home}" />
-                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'Accueil'}" />
+                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'Home'}" />
                         </StackPanel>
-                        <Button.ToolTip><l:Tr Text="Accueil" /></Button.ToolTip>
+                        <Button.ToolTip><l:Tr Text="Home" /></Button.ToolTip>
                     </Button>
                     <Button Style="{StaticResource NavButton}" Tag="{Binding Hub.IsProjectsPage}"
                             Command="{Binding Hub.NavigateCommand}" CommandParameter="{x:Static hub:HubPage.Projects}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Folder}" />
-                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'Mes projets'}" />
+                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'My projects'}" />
                         </StackPanel>
-                        <Button.ToolTip><l:Tr Text="Mes projets" /></Button.ToolTip>
+                        <Button.ToolTip><l:Tr Text="My projects" /></Button.ToolTip>
                     </Button>
                     <Button Style="{StaticResource NavButton}" Command="{Binding OpenSettingsCommand}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Settings}" />
-                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'Paramètres'}" />
+                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'Settings'}" />
                         </StackPanel>
-                        <Button.ToolTip><l:Tr Text="Paramètres" /></Button.ToolTip>
+                        <Button.ToolTip><l:Tr Text="Settings" /></Button.ToolTip>
                     </Button>
                 </StackPanel>
 
@@ -124,23 +124,23 @@
                     <Button Style="{StaticResource NavButton}" Command="{Binding OpenMdkManagerCommand}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Mdk}" />
-                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'Gérer les MDK'}" />
+                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'Manage MDKs'}" />
                         </StackPanel>
-                        <Button.ToolTip><l:Tr Text="Gérer les MDK" /></Button.ToolTip>
+                        <Button.ToolTip><l:Tr Text="Manage MDKs" /></Button.ToolTip>
                     </Button>
                     <Button Style="{StaticResource NavButton}" Tag="{Binding Hub.IsHelpPage}"
                             Command="{Binding Hub.NavigateCommand}" CommandParameter="{x:Static hub:HubPage.Help}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Help}" />
-                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'Aide et documentation'}" />
+                            <TextBlock Style="{StaticResource SidebarLabel}" Text="{l:Tr 'Help and documentation'}" />
                         </StackPanel>
-                        <Button.ToolTip><l:Tr Text="Aide et documentation" /></Button.ToolTip>
+                        <Button.ToolTip><l:Tr Text="Help and documentation" /></Button.ToolTip>
                     </Button>
                     <StackPanel x:Name="SidebarFooter">
                         <Border Height="1" Background="{DynamicResource CardBorderBrush}" Margin="16,12" />
                         <TextBlock Text="{l:Tr 'Mine Engine'}" FontWeight="SemiBold" Margin="22,0,0,2" Foreground="{DynamicResource StrongTextBrush}" />
                         <TextBlock Style="{StaticResource SectionCaption}" Margin="22,0,0,0">
-                            <Run Text="{Binding VersionLabel, Mode=OneWay}" /><Run Text="{l:Tr ' · Éditeur'}" />
+                            <Run Text="{Binding VersionLabel, Mode=OneWay}" /><Run Text="{l:Tr ' · Editor'}" />
                         </TextBlock>
                     </StackPanel>
                 </StackPanel>
@@ -149,35 +149,86 @@
         </Border>
 
         <!-- ===================== Contenu ===================== -->
-        <!-- Accueil : vide pour l'instant. Mes projets : la liste. Aide : la documentation. -->
+        <!-- Accueil : présentation, version et dépôt. Mes projets : la liste. Aide : la documentation. -->
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid x:Name="PageGrid" Margin="36,28,36,24" MaxWidth="1000" HorizontalAlignment="Left">
+
+                <!-- ===================== Accueil ===================== -->
+                <StackPanel Visibility="{Binding Hub.IsHomePage, Converter={StaticResource BoolToVisibility}}" MaxWidth="720" HorizontalAlignment="Left">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock FontSize="28" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" Text="{l:Tr 'Mine Engine'}" />
+                        <Border Style="{StaticResource Badge}" Margin="12,0,0,4" VerticalAlignment="Bottom">
+                            <TextBlock Style="{StaticResource BadgeText}" Text="{Binding VersionLabel, Mode=OneWay}" />
+                        </Border>
+                    </StackPanel>
+                    <TextBlock Margin="0,6,0,20" TextWrapping="Wrap" Foreground="{DynamicResource HintBrush}" FontSize="14"
+                               Text="{l:Tr 'Create Minecraft mods for Forge and NeoForge without writing Java: items, blocks, mobs, recipes, node graphs and behavior trees.'}" />
+
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'ABOUT'}" Margin="0,0,0,8" />
+                            <WrapPanel Margin="0,0,0,6">
+                                <TextBlock Text="{l:Tr 'Version'}" Width="110" Foreground="{DynamicResource HintBrush}" />
+                                <TextBlock Text="{Binding VersionLabel, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" />
+                            </WrapPanel>
+                            <WrapPanel Margin="0,0,0,6">
+                                <TextBlock Text="{l:Tr 'Development'}" Width="110" Foreground="{DynamicResource HintBrush}" />
+                                <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource StrongTextBrush}"
+                                           Text="{l:Tr 'A solo project by Andras Corda, developed and maintained by one person.'}" />
+                            </WrapPanel>
+                            <WrapPanel Margin="0,0,0,10">
+                                <TextBlock Text="{l:Tr 'Source code'}" Width="110" Foreground="{DynamicResource HintBrush}" />
+                                <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource StrongTextBrush}"
+                                           Text="{l:Tr 'Open on GitHub, under the MIT license: read it, report a problem or suggest an idea.'}" />
+                            </WrapPanel>
+                            <WrapPanel>
+                                <Button Command="{Binding OpenRepositoryCommand}" Padding="12,5" Margin="0,0,8,0"
+                                        ToolTip="{Binding RepositoryUrl, Mode=OneWay}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Code}" />
+                                        <TextBlock Text="{l:Tr 'Open the GitHub repository'}" />
+                                    </StackPanel>
+                                </Button>
+                                <TextBlock Text="{Binding RepositoryUrl, Mode=OneWay}" FontFamily="Consolas" FontSize="12" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource HintBrush}" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <WrapPanel>
+                        <Button Style="{DynamicResource AccentButtonStyle}" Command="{Binding NewProjectCommand}" Padding="14,6" Margin="0,0,8,8"
+                                Content="{l:Tr 'New project...'}" />
+                        <Button Command="{Binding OpenProjectCommand}" Padding="14,6" Margin="0,0,8,8" Content="{l:Tr 'Open a project...'}" />
+                        <Button Command="{Binding Hub.NavigateCommand}" CommandParameter="{x:Static hub:HubPage.Projects}" Padding="14,6" Margin="0,0,8,8"
+                                Content="{l:Tr 'My projects'}" />
+                    </WrapPanel>
+                </StackPanel>
 
                 <!-- ===================== Mes projets ===================== -->
                 <DockPanel Visibility="{Binding Hub.IsProjectsPage, Converter={StaticResource BoolToVisibility}}">
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,16" LastChildFill="False">
                         <TextBlock DockPanel.Dock="Left" FontSize="28" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}"
-                                   Text="{l:Tr 'Mes projets'}" />
+                                   Text="{l:Tr 'My projects'}" />
                         <TextBlock DockPanel.Dock="Left" Style="{StaticResource SectionCaption}" Margin="12,0,0,5" VerticalAlignment="Bottom"
                                    Text="{Binding Hub.CountLabel}" />
                         <ComboBox DockPanel.Dock="Right" MinWidth="190" VerticalAlignment="Bottom" ItemsSource="{Binding Hub.SortChoices}"
                                   DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Hub.Sort}"
-                                  ToolTip="{l:Tr 'Trier les projets'}" />
+                                  ToolTip="{l:Tr 'Sort projects'}" />
                     </DockPanel>
 
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
                         <TextBox x:Name="SearchBox" Padding="30,6,8,6" Text="{Binding Hub.SearchText, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Search}" Margin="10,0,0,0" IsHitTestVisible="False"
                                    Foreground="{DynamicResource HintBrush}" HorizontalAlignment="Left" />
-                        <TextBlock Text="{l:Tr 'Rechercher un projet...'}" Margin="31,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                        <TextBlock Text="{l:Tr 'Search projects...'}" Margin="31,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
                                    Foreground="{DynamicResource HintBrush}"
                                    Visibility="{Binding Text, ElementName=SearchBox, Converter={StaticResource EmptyToVisible}}" />
                     </Grid>
 
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,2">
-                        <Button Style="{StaticResource UnderlineTab}" Content="{l:Tr 'Tous les projets'}" Command="{Binding Hub.ShowAllCommand}"
+                        <Button Style="{StaticResource UnderlineTab}" Content="{l:Tr 'All projects'}" Command="{Binding Hub.ShowAllCommand}"
                                 Tag="{Binding Hub.ShowRecentOnly, Converter={StaticResource InverseBool}}" />
-                        <Button Style="{StaticResource UnderlineTab}" Content="{l:Tr 'Récents'}" Command="{Binding Hub.ShowRecentCommand}"
+                        <Button Style="{StaticResource UnderlineTab}" Content="{l:Tr 'Recent'}" Command="{Binding Hub.ShowRecentCommand}"
                                 Tag="{Binding Hub.ShowRecentOnly}" />
                     </StackPanel>
                     <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource CardBorderBrush}" Margin="0,0,0,14" />
@@ -234,7 +285,7 @@
                         <StackPanel Orientation="Horizontal" Margin="2,6,0,0">
                             <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Info}" FontSize="12" Foreground="{DynamicResource HintBrush}" />
                             <TextBlock Style="{StaticResource SectionCaption}"
-                                       Text="{l:Tr 'Double-cliquez sur un projet pour l\'ouvrir. Clic droit : ouvrir le dossier ou retirer de la liste.'}" />
+                                       Text="{l:Tr 'Double-click a project to open it. Right-click: open the folder or remove it from the list.'}" />
                         </StackPanel>
                     </StackPanel>
                 </DockPanel>
@@ -242,52 +293,52 @@
                 <!-- ===================== Aide ===================== -->
                 <StackPanel MaxWidth="760" HorizontalAlignment="Left"
                             Visibility="{Binding Hub.IsHelpPage, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock FontSize="28" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" Text="{l:Tr 'Aide et documentation'}" />
+                    <TextBlock FontSize="28" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" Text="{l:Tr 'Help and documentation'}" />
                     <TextBlock Margin="0,6,0,22" Foreground="{DynamicResource HintBrush}" TextWrapping="Wrap"
-                               Text="{l:Tr 'Mine Engine génère un vrai projet Forge ou NeoForge à partir de votre contenu, le compile et lance Minecraft.'}" />
+                               Text="{l:Tr 'Mine Engine generates a real Forge or NeoForge project from your content, compiles it and launches Minecraft.'}" />
 
                     <Border Style="{StaticResource Card}" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="{l:Tr 'Démarrage rapide'}" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,10" Foreground="{DynamicResource StrongTextBrush}" />
-                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="{l:Tr '1. Installer un MDK. '}" /><Run Text="{l:Tr 'Gérer les MDK : Forge 1.20.1, Forge 1.21.1 ou NeoForge 1.21.1, téléchargés en un clic.'}" /></TextBlock>
-                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="{l:Tr '2. Créer un projet. '}" /><Run Text="{l:Tr 'Nom, identifiant du mod, version de Minecraft et MDK.'}" /></TextBlock>
-                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="{l:Tr '3. Ajouter du contenu. '}" /><Run Text="{l:Tr 'Items, blocs, mobs (avec leur IA), recettes ; importez vos textures PNG et sons OGG.'}" /></TextBlock>
-                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="{l:Tr '4. Générer. '}" /><Run Text="{l:Tr 'Le mod .jar est produit dans le dossier build/libs du projet ; les erreurs s\'affichent dans Diagnostics.'}" /></TextBlock>
-                            <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="{l:Tr '5. Lancer Minecraft. '}" /><Run Text="{l:Tr 'Le contenu apparaît dans l\'onglet créatif du mod.'}" /></TextBlock>
+                            <TextBlock Text="{l:Tr 'Quick start'}" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,10" Foreground="{DynamicResource StrongTextBrush}" />
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="{l:Tr '1. Install an MDK. '}" /><Run Text="{l:Tr 'Manage MDKs: Forge 1.20.1, Forge 1.21.1 or NeoForge 1.21.1, downloaded in one click.'}" /></TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="{l:Tr '2. Create a project. '}" /><Run Text="{l:Tr 'Name, mod identifier, Minecraft version and MDK.'}" /></TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="{l:Tr '3. Add content. '}" /><Run Text="{l:Tr 'Items, blocks, mobs (with their AI), recipes; import your PNG textures and OGG sounds.'}" /></TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="{l:Tr '4. Build. '}" /><Run Text="{l:Tr 'The mod .jar is produced in the project\'s build/libs folder; errors are shown in Diagnostics.'}" /></TextBlock>
+                            <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="{l:Tr '5. Launch Minecraft. '}" /><Run Text="{l:Tr 'The content appears in the mod\'s creative tab.'}" /></TextBlock>
                         </StackPanel>
                     </Border>
 
                     <Border Style="{StaticResource Card}" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="{l:Tr 'Raccourcis clavier'}" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,10" Foreground="{DynamicResource StrongTextBrush}" />
+                            <TextBlock Text="{l:Tr 'Keyboard shortcuts'}" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,10" Foreground="{DynamicResource StrongTextBrush}" />
                             <ItemsControl Focusable="False">
                                 <DockPanel Margin="0,2">
                                     <TextBlock Width="150" Style="{StaticResource MonoHint}" FontSize="12" VerticalAlignment="Center" Text="{l:Tr 'Ctrl+N / Ctrl+O'}" />
-                                    <TextBlock Text="{l:Tr 'Nouveau projet / ouvrir un projet'}" />
+                                    <TextBlock Text="{l:Tr 'New project / open a project'}" />
                                 </DockPanel>
                                 <DockPanel Margin="0,2">
                                     <TextBlock Width="150" Style="{StaticResource MonoHint}" FontSize="12" VerticalAlignment="Center" Text="{l:Tr 'Ctrl+S'}" />
-                                    <TextBlock Text="{l:Tr 'Enregistrer'}" />
+                                    <TextBlock Text="{l:Tr 'Save'}" />
                                 </DockPanel>
                                 <DockPanel Margin="0,2">
                                     <TextBlock Width="150" Style="{StaticResource MonoHint}" FontSize="12" VerticalAlignment="Center" Text="{l:Tr 'Ctrl+Z / Ctrl+Y'}" />
-                                    <TextBlock Text="{l:Tr 'Annuler / rétablir'}" />
+                                    <TextBlock Text="{l:Tr 'Undo / redo'}" />
                                 </DockPanel>
                                 <DockPanel Margin="0,2">
                                     <TextBlock Width="150" Style="{StaticResource MonoHint}" FontSize="12" VerticalAlignment="Center" Text="{l:Tr 'F7'}" />
-                                    <TextBlock Text="{l:Tr 'Valider le projet'}" />
+                                    <TextBlock Text="{l:Tr 'Validate the project'}" />
                                 </DockPanel>
                                 <DockPanel Margin="0,2">
-                                    <TextBlock Width="150" Style="{StaticResource MonoHint}" FontSize="12" VerticalAlignment="Center" Text="{l:Tr 'Ctrl+Maj+B'}" />
-                                    <TextBlock Text="{l:Tr 'Générer le mod'}" />
+                                    <TextBlock Width="150" Style="{StaticResource MonoHint}" FontSize="12" VerticalAlignment="Center" Text="{l:Tr 'Ctrl+Shift+B'}" />
+                                    <TextBlock Text="{l:Tr 'Build the mod'}" />
                                 </DockPanel>
                                 <DockPanel Margin="0,2">
                                     <TextBlock Width="150" Style="{StaticResource MonoHint}" FontSize="12" VerticalAlignment="Center" Text="{l:Tr 'F5'}" />
-                                    <TextBlock Text="{l:Tr 'Lancer Minecraft'}" />
+                                    <TextBlock Text="{l:Tr 'Launch Minecraft'}" />
                                 </DockPanel>
                                 <DockPanel Margin="0,2">
                                     <TextBlock Width="150" Style="{StaticResource MonoHint}" FontSize="12" VerticalAlignment="Center" Text="{l:Tr 'Ctrl+,'}" />
-                                    <TextBlock Text="{l:Tr 'Paramètres de l\'éditeur'}" />
+                                    <TextBlock Text="{l:Tr 'Editor settings'}" />
                                 </DockPanel>
                             </ItemsControl>
                         </StackPanel>
@@ -295,10 +346,10 @@
 
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
-                            <TextBlock Text="{l:Tr 'Où sont les fichiers'}" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,10" Foreground="{DynamicResource StrongTextBrush}" />
-                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="{l:Tr 'Projets : '}" /><Run Text="{l:Tr 'Documents\\MineEngine Projects (par défaut). Comme un workspace MCreator, chaque projet est un projet Gradle : fichier .mineengine, éléments dans elements/, code Java dans src/main/java.'}" /></TextBlock>
-                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="{l:Tr 'MDK, journaux, préférences : '}" /><Run Text="{l:Tr '%LOCALAPPDATA%\\MineEngine.'}" /></TextBlock>
-                            <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="{l:Tr 'Sauvegardes de secours : '}" /><Run Text="{l:Tr 'dossier .mineengine\\backups de chaque projet.'}" /></TextBlock>
+                            <TextBlock Text="{l:Tr 'Where the files are'}" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,10" Foreground="{DynamicResource StrongTextBrush}" />
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="{l:Tr 'Projects: '}" /><Run Text="{l:Tr 'Documents\\MineEngine Projects (by default). Like an MCreator workspace, each project is a Gradle project: .mineengine file, elements in elements/, Java code in src/main/java.'}" /></TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"><Run FontWeight="SemiBold" Text="{l:Tr 'MDKs, logs, preferences: '}" /><Run Text="{l:Tr '%LOCALAPPDATA%\\MineEngine.'}" /></TextBlock>
+                            <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="{l:Tr 'Backups: '}" /><Run Text="{l:Tr '.mineengine\\backups folder of each project.'}" /></TextBlock>
                         </StackPanel>
                     </Border>
                 </StackPanel>

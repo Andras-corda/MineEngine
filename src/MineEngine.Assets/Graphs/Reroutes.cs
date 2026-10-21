@@ -46,7 +46,7 @@ public static class Reroutes
     public static NodeInfo Describe(GraphNode node, Func<DataType, string> typeLabel)
     {
         ArgumentNullException.ThrowIfNull(typeLabel);
-        string title = Tr.T("Redirection");
+        string title = Tr.T("Reroute");
         DataType? type = TypeOf(node);
         if (type is null)
         {
@@ -56,12 +56,12 @@ public static class Reroutes
         if (type.IsExec)
         {
             return new NodeInfo(GraphNodeKind.Reroute, NodeCategory.Action, title,
-                Tr.T("Point de passage d'un fil d'exécution : il ne change rien au programme."), flow: NodeFlow.Step);
+                Tr.T("Waypoint of an execution wire: it does not change the program."), flow: NodeFlow.Step);
         }
 
         string label = typeLabel(type);
         return new NodeInfo(GraphNodeKind.Reroute, NodeCategory.Variable, title,
-            Tr.F("Point de passage d'un fil {0} : il ne change rien au programme.", label),
+            Tr.F("Waypoint of a {0} wire: it does not change the program.", label),
             inputs: [new PinInfo(ValueInput, string.Empty, type)],
             outputs: [new PinInfo(ValueOutput, string.Empty, type)],
             flow: NodeFlow.Pure);
@@ -69,10 +69,14 @@ public static class Reroutes
 
     public static bool IsReroute(GraphNode node) => node.Kind == GraphNodeKind.Reroute;
 
-    /// <summary>Le graphe sans aucune redirection : chaque fil qui en traversait relie directement ses deux bouts.</summary>
+    /// <summary>
+    /// Le graphe tel que le programme le voit : sans redirection (chaque fil qui en traversait relie
+    /// directement ses deux bouts), ni commentaire, ni info-bulle.
+    /// </summary>
     public static NodeGraph Collapse(NodeGraph graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
+        graph = GraphAnnotations.Strip(graph);
         return graph.Nodes.Any(IsReroute) ? Bypass(graph, graph.Nodes.Where(IsReroute).Select(n => n.Id)) : graph;
     }
 

@@ -58,7 +58,7 @@ public sealed class MobGoalViewModel : ObservableObject
 
     public string Title => $"{Index + 1}. {Info.Label}";
 
-    public string SelectorLabel => Info.Selector == MobGoalSelector.Target ? Tr.T("Choix de la cible") : Tr.T("Action");
+    public string SelectorLabel => Info.Selector == MobGoalSelector.Target ? Tr.T("Target selection") : Tr.T("Action");
 
     public string Description => Info.Description;
 

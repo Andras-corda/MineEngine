@@ -82,6 +82,10 @@ public static class JavaNames
     }
 
     /// <summary>Littéral float Java ("1.5f").</summary>
+    /// <summary>Java double literal ("0.2", "-1.5").</summary>
+    public static string DoubleLiteral(double value) =>
+        value.ToString("0.0#######", CultureInfo.InvariantCulture);
+
     public static string FloatLiteral(float value) =>
         value.ToString("0.0#######", CultureInfo.InvariantCulture) + "f";
 }

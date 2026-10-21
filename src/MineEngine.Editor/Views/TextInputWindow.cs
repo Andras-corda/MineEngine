@@ -25,7 +25,7 @@ public sealed class TextInputWindow : Window
         var ok = new Button { Content = "OK", IsDefault = true, MinWidth = 90, Margin = new Thickness(0, 0, 8, 0) };
         ok.SetResourceReference(StyleProperty, "AccentButtonStyle");
         ok.Click += (_, _) => DialogResult = true;
-        var cancel = new Button { Content = Tr.T("Annuler"), IsCancel = true, MinWidth = 90 };
+        var cancel = new Button { Content = Tr.T("Cancel"), IsCancel = true, MinWidth = 90 };
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         buttons.Children.Add(ok);

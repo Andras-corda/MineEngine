@@ -25,10 +25,10 @@ public sealed class FolderItemViewModel
 
     public string ContentLabel => (AssetCount, FolderCount) switch
     {
-        (0, 0) => Tr.T("Vide"),
-        (_, 0) => AssetCount == 1 ? Tr.T("1 élément") : Tr.F("{0} éléments", AssetCount),
-        (0, _) => FolderCount == 1 ? Tr.T("1 dossier") : Tr.F("{0} dossiers", FolderCount),
-        _ => Tr.F("{0} élément(s), {1} dossier(s)", AssetCount, FolderCount),
+        (0, 0) => Tr.T("Empty"),
+        (_, 0) => AssetCount == 1 ? Tr.T("1 element") : Tr.F("{0} elements", AssetCount),
+        (0, _) => FolderCount == 1 ? Tr.T("1 folder") : Tr.F("{0} folders", FolderCount),
+        _ => Tr.F("{0} element(s), {1} folder(s)", AssetCount, FolderCount),
     };
 
     public override string ToString() => Path;

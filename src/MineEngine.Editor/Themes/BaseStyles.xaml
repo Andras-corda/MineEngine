@@ -369,12 +369,13 @@
 
     <Style x:Key="UnderlineTabControl" TargetType="TabControl">
         <Setter Property="ItemContainerStyle" Value="{StaticResource UnderlineTabItem}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TabControl">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top">
-                            <WrapPanel IsItemsHost="True" />
+                            <WrapPanel IsItemsHost="True" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
                             <Border Height="1" Background="{DynamicResource CardBorderBrush}" />
                         </StackPanel>
                         <ContentPresenter ContentSource="SelectedContent" Margin="0,12,0,0" />

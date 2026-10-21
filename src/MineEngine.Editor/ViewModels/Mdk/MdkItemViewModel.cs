@@ -25,7 +25,7 @@ public sealed class MdkItemViewModel
 
     public bool IsSupported { get; }
 
-    public string Status => IsSupported ? Tr.T("Utilisable") : Tr.T("Non pris en charge par le générateur");
+    public string Status => IsSupported ? Tr.T("Usable") : Tr.T("Not supported by the generator");
 
     public string Source => Descriptor.Source;
 
@@ -47,7 +47,7 @@ public sealed class MdkDownloadViewModel
 
     public bool IsInstalled { get; }
 
-    public string Status => IsInstalled ? Tr.T("Installé") : Tr.T("Disponible");
+    public string Status => IsInstalled ? Tr.T("Installed") : Tr.T("Available");
 
     public string Url => Download.Source.ToString();
 }

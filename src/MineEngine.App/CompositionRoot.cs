@@ -3,6 +3,7 @@ using MineEngine.Assets.Serialization;
 using MineEngine.Build;
 using MineEngine.Build.Gradle;
 using MineEngine.Build.Java;
+using MineEngine.Core.Diagnostics;
 using MineEngine.Core.Logging;
 using MineEngine.Core.Theming;
 using MineEngine.Editor;
@@ -62,7 +63,10 @@ internal sealed class CompositionRoot : IDisposable
         // console Output de l'éditeur et fichier dans %LOCALAPPDATA%\MineEngine\logs
         Output = new OutputViewModel();
         _fileLog = new FileLog(Path.Combine(localData, "logs"));
-        Log = new CompositeLog(Output, _fileLog);
+        RecentLog = new RecentLog();
+        Log = new CompositeLog(Output, _fileLog, RecentLog);
+        CrashReporter = new CrashReporter(Path.Combine(localData, "crashes"), RecentLog) { Version = EditorInfo.VersionLabel };
+        LogsDirectory = _fileLog.LogDirectory;
 
         // Données et persistance
         AssetCatalog catalog = AssetCatalog.CreateDefault();
@@ -91,7 +95,11 @@ internal sealed class CompositionRoot : IDisposable
         var knownProjects = new KnownProjectsStore(Path.Combine(localData, "projects.json"));
         MainViewModel = new MainViewModel(
             repository, new ProjectBackupService(), assetViewModels, pipeline, dialogs, shell, mdks, Preferences, Output, Log,
-            open => new ProjectHubViewModel(knownProjects, new ProjectSettingsSerializer(), dialogs, shell, projectsDirectory, Preferences, open));
+            open => new ProjectHubViewModel(knownProjects, new ProjectSettingsSerializer(), dialogs, shell, projectsDirectory, Preferences, open))
+        {
+            CrashReporter = CrashReporter,
+            LogsDirectory = LogsDirectory,
+        };
     }
 
     public EditorPreferences Preferences { get; } // objet contenant les préférences de l'éditeur, les thèmes, les langues, etc.
@@ -100,6 +108,14 @@ internal sealed class CompositionRoot : IDisposable
 
     /// <summary>Journal de l'application : console Output et fichier.</summary>
     public ILog Log { get; } // objet représentant le journal de l'application, combinant la console Output et le fichier de log pour enregistrer les messages et les erreurs.
+
+    /// <summary>Last messages of the log, kept in memory for the crash reports.</summary>
+    public RecentLog RecentLog { get; }
+
+    /// <summary>Crash reports of Mine Engine (V0.6.4).</summary>
+    public CrashReporter CrashReporter { get; }
+
+    public string LogsDirectory { get; }
 
     public DockLayoutService DockLayout { get; } // objet représentant la disposition du dock de l'éditeur, permettant de sauvegarder et de restaurer la position des fenêtres et des panneaux.
 

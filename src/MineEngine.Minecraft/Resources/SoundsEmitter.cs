@@ -8,7 +8,7 @@ namespace MineEngine.Minecraft.Resources;
 /// <summary>Déclaration des sons (sounds.json) et copie des fichiers OGG.</summary>
 public sealed class SoundsEmitter : IFileEmitter
 {
-    public string Name => Tr.T("Sons");
+    public string Name => Tr.T("Sounds");
 
     public void Emit(GenerationContext context)
     {

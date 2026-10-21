@@ -19,18 +19,20 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
                 .Where(s => s != BlockTextureSlot.Main)
                 .Select(slot => new TextureSlotViewModel(
                     model, context, BlockAsset.TexturePropertyName(slot), GameDataChoices.SlotLabel(slot),
-                    Tr.T("Reprend la texture principale"),
+                    Tr.T("Uses the main texture"),
                     () => model.GetTexture(slot), v => model.SetTexture(slot, v))),
         ];
         DropItemPicker = new ReferencePickerViewModel(
             context, ReferenceDomain.Item, () => _block.DropItem,
-            v => Change(Tr.T("Modifier l'item laissé"), nameof(BlockAsset.DropItem), () => _block.DropItem, r => _block.DropItem = r, v));
+            v => Change(Tr.T("Change dropped item"), nameof(BlockAsset.DropItem), () => _block.DropItem, r => _block.DropItem = r, v));
         UpdateMainTextureLabel();
     }
 
     // ----- Listes de choix -----
 
     public IReadOnlyList<Choice<BlockModelKind>> ModelChoices => GameDataChoices.BlockModels;
+
+    public override bool ShowsModelPicker => _block.Model == BlockModelKind.Custom;
 
     public IReadOnlyList<Choice<BlockRenderType>> RenderTypeChoices => GameDataChoices.RenderTypes;
 
@@ -55,19 +57,19 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
     public BlockModelKind BlockModel
     {
         get => _block.Model;
-        set => ChangeIfDifferent(Tr.T("Modifier la forme du bloc"), nameof(BlockAsset.Model), () => _block.Model, v => _block.Model = v, value);
+        set => ChangeIfDifferent(Tr.T("Change block shape"), nameof(BlockAsset.Model), () => _block.Model, v => _block.Model = v, value);
     }
 
     public BlockRenderType RenderType
     {
         get => _block.RenderType;
-        set => ChangeIfDifferent(Tr.T("Modifier la transparence"), nameof(BlockAsset.RenderType), () => _block.RenderType, v => _block.RenderType = v, value);
+        set => ChangeIfDifferent(Tr.T("Change transparency"), nameof(BlockAsset.RenderType), () => _block.RenderType, v => _block.RenderType = v, value);
     }
 
     public double LightLevel
     {
         get => _block.LightLevel;
-        set => ChangeNumber(Tr.T("Modifier la luminosité"), nameof(BlockAsset.LightLevel), value, () => _block.LightLevel, v => _block.LightLevel = v,
+        set => ChangeNumber(Tr.T("Change light level"), nameof(BlockAsset.LightLevel), value, () => _block.LightLevel, v => _block.LightLevel = v,
             v => Math.Clamp((int)Math.Round(v), 0, BlockAsset.MaxLightLevel));
     }
 
@@ -84,45 +86,45 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
     public double Hardness
     {
         get => _block.Hardness;
-        set => ChangeNumber(Tr.T("Modifier la dureté"), nameof(BlockAsset.Hardness), value, () => _block.Hardness, v => _block.Hardness = v,
+        set => ChangeNumber(Tr.T("Change hardness"), nameof(BlockAsset.Hardness), value, () => _block.Hardness, v => _block.Hardness = v,
             v => (float)Math.Clamp(v, 0d, BlockAsset.MaxStrength));
     }
 
     public double Resistance
     {
         get => _block.Resistance;
-        set => ChangeNumber(Tr.T("Modifier la résistance"), nameof(BlockAsset.Resistance), value, () => _block.Resistance, v => _block.Resistance = v,
+        set => ChangeNumber(Tr.T("Change resistance"), nameof(BlockAsset.Resistance), value, () => _block.Resistance, v => _block.Resistance = v,
             v => (float)Math.Clamp(v, 0d, BlockAsset.MaxStrength));
     }
 
     public bool Unbreakable
     {
         get => _block.Unbreakable;
-        set => ChangeIfDifferent(Tr.T("Modifier « incassable »"), nameof(BlockAsset.Unbreakable), () => _block.Unbreakable, v => _block.Unbreakable = v, value);
+        set => ChangeIfDifferent(Tr.T("Change \"unbreakable\""), nameof(BlockAsset.Unbreakable), () => _block.Unbreakable, v => _block.Unbreakable = v, value);
     }
 
     public BlockSoundType Sound
     {
         get => _block.Sound;
-        set => ChangeIfDifferent(Tr.T("Modifier le son"), nameof(BlockAsset.Sound), () => _block.Sound, v => _block.Sound = v, value);
+        set => ChangeIfDifferent(Tr.T("Change sound"), nameof(BlockAsset.Sound), () => _block.Sound, v => _block.Sound = v, value);
     }
 
     public double Friction
     {
         get => _block.Friction;
-        set => ChangeNumber(Tr.T("Modifier la glissance"), nameof(BlockAsset.Friction), value, () => _block.Friction, v => _block.Friction = v, v => (float)v);
+        set => ChangeNumber(Tr.T("Change slipperiness"), nameof(BlockAsset.Friction), value, () => _block.Friction, v => _block.Friction = v, v => (float)v);
     }
 
     public double SpeedFactor
     {
         get => _block.SpeedFactor;
-        set => ChangeNumber(Tr.T("Modifier la vitesse de marche"), nameof(BlockAsset.SpeedFactor), value, () => _block.SpeedFactor, v => _block.SpeedFactor = v, v => (float)v);
+        set => ChangeNumber(Tr.T("Change walk speed"), nameof(BlockAsset.SpeedFactor), value, () => _block.SpeedFactor, v => _block.SpeedFactor = v, v => (float)v);
     }
 
     public double JumpFactor
     {
         get => _block.JumpFactor;
-        set => ChangeNumber(Tr.T("Modifier la hauteur de saut"), nameof(BlockAsset.JumpFactor), value, () => _block.JumpFactor, v => _block.JumpFactor = v, v => (float)v);
+        set => ChangeNumber(Tr.T("Change jump height"), nameof(BlockAsset.JumpFactor), value, () => _block.JumpFactor, v => _block.JumpFactor = v, v => (float)v);
     }
 
     // ----- Récolte -----
@@ -130,25 +132,25 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
     public HarvestTool HarvestTool
     {
         get => _block.HarvestTool;
-        set => ChangeIfDifferent(Tr.T("Modifier l'outil"), nameof(BlockAsset.HarvestTool), () => _block.HarvestTool, v => _block.HarvestTool = v, value);
+        set => ChangeIfDifferent(Tr.T("Change tool"), nameof(BlockAsset.HarvestTool), () => _block.HarvestTool, v => _block.HarvestTool = v, value);
     }
 
     public ToolTier ToolTier
     {
         get => _block.ToolTier;
-        set => ChangeIfDifferent(Tr.T("Modifier le niveau d'outil"), nameof(BlockAsset.ToolTier), () => _block.ToolTier, v => _block.ToolTier = v, value);
+        set => ChangeIfDifferent(Tr.T("Change tool level"), nameof(BlockAsset.ToolTier), () => _block.ToolTier, v => _block.ToolTier = v, value);
     }
 
     public bool RequiresCorrectTool
     {
         get => _block.RequiresCorrectTool;
-        set => ChangeIfDifferent(Tr.T("Modifier « outil requis »"), nameof(BlockAsset.RequiresCorrectTool), () => _block.RequiresCorrectTool, v => _block.RequiresCorrectTool = v, value);
+        set => ChangeIfDifferent(Tr.T("Change \"requires tool\""), nameof(BlockAsset.RequiresCorrectTool), () => _block.RequiresCorrectTool, v => _block.RequiresCorrectTool = v, value);
     }
 
     public BlockDropKind DropKind
     {
         get => _block.DropKind;
-        set => ChangeIfDifferent(Tr.T("Modifier ce que laisse le bloc"), nameof(BlockAsset.DropKind), () => _block.DropKind, v => _block.DropKind = v, value);
+        set => ChangeIfDifferent(Tr.T("Change block drops"), nameof(BlockAsset.DropKind), () => _block.DropKind, v => _block.DropKind = v, value);
     }
 
     public bool IsDropOtherItem => _block.DropKind == BlockDropKind.OtherItem;
@@ -159,28 +161,28 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
     public double DropMin
     {
         get => _block.DropMin;
-        set => ChangeNumber(Tr.T("Modifier la quantité laissée"), nameof(BlockAsset.DropMin), value, () => _block.DropMin, v => _block.DropMin = v,
+        set => ChangeNumber(Tr.T("Change dropped quantity"), nameof(BlockAsset.DropMin), value, () => _block.DropMin, v => _block.DropMin = v,
             v => Math.Clamp((int)Math.Round(v), 1, BlockAsset.MaxDropCount));
     }
 
     public double DropMax
     {
         get => _block.DropMax;
-        set => ChangeNumber(Tr.T("Modifier la quantité laissée"), nameof(BlockAsset.DropMax), value, () => _block.DropMax, v => _block.DropMax = v,
+        set => ChangeNumber(Tr.T("Change dropped quantity"), nameof(BlockAsset.DropMax), value, () => _block.DropMax, v => _block.DropMax = v,
             v => Math.Clamp((int)Math.Round(v), 1, BlockAsset.MaxDropCount));
     }
 
     public double ExperienceMin
     {
         get => _block.ExperienceMin;
-        set => ChangeNumber(Tr.T("Modifier l'expérience"), nameof(BlockAsset.ExperienceMin), value, () => _block.ExperienceMin, v => _block.ExperienceMin = v,
+        set => ChangeNumber(Tr.T("Change experience"), nameof(BlockAsset.ExperienceMin), value, () => _block.ExperienceMin, v => _block.ExperienceMin = v,
             v => Math.Clamp((int)Math.Round(v), 0, BlockAsset.MaxExperience));
     }
 
     public double ExperienceMax
     {
         get => _block.ExperienceMax;
-        set => ChangeNumber(Tr.T("Modifier l'expérience"), nameof(BlockAsset.ExperienceMax), value, () => _block.ExperienceMax, v => _block.ExperienceMax = v,
+        set => ChangeNumber(Tr.T("Change experience"), nameof(BlockAsset.ExperienceMax), value, () => _block.ExperienceMax, v => _block.ExperienceMax = v,
             v => Math.Clamp((int)Math.Round(v), 0, BlockAsset.MaxExperience));
     }
 
@@ -189,7 +191,7 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
     public bool HasItemForm
     {
         get => _block.HasItemFormEnabled;
-        set => ChangeIfDifferent(Tr.T("Modifier la forme item"), nameof(BlockAsset.HasItemFormEnabled), () => _block.HasItemFormEnabled, v => _block.HasItemFormEnabled = v, value);
+        set => ChangeIfDifferent(Tr.T("Change item form"), nameof(BlockAsset.HasItemFormEnabled), () => _block.HasItemFormEnabled, v => _block.HasItemFormEnabled = v, value);
     }
 
     public override void OnProjectContentChanged()
@@ -233,8 +235,8 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
 
     private void UpdateMainTextureLabel() => MainTexture.Label = _block.Model switch
     {
-        BlockModelKind.CubeFaces => Tr.T("Par défaut"),
-        BlockModelKind.Column => Tr.T("Côtés"),
+        BlockModelKind.CubeFaces => Tr.T("Default"),
+        BlockModelKind.Column => Tr.T("Sides"),
         _ => Tr.T("Texture"),
     };
 }

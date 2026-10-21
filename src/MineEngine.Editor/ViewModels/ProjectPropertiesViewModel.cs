@@ -29,6 +29,9 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
     private string _license;
     private string _parentDirectory;
     private MdkDescriptor? _selectedMdk;
+    private string _iconFile = string.Empty;
+    private Func<string?> _pickIcon = () => null;
+    private string? _projectRoot;
 
     private ProjectPropertiesViewModel(
         bool isNewProject, MdkServices mdks, Func<string?> pickFolder, Action openMdkManager, string parentDirectory)
@@ -39,7 +42,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
         _openMdkManager = openMdkManager ?? throw new ArgumentNullException(nameof(openMdkManager));
         _parentDirectory = parentDirectory;
 
-        _modName = Tr.T("Mon mod");
+        _modName = Tr.T("My mod");
         _modIdText = ModId.FromText(_modName).Value;
         _modVersion = "1.0.0";
         _authors = Environment.UserName;
@@ -50,6 +53,8 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
         BrowseCommand = new RelayCommand(Browse, () => IsNewProject);
         ManageMdksCommand = new RelayCommand(ManageMdks);
         ConfirmCommand = new RelayCommand(() => CloseRequested?.Invoke(this, true), () => CanConfirm);
+        ChooseIconCommand = new RelayCommand(ChooseIcon);
+        RemoveIconCommand = new RelayCommand(() => IconFile = string.Empty, () => HasIcon);
         ReloadMdks(preferredId: null);
     }
 
@@ -58,19 +63,57 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
 
     public ICommand BrowseCommand { get; }
 
+    /// <summary>Chooses the PNG icon of the mod.</summary>
+    public ICommand ChooseIconCommand { get; }
+
+    public ICommand RemoveIconCommand { get; }
+
+    /// <summary>
+    /// Icon of the mod: path relative to the project, or the absolute path of an image just chosen
+    /// (copied into the project when the settings are saved); empty for none.
+    /// </summary>
+    public string IconFile
+    {
+        get => _iconFile;
+        private set
+        {
+            if (SetProperty(ref _iconFile, value ?? string.Empty))
+            {
+                OnPropertyChanged(nameof(IconPreview));
+                OnPropertyChanged(nameof(HasIcon));
+                OnPropertyChanged(nameof(IconLabel));
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+    }
+
+    /// <summary>Absolute path of the icon to preview, or null.</summary>
+    public string? IconPreview => ProjectIcon.Resolve(_projectRoot, _iconFile) is { } path && File.Exists(path) ? path : null;
+
+    public bool HasIcon => _iconFile.Length > 0;
+
+    public string IconLabel => HasIcon ? Path.GetFileName(_iconFile) : Tr.T("No icon");
+
+    /// <summary>Gives the dialog used to choose the icon (a PNG file).</summary>
+    public ProjectPropertiesViewModel WithIconPicker(Func<string?> pickIcon)
+    {
+        _pickIcon = pickIcon ?? throw new ArgumentNullException(nameof(pickIcon));
+        return this;
+    }
+
     public ICommand ManageMdksCommand { get; }
 
     public ICommand ConfirmCommand { get; }
 
     public bool IsNewProject => _isNewProject;
 
-    public string Title => IsNewProject ? Tr.T("Nouveau projet") : Tr.T("Paramètres du projet");
+    public string Title => IsNewProject ? Tr.T("New project") : Tr.T("Project Settings");
 
-    public string ConfirmLabel => IsNewProject ? Tr.T("Créer") : Tr.T("Enregistrer");
+    public string ConfirmLabel => IsNewProject ? Tr.T("Create") : Tr.T("Save");
 
     public string ModIdRule => IsNewProject
-        ? Tr.F("Définitif après la création : {0}.", ModId.RuleDescription)
-        : Tr.T("L'identifiant du mod ne peut plus être modifié.");
+        ? Tr.F("Permanent after creation: {0}.", ModId.RuleDescription)
+        : Tr.T("The mod identifier can no longer be changed.");
 
     /// <summary>Licences proposées ; toute autre valeur peut être saisie.</summary>
     public IReadOnlyList<string> LicenseOptions { get; } =
@@ -84,8 +127,8 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
     public bool HasMdks => AvailableMdks.Count > 0;
 
     public string MdkHint => HasMdks
-        ? Tr.F("Le MDK fixe le loader et la version de Minecraft. Versions prises en charge : {0}.", _mdks.Backends.SupportDescription)
-        : Tr.T("Aucun MDK utilisable n'est installé. Cliquez sur « Gérer les MDK... » pour en télécharger ou en importer un.");
+        ? Tr.F("The MDK sets the loader and the Minecraft version. Supported versions: {0}.", _mdks.Backends.SupportDescription)
+        : Tr.T("No usable MDK is installed. Click \"Manage MDKs...\" to download or import one.");
 
     public string ModName
     {
@@ -97,7 +140,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
                 return;
             }
 
-            Require(nameof(ModName), _modName, Tr.T("Le nom du mod est obligatoire."));
+            Require(nameof(ModName), _modName, Tr.T("The mod name is required."));
             if (IsNewProject && !_modIdEditedByUser)
             {
                 UpdateModId(ModId.FromText(_modName).Value);
@@ -131,7 +174,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
             {
                 if (_modVersion.Length == 0 || _modVersion.Any(char.IsWhiteSpace))
                 {
-                    SetError(nameof(ModVersion), Tr.T("Version obligatoire, sans espace (par exemple 1.0.0)."));
+                    SetError(nameof(ModVersion), Tr.T("Version required, without spaces (for example 1.0.0)."));
                 }
                 else
                 {
@@ -165,7 +208,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
             }
             else
             {
-                SetError(nameof(Website), Tr.T("Adresse invalide : elle doit commencer par https:// (ou laissez le champ vide)."));
+                SetError(nameof(Website), Tr.T("Invalid address: it must start with https:// (or leave the field empty)."));
             }
         }
     }
@@ -183,7 +226,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
         {
             if (SetProperty(ref _license, value ?? string.Empty))
             {
-                Require(nameof(License), _license, Tr.T("Indiquez une licence (All Rights Reserved si vous ne savez pas)."));
+                Require(nameof(License), _license, Tr.T("Enter a license (All Rights Reserved if you are not sure)."));
             }
         }
     }
@@ -211,7 +254,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
         {
             if (SetProperty(ref _parentDirectory, value ?? string.Empty))
             {
-                Require(nameof(ParentDirectory), _parentDirectory, Tr.T("Choisissez un dossier."));
+                Require(nameof(ParentDirectory), _parentDirectory, Tr.T("Choose a folder."));
                 OnPropertyChanged(nameof(TargetDirectory));
             }
         }
@@ -235,11 +278,13 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
         new(isNewProject: true, mdks, pickFolder, openMdkManager, defaultParentDirectory);
 
     public static ProjectPropertiesViewModel ForExistingProject(
-        MdkServices mdks, ProjectSettings settings, Func<string?> pickFolder, Action openMdkManager)
+        MdkServices mdks, ProjectSettings settings, string projectRoot, Func<string?> pickFolder, Action openMdkManager)
     {
         ArgumentNullException.ThrowIfNull(settings);
         var viewModel = new ProjectPropertiesViewModel(isNewProject: false, mdks, pickFolder, openMdkManager, string.Empty)
         {
+            _projectRoot = projectRoot,
+            _iconFile = settings.IconFile,
             _modName = settings.ModName,
             _modIdText = settings.ModId.Value,
             _modVersion = settings.ModVersion,
@@ -270,6 +315,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
         settings.Website = Website;
         settings.Description = Description.Trim();
         settings.License = License.Trim();
+        settings.IconFile = IconFile;
         if (SelectedMdk is not null)
         {
             settings.MdkId = SelectedMdk.Id;
@@ -319,7 +365,7 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
         }
         else
         {
-            SetError(nameof(ModIdText), Tr.F("Identifiant invalide : {0}.", ModId.RuleDescription));
+            SetError(nameof(ModIdText), Tr.F("Invalid identifier: {0}.", ModId.RuleDescription));
         }
 
         OnPropertyChanged(nameof(TargetDirectory));
@@ -336,6 +382,29 @@ public sealed class ProjectPropertiesViewModel : ValidatingObservableObject
             ClearErrors(propertyName);
         }
     }
+
+    /// <summary>A file that is not a PNG image is refused with a message under the field.</summary>
+    private void ChooseIcon()
+    {
+        if (_pickIcon() is not { } file)
+        {
+            return;
+        }
+
+        if (!ProjectIcon.IsPng(file))
+        {
+            SetError(nameof(IconFile), Tr.T("The icon must be a PNG image."));
+            OnPropertyChanged(nameof(IconError));
+            return;
+        }
+
+        ClearErrors(nameof(IconFile));
+        OnPropertyChanged(nameof(IconError));
+        IconFile = file;
+    }
+
+    /// <summary>Message shown when the chosen file is not a PNG image, or empty.</summary>
+    public string IconError => GetErrors(nameof(IconFile)).OfType<string>().FirstOrDefault() ?? string.Empty;
 
     private void Browse()
     {

@@ -63,6 +63,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
 {
     private readonly AssetViewModelFactory _factory;
     private AssetViewModel? _selectedAsset;
+    private IReadOnlyList<AssetViewModel> _selectedAssets = [];
     private string _searchText = string.Empty;
     private AssetTypeFilter _typeFilter;
     private bool _isTileView;
@@ -77,7 +78,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
 
         TypeFilters =
         [
-            new AssetTypeFilter(Tr.T("Tout"), null),
+            new AssetTypeFilter(Tr.T("All"), null),
             .. factory.Catalog.Definitions.Select(d => new AssetTypeFilter(PluralLabel(d), d.Type)),
         ];
         _typeFilter = TypeFilters[0];
@@ -94,7 +95,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         }
 
         FilteredAssets = new ListCollectionView(Assets) { Filter = MatchesFilter };
-        Resources = new ResourcesViewModel(this, factory.Catalog.Definitions.Select(d => (d.Type, PluralLabel(d))));
+        Resources = new ResourcesViewModel(this, factory.Catalog.Definitions.Where(d => ResourcesViewModel.IsResource(d.Type)).Select(d => (d.Type, PluralLabel(d))));
         UpdateFilterCounts();
         RefreshFolders();
 
@@ -112,7 +113,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
     public bool IsDirty => Model.IsDirty;
 
     public string TargetDescription =>
-        Tr.F("{0}  |  Minecraft {1}  |  {2}  |  MDK {3}", Model.Settings.ModId, Model.Settings.MinecraftVersion, Model.Settings.LoaderId, Model.Settings.MdkId ?? Tr.T("non choisi"));
+        Tr.F("{0}  |  Minecraft {1}  |  {2}  |  MDK {3}", Model.Settings.ModId, Model.Settings.MinecraftVersion, Model.Settings.LoaderId, Model.Settings.MdkId ?? Tr.T("not chosen"));
 
     public ObservableCollection<AssetViewModel> Assets { get; } = [];
 
@@ -264,12 +265,12 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         string[] segments = _currentFolder.Length == 0 ? [] : _currentFolder.Split(AssetFolders.Separator);
         Breadcrumb =
         [
-            new FolderCrumb(Tr.T("Contenu du mod"), string.Empty, segments.Length == 0),
+            new FolderCrumb(Tr.T("Mod content"), string.Empty, segments.Length == 0),
             .. segments.Select((s, i) => new FolderCrumb(s, string.Join(AssetFolders.Separator, segments[..(i + 1)]), i == segments.Length - 1)),
         ];
         FolderChoices =
         [
-            new FolderChoice(string.Empty, Tr.T("Contenu du mod (racine)")),
+            new FolderChoice(string.Empty, Tr.T("Mod content (root)")),
             .. all.Where(f => f.Length > 0).Select(f => new FolderChoice(f, new string(' ', 4 * f.Count(c => c == AssetFolders.Separator)) + AssetFolders.Name(f))),
         ];
         OnPropertyChanged(nameof(ShowFolders));
@@ -283,9 +284,50 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         {
             if (SetProperty(ref _selectedAsset, value))
             {
+                // Selected from elsewhere (search, Diagnostics...): the multiple selection ends.
+                if (value is null || !_selectedAssets.Contains(value))
+                {
+                    _selectedAssets = [];
+                    OnPropertyChanged(nameof(SelectedAssets));
+                }
+
                 OnPropertyChanged(nameof(HasSelection));
                 Resources?.OnSelectionChanged();
             }
+        }
+    }
+
+    /// <summary>
+    /// Elements selected in the Dashboard (Ctrl+click, Shift+click), in the order of the list;
+    /// <see cref="SelectedAsset"/> is the one shown in Properties. Set by the Dashboard.
+    /// </summary>
+    public IReadOnlyList<AssetViewModel> SelectedAssets
+    {
+        get => _selectedAssets.Count > 0 ? _selectedAssets : _selectedAsset is { } single ? [single] : [];
+        set
+        {
+            _selectedAssets = [.. value ?? []];
+            OnPropertyChanged();
+            if (_selectedAsset is null || !_selectedAssets.Contains(_selectedAsset))
+            {
+                SelectedAsset = _selectedAssets.FirstOrDefault();
+            }
+        }
+    }
+
+    /// <summary>Removes elements in one step that can be undone.</summary>
+    public void RemoveAssets(IReadOnlyList<AssetViewModel> viewModels)
+    {
+        ArgumentNullException.ThrowIfNull(viewModels);
+        if (viewModels.Count == 1)
+        {
+            RemoveAsset(viewModels[0]);
+        }
+        else if (viewModels.Count > 1)
+        {
+            History.Execute(new CompositeCommand(
+                Tr.F("Delete {0} elements", viewModels.Count),
+                [.. viewModels.Select(v => (IUndoableCommand)new RemoveAssetCommand(Model.Assets, v.Model, v.TypeLabel))]));
         }
     }
 
@@ -319,8 +361,16 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
     {
         GraphAsset? ownerGraph = owner is { } id ? Model.Assets.Find(id) as GraphAsset : null;
         string baseId = ownerGraph is null ? ProgramPalette.ResourceIdBase(kind) : $"{ownerGraph.ResourceId}_{kind.ToString().ToLowerInvariant()}";
-        string name = kind is GraphKind.Function or GraphKind.Procedure && ownerGraph is not null ? Tr.T("nouvelle méthode") : ProgramPalette.DefaultName(kind);
+        bool inLibrary = ownerGraph?.Kind == GraphKind.Library;
+        string name = kind is GraphKind.Function or GraphKind.Procedure && ownerGraph is not null && !inLibrary ? Tr.T("new method") : ProgramPalette.DefaultName(kind);
         GraphAsset graph = ProgramPalette.CreateGraph(kind, Model.Assets.CreateUniqueResourceId(baseId, AssetType.Graph), name, owner);
+        if (inLibrary)
+        {
+            // The functions of a library are usable everywhere, without an object.
+            graph.Access = AccessLevel.Public;
+            graph.IsStatic = true;
+        }
+
         graph.Folder = ownerGraph?.Folder ?? _currentFolder;
         History.Execute(new AddAssetCommand(Model.Assets, graph, kind.Label()));
         SelectAsset(graph.Id);
@@ -348,13 +398,71 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
             }
             catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
             {
-                errors.Add(Tr.F("{0} : {1}", Path.GetFileName(file), exception.Message));
+                errors.Add(Tr.F("{0}: {1}", Path.GetFileName(file), exception.Message));
             }
         }
 
         if (commands.Count > 0)
         {
-            History.Execute(new CompositeCommand(commands.Count == 1 ? commands[0].Description : Tr.F("Importer {0} fichiers", commands.Count), commands));
+            History.Execute(new CompositeCommand(commands.Count == 1 ? commands[0].Description : Tr.F("Import {0} files", commands.Count), commands));
+            SelectAsset(last!.Id);
+        }
+
+        return errors;
+    }
+
+    /// <summary>
+    /// Imports 3D models: a Blockbench or Java JSON model goes through its import window (textures,
+    /// variants, layers, element created with it), the other formats are added as they are. Everything
+    /// is one undoable step; the last element created is selected. Returns the errors.
+    /// </summary>
+    public IReadOnlyList<string> ImportModels(IReadOnlyList<string> files, AssetFileImporter importer, Services.IDialogService dialogs)
+    {
+        var commands = new List<IUndoableCommand>();
+        var errors = new List<string>();
+        var reservedIds = new HashSet<ResourceId>();
+        Asset? last = null;
+        foreach (string file in files)
+        {
+            try
+            {
+                if (ModelFormats.DescribeProblem(file) is { } problem)
+                {
+                    errors.Add(problem);
+                    continue;
+                }
+
+                IReadOnlyList<Asset> assets;
+                if (ModelFormats.FromPath(file) is ModelFormat.Blockbench or ModelFormat.JavaJson)
+                {
+                    var import = new ModelImportViewModel(Model, importer, dialogs, file);
+                    if (!dialogs.ShowModelImport(import))
+                    {
+                        continue;
+                    }
+
+                    assets = import.CreateAssets(reservedIds, _currentFolder);
+                }
+                else
+                {
+                    ModelAsset model = importer.ImportModel(Model, file, reservedIds);
+                    model.Folder = _currentFolder;
+                    assets = [model];
+                }
+
+                commands.AddRange(assets.Select(a => new AddAssetCommand(Model.Assets, a, a.Type.ToString())));
+                last = assets[^1];
+            }
+            catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException or System.Text.Json.JsonException)
+            {
+                errors.Add(Tr.F("{0}: {1}", Path.GetFileName(file), exception.Message));
+            }
+        }
+
+        if (commands.Count > 0)
+        {
+            History.Execute(new CompositeCommand(Tr.T("Import a 3D model"), commands));
+            History.Seal();
             SelectAsset(last!.Id);
         }
 
@@ -366,7 +474,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
     /// ou un son pointe vers un fichier ; sa copie partagerait ce fichier.
     /// </summary>
     public static bool CanDuplicate(AssetViewModel? viewModel) =>
-        viewModel is not null && viewModel.Model.Type is not (AssetType.Texture or AssetType.Sound);
+        viewModel is not null && viewModel.Model.Type is not (AssetType.Texture or AssetType.Sound or AssetType.Model);
 
     /// <summary>
     /// Copie un asset avec un nouvel identifiant (« magic_sword_copy », puis « magic_sword_copy_2 »...)
@@ -377,7 +485,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         ArgumentNullException.ThrowIfNull(source);
         if (!CanDuplicate(source))
         {
-            throw new InvalidOperationException(Tr.T("Les textures et les sons ne peuvent pas être dupliqués : importez de nouveau le fichier."));
+            throw new InvalidOperationException(Tr.T("Textures and sounds cannot be duplicated: import the file again."));
         }
 
         // La copie passe par le format de fichier des assets : toutes les propriétés suivent, y compris celles à venir.
@@ -387,7 +495,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         root["resourceId"] = Model.Assets.CreateUniqueResourceId(source.Model.ResourceId.Value + "_copy", source.Model.Type).Value;
         root["displayName"] = string.IsNullOrWhiteSpace(source.Model.DisplayName)
             ? string.Empty
-            : Tr.F("{0} (copie)", source.Model.DisplayName);
+            : Tr.F("{0} (copy)", source.Model.DisplayName);
         Asset copy = serializer.Deserialize(root, source.Model.ResourceId.Value);
         History.Execute(new AddAssetCommand(Model.Assets, copy, source.TypeLabel));
         SelectAsset(copy.Id);
@@ -434,7 +542,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         Asset read = serializer.Deserialize(root, name);
         if (read is FileAsset)
         {
-            throw new InvalidDataException(Tr.T("Une texture ou un son s'importe directement depuis son fichier PNG ou OGG."));
+            throw new InvalidDataException(Tr.T("A texture or a sound is imported directly from its PNG or OGG file."));
         }
 
         root["guid"] = Guid.NewGuid().ToString("D");
@@ -568,13 +676,22 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
 
     private static string PluralLabel(IAssetDefinition definition) => definition.Type switch
     {
-        AssetType.Block => Tr.T("Blocs"),
+        AssetType.Block => Tr.T("Blocks"),
         AssetType.Item => Tr.T("Items"),
         AssetType.Mob => Tr.T("Mobs"),
-        AssetType.Recipe => Tr.T("Recettes"),
+        AssetType.Recipe => Tr.T("Recipes"),
         AssetType.Texture => Tr.T("Textures"),
-        AssetType.Sound => Tr.T("Sons"),
-        AssetType.Graph => Tr.T("Graphes"),
+        AssetType.Sound => Tr.T("Sounds"),
+        AssetType.Graph => Tr.T("Graphs"),
+        AssetType.BehaviorTree => Tr.T("Behavior trees"),
+        AssetType.Model => Tr.T("3D models"),
+        AssetType.Command => Tr.T("Commands"),
+        AssetType.CreativeTab => Tr.T("Creative tabs"),
+        AssetType.Keybind => Tr.T("Keybinds"),
+        AssetType.Enchantment => Tr.T("Enchantments"),
+        AssetType.Fluid => Tr.T("Fluids"),
+        AssetType.GameRule => Tr.T("Game rules"),
+        AssetType.Effect => Tr.T("Effects"),
         _ => definition.Label,
     };
 

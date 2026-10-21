@@ -8,6 +8,7 @@ public abstract class InventoryAssetDefinition<TAsset> : AssetDefinition<TAsset>
     where TAsset : InventoryAsset
 {
     private const string TextureKey = "texture";
+    private const string CustomModelKey = "customModel";
     private const string MaxStackSizeKey = "maxStackSize";
     private const string RarityKey = "rarity";
     private const string FireResistantKey = "fireResistant";
@@ -18,6 +19,7 @@ public abstract class InventoryAssetDefinition<TAsset> : AssetDefinition<TAsset>
     protected static void ReadInventory(TAsset asset, JsonPropertyReader reader)
     {
         asset.TextureId = reader.GetGuid(TextureKey);
+        asset.CustomModelId = reader.GetGuid(CustomModelKey);
         asset.MaxStackSize = Math.Clamp(
             reader.GetInt32(MaxStackSizeKey, InventoryAsset.DefaultStackSize), InventoryAsset.MinStackSize, InventoryAsset.MaxStackSizeLimit);
         asset.Rarity = reader.GetEnum(RarityKey, ItemRarity.Common);
@@ -30,6 +32,7 @@ public abstract class InventoryAssetDefinition<TAsset> : AssetDefinition<TAsset>
     protected static void WriteInventory(TAsset asset, JsonObject properties)
     {
         properties[TextureKey] = asset.TextureId?.ToString("D");
+        properties[CustomModelKey] = asset.CustomModelId?.ToString("D");
         properties[MaxStackSizeKey] = asset.MaxStackSize;
         properties[RarityKey] = asset.Rarity.ToString();
         properties[FireResistantKey] = asset.FireResistant;

@@ -6,7 +6,7 @@
         xmlns:vm="clr-namespace:MineEngine.Editor.ViewModels"
         ui:WindowHelper.UseModernWindowStyle="True"
         Background="{DynamicResource HubBackgroundBrush}"
-        Title="{l:Tr 'Paramètres'}"
+        Title="{l:Tr 'Settings'}"
         Width="800" Height="700" MinWidth="560" MinHeight="480"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">
@@ -50,49 +50,49 @@
 
     <DockPanel Margin="16">
         <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
-            <Button DockPanel.Dock="Left" Content="{l:Tr 'Paramètres par défaut'}" Command="{Binding ResetCommand}" MinWidth="110" />
+            <Button DockPanel.Dock="Left" Content="{l:Tr 'Restore defaults'}" Command="{Binding ResetCommand}" MinWidth="110" />
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="{l:Tr 'Enregistrer'}" Command="{Binding SaveCommand}" IsDefault="True" MinWidth="110"
+                <Button Content="{l:Tr 'Save'}" Command="{Binding SaveCommand}" IsDefault="True" MinWidth="110"
                         Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,0" />
-                <Button Content="{l:Tr 'Annuler'}" IsCancel="True" MinWidth="110" />
+                <Button Content="{l:Tr 'Cancel'}" IsCancel="True" MinWidth="110" />
             </StackPanel>
         </DockPanel>
 
         <TabControl Style="{StaticResource UnderlineTabControl}">
             <!-- Général -->
-            <TabItem Header="{l:Tr 'Général'}">
+            <TabItem Header="{l:Tr 'General'}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="0,0,8,0">
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Démarrage'}" />
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Startup'}" />
                         <CheckBox Style="{StaticResource SettingsCheck}" IsChecked="{Binding ReopenLastProject}"
-                                  Content="{l:Tr 'Rouvrir le dernier projet au démarrage'}" />
+                                  Content="{l:Tr 'Reopen the last project at startup'}" />
                         <TextBlock Style="{StaticResource FieldHint}" Margin="28,0,0,0"
-                                   Text="{l:Tr 'Sinon, Mine Engine s\'ouvre sur l\'accueil.'}" />
+                                   Text="{l:Tr 'Otherwise, Mine Engine opens on the home page.'}" />
 
-                        <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Sauvegarde automatique'}" />
-                        <ui:NumberBox Header="{l:Tr 'Intervalle (minutes)'}" Width="300" HorizontalAlignment="Left"
+                        <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Autosave'}" />
+                        <ui:NumberBox Header="{l:Tr 'Interval (minutes)'}" Width="300" HorizontalAlignment="Left"
                                       Minimum="0" Maximum="{Binding MaxAutoSaveMinutes}" SmallChange="1" LargeChange="5"
                                       SpinButtonPlacementMode="Inline"
                                       Value="{Binding AutoSaveMinutes, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
-                                   Text="{l:Tr 'Le projet ouvert est enregistré automatiquement à cet intervalle s\'il a été modifié. 0 désactive la sauvegarde automatique.'}" />
+                                   Text="{l:Tr 'The open project is saved automatically at this interval if it was changed. 0 turns autosave off.'}" />
 
-                        <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Sauvegardes de secours'}" />
-                        <ui:NumberBox Header="{l:Tr 'Nombre de sauvegardes conservées'}" Width="300" HorizontalAlignment="Left"
+                        <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Backups'}" />
+                        <ui:NumberBox Header="{l:Tr 'Number of backups kept'}" Width="300" HorizontalAlignment="Left"
                                       Minimum="1" Maximum="{Binding MaxBackupsToKeep}" SmallChange="1" LargeChange="5"
                                       SpinButtonPlacementMode="Inline"
                                       Value="{Binding BackupsToKeep, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
-                                   Text="{l:Tr 'À chaque enregistrement (au plus une fois toutes les 10 minutes), une copie du projet est rangée dans .mineengine\\backups. Les plus anciennes sont supprimées.'}" />
+                                   Text="{l:Tr 'At each save (at most once every 10 minutes), a copy of the project is stored in .mineengine\\backups. The oldest ones are deleted.'}" />
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
 
             <!-- Apparence -->
-            <TabItem Header="{l:Tr 'Apparence'}">
+            <TabItem Header="{l:Tr 'Appearance'}">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Bottom">
-                        <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Couleur d\'accent'}" />
+                        <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Accent color'}" />
                         <ListBox ItemsSource="{Binding Accents}" SelectedItem="{Binding SelectedAccent}"
                                  Background="Transparent" BorderThickness="0" Padding="0"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -131,22 +131,22 @@
                         </ListBox>
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0" Text="{Binding SelectedAccent.Name}" />
 
-                        <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Taille de l\'interface'}" />
+                        <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Interface size'}" />
                         <ComboBox Width="160" HorizontalAlignment="Left" ItemsSource="{Binding ScaleChoices}"
                                   SelectedItem="{Binding SelectedScale}" DisplayMemberPath="Label" />
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
-                                   Text="{l:Tr 'Agrandit ou réduit les textes et les contrôles de toutes les fenêtres. Appliqué à l\'enregistrement.'}" />
+                                   Text="{l:Tr 'Makes the text and controls of every window larger or smaller. Applied when you save.'}" />
                     </StackPanel>
 
-                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelTitle}" Text="{l:Tr 'Thème'}" />
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelTitle}" Text="{l:Tr 'Theme'}" />
                     <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource FieldHint}" Margin="0,6,0,0"
-                               Text="{l:Tr 'Le thème est appliqué immédiatement pour vous permettre de le voir. Annuler rétablit le thème précédent. Exporter écrit le thème avec toutes ses couleurs : modifiez-le puis importez-le pour créer le vôtre.'}" />
+                               Text="{l:Tr 'The theme is applied immediately so you can see it. Cancel restores the previous theme. Export writes the theme with all its colors: edit it, then import it to create your own.'}" />
 
                     <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource FieldHint}" Margin="0,4,0,0" Text="{Binding ThemeMessage}" />
                     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Importer...'}" Command="{Binding ImportThemeCommand}" />
-                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Exporter...'}" Command="{Binding ExportThemeCommand}" />
-                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Supprimer'}" Command="{Binding RemoveThemeCommand}" />
+                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Import...'}" Command="{Binding ImportThemeCommand}" />
+                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Export...'}" Command="{Binding ExportThemeCommand}" />
+                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Delete'}" Command="{Binding RemoveThemeCommand}" />
                     </StackPanel>
                     <ListBox x:Name="ThemeList" Style="{StaticResource ChoiceList}" MinHeight="120"
                              ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}">
@@ -176,20 +176,20 @@
             </TabItem>
 
             <!-- Langue -->
-            <TabItem Header="{l:Tr 'Langue'}">
+            <TabItem Header="{l:Tr 'Language'}">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelTitle}" Text="{l:Tr 'Langue de l\'interface'}" />
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelTitle}" Text="{l:Tr 'Interface language'}" />
                     <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource FieldHint}" Margin="0,6,0,0"
-                               Text="{l:Tr 'Pour traduire Mine Engine, exportez un modèle : il contient chaque texte de l\'interface avec sa version anglaise. Les textes qu\'une langue importée ne traduit pas restent en anglais.'}" />
+                               Text="{l:Tr 'To translate Mine Engine, export a template: it contains every interface text with its English version. Texts an imported language does not translate stay in English.'}" />
                     <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource FieldHint}" Margin="0,6,0,0"
-                               Text="{l:Tr 'La nouvelle langue sera utilisée au prochain démarrage de Mine Engine.'}"
+                               Text="{l:Tr 'The new language will be used the next time Mine Engine starts.'}"
                                Visibility="{Binding NeedsRestart, Converter={StaticResource BoolToVisibility}}" />
 
                     <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource FieldHint}" Margin="0,4,0,0" Text="{Binding LanguageMessage}" />
                     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Importer...'}" Command="{Binding ImportLanguageCommand}" />
-                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Exporter un modèle...'}" Command="{Binding ExportLanguageTemplateCommand}" />
-                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Supprimer'}" Command="{Binding RemoveLanguageCommand}" />
+                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Import...'}" Command="{Binding ImportLanguageCommand}" />
+                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Export a template...'}" Command="{Binding ExportLanguageTemplateCommand}" />
+                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Delete'}" Command="{Binding RemoveLanguageCommand}" />
                     </StackPanel>
                     <ListBox Style="{StaticResource ChoiceList}" MinHeight="120"
                              ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}">
@@ -206,43 +206,43 @@
             </TabItem>
 
             <!-- Éditeurs -->
-            <TabItem Header="{l:Tr 'Éditeurs'}">
+            <TabItem Header="{l:Tr 'Editors'}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="0,0,8,0">
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Éditeur de code'}" />
-                        <ui:NumberBox Header="{l:Tr 'Taille du texte'}" Width="300" HorizontalAlignment="Left"
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Code editor'}" />
+                        <ui:NumberBox Header="{l:Tr 'Text size'}" Width="300" HorizontalAlignment="Left"
                                       Minimum="{Binding MinCodeFontSize}" Maximum="{Binding MaxCodeFontSize}" SmallChange="1" LargeChange="2"
                                       SpinButtonPlacementMode="Inline"
                                       Value="{Binding CodeFontSize, UpdateSourceTrigger=PropertyChanged}" />
                         <CheckBox Style="{StaticResource SettingsCheck}" Margin="0,10,0,2" IsChecked="{Binding CodeWordWrap}"
-                                  Content="{l:Tr 'Retour automatique à la ligne'}" />
+                                  Content="{l:Tr 'Word wrap'}" />
                         <TextBlock Style="{StaticResource FieldHint}" Margin="28,0,0,0"
-                                   Text="{l:Tr 'Les lignes trop longues continuent sur la ligne suivante au lieu de défiler horizontalement.'}" />
+                                   Text="{l:Tr 'Long lines continue on the next line instead of scrolling horizontally.'}" />
 
-                        <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Éditeur de graphes'}" />
+                        <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Graph editor'}" />
                         <CheckBox Style="{StaticResource SettingsCheck}" IsChecked="{Binding GraphShowGrid}"
-                                  Content="{l:Tr 'Afficher la grille'}" />
+                                  Content="{l:Tr 'Show the grid'}" />
                         <CheckBox Style="{StaticResource SettingsCheck}" IsChecked="{Binding GraphSnapToGrid}"
-                                  Content="{l:Tr 'Caler les nœuds sur la grille'}" />
+                                  Content="{l:Tr 'Snap nodes to the grid'}" />
                         <TextBlock Style="{StaticResource FieldHint}" Margin="28,0,0,0"
-                                   Text="{l:Tr 'Un nœud déplacé se place sur le point de la grille le plus proche quand vous le lâchez.'}" />
+                                   Text="{l:Tr 'A moved node lands on the nearest grid point when you release it.'}" />
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
             <!-- Programmes externes -->
-            <TabItem Header="{l:Tr 'Programmes'}">
+            <TabItem Header="{l:Tr 'Programs'}">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelTitle}" Text="{l:Tr 'Ouvrir avec'}" />
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelTitle}" Text="{l:Tr 'Open with'}" />
                     <TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldHint}" Margin="0,0,0,8"
-                               Text="{l:Tr 'Ces programmes sont proposés par « Ouvrir avec » (clic droit dans l\'Explorateur ou le Dashboard) pour les fichiers dont l\'extension est listée. * : tous les fichiers.'}" />
+                               Text="{l:Tr 'These programs are offered by &quot;Open with&quot; (right-click in the Explorer or the Dashboard) for files whose extension is listed. *: all files.'}" />
                     <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource FieldHint}" Margin="0,4,0,0" Text="{Binding ProgramMessage}" />
                     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Ajouter...'}" Command="{Binding AddProgramCommand}" />
-                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Détecter les programmes installés'}" Command="{Binding DetectProgramsCommand}" />
+                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Add...'}" Command="{Binding AddProgramCommand}" />
+                        <Button Style="{StaticResource SettingsButton}" Content="{l:Tr 'Detect installed programs'}" Command="{Binding DetectProgramsCommand}" />
                     </StackPanel>
                     <Grid>
                         <TextBlock Margin="8" Style="{StaticResource FieldHint}" Visibility="{Binding Programs.Count, Converter={StaticResource ZeroToVisible}}"
-                                   Text="{l:Tr 'Aucun programme. Ajoutez votre éditeur d\'images, de sons ou de code, ou laissez Mine Engine chercher ceux qui sont installés.'}" />
+                                   Text="{l:Tr 'No program. Add your image, sound or code editor, or let Mine Engine look for the installed ones.'}" />
                         <ListBox ItemsSource="{Binding Programs}" Style="{StaticResource ChoiceList}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
@@ -259,13 +259,13 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" MinHeight="0" Padding="6,3" Margin="0,0,6,0"
-                                                 ToolTip="{l:Tr 'Nom affiché dans le menu'}" />
+                                                 ToolTip="{l:Tr 'Name shown in the menu'}" />
                                         <TextBox Grid.Column="1" Text="{Binding Extensions, UpdateSourceTrigger=PropertyChanged}" MinHeight="0" Padding="6,3" Margin="0,0,8,0"
-                                                 FontFamily="Cascadia Mono, Consolas" ToolTip="{l:Tr 'Extensions séparées par des points-virgules (png;jpg) ou * pour tous les fichiers'}" />
+                                                 FontFamily="Cascadia Mono, Consolas" ToolTip="{l:Tr 'Extensions separated by semicolons (png;jpg) or * for all files'}" />
                                         <TextBlock x:Name="ProgramPath" Grid.Column="2" Text="{Binding Path}" VerticalAlignment="Center" FontSize="11"
                                                    TextTrimming="CharacterEllipsis" ToolTip="{Binding Path}" Foreground="{DynamicResource HintBrush}" />
                                         <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" Margin="6,0,0,0"
-                                                ToolTip="{l:Tr 'Retirer ce programme'}" CommandParameter="{Binding}"
+                                                ToolTip="{l:Tr 'Remove this program'}" CommandParameter="{Binding}"
                                                 Command="{Binding DataContext.RemoveProgramCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" />
                                     </Grid>
                                     <DataTemplate.Triggers>
@@ -281,11 +281,11 @@
             </TabItem>
 
             <!-- Raccourcis -->
-            <TabItem Header="{l:Tr 'Raccourcis'}">
+            <TabItem Header="{l:Tr 'Shortcuts'}">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0"
-                                   Text="{l:Tr 'Cliquez dans la case d\'une commande puis appuyez sur le raccourci voulu. Retour arrière ou Suppr seuls retirent le raccourci, Échap annule. Raccourcis fixes :'}" />
+                                   Text="{l:Tr 'Click in a command\'s box, then press the shortcut you want. Backspace or Delete alone remove the shortcut, Esc cancels. Fixed shortcuts:'}" />
                         <ItemsControl ItemsSource="{Binding FixedShortcuts}" Focusable="False" Margin="0,2,0,0">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -331,18 +331,34 @@
                                     </StackPanel>
                                     <TextBox Grid.Column="1" IsReadOnly="True" IsReadOnlyCaretVisible="False" MinHeight="0" Padding="6,3"
                                              Text="{Binding DisplayGesture, Mode=OneWay}" PreviewKeyDown="OnShortcutKeyDown"
-                                             ToolTip="{l:Tr 'Appuyez sur le raccourci voulu'}" />
+                                             ToolTip="{l:Tr 'Press the shortcut you want'}" />
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="6,0,0,0">
                                         <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" Command="{Binding ClearCommand}"
-                                                ToolTip="{l:Tr 'Retirer le raccourci'}" />
+                                                ToolTip="{l:Tr 'Remove the shortcut'}" />
                                         <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Undo}" Command="{Binding ResetCommand}"
-                                                ToolTip="{l:Tr 'Raccourci par défaut'}" />
+                                                ToolTip="{l:Tr 'Default shortcut'}" />
                                     </StackPanel>
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </DockPanel>
+            </TabItem>
+
+            <!-- Débogage (V0.6.4) -->
+            <TabItem Header="{l:Tr 'Debug'}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,0,8,0">
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Debug mode'}" />
+                        <CheckBox Style="{StaticResource SettingsCheck}" IsChecked="{Binding DebugMode}" Content="{l:Tr 'Turn on the debug mode of Mine Engine'}" />
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="28,0,0,0" TextWrapping="Wrap"
+                                   Text="{l:Tr 'Shows the detailed messages in the Output and the log file (duration of each step of the validation, the generation and the build), asks Gradle for the full stack of its errors, adds a Debug menu and shows the memory used in the status bar.'}" />
+
+                        <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Crash reports'}" />
+                        <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap"
+                                   Text="{l:Tr 'Whatever the debug mode, every unexpected error of Mine Engine writes a report (version, system, open project, last messages and the error) in %LOCALAPPDATA%\\MineEngine\\crashes. A session that did not close normally is reported at the next start. Mine Engine > Crash reports opens the folder: join a report to a bug report on GitHub.'}" />
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
         </TabControl>
     </DockPanel>

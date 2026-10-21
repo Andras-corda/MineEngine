@@ -225,7 +225,7 @@ public sealed class LanguagesViewModel : ObservableObject, IDisposable
             return;
         }
 
-        Change(Model.Localization.WithTranslation(_selectedLocale.Code, key, text), Tr.F("Traduire « {0} »", key));
+        Change(Model.Localization.WithTranslation(_selectedLocale.Code, key, text), Tr.F("Translate \"{0}\"", key));
     }
 
     private void Change(ModLocalization value, string description)
@@ -311,7 +311,7 @@ public sealed class LanguagesViewModel : ObservableObject, IDisposable
 
         foreach ((string key, string text) in translations.Where(t => !known.Contains(t.Key)).OrderBy(t => t.Key, StringComparer.Ordinal))
         {
-            Rows.Add(new TranslationRowViewModel(this, key, string.Empty, Tr.T("Clé ajoutée"), text));
+            Rows.Add(new TranslationRowViewModel(this, key, string.Empty, Tr.T("Added key"), text));
         }
 
         UpdateProgress();
@@ -338,6 +338,9 @@ public sealed class LanguagesViewModel : ObservableObject, IDisposable
             row.Update(translations.GetValueOrDefault(row.Key) ?? string.Empty);
         }
 
+        // Undo or import: the filters apply again. Never while typing: a refresh recreates the
+        // rows, and the text box being typed in would lose the focus after each character.
+        _view.Refresh();
         UpdateProgress();
     }
 
@@ -347,27 +350,33 @@ public sealed class LanguagesViewModel : ObservableObject, IDisposable
         foreach (LocaleItemViewModel locale in Locales)
         {
             int translated = Model.Localization.TranslationsFor(locale.Code).Count;
-            locale.Progress = Tr.F("{0} / {1} traduits", translated, total);
+            locale.Progress = Tr.F("{0} / {1} translated", translated, total);
         }
-
-        _view.Refresh();
     }
 
     private static string SourceLabel(TranslationSource source) => source switch
     {
-        TranslationSource.CreativeTab => Tr.T("Onglet créatif"),
+        TranslationSource.CreativeTab => Tr.T("Creative tab"),
         TranslationSource.Item => Tr.T("Item"),
-        TranslationSource.Block => Tr.T("Bloc"),
-        TranslationSource.Tooltip => Tr.T("Info-bulle"),
+        TranslationSource.Block => Tr.T("Block"),
+        TranslationSource.Tooltip => Tr.T("Tooltip"),
         TranslationSource.Mob => Tr.T("Mob"),
-        TranslationSource.SpawnEgg => Tr.T("Œuf d'apparition"),
-        _ => Tr.T("Sous-titre de son"),
+        TranslationSource.SpawnEgg => Tr.T("Spawn egg"),
+        TranslationSource.ProjectCreativeTab => Tr.T("Creative tab"),
+        TranslationSource.Keybind or TranslationSource.KeyCategory => Tr.T("Keybind"),
+        TranslationSource.Enchantment => Tr.T("Enchantment"),
+        TranslationSource.Fluid => Tr.T("Fluid"),
+        TranslationSource.Bucket => Tr.T("Bucket"),
+        TranslationSource.GameRule or TranslationSource.GameRuleDescription => Tr.T("Game rule"),
+        TranslationSource.Effect => Tr.T("Effect"),
+        TranslationSource.Potion or TranslationSource.SplashPotion or TranslationSource.LingeringPotion or TranslationSource.TippedArrow => Tr.T("Potion"),
+        _ => Tr.T("Sound subtitle"),
     };
 
     private void AddLocale()
     {
-        string? code = _dialogs.AskText(Tr.T("Ajouter une langue"),
-            Tr.T("Code de langue Minecraft (exemples : de_de, es_es, it_it, pt_br, ja_jp) :"), string.Empty);
+        string? code = _dialogs.AskText(Tr.T("Add a language"),
+            Tr.T("Minecraft language code (examples: de_de, es_es, it_it, pt_br, ja_jp):"), string.Empty);
         if (code is null)
         {
             return;
@@ -376,11 +385,11 @@ public sealed class LanguagesViewModel : ObservableObject, IDisposable
         code = ModLocalization.Normalize(code);
         if (!ModLocalization.IsValidLocale(code))
         {
-            _dialogs.ShowError(Tr.T("Ajouter une langue"), Tr.F("Code de langue invalide : « {0} » (exemples : de_de, es_es, pt_br).", code));
+            _dialogs.ShowError(Tr.T("Add a language"), Tr.F("Invalid language code: \"{0}\" (examples: de_de, es_es, pt_br).", code));
             return;
         }
 
-        Change(Model.Localization.WithLocale(code), Tr.F("Ajouter la langue {0}", code));
+        Change(Model.Localization.WithLocale(code), Tr.F("Add the {0} language", code));
         RebuildLocales();
         SelectedLocale = Locales.FirstOrDefault(l => l.Code == code);
     }
@@ -388,19 +397,19 @@ public sealed class LanguagesViewModel : ObservableObject, IDisposable
     private void RemoveLocale()
     {
         if (_selectedLocale is not { } locale
-            || !_dialogs.Confirm(Tr.T("Supprimer la langue"), Tr.F("Supprimer la langue {0} et ses traductions du mod ? (Ctrl+Z pour annuler)", locale.Code)))
+            || !_dialogs.Confirm(Tr.T("Delete the language"), Tr.F("Delete the {0} language and its translations from the mod? (Ctrl+Z to undo)", locale.Code)))
         {
             return;
         }
 
-        Change(Model.Localization.WithoutLocale(locale.Code), Tr.F("Supprimer la langue {0}", locale.Code));
+        Change(Model.Localization.WithoutLocale(locale.Code), Tr.F("Delete the {0} language", locale.Code));
         RebuildLocales();
     }
 
     /// <summary>Importe un fichier de langue Minecraft ; sa langue est tirée du nom du fichier (de_de.json), sinon demandée.</summary>
     private void Import()
     {
-        if (_dialogs.AskFileToOpen(Tr.T("Importer un fichier de langue"), JsonFilter) is not { } file)
+        if (_dialogs.AskFileToOpen(Tr.T("Import a language file"), JsonFilter) is not { } file)
         {
             return;
         }
@@ -411,8 +420,8 @@ public sealed class LanguagesViewModel : ObservableObject, IDisposable
             string code = ModLocalization.Normalize(Path.GetFileNameWithoutExtension(file));
             if (!ModLocalization.IsValidLocale(code))
             {
-                code = ModLocalization.Normalize(_dialogs.AskText(Tr.T("Importer un fichier de langue"),
-                    Tr.T("Langue de ce fichier (code Minecraft, par exemple de_de) :"), _selectedLocale?.Code ?? string.Empty));
+                code = ModLocalization.Normalize(_dialogs.AskText(Tr.T("Import a language file"),
+                    Tr.T("Language of this file (Minecraft code, for example de_de):"), _selectedLocale?.Code ?? string.Empty));
                 if (!ModLocalization.IsValidLocale(code))
                 {
                     return;
@@ -422,14 +431,14 @@ public sealed class LanguagesViewModel : ObservableObject, IDisposable
             // Une valeur identique au texte par défaut n'est pas une traduction : elle n'est pas gardée.
             var defaults = ModTranslationKeys.Collect(Model).ToDictionary(e => e.Key, e => e.DefaultFor(code), StringComparer.Ordinal);
             var kept = entries.Where(e => !defaults.TryGetValue(e.Key, out string? text) || text != e.Value).ToList();
-            Change(Model.Localization.WithTranslations(code, kept), Tr.F("Importer la langue {0}", code));
+            Change(Model.Localization.WithTranslations(code, kept), Tr.F("Import the {0} language", code));
             RebuildLocales();
             SelectedLocale = Locales.FirstOrDefault(l => l.Code == code);
-            Message = Tr.F("{0} : {1} traductions importées dans {2}.", Path.GetFileName(file), kept.Count, code);
+            Message = Tr.F("{0}: {1} translations imported into {2}.", Path.GetFileName(file), kept.Count, code);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
         {
-            _dialogs.ShowError(Tr.T("Importer un fichier de langue"), exception.Message);
+            _dialogs.ShowError(Tr.T("Import a language file"), exception.Message);
         }
     }
 
@@ -437,7 +446,7 @@ public sealed class LanguagesViewModel : ObservableObject, IDisposable
     private void Export()
     {
         if (_selectedLocale is not { } locale
-            || _dialogs.AskFileToSave(Tr.T("Exporter la langue"), JsonFilter, locale.Code + ".json") is not { } file)
+            || _dialogs.AskFileToSave(Tr.T("Export the language"), JsonFilter, locale.Code + ".json") is not { } file)
         {
             return;
         }
@@ -451,11 +460,11 @@ public sealed class LanguagesViewModel : ObservableObject, IDisposable
             }
 
             AtomicFile.WriteAllText(file, ModLocalizationSerializer.WriteLanguageFile(entries));
-            Message = Tr.F("Langue {0} exportée dans {1}.", locale.Code, file);
+            Message = Tr.F("{0} language exported to {1}.", locale.Code, file);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            _dialogs.ShowError(Tr.T("Exporter la langue"), exception.Message);
+            _dialogs.ShowError(Tr.T("Export the language"), exception.Message);
         }
     }
 
@@ -467,17 +476,17 @@ public sealed class LanguagesViewModel : ObservableObject, IDisposable
             return;
         }
 
-        string? key = _dialogs.AskText(Tr.T("Ajouter une clé"),
-            Tr.F("Clé de traduction (par exemple message.{0}.bienvenue) :", Model.Settings.ModId), $"message.{Model.Settings.ModId}.");
+        string? key = _dialogs.AskText(Tr.T("Add a key"),
+            Tr.F("Translation key (for example message.{0}.welcome):", Model.Settings.ModId), $"message.{Model.Settings.ModId}.");
         if (string.IsNullOrWhiteSpace(key))
         {
             return;
         }
 
-        string? text = _dialogs.AskText(Tr.T("Ajouter une clé"), Tr.F("Texte en {0} :", locale.Code), string.Empty);
+        string? text = _dialogs.AskText(Tr.T("Add a key"), Tr.F("Text in {0}:", locale.Code), string.Empty);
         if (!string.IsNullOrEmpty(text))
         {
-            Change(Model.Localization.WithTranslation(locale.Code, key.Trim(), text), Tr.F("Ajouter la clé {0}", key.Trim()));
+            Change(Model.Localization.WithTranslation(locale.Code, key.Trim(), text), Tr.F("Add the {0} key", key.Trim()));
             RebuildRows();
         }
     }

@@ -19,6 +19,7 @@ public sealed class ProjectSettingsSerializer
             ["authors"] = settings.Authors,
             ["description"] = settings.Description,
             ["license"] = settings.License,
+            ["icon"] = settings.IconFile,
             ["website"] = settings.Website,
             ["mdk"] = settings.MdkId,
             ["minecraftVersion"] = settings.MinecraftVersion,
@@ -38,14 +39,14 @@ public sealed class ProjectSettingsSerializer
         if (version > ProjectSettings.CurrentFormatVersion)
         {
             throw new InvalidDataException(
-                Tr.F("Ce projet a été créé par une version plus récente de Mine Engine (format {0}).", version));
+                Tr.F("This project was created by a newer version of Mine Engine (format {0}).", version));
         }
 
         string modIdText = root["modId"]?.GetValue<string>()
-            ?? throw new InvalidDataException(Tr.F("{0} : la propriété 'modId' est obligatoire.", sourceName));
+            ?? throw new InvalidDataException(Tr.F("{0}: property 'modId' is required.", sourceName));
         if (!ModId.TryParse(modIdText, out ModId? modId))
         {
-            throw new InvalidDataException(Tr.F("{0} : identifiant de mod '{1}' invalide.", sourceName, modIdText));
+            throw new InvalidDataException(Tr.F("{0}: invalid mod identifier '{1}'.", sourceName, modIdText));
         }
 
         var settings = new ProjectSettings(modId!, ReadString(root, "modName", modIdText));
@@ -53,6 +54,7 @@ public sealed class ProjectSettingsSerializer
         settings.Authors = ReadString(root, "authors", settings.Authors);
         settings.Description = ReadString(root, "description", settings.Description);
         settings.License = ReadString(root, "license", settings.License);
+        settings.IconFile = ReadString(root, "icon", settings.IconFile);
         settings.Website = ReadString(root, "website", settings.Website);
         settings.MdkId = root["mdk"]?.GetValue<string>();
         settings.MinecraftVersion = ReadString(root, "minecraftVersion", settings.MinecraftVersion);

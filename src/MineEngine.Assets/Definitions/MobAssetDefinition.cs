@@ -14,7 +14,7 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
 
     public override string DefaultResourceIdBase => "new_mob";
 
-    public override string DefaultDisplayName => Tr.T("Nouveau mob");
+    public override string DefaultDisplayName => Tr.T("New mob");
 
     protected override MobAsset Create(Guid id, ResourceId resourceId, string displayName) =>
         new(id, resourceId, displayName);
@@ -22,6 +22,7 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
     protected override void ReadProperties(MobAsset asset, JsonPropertyReader reader)
     {
         asset.TextureId = reader.GetGuid("texture");
+        asset.CustomModelId = reader.GetGuid("customModel");
         asset.Model = reader.GetEnum("model", MobModel.Zombie);
         asset.Kind = reader.GetEnum("kind", MobKind.Monster);
         if (reader.GetObject("hitbox") is { } hitbox)
@@ -47,6 +48,7 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
         asset.Persistent = reader.GetBoolean("persistent", false);
 
         asset.Goals = [.. reader.GetObjectList("goals").Select(ReadGoal).OfType<MobGoal>()];
+        asset.BehaviorTreeId = reader.GetGuid("behaviorTree");
         asset.BreedingItem = reader.GetReference("breedingItem");
 
         if (reader.GetObject("sounds") is { } sounds)
@@ -78,6 +80,7 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
     protected override void WriteProperties(MobAsset asset, JsonObject properties)
     {
         properties["texture"] = asset.TextureId?.ToString("D");
+        properties["customModel"] = asset.CustomModelId?.ToString("D");
         properties["model"] = asset.Model.ToString();
         properties["kind"] = asset.Kind.ToString();
         properties["hitbox"] = new JsonObject
@@ -101,6 +104,11 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
         properties["persistent"] = asset.Persistent;
 
         properties["goals"] = new JsonArray([.. asset.Goals.Select(WriteGoal)]);
+        if (asset.BehaviorTreeId is { } tree)
+        {
+            properties["behaviorTree"] = tree.ToString("D");
+        }
+
         properties["breedingItem"] = asset.BreedingItem?.ToStorageText();
         properties["sounds"] = new JsonObject
         {

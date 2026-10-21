@@ -28,7 +28,7 @@ public sealed class SoundLowering : AssetLowering<SoundAsset>
         string? file = AssetFileImporter.GetExistingFile(context.Project, asset);
         if (file is null)
         {
-            context.Diagnostics.Error(Tr.F("Le fichier du son ({0}) est introuvable.", asset.FilePath), asset.ToString(), asset.Id);
+            context.Diagnostics.Error(Tr.F("The sound file ({0}) was not found.", asset.FilePath), asset.ToString(), asset.Id);
             return;
         }
 

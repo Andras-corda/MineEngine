@@ -24,7 +24,7 @@ public sealed class ResourceId : IEquatable<ResourceId>, IComparable<ResourceId>
         if (!IsValid(candidate))
         {
             throw new ArgumentException(
-                Tr.F("Identifiant invalide : '{0}'. Attendu : {1}.", candidate, RuleDescription), nameof(candidate));
+                Tr.F("Invalid identifier: '{0}'. Expected: {1}.", candidate, RuleDescription), nameof(candidate));
         }
 
         return new ResourceId(candidate);

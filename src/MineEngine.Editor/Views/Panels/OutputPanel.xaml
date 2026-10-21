@@ -10,10 +10,10 @@
 
     <DockPanel Background="{DynamicResource SidebarBrush}">
         <DockPanel DockPanel.Dock="Top" Margin="10,6,10,6">
-            <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="0" Content="{l:Tr 'Effacer'}"
+            <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="0" Content="{l:Tr 'Clear'}"
                     Command="{Binding Output.ClearCommand}" />
             <TextBlock Style="{StaticResource FieldHint}" VerticalAlignment="Center" Margin="0"
-                       Text="{l:Tr 'Journal de l\'éditeur, de la génération et de Gradle (aussi enregistré dans %LOCALAPPDATA%\\MineEngine\\logs).'}" />
+                       Text="{l:Tr 'Log of the editor, the generation and Gradle (also saved in %LOCALAPPDATA%\\MineEngine\\logs).'}" />
         </DockPanel>
         <Border Style="{StaticResource Card}" Padding="0" Margin="10,0,10,10">
         <ListBox x:Name="OutputList" Background="Transparent" BorderThickness="0"

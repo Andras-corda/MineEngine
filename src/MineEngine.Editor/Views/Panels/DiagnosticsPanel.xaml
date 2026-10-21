@@ -9,11 +9,11 @@
 
     <DockPanel Background="{DynamicResource SidebarBrush}">
         <DockPanel DockPanel.Dock="Top" Margin="10,6,10,6">
-            <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="0" Content="{l:Tr 'Valider le projet'}"
+            <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="0" Content="{l:Tr 'Validate the project'}"
                     Command="{Binding ValidateCommand}" />
             <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Diagnostics.Summary}" />
             <TextBlock Style="{StaticResource FieldHint}" VerticalAlignment="Center" Margin="12,0,0,0"
-                       Text="{l:Tr 'Double-clic sur une ligne : ouvrir l\'élément ou le fichier Java concerné.'}" />
+                       Text="{l:Tr 'Double-click a row: open the related element or Java file.'}" />
         </DockPanel>
 
         <Border Style="{StaticResource Card}" Padding="0" Margin="10,0,10,10">
@@ -24,7 +24,7 @@
                 <MouseBinding Gesture="LeftDoubleClick" Command="{Binding Diagnostics.NavigateCommand}" />
             </DataGrid.InputBindings>
             <DataGrid.Columns>
-                <DataGridTemplateColumn Header="{l:Tr 'Gravité'}" Width="120">
+                <DataGridTemplateColumn Header="{l:Tr 'Severity'}" Width="120">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock x:Name="Severity" Text="{Binding SeverityLabel}" VerticalAlignment="Center" />
@@ -42,7 +42,7 @@
                 </DataGridTemplateColumn>
                 <DataGridTextColumn Header="{l:Tr 'Message'}" Binding="{Binding Message}" Width="*" />
                 <DataGridTextColumn Header="{l:Tr 'Source'}" Binding="{Binding Source}" Width="200" />
-                <DataGridTextColumn Header="{l:Tr 'Origine'}" Binding="{Binding OriginLabel}" Width="90" />
+                <DataGridTextColumn Header="{l:Tr 'Origin'}" Binding="{Binding OriginLabel}" Width="90" />
             </DataGrid.Columns>
         </DataGrid>
         </Border>

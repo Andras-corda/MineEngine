@@ -11,6 +11,7 @@ using MineEngine.Editor.Services;
 using MineEngine.Editor.ViewModels;
 using MineEngine.Editor.ViewModels.Documents;
 using MineEngine.Editor.ViewModels.Graphs;
+using MineEngine.Editor.ViewModels.Puppeteer;
 using MineEngine.Editor.Views.Documents;
 using MineEngine.Editor.Views.Graphs;
 
@@ -62,7 +63,24 @@ public partial class MainWindow : Window
         _viewModel.Shortcuts.PropertyChanged += (_, _) => ApplyShortcuts();
         ApplyShortcuts();
         DockManager.ActiveContentChanged += OnActiveContentChanged;
+
+        // The side buttons of the mouse go back and forward, as in a web browser.
+        PreviewMouseUp += (_, e) =>
+        {
+            ICommand? command = e.ChangedButton switch
+            {
+                MouseButton.XButton1 => _viewModel.GoBackCommand,
+                MouseButton.XButton2 => _viewModel.GoForwardCommand,
+                _ => null,
+            };
+            if (command?.CanExecute(null) == true)
+            {
+                command.Execute(null);
+                e.Handled = true;
+            }
+        };
         DockManager.DocumentClosing += OnDocumentClosing;
+        InitializeTabMenu();
         Loaded += (_, _) =>
         {
             _layout.Initialize(DockManager);
@@ -169,6 +187,7 @@ public partial class MainWindow : Window
             FrameworkElement view = document switch
             {
                 GraphDocumentViewModel => new GraphDocumentView { DataContext = document },
+                BehaviorTreeDocumentViewModel => new Puppeteer.BehaviorTreeView { DataContext = document },
                 AssetEditorDocumentViewModel => new AssetEditorView { DataContext = document },
                 _ => new CodeDocumentView { DataContext = document },
             };
@@ -200,7 +219,7 @@ public partial class MainWindow : Window
         if (e.Action == NotifyCollectionChangedAction.Reset)
         {
             foreach (LayoutDocument stale in DockManager.Layout.Descendents().OfType<LayoutDocument>()
-                         .Where(d => d.Content is CodeDocumentView or GraphDocumentView or AssetEditorView).ToList())
+                         .Where(d => d.Content is CodeDocumentView or GraphDocumentView or AssetEditorView or Puppeteer.BehaviorTreeView).ToList())
             {
                 stale.Close();
             }
@@ -276,6 +295,9 @@ public partial class MainWindow : Window
             case GraphDocumentView graph:
                 Dispatcher.BeginInvoke(graph.FocusCanvas);
                 break;
+            case Puppeteer.BehaviorTreeView tree:
+                Dispatcher.BeginInvoke(tree.FocusCanvas);
+                break;
         }
     }
 
@@ -286,9 +308,16 @@ public partial class MainWindow : Window
         {
             case FrameworkElement { DataContext: DocumentViewModel document }:
                 _viewModel.ActiveDocument = document;
+                _viewModel.ActiveWorkspaceView = null;
                 break;
             case Panels.DashboardPanel or Panels.ResourcesPanel or Panels.LanguagesPanel:
                 _viewModel.ActiveDocument = null;
+                _viewModel.ActiveWorkspaceView = DockManager.ActiveContent switch
+                {
+                    Panels.ResourcesPanel => MainViewModel.ResourcesTabId,
+                    Panels.LanguagesPanel => MainViewModel.LanguagesTabId,
+                    _ => MainViewModel.DashboardTabId,
+                };
                 break;
         }
     }
@@ -456,7 +485,7 @@ public partial class MainWindow : Window
     private static readonly string[] BottomPanels = [MainViewModel.OutputPanelId, MainViewModel.DiagnosticsPanelId];
 
     private static readonly string[] AllPanels =
-        [MainViewModel.ExplorerPanelId, MainViewModel.OutputPanelId, MainViewModel.DiagnosticsPanelId, MainViewModel.InspectorPanelId];
+        [MainViewModel.ExplorerPanelId, MainViewModel.NodesPanelId, MainViewModel.OutputPanelId, MainViewModel.DiagnosticsPanelId, MainViewModel.InspectorPanelId];
 
     private LayoutRoot? _watchedLayout;
 

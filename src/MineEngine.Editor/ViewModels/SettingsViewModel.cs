@@ -21,8 +21,8 @@ public sealed record ThemeChoice(string Id, string Name, bool IsBuiltIn, string 
 
     /// <summary>Indication sous le nom : origine du thème.</summary>
     public string Detail => Id == EditorSettings.SystemThemeId
-        ? Tr.T("Clair ou sombre selon Windows")
-        : IsBuiltIn ? Tr.T("Livré avec Mine Engine") : Tr.T("Importé");
+        ? Tr.T("Light or dark, following Windows")
+        : IsBuiltIn ? Tr.T("Shipped with Mine Engine") : Tr.T("Imported");
 }
 
 /// <summary>Couleur d'accent proposée ; <see cref="Color"/> null garde celle du thème.</summary>
@@ -62,9 +62,9 @@ public sealed class SettingsViewModel : ObservableObject
         _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
         _draft = preferences.Current.Clone();
 
-        Accents = [new AccentChoice(Tr.T("Couleur du thème"), null, "Transparent"),
+        Accents = [new AccentChoice(Tr.T("Theme color"), null, "Transparent"),
             .. AccentColors.Presets.Select(p => new AccentChoice(p.DisplayName, p.Color, p.Color.ToString()))];
-        ScaleChoices = [.. new[] { 0.8, 0.9, 1.0, 1.1, 1.25, 1.5 }.Select(s => new Choice<double>(s, Tr.F("{0} %", (int)Math.Round(s * 100))))];
+        ScaleChoices = [.. new[] { 0.8, 0.9, 1.0, 1.1, 1.25, 1.5 }.Select(s => new Choice<double>(s, Tr.F("{0}%", (int)Math.Round(s * 100))))];
 
         SaveCommand = new RelayCommand(Save);
         ResetCommand = new RelayCommand(Reset);
@@ -119,14 +119,14 @@ public sealed class SettingsViewModel : ObservableObject
 
     private void AddProgram()
     {
-        if (_dialogs.AskFileToOpen(Tr.T("Ajouter un programme"), Tr.T("Programmes (*.exe)|*.exe")) is not { } exe)
+        if (_dialogs.AskFileToOpen(Tr.T("Add a program"), Tr.T("Programs (*.exe)|*.exe")) is not { } exe)
         {
             return;
         }
 
         Programs.Add(new ExternalProgramRowViewModel(new ExternalProgram(Path.GetFileNameWithoutExtension(exe), exe, "png"), OnProgramsChanged));
         OnProgramsChanged();
-        ProgramMessage = Tr.T("Indiquez les extensions des fichiers à ouvrir avec ce programme (par exemple png;jpg).");
+        ProgramMessage = Tr.T("Enter the extensions of the files to open with this program (for example png;jpg).");
     }
 
     private void DetectPrograms()
@@ -140,8 +140,8 @@ public sealed class SettingsViewModel : ObservableObject
 
         OnProgramsChanged();
         ProgramMessage = found.Count == 0
-            ? Tr.T("Aucun nouveau programme trouvé (Blockbench, Paint.NET, GIMP, Aseprite, Audacity, Visual Studio Code, Notepad++, IntelliJ IDEA).")
-            : Tr.F("{0} programme(s) ajouté(s) : {1}.", found.Count, string.Join(", ", found.Select(p => p.Name)));
+            ? Tr.T("No new program found (Blockbench, Paint.NET, GIMP, Aseprite, Audacity, Visual Studio Code, Notepad++, IntelliJ IDEA).")
+            : Tr.F("{0} program(s) added: {1}.", found.Count, string.Join(", ", found.Select(p => p.Name)));
     }
 
     // ----- Raccourcis -----
@@ -178,7 +178,7 @@ public sealed class SettingsViewModel : ObservableObject
             ShortcutRowViewModel? other = row.Gesture.Length == 0
                 ? null
                 : Shortcuts.FirstOrDefault(r => !ReferenceEquals(r, row) && r.Gesture == row.Gesture);
-            row.Conflict = other is null ? null : Tr.F("Aussi utilisé par « {0} »", other.Label);
+            row.Conflict = other is null ? null : Tr.F("Also used by \"{0}\"", other.Label);
         }
     }
 
@@ -212,6 +212,17 @@ public sealed class SettingsViewModel : ObservableObject
         set
         {
             _draft.ReopenLastProject = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>Debug mode (V0.6.4).</summary>
+    public bool DebugMode
+    {
+        get => _draft.DebugMode;
+        set
+        {
+            _draft.DebugMode = value;
             OnPropertyChanged();
         }
     }
@@ -395,7 +406,7 @@ public sealed class SettingsViewModel : ObservableObject
     private void LoadThemes()
     {
         Themes.Clear();
-        Themes.Add(ThemeChoice.From(BuiltInThemes.Dark, Tr.T("Identique à Windows")) with { Id = EditorSettings.SystemThemeId });
+        Themes.Add(ThemeChoice.From(BuiltInThemes.Dark, Tr.T("Same as Windows")) with { Id = EditorSettings.SystemThemeId });
         foreach (ThemeDefinition theme in _preferences.Themes.Library.All())
         {
             Themes.Add(ThemeChoice.From(theme));
@@ -430,22 +441,22 @@ public sealed class SettingsViewModel : ObservableObject
     {
         if (language.IsBuiltIn)
         {
-            return Tr.T("Livrée avec Mine Engine");
+            return Tr.T("Included with Mine Engine");
         }
 
         try
         {
-            return Tr.F("Importée, {0} % des textes traduits", (int)Math.Floor(LanguageLibrary.Completeness(language) * 100));
+            return Tr.F("Imported, {0}% of texts translated", (int)Math.Floor(LanguageLibrary.Completeness(language) * 100));
         }
         catch (Exception exception) when (IsFileError(exception))
         {
-            return Tr.T("Importée, fichier illisible");
+            return Tr.T("Imported, unreadable file");
         }
     }
 
     private void ImportTheme()
     {
-        if (_dialogs.AskFileToOpen(Tr.T("Importer un thème"), JsonFilter) is not { } file)
+        if (_dialogs.AskFileToOpen(Tr.T("Import a theme"), JsonFilter) is not { } file)
         {
             return;
         }
@@ -455,11 +466,11 @@ public sealed class SettingsViewModel : ObservableObject
             ThemeDefinition theme = _preferences.Themes.Library.Import(file);
             LoadThemes();
             SelectedTheme = Themes.FirstOrDefault(t => t.Id == theme.Id);
-            ThemeMessage = Tr.F("Thème « {0} » importé.", theme.Name);
+            ThemeMessage = Tr.F("Theme \"{0}\" imported.", theme.Name);
         }
         catch (Exception exception) when (IsFileError(exception))
         {
-            _dialogs.ShowError(Tr.T("Importer un thème"), exception.Message);
+            _dialogs.ShowError(Tr.T("Import a theme"), exception.Message);
         }
     }
 
@@ -468,7 +479,7 @@ public sealed class SettingsViewModel : ObservableObject
         ThemeDefinition theme = _draft.ThemeId == EditorSettings.SystemThemeId
             ? _preferences.Themes.ActualTheme
             : _preferences.Themes.Library.Find(_draft.ThemeId) ?? _preferences.Themes.ActualTheme;
-        if (_dialogs.AskFileToSave(Tr.T("Exporter le thème"), JsonFilter, theme.DisplayName + ".json") is not { } file)
+        if (_dialogs.AskFileToSave(Tr.T("Export the theme"), JsonFilter, theme.DisplayName + ".json") is not { } file)
         {
             return;
         }
@@ -476,18 +487,18 @@ public sealed class SettingsViewModel : ObservableObject
         try
         {
             ThemeLibrary.Export(theme, file, _draft.AccentColor);
-            ThemeMessage = Tr.F("Thème exporté dans {0}.", file);
+            ThemeMessage = Tr.F("Theme exported to {0}.", file);
         }
         catch (Exception exception) when (IsFileError(exception))
         {
-            _dialogs.ShowError(Tr.T("Exporter le thème"), exception.Message);
+            _dialogs.ShowError(Tr.T("Export the theme"), exception.Message);
         }
     }
 
     private void RemoveTheme()
     {
         if (SelectedTheme is not { IsBuiltIn: false } theme ||
-            !_dialogs.Confirm(Tr.T("Supprimer le thème"), Tr.F("Supprimer le thème « {0} » ?", theme.Name)))
+            !_dialogs.Confirm(Tr.T("Delete the theme"), Tr.F("Delete the theme \"{0}\"?", theme.Name)))
         {
             return;
         }
@@ -498,17 +509,17 @@ public sealed class SettingsViewModel : ObservableObject
             _draft.ThemeId = EditorSettings.SystemThemeId;
             LoadThemes();
             Preview();
-            ThemeMessage = Tr.F("Thème « {0} » supprimé.", theme.Name);
+            ThemeMessage = Tr.F("Theme \"{0}\" deleted.", theme.Name);
         }
         catch (Exception exception) when (IsFileError(exception))
         {
-            _dialogs.ShowError(Tr.T("Supprimer le thème"), exception.Message);
+            _dialogs.ShowError(Tr.T("Delete the theme"), exception.Message);
         }
     }
 
     private void ImportLanguage()
     {
-        if (_dialogs.AskFileToOpen(Tr.T("Importer une langue"), JsonFilter) is not { } file)
+        if (_dialogs.AskFileToOpen(Tr.T("Import a language"), JsonFilter) is not { } file)
         {
             return;
         }
@@ -519,19 +530,19 @@ public sealed class SettingsViewModel : ObservableObject
             LoadLanguages();
             SelectedLanguage = Languages.FirstOrDefault(l => l.Language.Code == imported.Language.Code);
             LanguageMessage = imported.RejectedCount == 0
-                ? Tr.F("Langue « {0} » importée ({1} traductions).", imported.Language.NativeName, imported.Translations.Count)
-                : Tr.F("Langue « {0} » importée ({1} traductions, {2} écartées : vides ou sans les mêmes valeurs {{0}}, {{1}}...).",
+                ? Tr.F("Language \"{0}\" imported ({1} translations).", imported.Language.NativeName, imported.Translations.Count)
+                : Tr.F("Language \"{0}\" imported ({1} translations, {2} skipped: empty or without the same {{0}}, {{1}}... values).",
                     imported.Language.NativeName, imported.Translations.Count, imported.RejectedCount);
         }
         catch (Exception exception) when (IsFileError(exception))
         {
-            _dialogs.ShowError(Tr.T("Importer une langue"), exception.Message);
+            _dialogs.ShowError(Tr.T("Import a language"), exception.Message);
         }
     }
 
     private void ExportLanguageTemplate()
     {
-        if (_dialogs.AskFileToSave(Tr.T("Exporter un modèle de traduction"), JsonFilter, "mineengine-translation.json") is not { } file)
+        if (_dialogs.AskFileToSave(Tr.T("Export a translation template"), JsonFilter, "mineengine-translation.json") is not { } file)
         {
             return;
         }
@@ -539,18 +550,18 @@ public sealed class SettingsViewModel : ObservableObject
         try
         {
             LanguageLibrary.ExportTemplate(file);
-            LanguageMessage = Tr.F("Modèle enregistré dans {0}. Remplacez chaque texte anglais par sa traduction, indiquez le code et le nom de la langue, puis importez le fichier.", file);
+            LanguageMessage = Tr.F("Template saved to {0}. Replace each English text with its translation, fill in the language code and name, then import the file.", file);
         }
         catch (Exception exception) when (IsFileError(exception))
         {
-            _dialogs.ShowError(Tr.T("Exporter un modèle de traduction"), exception.Message);
+            _dialogs.ShowError(Tr.T("Export a translation template"), exception.Message);
         }
     }
 
     private void RemoveLanguage()
     {
         if (SelectedLanguage is not { IsBuiltIn: false } language ||
-            !_dialogs.Confirm(Tr.T("Supprimer la langue"), Tr.F("Supprimer la langue « {0} » ?", language.Name)))
+            !_dialogs.Confirm(Tr.T("Delete the language"), Tr.F("Delete the language \"{0}\"?", language.Name)))
         {
             return;
         }
@@ -560,17 +571,17 @@ public sealed class SettingsViewModel : ObservableObject
             _preferences.Languages.Remove(language.Language);
             _draft.LanguageCode = UiLanguage.Default.Code;
             LoadLanguages();
-            LanguageMessage = Tr.F("Langue « {0} » supprimée.", language.Name);
+            LanguageMessage = Tr.F("Language \"{0}\" deleted.", language.Name);
         }
         catch (Exception exception) when (IsFileError(exception))
         {
-            _dialogs.ShowError(Tr.T("Supprimer la langue"), exception.Message);
+            _dialogs.ShowError(Tr.T("Delete the language"), exception.Message);
         }
     }
 
     private void Reset()
     {
-        if (!_dialogs.Confirm(Tr.T("Paramètres par défaut"), Tr.T("Rétablir tous les paramètres de l'éditeur par défaut ? Les thèmes et les langues importés sont conservés.")))
+        if (!_dialogs.Confirm(Tr.T("Restore defaults"), Tr.T("Restore all editor settings to their defaults? Imported themes and languages are kept.")))
         {
             return;
         }
@@ -588,8 +599,8 @@ public sealed class SettingsViewModel : ObservableObject
         _preferences.Update(_draft);
         _saved = true;
         RestartRequested = NeedsRestart && _dialogs.Confirm(
-            Tr.T("Changer de langue"),
-            Tr.T("La nouvelle langue sera utilisée au prochain démarrage de Mine Engine. Redémarrer maintenant ?"));
+            Tr.T("Change language"),
+            Tr.T("The new language will be used the next time Mine Engine starts. Restart now?"));
         CloseRequested?.Invoke(this, true);
     }
 

@@ -41,7 +41,7 @@ public sealed class ProgramModel
     public static DataType TypeOf(GraphAsset definition) => DataType.UserType(definition.Id, definition.Kind == GraphKind.Enum);
 
     public string TypeLabel(DataType type) => type.Definition is { } id
-        ? Find(id) is { } definition ? Name(definition) : Tr.T("Type supprimé")
+        ? Find(id) is { } definition ? Name(definition) : Tr.T("Type deleted")
         : type.BuiltInLabel;
 
     /// <summary>Nom affiché d'une définition (nom du graphe, sinon son identifiant).</summary>
@@ -197,6 +197,7 @@ public sealed class ProgramModel
             GraphNodeKind.Self => Self(graph),
             GraphNodeKind.SuperConstructor => Super(node, graph),
             GraphNodeKind.Reroute => Reroutes.Describe(node, TypeLabel),
+            GraphNodeKind.Comment or GraphNodeKind.Tooltip => GraphAnnotations.Describe(node),
             _ => NodeCatalog.Missing(node.Kind, node.Kind.ToString()),
         };
     }
@@ -234,7 +235,7 @@ public sealed class ProgramModel
     private PinInfo ObjectPin(GraphAsset type, GraphAsset graph)
     {
         bool implicitSelf = CanUseImplicitSelf(type, graph);
-        return new PinInfo(NodeInfo.TargetInput, implicitSelf ? Tr.T("Objet (vide : Moi)") : Tr.T("Objet"), TypeOf(type)) { Optional = implicitSelf };
+        return new PinInfo(NodeInfo.TargetInput, implicitSelf ? Tr.T("Object (empty: Self)") : Tr.T("Object"), TypeOf(type)) { Optional = implicitSelf };
     }
 
     private PinInfo VariablePin(VariableDefinition variable) =>
@@ -244,29 +245,29 @@ public sealed class ProgramModel
     {
         GraphKind.Function or GraphKind.Procedure => new NodeInfo(GraphNodeKind.FunctionEntry, NodeCategory.Function, Name(graph),
             graph.Kind == GraphKind.Function
-                ? Tr.T("Début de la fonction : ses sorties sont les paramètres.")
-                : Tr.T("Début de la procédure : ses sorties sont les paramètres."),
+                ? Tr.T("Start of the function: its outputs are the parameters.")
+                : Tr.T("Start of the procedure: its outputs are the parameters."),
             outputs: [.. graph.Parameters.Select(VariablePin)], flow: NodeFlow.Start),
-        GraphKind.Class => new NodeInfo(GraphNodeKind.FunctionEntry, NodeCategory.Function, Tr.F("Constructeur de {0}", Name(graph)),
-            Tr.T("Exécuté à la création d'un objet : ses sorties sont les paramètres du constructeur."),
+        GraphKind.Class => new NodeInfo(GraphNodeKind.FunctionEntry, NodeCategory.Function, Tr.F("{0} constructor", Name(graph)),
+            Tr.T("Runs when an object is created: its outputs are the constructor parameters."),
             outputs: [.. graph.Parameters.Select(VariablePin)], flow: NodeFlow.Start),
-        _ => NodeCatalog.Missing(GraphNodeKind.FunctionEntry, Tr.T("Entrée")),
+        _ => NodeCatalog.Missing(GraphNodeKind.FunctionEntry, Tr.T("Entry")),
     };
 
     private NodeInfo Return(GraphAsset graph) => graph.Kind switch
     {
-        GraphKind.Function => new NodeInfo(GraphNodeKind.FunctionReturn, NodeCategory.Function, Tr.T("Retour"),
-            Tr.T("Termine la fonction et renvoie ces valeurs."), inputs: [.. graph.Returns.Select(VariablePin)], flow: NodeFlow.End),
-        GraphKind.Procedure or GraphKind.Class => new NodeInfo(GraphNodeKind.FunctionReturn, NodeCategory.Function, Tr.T("Retour"),
-            Tr.T("Termine l'exécution ici."), flow: NodeFlow.End),
-        _ => NodeCatalog.Missing(GraphNodeKind.FunctionReturn, Tr.T("Retour")),
+        GraphKind.Function => new NodeInfo(GraphNodeKind.FunctionReturn, NodeCategory.Function, Tr.T("Return"),
+            Tr.T("Ends the function and returns these values."), inputs: [.. graph.Returns.Select(VariablePin)], flow: NodeFlow.End),
+        GraphKind.Procedure or GraphKind.Class => new NodeInfo(GraphNodeKind.FunctionReturn, NodeCategory.Function, Tr.T("Return"),
+            Tr.T("Ends the execution here."), flow: NodeFlow.End),
+        _ => NodeCatalog.Missing(GraphNodeKind.FunctionReturn, Tr.T("Return")),
     };
 
     private NodeInfo Call(GraphNode node, GraphAsset graph)
     {
         if (Find(node.Target) is not { } target || !IsVisible(target, graph))
         {
-            return NodeCatalog.Missing(GraphNodeKind.CallFunction, Tr.T("Appel introuvable"));
+            return NodeCatalog.Missing(GraphNodeKind.CallFunction, Tr.T("Call not found"));
         }
 
         // Méthode d'une interface : appelée sur un objet qui l'implémente.
@@ -274,23 +275,36 @@ public sealed class ProgramModel
         {
             if (target.Methods.FirstOrDefault(m => m.Id == node.Member) is not { } signature)
             {
-                return NodeCatalog.Missing(GraphNodeKind.CallFunction, Tr.T("Méthode introuvable"));
+                return NodeCatalog.Missing(GraphNodeKind.CallFunction, Tr.T("Method not found"));
             }
 
             var objectPin = ObjectPin(target, graph);
             return new NodeInfo(GraphNodeKind.CallFunction, NodeCategory.Function, $"{Name(target)}.{signature.Name}",
-                Tr.F("Appelle la méthode « {0} » de l'interface {1} sur l'objet.", signature.Name, Name(target)),
+                Tr.F("Calls the method \"{0}\" of interface {1} on the object.", signature.Name, Name(target)),
                 inputs: [objectPin, .. signature.Parameters.Select(VariablePin)], outputs: [.. signature.Returns.Select(VariablePin)],
                 flow: NodeFlow.Step);
         }
 
         if (!target.Kind.IsCallable())
         {
-            return NodeCatalog.Missing(GraphNodeKind.CallFunction, Tr.T("Appel introuvable"));
+            return NodeCatalog.Missing(GraphNodeKind.CallFunction, Tr.T("Call not found"));
         }
 
         var inputs = new List<PinInfo>();
         string title = Name(target);
+        string kind = target.Kind == GraphKind.Function ? Tr.T("the function") : Tr.T("the procedure");
+        NodeFlow flow = target.IsPure && target.Kind == GraphKind.Function ? NodeFlow.Pure : NodeFlow.Step;
+        if (Find(target.OwnerId) is { Kind: GraphKind.Library } library)
+        {
+            // Function of a library: gray, grouped under the name of the library in the Nodes window.
+            return new NodeInfo(GraphNodeKind.CallFunction, NodeCategory.Library, title,
+                Tr.F("Calls {0} \"{1}\" of the library {2}.", kind, Name(target), Name(library)),
+                inputs: [.. target.Parameters.Select(VariablePin)], outputs: [.. target.Returns.Select(VariablePin)], flow: flow)
+            {
+                Library = Name(library),
+            };
+        }
+
         if (Find(target.OwnerId) is { Kind: GraphKind.Class } owner)
         {
             title = $"{Name(owner)}.{Name(target)}";
@@ -301,24 +315,22 @@ public sealed class ProgramModel
         }
 
         inputs.AddRange(target.Parameters.Select(VariablePin));
-        string kind = target.Kind == GraphKind.Function ? Tr.T("la fonction") : Tr.T("la procédure");
-        return new NodeInfo(GraphNodeKind.CallFunction, NodeCategory.Function, title, Tr.F("Appelle {0} « {1} ».", kind, Name(target)),
-            inputs: inputs, outputs: [.. target.Returns.Select(VariablePin)],
-            flow: target.IsPure && target.Kind == GraphKind.Function ? NodeFlow.Pure : NodeFlow.Step);
+        return new NodeInfo(GraphNodeKind.CallFunction, NodeCategory.Function, title, Tr.F("Calls {0} \"{1}\".", kind, Name(target)),
+            inputs: inputs, outputs: [.. target.Returns.Select(VariablePin)], flow: flow);
     }
 
     private NodeInfo New(GraphNode node, GraphAsset graph)
     {
         if (Find(node.Target) is not { Kind: GraphKind.Class or GraphKind.Struct } type || !IsVisible(type, graph))
         {
-            return NodeCatalog.Missing(GraphNodeKind.NewObject, Tr.T("Type introuvable"));
+            return NodeCatalog.Missing(GraphNodeKind.NewObject, Tr.T("Type not found"));
         }
 
         IEnumerable<VariableDefinition> arguments = type.Kind == GraphKind.Class ? type.Parameters : type.Variables;
-        return new NodeInfo(GraphNodeKind.NewObject, NodeCategory.Object, Tr.F("Créer {0}", Name(type)),
+        return new NodeInfo(GraphNodeKind.NewObject, NodeCategory.Object, Tr.F("Create {0}", Name(type)),
             type.Kind == GraphKind.Class
-                ? Tr.F("Crée un objet de la classe {0} (son constructeur est exécuté).", Name(type))
-                : Tr.F("Crée une structure {0} avec la valeur de chaque champ.", Name(type)),
+                ? Tr.F("Creates an object of class {0} (its constructor runs).", Name(type))
+                : Tr.F("Creates a {0} struct with the value of each field.", Name(type)),
             inputs: [.. arguments.Select(VariablePin)],
             outputs: [new PinInfo("object", Name(type), TypeOf(type))],
             flow: NodeFlow.Step);
@@ -328,14 +340,14 @@ public sealed class ProgramModel
     {
         if (graph.Variables.FirstOrDefault(v => v.Id == node.Member) is not { } variable)
         {
-            return NodeCatalog.Missing(node.Kind, Tr.T("Variable introuvable"));
+            return NodeCatalog.Missing(node.Kind, Tr.T("Variable not found"));
         }
 
         return node.Kind == GraphNodeKind.GetVariable
-            ? new NodeInfo(GraphNodeKind.GetVariable, NodeCategory.Object, variable.Name, Tr.F("Valeur de la variable « {0} ».", variable.Name),
+            ? new NodeInfo(GraphNodeKind.GetVariable, NodeCategory.Object, variable.Name, Tr.F("Value of the variable \"{0}\".", variable.Name),
                 outputs: [new PinInfo("value", variable.Name, variable.Type)])
-            : new NodeInfo(GraphNodeKind.SetVariable, NodeCategory.Object, Tr.F("Modifier {0}", variable.Name),
-                Tr.F("Change la valeur de la variable « {0} ».", variable.Name),
+            : new NodeInfo(GraphNodeKind.SetVariable, NodeCategory.Object, Tr.F("Set {0}", variable.Name),
+                Tr.F("Changes the value of the variable \"{0}\".", variable.Name),
                 inputs: [Pin("value", variable.Name, variable.Type, variable.DefaultValue)], flow: NodeFlow.Step);
     }
 
@@ -345,15 +357,15 @@ public sealed class ProgramModel
             || Fields(type).FirstOrDefault(f => f.Field.Id == node.Member) is not ({ } declaring, { } field)
             || !CanAccess(declaring, field.Access, graph))
         {
-            return NodeCatalog.Missing(node.Kind, Tr.T("Champ introuvable"));
+            return NodeCatalog.Missing(node.Kind, Tr.T("Field not found"));
         }
 
         var objectPin = ObjectPin(type, graph);
         string title = $"{Name(type)}.{field.Name}";
         return node.Kind == GraphNodeKind.GetField
-            ? new NodeInfo(GraphNodeKind.GetField, NodeCategory.Object, title, Tr.F("Valeur du champ « {0} » de l'objet.", field.Name),
+            ? new NodeInfo(GraphNodeKind.GetField, NodeCategory.Object, title, Tr.F("Value of the object's field \"{0}\".", field.Name),
                 inputs: [objectPin], outputs: [new PinInfo("value", field.Name, field.Type)])
-            : new NodeInfo(GraphNodeKind.SetField, NodeCategory.Object, Tr.F("Modifier {0}", title), Tr.F("Change le champ « {0} » de l'objet.", field.Name),
+            : new NodeInfo(GraphNodeKind.SetField, NodeCategory.Object, Tr.F("Set {0}", title), Tr.F("Changes the field \"{0}\" of the object.", field.Name),
                 inputs: [objectPin, Pin("value", field.Name, field.Type, field.DefaultValue)], flow: NodeFlow.Step);
     }
 
@@ -361,32 +373,32 @@ public sealed class ProgramModel
     {
         if (Find(node.Target) is not { Kind: GraphKind.Enum } type || !IsVisible(type, graph))
         {
-            return NodeCatalog.Missing(node.Kind, Tr.T("Énumération introuvable"));
+            return NodeCatalog.Missing(node.Kind, Tr.T("Enumeration not found"));
         }
 
         DataType enumType = TypeOf(type);
         return node.Kind == GraphNodeKind.EnumLiteral
-            ? new NodeInfo(GraphNodeKind.EnumLiteral, NodeCategory.Object, Name(type), Tr.F("Une valeur de l'énumération {0}.", Name(type)),
-                inputs: [Pin("value", Tr.T("Valeur"), enumType, connectable: false)], outputs: [new PinInfo("value", Name(type), enumType)])
-            : new NodeInfo(GraphNodeKind.EnumEquals, NodeCategory.Object, Tr.F("{0} égal à", Name(type)),
-                Tr.F("Vrai si les deux valeurs de {0} sont les mêmes.", Name(type)),
-                inputs: [Pin("a", "A", enumType), Pin("b", "B", enumType)], outputs: [new PinInfo("result", Tr.T("Résultat"), DataType.Boolean)]);
+            ? new NodeInfo(GraphNodeKind.EnumLiteral, NodeCategory.Object, Name(type), Tr.F("A value of the enumeration {0}.", Name(type)),
+                inputs: [Pin("value", Tr.T("Value"), enumType, connectable: false)], outputs: [new PinInfo("value", Name(type), enumType)])
+            : new NodeInfo(GraphNodeKind.EnumEquals, NodeCategory.Object, Tr.F("{0} equal to", Name(type)),
+                Tr.F("True if both {0} values are the same.", Name(type)),
+                inputs: [Pin("a", "A", enumType), Pin("b", "B", enumType)], outputs: [new PinInfo("result", Tr.T("Result"), DataType.Boolean)]);
     }
 
     private NodeInfo Self(GraphAsset graph) => SelfClass(graph) is { } self
-        ? new NodeInfo(GraphNodeKind.Self, NodeCategory.Object, Tr.T("Moi"), Tr.F("L'objet {0} dont le code s'exécute.", Name(self)),
-            outputs: [new PinInfo("self", Tr.T("Moi"), TypeOf(self))])
-        : NodeCatalog.Missing(GraphNodeKind.Self, Tr.T("Moi (hors d'une classe)"));
+        ? new NodeInfo(GraphNodeKind.Self, NodeCategory.Object, Tr.T("Self"), Tr.F("The {0} object whose code is running.", Name(self)),
+            outputs: [new PinInfo("self", Tr.T("Self"), TypeOf(self))])
+        : NodeCatalog.Missing(GraphNodeKind.Self, Tr.T("Self (outside a class)"));
 
     private NodeInfo Super(GraphNode node, GraphAsset graph)
     {
         if (graph.Kind != GraphKind.Class || Find(graph.BaseClassId) is not { Kind: GraphKind.Class } parent || parent.Id != node.Target)
         {
-            return NodeCatalog.Missing(GraphNodeKind.SuperConstructor, Tr.T("Constructeur parent introuvable"));
+            return NodeCatalog.Missing(GraphNodeKind.SuperConstructor, Tr.T("Parent constructor not found"));
         }
 
-        return new NodeInfo(GraphNodeKind.SuperConstructor, NodeCategory.Function, Tr.F("Constructeur parent : {0}", Name(parent)),
-            Tr.T("Construit la partie héritée de l'objet ; doit suivre directement l'entrée du constructeur."),
+        return new NodeInfo(GraphNodeKind.SuperConstructor, NodeCategory.Function, Tr.F("Parent constructor: {0}", Name(parent)),
+            Tr.T("Builds the inherited part of the object; must directly follow the constructor entry."),
             inputs: [.. parent.Parameters.Select(VariablePin)], flow: NodeFlow.Step);
     }
 

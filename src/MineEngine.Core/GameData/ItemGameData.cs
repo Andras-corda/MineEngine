@@ -117,3 +117,10 @@ public static class ItemKindExtensions
         _ => (0f, 0f),
     };
 }
+
+/// <summary>What runs an event of an event graph directly (V0.6.2): a command or a keybind of the mod.</summary>
+public enum DirectEventKind
+{
+    Command,
+    Key,
+}

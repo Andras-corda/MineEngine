@@ -4,7 +4,9 @@
              xmlns:l="clr-namespace:MineEngine.Editor.Localization"
              xmlns:docs="clr-namespace:MineEngine.Editor.ViewModels.Documents"
              xmlns:graphs="clr-namespace:MineEngine.Editor.ViewModels.Graphs"
-             xmlns:graphviews="clr-namespace:MineEngine.Editor.Views.Graphs">
+             xmlns:graphviews="clr-namespace:MineEngine.Editor.Views.Graphs"
+             xmlns:bt="clr-namespace:MineEngine.Editor.ViewModels.Puppeteer"
+             xmlns:puppeteer="clr-namespace:MineEngine.Editor.Views.Puppeteer">
 
     <!--
         Panneau Détails / Inspecteur, façon Unreal et Unity : la cible (asset sélectionné ou
@@ -30,14 +32,14 @@
                 <StackPanel>
                     <Border Style="{StaticResource DetailsSection}">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'PROPRIÉTÉS'}" Margin="0,0,0,6" />
+                            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'PROPERTIES'}" Margin="0,0,0,6" />
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding Language}" />
                                 <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Type'}" />
                             </DockPanel>
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding EncodingLabel}" />
-                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Encodage'}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Encoding'}" />
                             </DockPanel>
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding IndentationLabel}" />
@@ -45,15 +47,15 @@
                             </DockPanel>
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding LineCount}" />
-                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Lignes'}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Lines'}" />
                             </DockPanel>
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding CaretLabel}" />
-                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Curseur'}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Cursor'}" />
                             </DockPanel>
                             <DockPanel>
-                                <TextBlock x:Name="State" DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{l:Tr 'Enregistré'}" />
-                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'État'}" />
+                                <TextBlock x:Name="State" DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{l:Tr 'Saved'}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'State'}" />
                             </DockPanel>
                         </StackPanel>
                     </Border>
@@ -61,13 +63,13 @@
                     <Border Style="{StaticResource DetailsSection}">
                         <StackPanel>
                             <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'STRUCTURE'}" Margin="0,0,0,6" />
-                            <TextBlock Style="{StaticResource FieldHint}" Text="{l:Tr 'Aucun symbole reconnu dans ce fichier.'}"
+                            <TextBlock Style="{StaticResource FieldHint}" Text="{l:Tr 'No recognized symbol in this file.'}"
                                        Visibility="{Binding Outline.Count, Converter={StaticResource ZeroToVisible}}" />
                             <ItemsControl ItemsSource="{Binding Outline}" Focusable="False">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type docs:OutlineItem}">
                                         <DockPanel>
-                                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding LineLabel, StringFormat={l:Tr 'ligne {0}'}}"
+                                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding LineLabel, StringFormat={l:Tr 'line {0}'}}"
                                                        Foreground="{DynamicResource LinkBrush}" />
                                             <TextBlock Style="{StaticResource DetailsLabel}" FontFamily="Cascadia Mono, Consolas" Text="{Binding Name}" />
                                         </DockPanel>
@@ -87,21 +89,21 @@
                     </Border>
 
                     <WrapPanel>
-                        <Button Style="{DynamicResource AccentButtonStyle}" Content="{l:Tr 'Enregistrer'}" Padding="12,5" Margin="0,0,6,6"
+                        <Button Style="{DynamicResource AccentButtonStyle}" Content="{l:Tr 'Save'}" Padding="12,5" Margin="0,0,6,6"
                                 Command="{Binding DataContext.SaveDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-                        <Button Content="{l:Tr 'Recharger'}" Padding="12,5" Margin="0,0,6,6"
+                        <Button Content="{l:Tr 'Reload'}" Padding="12,5" Margin="0,0,6,6"
                                 Command="{Binding DataContext.ReloadDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-                        <Button Content="{l:Tr 'Afficher dans Windows'}" Padding="12,5" Margin="0,0,6,6"
+                        <Button Content="{l:Tr 'Show in Windows'}" Padding="12,5" Margin="0,0,6,6"
                                 Command="{Binding DataContext.RevealDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                     </WrapPanel>
                 </StackPanel>
                 <DataTemplate.Triggers>
                     <DataTrigger Binding="{Binding IsDirty}" Value="True">
-                        <Setter TargetName="State" Property="Text" Value="{l:Tr 'Modifié'}" />
+                        <Setter TargetName="State" Property="Text" Value="{l:Tr 'Modified'}" />
                         <Setter TargetName="State" Property="Foreground" Value="{DynamicResource LogWarningBrush}" />
                     </DataTrigger>
                     <DataTrigger Binding="{Binding IsReadOnly}" Value="True">
-                        <Setter TargetName="State" Property="Text" Value="{l:Tr 'Lecture seule'}" />
+                        <Setter TargetName="State" Property="Text" Value="{l:Tr 'Read-only'}" />
                     </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>
@@ -113,19 +115,19 @@
                             <TextBlock Style="{StaticResource PanelCaption}" Text="{Binding DetailsBadge}" Margin="0,0,0,6" />
                             <DockPanel Visibility="{Binding IsEventGraph, Converter={StaticResource BoolToVisibility}}">
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding EventCount}" />
-                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Événements'}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Events'}" />
                             </DockPanel>
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding Nodes.Count}" />
-                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Nœuds'}" />
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding NodeCount}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Nodes'}" />
                             </DockPanel>
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding Connections.Count}" />
-                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Fils'}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Wires'}" />
                             </DockPanel>
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding IssueSummary}" />
-                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'État'}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'State'}" />
                             </DockPanel>
                         </StackPanel>
                     </Border>
@@ -141,23 +143,53 @@
                             <DockPanel Margin="0,0,0,6">
                                 <Border DockPanel.Dock="Left" Width="4" CornerRadius="2" Margin="0,0,8,0"
                                         Background="{Binding Category, Converter={StaticResource CategoryBrush}}" />
-                                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'NŒUD SÉLECTIONNÉ'}" />
+                                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'SELECTED NODE'}" />
                             </DockPanel>
                             <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" />
                             <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{DynamicResource HintBrush}" />
                             <TextBlock Text="{Binding IssueText}" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource LogWarningBrush}"
                                        Visibility="{Binding IssueText, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}" />
+
+                            <!-- Comment: title, color, tooltip. Tooltip: its message. -->
+                            <StackPanel Margin="0,10,0,0" Visibility="{Binding IsComment, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Title'}" Margin="0,0,0,4" />
+                                <TextBox Text="{Binding AnnotationText, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Color'}" Margin="0,10,0,4" />
+                                <ListBox ItemsSource="{Binding CommentColors}" SelectedItem="{Binding CommentColor}" Background="Transparent" BorderThickness="0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Width="22" Height="22" CornerRadius="4" Background="{Binding}" ToolTip="{Binding}" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Tooltip of the comment'}" Margin="0,10,0,4" />
+                                <TextBox Text="{Binding CommentTooltip, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="54" />
+                                <TextBlock TextWrapping="Wrap" FontSize="11" Margin="0,4,0,0" Foreground="{DynamicResource HintBrush}"
+                                           Text="{l:Tr 'Shown when the mouse is over the title of the comment. Moving the comment moves the nodes inside it.'}" />
+                            </StackPanel>
+                            <StackPanel Margin="0,10,0,0" Visibility="{Binding IsTooltip, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Message'}" Margin="0,0,0,4" />
+                                <TextBox Text="{Binding AnnotationText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70" />
+                                <TextBlock TextWrapping="Wrap" FontSize="11" Margin="0,4,0,0" Foreground="{DynamicResource HintBrush}"
+                                           Text="{l:Tr 'Shown only when the mouse is over the bubble or over the nodes it describes (they show a small i).'}" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
                     <Border Style="{StaticResource DetailsSection}" Visibility="{Binding HasIssues, Converter={StaticResource BoolToVisibility}}">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'PROBLÈMES'}" Margin="0,0,0,6" />
+                            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'PROBLEMS'}" Margin="0,0,0,6" />
                             <ItemsControl ItemsSource="{Binding Issues}" Focusable="False">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type graphs:GraphIssueItem}">
                                         <Button Style="{StaticResource FlatButton}" Padding="2,3" HorizontalContentAlignment="Stretch"
-                                                Click="OnGraphIssueClick" ToolTip="{l:Tr 'Afficher le nœud'}">
+                                                Click="OnGraphIssueClick" ToolTip="{l:Tr 'Show the node'}">
                                             <DockPanel>
                                                 <TextBlock x:Name="Icon" DockPanel.Dock="Left" FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Warning}"
                                                            Margin="0,2,8,0" Foreground="{DynamicResource LogWarningBrush}" />
@@ -178,19 +210,82 @@
 
                     <Border Style="{StaticResource InfoBanner}" Margin="0,0,0,10">
                         <TextBlock TextWrapping="Wrap" FontSize="12"
-                                   Text="{l:Tr 'Les modifications du graphe sont enregistrées avec le projet (Ctrl+S) et s\'annulent avec Ctrl+Z. Elles sont traduites en Java à la compilation.'}" />
+                                   Text="{l:Tr 'Graph changes are saved with the project (Ctrl+S) and undone with Ctrl+Z. They are translated to Java at build time.'}" />
                     </Border>
                 </StackPanel>
             </DataTemplate>
 
-            <!-- Onglet d'édition d'un élément : tout est dans l'onglet, la carte « Cible » suffit ici. -->
-            <DataTemplate DataType="{x:Type docs:AssetEditorDocumentViewModel}" />
+            <!-- Puppeteer tab: summary, selected node, blackboard and problems. -->
+            <DataTemplate DataType="{x:Type bt:BehaviorTreeDocumentViewModel}">
+                <StackPanel>
+                    <Border Style="{StaticResource DetailsSection}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'BEHAVIOR TREE'}" Margin="0,0,0,6" />
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding TaskCount}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Tasks'}" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding Keys.Count}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Blackboard keys'}" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding IssueSummary}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'State'}" />
+                            </DockPanel>
+                            <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Mobs that follow it'}" Margin="0,6,0,2" />
+                            <TextBlock Text="{Binding UsedByText}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource StrongTextBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Selected node and blackboard, like Unreal's Details and Blackboard panels. -->
+                    <Border Margin="-10,0,-10,0" Padding="10,0">
+                        <puppeteer:BehaviorTreeDetailsPanel />
+                    </Border>
+
+                    <Border Style="{StaticResource DetailsSection}" Visibility="{Binding HasIssues, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'PROBLEMS'}" Margin="0,0,0,6" />
+                            <ItemsControl ItemsSource="{Binding Issues}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type graphs:GraphIssueItem}">
+                                        <Button Style="{StaticResource FlatButton}" Padding="2,3" HorizontalContentAlignment="Stretch"
+                                                Click="OnTreeIssueClick" ToolTip="{l:Tr 'Show the element'}">
+                                            <DockPanel>
+                                                <TextBlock x:Name="Icon" DockPanel.Dock="Left" FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Warning}"
+                                                           Margin="0,2,8,0" Foreground="{DynamicResource LogWarningBrush}" />
+                                                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource StrongTextBrush}" />
+                                            </DockPanel>
+                                        </Button>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsError}" Value="True">
+                                                <Setter TargetName="Icon" Property="Text" Value="{StaticResource Glyph.Error}" />
+                                                <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource LogErrorBrush}" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource InfoBanner}" Margin="0,0,0,10">
+                        <TextBlock TextWrapping="Wrap" FontSize="12"
+                                   Text="{l:Tr 'Changes to the tree are saved with the project (Ctrl+S) and undone with Ctrl+Z. Each mob that follows it gets its own copy when the mod is built.'}" />
+                    </Border>
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- Editing tab of an element: its name and identifier are edited here (the tab only shows its settings). -->
+            <DataTemplate DataType="{x:Type docs:AssetEditorDocumentViewModel}">
+                <ContentControl Content="{Binding Asset}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
+            </DataTemplate>
         </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid Background="{DynamicResource SidebarBrush}">
         <TextBlock Margin="14" TextWrapping="Wrap" Foreground="{DynamicResource HintBrush}"
-                   Text="{l:Tr 'Sélectionnez un élément dans le Dashboard, ou ouvrez un fichier depuis l\'Explorateur, pour voir ses détails.'}"
+                   Text="{l:Tr 'Select an element in the Dashboard, or open a file from the Explorer, to see its details.'}"
                    Visibility="{Binding HasDetails, Converter={StaticResource InverseBoolToVisibility}}" />
 
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
@@ -203,7 +298,7 @@
                             <Border DockPanel.Dock="Right" Style="{StaticResource Badge}">
                                 <TextBlock Style="{StaticResource BadgeText}" Text="{Binding Details.DetailsBadge}" />
                             </Border>
-                            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'CIBLE'}" />
+                            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'TARGET'}" />
                         </DockPanel>
                         <TextBlock Text="{Binding Details.DetailsTitle}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource StrongTextBrush}" />

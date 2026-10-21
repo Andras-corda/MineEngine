@@ -45,19 +45,20 @@ public sealed class ForgeMetadataEmitter : IFileEmitter
         _mdk = mdk ?? throw new ArgumentNullException(nameof(mdk));
     }
 
-    public string Name => Tr.T("Métadonnées Forge");
+    public string Name => Tr.T("Forge metadata");
 
     public void Emit(GenerationContext context)
     {
         string modsToml = Path.Combine(_mdk.Directory, ModsToml.Replace('/', Path.DirectorySeparatorChar));
         if (!File.Exists(modsToml))
         {
-            context.Diagnostics.Error(Tr.F("Le MDK {0} ne contient pas {1}.", _mdk.DisplayName, ModsToml));
+            context.Diagnostics.Error(Tr.F("MDK {0} does not contain {1}.", _mdk.DisplayName, ModsToml));
             return;
         }
 
         string content = new ModsTomlTemplate(File.ReadAllText(modsToml))
             .SetOptionalString("displayURL", context.Mod.Website)
+            .SetOptionalString("logoFile", context.Mod.IconFile is null ? null : ModIconEmitter.ResourceName(context.Mod.ModId))
             .ToString();
         context.Files.WriteText(ModsToml, content);
 

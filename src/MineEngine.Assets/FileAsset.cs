@@ -26,7 +26,7 @@ public abstract class FileAsset : Asset
     {
         if (FilePath.Length == 0)
         {
-            diagnostics.Error(Tr.T("Aucun fichier n'est associé à cet asset."), ToString(), Id);
+            diagnostics.Error(Tr.T("No file is attached to this asset."), ToString(), Id);
         }
     }
 

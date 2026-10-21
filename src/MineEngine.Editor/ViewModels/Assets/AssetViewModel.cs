@@ -51,7 +51,7 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
             string newValue = value ?? string.Empty;
             if (Model.DisplayName != newValue)
             {
-                Change(Tr.T("Modifier le nom affiché"), nameof(Asset.DisplayName), () => Model.DisplayName, v => Model.DisplayName = v, newValue);
+                Change(Tr.T("Change display name"), nameof(Asset.DisplayName), () => Model.DisplayName, v => Model.DisplayName = v, newValue);
             }
         }
     }
@@ -77,7 +77,7 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
     public string DetailsBadge => TypeLabel.ToUpperInvariant();
 
     /// <summary>Dossier du Dashboard qui contient l'élément ("Armes/Épées"), ou "Racine".</summary>
-    public string FolderLabel => Model.Folder.Length == 0 ? Tr.T("Racine") : Model.Folder;
+    public string FolderLabel => Model.Folder.Length == 0 ? Tr.T("Root") : Model.Folder;
 
     public string DetailsSubtitle => HasGameId ? FullResourceId : Model.ResourceId.Value;
 
@@ -91,6 +91,15 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
         AssetType.Texture => "Glyph.Texture",
         AssetType.Sound => "Glyph.Sound",
         AssetType.Graph => "NodeGraphGeometry",
+        AssetType.BehaviorTree => "BehaviorTreeGeometry",
+        AssetType.Model => "ModelGeometry",
+        AssetType.Command => "CommandGeometry",
+        AssetType.CreativeTab => "Glyph.Tab",
+        AssetType.Keybind => "Glyph.Keyboard",
+        AssetType.Enchantment => "Glyph.Star",
+        AssetType.Fluid => "FluidGeometry",
+        AssetType.GameRule => "Glyph.Settings",
+        AssetType.Effect => "PotionGeometry",
         _ => "Glyph.File",
     };
 
@@ -103,8 +112,8 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
     public string IssueLabel => (_errorCount, _warningCount) switch
     {
         (0, 0) => "OK",
-        (> 0, _) => _errorCount == 1 ? Tr.T("1 erreur") : Tr.F("{0} erreurs", _errorCount),
-        _ => _warningCount == 1 ? Tr.T("1 avertissement") : Tr.F("{0} avertissements", _warningCount),
+        (> 0, _) => _errorCount == 1 ? Tr.T("1 error") : Tr.F("{0} errors", _errorCount),
+        _ => _warningCount == 1 ? Tr.T("1 warning") : Tr.F("{0} warnings", _warningCount),
     };
 
     public bool HasIssueErrors => _errorCount > 0;
@@ -134,13 +143,13 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
     /// <summary>Faux pour les assets qui n'existent pas en jeu sous leur identifiant (textures).</summary>
     public virtual bool HasGameId => true;
 
-    public string ResourceIdRule => Tr.T("Minuscules, chiffres et '_' ; commence par une lettre.");
+    public string ResourceIdRule => Tr.T("Lowercase letters, digits and '_'; starts with a letter.");
 
     /// <summary>Assets qui utilisent celui-ci : renommer cet asset ne casse pas ces liens.</summary>
     public IReadOnlyList<AssetLinkViewModel> UsedBy =>
         Context.Project.Assets.FindReferencesTo(Model.Id)
             .GroupBy(r => r.Source)
-            .Select(g => new AssetLinkViewModel(g.Key.Id, Tr.F("{0} : {1}", DisplayLabel(g.Key), string.Join(", ", g.Select(r => r.Reference.Role).Distinct()))))
+            .Select(g => new AssetLinkViewModel(g.Key.Id, Tr.F("{0}: {1}", DisplayLabel(g.Key), string.Join(", ", g.Select(r => r.Reference.Role).Distinct()))))
             .ToList();
 
     public bool IsUsed => UsedBy.Count > 0;
@@ -239,20 +248,20 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
     {
         if (!ResourceId.TryParse(text, out ResourceId? id))
         {
-            SetError(nameof(ResourceIdText), Tr.F("Identifiant invalide : {0}.", ResourceId.RuleDescription));
+            SetError(nameof(ResourceIdText), Tr.F("Invalid identifier: {0}.", ResourceId.RuleDescription));
             return;
         }
 
         if (!Context.Project.Assets.IsResourceIdAvailable(id!, Model.Type, Model))
         {
-            SetError(nameof(ResourceIdText), Tr.F("L'identifiant '{0}' est déjà utilisé par un autre asset.", id));
+            SetError(nameof(ResourceIdText), Tr.F("The identifier '{0}' is already used by another asset.", id));
             return;
         }
 
         ClearErrors(nameof(ResourceIdText));
         if (Model.ResourceId != id)
         {
-            Change(Tr.T("Modifier l'identifiant"), nameof(Asset.ResourceId), () => Model.ResourceId, v => Model.ResourceId = v, id!);
+            Change(Tr.T("Change identifier"), nameof(Asset.ResourceId), () => Model.ResourceId, v => Model.ResourceId = v, id!);
         }
     }
 }

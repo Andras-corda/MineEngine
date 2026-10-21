@@ -19,12 +19,12 @@ public static class AccentColors
 
     public static IReadOnlyList<AccentPreset> Presets { get; } =
     [
-        new("Bleu", Default),
-        new("Violet", new RgbColor(0x8B, 0x5C, 0xF6)),
-        new("Vert", new RgbColor(0x2E, 0xA0, 0x5A)),
+        new("Blue", Default),
+        new("Purple", new RgbColor(0x8B, 0x5C, 0xF6)),
+        new("Green", new RgbColor(0x2E, 0xA0, 0x5A)),
         new("Orange", new RgbColor(0xE0, 0x7B, 0x1F)),
-        new("Rouge", new RgbColor(0xD9, 0x45, 0x45)),
-        new("Rose", new RgbColor(0xD9, 0x46, 0x8F)),
+        new("Red", new RgbColor(0xD9, 0x45, 0x45)),
+        new("Pink", new RgbColor(0xD9, 0x46, 0x8F)),
         new("Cyan", new RgbColor(0x1C, 0x9C, 0xB0)),
     ];
 

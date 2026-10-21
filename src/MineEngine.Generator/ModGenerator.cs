@@ -37,6 +37,9 @@ public sealed class ModGenerator
             new SoundsEmitter(),
             new LanguageEmitter(),
             new TagsEmitter(),
+            new ModIconEmitter(),
+            new ModelsEmitter(placeholder),
+            new GameplayResourcesEmitter(placeholder),
         ]);
     }
 
@@ -60,8 +63,8 @@ public sealed class ModGenerator
             || !target!.Equals(Backend.MinecraftVersion))
         {
             context.Diagnostics.Error(
-                Tr.F("Le projet cible {0} {1}, mais le MDK choisi est {2}. ", ir.Mod.LoaderId, ir.Mod.MinecraftVersion, Backend.DisplayName) +
-                Tr.T("Choisissez un MDK correspondant dans Espace de travail > Paramètres du projet."));
+                Tr.F("The project targets {0} {1}, but the chosen MDK is {2}. ", ir.Mod.LoaderId, ir.Mod.MinecraftVersion, Backend.DisplayName) +
+                Tr.T("Choose a matching MDK in Workspace > Project Settings."));
             return CreateResult(context);
         }
 
@@ -71,8 +74,11 @@ public sealed class ModGenerator
         foreach (IFileEmitter emitter in _commonEmitters.Concat(Backend.CreateEmitters()))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            log.Debug(Tr.T("Génération : ") + emitter.Name);
-            emitter.Emit(context);
+            log.Debug(Tr.T("Generating: ") + emitter.Name);
+            using (Core.Diagnostics.EngineDebug.Measure(log, emitter.Name))
+            {
+                emitter.Emit(context);
+            }
         }
 
         var current = new GeneratedFileManifest(context.Files.WrittenFiles.Concat(context.Files.KeptLockedFiles));
@@ -93,7 +99,7 @@ public sealed class ModGenerator
             }
 
             File.Delete(file);
-            context.Log.Debug(Tr.T("Fichier généré supprimé : ") + stale);
+            context.Log.Debug(Tr.T("Generated file deleted: ") + stale);
 
             // Les dossiers devenus vides disparaissent aussi (package d'un graphe supprimé...).
             for (string? directory = Path.GetDirectoryName(file);

@@ -58,6 +58,40 @@ public sealed class BehaviorJava
                     "}",
                     eventKind == GraphNodeKind.OnPlayerJoin ? "BlockPos position = player.blockPosition();" : "BlockPos position = event.getPos();",
                 ];
+            case GraphNodeKind.OnPlayerLeave or GraphNodeKind.OnPlayerTick:
+                return
+                [
+                    "Player player = event.getEntity();",
+                    "Level level = player.level();",
+                    "if (level.isClientSide()) {",
+                    "    return;",
+                    "}",
+                    "BlockPos position = player.blockPosition();",
+                ];
+            case GraphNodeKind.OnPlayerHurt:
+                return
+                [
+                    "if (!(event.getEntity() instanceof Player player)) {",
+                    "    return;",
+                    "}",
+                    "Level level = player.level();",
+                    "if (level.isClientSide()) {",
+                    "    return;",
+                    "}",
+                    "BlockPos position = player.blockPosition();",
+                    "int damage = Math.round(event.getAmount());",
+                ];
+            case GraphNodeKind.OnEntitySpawn or GraphNodeKind.OnEntityDeath:
+                Use("net.minecraft.world.entity.EntityType");
+                return
+                [
+                    eventKind == GraphNodeKind.OnEntitySpawn ? "Level level = event.getLevel();" : "Level level = event.getEntity().level();",
+                    "if (level.isClientSide()) {",
+                    "    return;",
+                    "}",
+                    "BlockPos position = event.getEntity().blockPosition();",
+                    "String entity = EntityType.getKey(event.getEntity().getType()).toString();",
+                ];
             default:
                 throw new NotSupportedException($"Événement {eventKind} non traduit en Java.");
         }
@@ -106,6 +140,9 @@ public sealed class BehaviorJava
             case PinType.Position:
                 Use("net.minecraft.core.BlockPos");
                 return "BlockPos.ZERO";
+            case PinType.ItemStack:
+                Use(Stack);
+                return "ItemStack.EMPTY";
             case PinType.Enum when type.Definition is { } id && _names.Find(id) is IREnum { Constants.Count: > 0 } type2:
                 return _names.Constant(id, type2.Constants[0].Id);
             default:
@@ -127,6 +164,36 @@ public sealed class BehaviorJava
             GraphNodeKind.SetBlock => Helper("setBlock", $"setBlock(level, {args[0]}, {args[1]});"),
             GraphNodeKind.Explosion => Helper("explode", $"explode(level, {args[0]}, {args[1]});"),
             GraphNodeKind.CancelEvent => "event.setCanceled(true);",
+            GraphNodeKind.RemoveBlock => $"level.removeBlock({args[0]}, false);",
+            GraphNodeKind.ReplaceBlock => Helper("replaceBlock", $"replaceBlock(level, {args[0]}, {args[1]}, {args[2]}, {args[3]});"),
+            GraphNodeKind.UpdateBlock => Helper("updateBlock", $"updateBlock(level, {args[0]});"),
+            GraphNodeKind.BreakBlock => $"level.destroyBlock({args[0]}, {args[1]});",
+            GraphNodeKind.SetBlockNbtNumber => Helper("setBlockNbtNumber", $"setBlockNbtNumber(level, {args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.SetBlockNbtText => Helper("setBlockNbtText", $"setBlockNbtText(level, {args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.SetBlockNbtBoolean => Helper("setBlockNbtBoolean", $"setBlockNbtBoolean(level, {args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.SetBlockProperty => Helper("setBlockProperty", $"setBlockProperty(level, {args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.UseBlock => Helper("useBlock", $"useBlock(level, {args[0]}, {args[1]});"),
+            GraphNodeKind.SetBlockDirection => Helper("setBlockDirection", $"setBlockDirection(level, {args[0]}, {args[1]});"),
+            GraphNodeKind.SetItemCooldown => $"{args[0]}.getCooldowns().addCooldown({args[1]}, {args[2]});",
+            GraphNodeKind.AddEnchantment => Helper("addEnchantment", $"addEnchantment(level, {args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.RemoveEnchantment => Helper("removeEnchantment", $"removeEnchantment(level, {args[0]}, {args[1]});"),
+            GraphNodeKind.RemoveAllEnchantments => Helper("removeAllEnchantments", $"removeAllEnchantments({args[0]});"),
+            GraphNodeKind.SetItemDisplayName => Helper("setItemName", $"setItemName({args[0]}, {args[1]});"),
+            GraphNodeKind.SetWorldTime => Helper("setTime", $"setTime(level, {args[0]});"),
+            GraphNodeKind.SetWeather => Helper("setWeather", $"setWeather(level, {args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.SpawnEntity => Helper("spawnEntity", $"spawnEntity(level, {args[0]}, {args[1]});"),
+            GraphNodeKind.SpawnParticles => Helper("spawnParticles", $"spawnParticles(level, {args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.SetPlayerHealth => $"{args[0]}.setHealth({args[1]});",
+            GraphNodeKind.HealPlayer => $"{args[0]}.heal({args[1]});",
+            GraphNodeKind.DamagePlayer => $"{args[0]}.hurt({args[0]}.damageSources().generic(), {args[1]});",
+            GraphNodeKind.TeleportPlayer => Helper("teleport", $"teleport({args[0]}, {args[1]});"),
+            GraphNodeKind.ClearSlot => Helper("clearSlot", $"clearSlot({args[0]}, {args[1]});"),
+            GraphNodeKind.SetItemNbtNumber => Helper("setItemNbtNumber", $"setItemNbtNumber({args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.SetItemNbtText => Helper("setItemNbtText", $"setItemNbtText({args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.SetGameRuleBoolean => Helper("setGameRuleBoolean", $"setGameRuleBoolean(level, {args[0]}, {args[1]});"),
+            GraphNodeKind.SetGameRuleNumber => Helper("setGameRuleNumber", $"setGameRuleNumber(level, {args[0]}, {args[1]});"),
+            GraphNodeKind.GiveEffect => Helper("giveEffect", $"giveEffect({args[0]}, {args[1]}, {args[2]}, {args[3]});"),
+            GraphNodeKind.RemoveEffect => Helper("removeEffect", $"removeEffect({args[0]}, {args[1]});"),
             _ => throw new NotSupportedException($"Action {action.Action} non traduite en Java."),
         };
     }
@@ -178,6 +245,88 @@ public sealed class BehaviorJava
             GraphNodeKind.Subtract => $"({a[0]} - {a[1]})",
             GraphNodeKind.Multiply => $"({a[0]} * {a[1]})",
             GraphNodeKind.LessThan => $"({a[0]} < {a[1]})",
+            GraphNodeKind.GetBlockAt => $"level.getBlockState({a[0]}).getBlock()",
+            GraphNodeKind.GetBlockProperty => Helper("blockProperty", $"blockProperty(level, {a[0]}, {a[1]})"),
+            GraphNodeKind.GetBlockDirection => Helper("blockDirection", $"blockDirection(level, {a[0]})"),
+            GraphNodeKind.GetBlockOpacity => $"level.getBlockState({a[0]}).getLightBlock(level, {a[0]})",
+            GraphNodeKind.GetBlockHardness => $"Math.round(level.getBlockState({a[0]}).getDestroySpeed(level, {a[0]}))",
+            GraphNodeKind.GetLightLevel => $"level.getMaxLocalRawBrightness({a[0]})",
+            GraphNodeKind.GetEnchantPowerBonus => $"Math.round(level.getBlockState({a[0]}).getEnchantPowerBonus(level, {a[0]}))",
+            GraphNodeKind.IsBlockSolid => $"level.getBlockState({a[0]}).isSolid()",
+            GraphNodeKind.GetBlockNbtNumber => Helper("blockNbtNumber", $"blockNbtNumber(level, {a[0]}, {a[1]})"),
+            GraphNodeKind.GetBlockNbtText => Helper("blockNbtText", $"blockNbtText(level, {a[0]}, {a[1]})"),
+            GraphNodeKind.GetBlockNbtBoolean => Helper("blockNbtBoolean", $"blockNbtBoolean(level, {a[0]}, {a[1]})"),
+            GraphNodeKind.MainHandItem => $"{a[0]}.getMainHandItem()",
+            GraphNodeKind.NewItemStack => Uses($"new ItemStack({a[0]}, {a[1]})", Stack),
+            GraphNodeKind.ItemOfStack => $"{a[0]}.getItem()",
+            GraphNodeKind.ItemCooldownPercent => $"Math.round({a[0]}.getCooldowns().getCooldownPercent({a[1]}, 0f) * 100)",
+            GraphNodeKind.IsItemOnCooldown => $"{a[0]}.getCooldowns().isOnCooldown({a[1]})",
+            GraphNodeKind.CopyItemStack => $"{a[0]}.copy()",
+            GraphNodeKind.ItemMaxStackSize => $"{a[0]}.getMaxStackSize()",
+            GraphNodeKind.ItemCount => $"{a[0]}.getCount()",
+            GraphNodeKind.IsItemStackable => $"{a[0]}.isStackable()",
+            GraphNodeKind.ItemDamage => $"{a[0]}.getDamageValue()",
+            GraphNodeKind.ItemMaxDamage => $"{a[0]}.getMaxDamage()",
+            GraphNodeKind.IsItemDamageable => $"{a[0]}.isDamageableItem()",
+            GraphNodeKind.IsItemDamaged => $"{a[0]}.isDamaged()",
+            GraphNodeKind.EnchantmentLevel => Helper("enchantmentLevel", $"enchantmentLevel(level, {a[0]}, {a[1]})"),
+            GraphNodeKind.HasEnchantment => Helper("enchantmentLevel", $"(enchantmentLevel(level, {a[0]}, {a[1]}) > 0)"),
+            GraphNodeKind.IsItemEnchantable => $"{a[0]}.isEnchantable()",
+            GraphNodeKind.IsItemEnchanted => $"{a[0]}.isEnchanted()",
+            GraphNodeKind.ItemFoodValue => Helper("foodValue", $"foodValue({a[0]})"),
+            GraphNodeKind.ItemSaturation => Helper("saturationValue", $"saturationValue({a[0]})"),
+            GraphNodeKind.IsItemFood => Helper("isFood", $"isFood({a[0]})"),
+            GraphNodeKind.CanHarvestBlock => $"{a[0]}.isCorrectToolForDrops({a[1]}.defaultBlockState())",
+            GraphNodeKind.ItemHasRarity => $"{a[0]}.getRarity().name().equalsIgnoreCase({a[1]})",
+            GraphNodeKind.ItemRarity => $"{a[0]}.getRarity().name().toLowerCase(java.util.Locale.ROOT)",
+            GraphNodeKind.ItemDisplayName => $"{a[0]}.getHoverName().getString()",
+            GraphNodeKind.ItemRegistryName => Uses($"BuiltInRegistries.ITEM.getKey({a[0]}.getItem()).toString()", "net.minecraft.core.registries.BuiltInRegistries"),
+            GraphNodeKind.CanBeSmelted => Helper("canBeSmelted", $"canBeSmelted(level, {a[0]})"),
+            GraphNodeKind.And => $"({a[0]} && {a[1]})",
+            GraphNodeKind.Or => $"({a[0]} || {a[1]})",
+            GraphNodeKind.NumbersNotEqual => $"({a[0]} != {a[1]})",
+            GraphNodeKind.GreaterOrEqual => $"({a[0]} >= {a[1]})",
+            GraphNodeKind.LessOrEqual => $"({a[0]} <= {a[1]})",
+            GraphNodeKind.TextEquals => $"{a[0]}.equals({a[1]})",
+            GraphNodeKind.Divide => Helper("divide", $"divide({a[0]}, {a[1]})"),
+            GraphNodeKind.Modulo => Helper("modulo", $"modulo({a[0]}, {a[1]})"),
+            GraphNodeKind.Power => $"((int) Math.pow({a[0]}, {a[1]}))",
+            GraphNodeKind.SquareRoot => $"((int) Math.round(Math.sqrt(Math.max(0, {a[0]}))))",
+            GraphNodeKind.Minimum => $"Math.min({a[0]}, {a[1]})",
+            GraphNodeKind.Maximum => $"Math.max({a[0]}, {a[1]})",
+            GraphNodeKind.Absolute => $"Math.abs({a[0]})",
+            GraphNodeKind.TextLength => $"{a[0]}.length()",
+            GraphNodeKind.TextContains => $"{a[0]}.contains({a[1]})",
+            GraphNodeKind.ReplaceText => $"{a[0]}.replace({a[1]}, {a[2]})",
+            GraphNodeKind.TextToNumber => Helper("toNumber", $"toNumber({a[0]})"),
+            GraphNodeKind.NumberToText => $"String.valueOf({a[0]})",
+            GraphNodeKind.Dimension => "level.dimension().location().toString()",
+            GraphNodeKind.WorldTime => "((int) (level.getDayTime() % 24000L))",
+            GraphNodeKind.IsDay => "level.isDay()",
+            GraphNodeKind.IsRaining => "level.isRaining()",
+            GraphNodeKind.IsThundering => "level.isThundering()",
+            GraphNodeKind.PlayerHealth => $"Math.round({a[0]}.getHealth())",
+            GraphNodeKind.PlayerMaxHealth => $"Math.round({a[0]}.getMaxHealth())",
+            GraphNodeKind.PlayerFood => $"{a[0]}.getFoodData().getFoodLevel()",
+            GraphNodeKind.IsPlayerAlive => $"{a[0]}.isAlive()",
+            GraphNodeKind.ArmorItem => Helper("armorItem", $"armorItem({a[0]}, {a[1]})"),
+            GraphNodeKind.OffhandItem => $"{a[0]}.getOffhandItem()",
+            GraphNodeKind.LookedAtBlock => Helper("lookedAtBlock", $"lookedAtBlock({a[0]})"),
+            GraphNodeKind.ItemInSlot => Helper("slotItem", $"slotItem({a[0]}, {a[1]})"),
+            GraphNodeKind.CountItemInInventory => $"{a[0]}.getInventory().countItem({a[1]})",
+            GraphNodeKind.GetItemNbtNumber => Helper("itemNbtNumber", $"itemNbtNumber({a[0]}, {a[1]})"),
+            GraphNodeKind.GetItemNbtText => Helper("itemNbtText", $"itemNbtText({a[0]}, {a[1]})"),
+            GraphNodeKind.PositionX => $"{a[0]}.getX()",
+            GraphNodeKind.PositionY => $"{a[0]}.getY()",
+            GraphNodeKind.PositionZ => $"{a[0]}.getZ()",
+            GraphNodeKind.MakePosition => $"new BlockPos({a[0]}, {a[1]}, {a[2]})",
+            GraphNodeKind.Distance => $"((int) Math.round(Math.sqrt({a[0]}.distSqr({a[1]}))))",
+            GraphNodeKind.PositionsEqual => $"{a[0]}.equals({a[1]})",
+            GraphNodeKind.IsInArea => Helper("isInArea", $"isInArea({a[0]}, {a[1]}, {a[2]})"),
+            GraphNodeKind.OffsetInDirection => Helper("offsetInDirection", $"offsetInDirection({a[0]}, {a[1]}, {a[2]})"),
+            GraphNodeKind.GetGameRuleBoolean => Helper("gameRuleBoolean", $"gameRuleBoolean(level, {a[0]})"),
+            GraphNodeKind.GetGameRuleNumber => Helper("gameRuleNumber", $"gameRuleNumber(level, {a[0]})"),
+            GraphNodeKind.HasEffect => Helper("hasEffect", $"hasEffect({a[0]}, {a[1]})"),
             _ => throw new NotSupportedException($"Nœud {call.Kind} non traduit en Java."),
         };
     }
@@ -251,19 +400,35 @@ public sealed class BehaviorJava
     private string New(Guid typeId, IReadOnlyList<IRExpression> arguments) =>
         $"new {_names.TypeName(typeId)}({Arguments(arguments, withLevel: _names.Find(typeId) is IRClass)})";
 
+    private const string Stack = "net.minecraft.world.item.ItemStack";
+
     private string Helper(string name, string code)
     {
         if (_helpers.Add(name))
         {
-            Use(HelperImports(name));
+            Use([.. HelperImports(name)]);
+            // Helpers take the level, the position or the player: their types are imported even in a function without event prologue.
+            Use("net.minecraft.core.BlockPos", "net.minecraft.world.entity.player.Player", "net.minecraft.world.level.Level");
+            foreach (string dependency in GraphHelpersJava.Dependencies(name))
+            {
+                Helper(dependency, string.Empty);
+            }
         }
 
         return code;
     }
 
+    private string Uses(string code, params string[] imports)
+    {
+        Use(imports);
+        return code;
+    }
+
     private void Use(params string[] imports) => _imports.UnionWith(imports);
 
-    private static string[] HelperImports(string name) => name switch
+    private IReadOnlyList<string> HelperImports(string name) => GraphHelpersJava.Imports(name, _api) ?? CoreHelperImports(name);
+
+    private static string[] CoreHelperImports(string name) => name switch
     {
         "item" => ["net.minecraft.core.registries.BuiltInRegistries", "net.minecraft.resources.ResourceLocation", "net.minecraft.world.item.Item"],
         "block" => ["net.minecraft.core.registries.BuiltInRegistries", "net.minecraft.resources.ResourceLocation", "net.minecraft.world.level.block.Block"],
@@ -361,6 +526,6 @@ public sealed class BehaviorJava
             "    return low + level.random.nextInt(high - low + 1);",
             "}",
         ],
-        _ => throw new NotSupportedException($"Méthode utilitaire {name} inconnue."),
+        _ => GraphHelpersJava.Method(name, _api) ?? throw new NotSupportedException($"Méthode utilitaire {name} inconnue."),
     };
 }

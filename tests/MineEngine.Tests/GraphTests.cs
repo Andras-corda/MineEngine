@@ -143,12 +143,12 @@ public sealed class GraphTests
 
         IReadOnlyList<GraphIssue> issues = GraphValidator.Validate(graph);
 
-        Assert.Contains(issues, i => i.NodeId == cancel.Id && i.Severity == DiagnosticSeverity.Error && i.Message.Contains("ne peut pas être annulé"));
-        Assert.Contains(issues, i => i.NodeId == give.Id && i.Message.Contains("nombre entier"));
+        Assert.Contains(issues, i => i.NodeId == cancel.Id && i.Severity == DiagnosticSeverity.Error && i.Message.Contains("cannot be canceled"));
+        Assert.Contains(issues, i => i.NodeId == give.Id && i.Message.Contains("whole number"));
         Assert.Contains(issues, i => i.NodeId == give.Id && i.Message.Contains("tag"));
-        Assert.Contains(issues, i => i.NodeId == give.Id && i.Message.Contains("autre") is false && i.Message.Contains("Clic droit"));
+        Assert.Contains(issues, i => i.NodeId == give.Id && i.Message.Contains("other") is false && i.Message.Contains("Right-click"));
         Assert.Contains(issues, i => i.NodeId == orphan.Id && i.Severity == DiagnosticSeverity.Warning);
-        Assert.Contains(issues, i => i.NodeId == orphan.Id && i.Message.Contains("doit être reliée"));
+        Assert.Contains(issues, i => i.NodeId == orphan.Id && i.Message.Contains("must be connected"));
         Assert.Contains(issues, i => i.NodeId == click.Id && i.Severity == DiagnosticSeverity.Info);
     }
 
@@ -162,7 +162,7 @@ public sealed class GraphTests
         builder.Exec(join, first).Exec(first, second).Exec(second, first)
             .Data(join, "position", first, "position").Data(join, "position", second, "position");
 
-        Assert.Contains(GraphValidator.Validate(builder.Build()), i => i.Severity == DiagnosticSeverity.Error && i.Message.Contains("Boucle"));
+        Assert.Contains(GraphValidator.Validate(builder.Build()), i => i.Severity == DiagnosticSeverity.Error && i.Message.Contains("loop"));
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public sealed class GraphTests
         GraphNode b = builder.Add(GraphNodeKind.Not, 300, 0);
         builder.Data(a, "result", b, "value");
 
-        Assert.Contains("boucle", builder.Build().DescribeConnectionProblem(new GraphConnection(b.Id, "result", a.Id, "value")));
+        Assert.Contains("loop", builder.Build().DescribeConnectionProblem(new GraphConnection(b.Id, "result", a.Id, "value")));
     }
 
     // ----- Projet -----
@@ -201,7 +201,7 @@ public sealed class GraphTests
         var diagnostics = new DiagnosticBag();
         ModIR ir = ModIRBuilder.CreateDefault().Build(reopened, diagnostics)!;
         Assert.True(ir is not null, string.Join('\n', diagnostics));
-        Assert.Equal(4, ir.Content.Behaviors.Count);
+        Assert.Equal(7, ir.Content.Behaviors.Count); // With the event graph of LibrarySample.
     }
 
     [Fact]
@@ -215,7 +215,7 @@ public sealed class GraphTests
         ModIR ir = ModIRBuilder.CreateDefault().Build(project, diagnostics)!;
 
         Assert.Empty(ir.Content.Behaviors);
-        Assert.Contains(diagnostics, d => d.Severity == DiagnosticSeverity.Warning && d.Message.Contains("aucun événement"));
+        Assert.Contains(diagnostics, d => d.Severity == DiagnosticSeverity.Warning && d.Message.Contains("no event"));
     }
 
     // ----- Outils -----

@@ -28,15 +28,15 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBox Name="PART_searchTextBox" Width="210" Padding="6,3"
                                              Text="{Binding SearchPattern, RelativeSource={RelativeSource TemplatedParent}, UpdateSourceTrigger=PropertyChanged}" />
-                                    <CheckBox Content="{l:Tr 'Aa'}" MinWidth="0" Margin="8,0,0,0" ToolTip="{l:Tr 'Respecter la casse'}"
+                                    <CheckBox Content="{l:Tr 'Aa'}" MinWidth="0" Margin="8,0,0,0" ToolTip="{l:Tr 'Match case'}"
                                               IsChecked="{Binding MatchCase, RelativeSource={RelativeSource TemplatedParent}}" />
-                                    <CheckBox Content="{l:Tr 'Mot'}" MinWidth="0" Margin="4,0,0,0" ToolTip="{l:Tr 'Mot entier'}"
+                                    <CheckBox Content="{l:Tr 'Word'}" MinWidth="0" Margin="4,0,0,0" ToolTip="{l:Tr 'Whole word'}"
                                               IsChecked="{Binding WholeWords, RelativeSource={RelativeSource TemplatedParent}}" />
-                                    <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronUp}" Margin="4,0,0,0" ToolTip="{l:Tr 'Précédent (Maj+F3)'}"
+                                    <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronUp}" Margin="4,0,0,0" ToolTip="{l:Tr 'Previous (Shift+F3)'}"
                                             Command="search:SearchCommands.FindPrevious" />
-                                    <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronDown}" ToolTip="{l:Tr 'Suivant (F3)'}"
+                                    <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronDown}" ToolTip="{l:Tr 'Next (F3)'}"
                                             Command="search:SearchCommands.FindNext" />
-                                    <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Close}" ToolTip="{l:Tr 'Fermer (Échap)'}"
+                                    <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Close}" ToolTip="{l:Tr 'Close (Esc)'}"
                                             Command="search:SearchCommands.CloseSearchPanel" />
                                 </StackPanel>
                             </Border>
@@ -53,25 +53,25 @@
                 BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <Button Style="{StaticResource ToolbarButton}" Command="{Binding FormatCommand}" ToolTip="{l:Tr 'Réindenter le fichier (Ctrl+Maj+F)'}"
+                    <Button Style="{StaticResource ToolbarButton}" Command="{Binding FormatCommand}" ToolTip="{l:Tr 'Reindent the file (Ctrl+Shift+F)'}"
                             Visibility="{Binding IsJava, Converter={StaticResource BoolToVisibility}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Format}" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
-                            <TextBlock Text="{l:Tr 'Formater'}" />
+                            <TextBlock Text="{l:Tr 'Format'}" />
                         </StackPanel>
                     </Button>
-                    <Button Style="{StaticResource ToolbarButton}" Click="OnFindClick" ToolTip="{l:Tr 'Rechercher et remplacer dans le fichier'}">
+                    <Button Style="{StaticResource ToolbarButton}" Click="OnFindClick" ToolTip="{l:Tr 'Find and replace in the file'}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Search}" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
-                            <TextBlock Text="{l:Tr 'Rechercher'}" />
+                            <TextBlock Text="{l:Tr 'Find'}" />
                             <TextBlock Style="{StaticResource ShortcutHint}" Text="{l:Tr 'Ctrl+F'}" />
                         </StackPanel>
                     </Button>
-                    <Button Style="{StaticResource PrimaryToolbarButton}" Command="{Binding SaveCommand}" ToolTip="{l:Tr 'Enregistrer ce fichier'}"
+                    <Button Style="{StaticResource PrimaryToolbarButton}" Command="{Binding SaveCommand}" ToolTip="{l:Tr 'Save this file'}"
                             Visibility="{Binding IsReadOnly, Converter={StaticResource InverseBoolToVisibility}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Save}" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
-                            <TextBlock Text="{l:Tr 'Enregistrer'}" />
+                            <TextBlock Text="{l:Tr 'Save'}" />
                             <TextBlock Style="{StaticResource ShortcutHint}" Text="{l:Tr 'Ctrl+S'}" />
                         </StackPanel>
                     </Button>
@@ -107,18 +107,18 @@
             <DockPanel>
                 <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Command="{Binding LockCommand}" Margin="10,0,0,0"
                         Visibility="{Binding CanLock, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"
-                        ToolTip="{l:Tr 'Mine Engine ne réécrira plus ce fichier : vous pourrez le modifier à la main'}">
+                        ToolTip="{l:Tr 'Mine Engine will no longer rewrite this file: you will be able to edit it by hand'}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Lock}" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
-                        <TextBlock Text="{l:Tr 'Verrouiller pour modifier'}" />
+                        <TextBlock Text="{l:Tr 'Lock to edit'}" />
                     </StackPanel>
                 </Button>
                 <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Command="{Binding UnlockCommand}" Margin="10,0,0,0"
                         Visibility="{Binding CanUnlock, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"
-                        ToolTip="{l:Tr 'Rendre le fichier à Mine Engine : il sera régénéré à la prochaine compilation et les modifications faites à la main seront perdues'}">
+                        ToolTip="{l:Tr 'Give the file back to Mine Engine: it will be regenerated at the next build and the changes made by hand will be lost'}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Unlock}" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
-                        <TextBlock Text="{l:Tr 'Déverrouiller'}" />
+                        <TextBlock Text="{l:Tr 'Unlock'}" />
                     </StackPanel>
                 </Button>
                 <TextBlock DockPanel.Dock="Left" FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Info}" Margin="0,2,8,0"

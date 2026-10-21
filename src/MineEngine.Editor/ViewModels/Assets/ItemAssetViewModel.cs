@@ -29,7 +29,7 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
         _tagsText = TagsToText(model.ItemTags);
         CraftRemainder = new ReferencePickerViewModel(
             context, ReferenceDomain.Item, () => _item.CraftRemainder,
-            v => Change(Tr.T("Modifier l'item rendu"), nameof(ItemAsset.CraftRemainder), () => _item.CraftRemainder, x => _item.CraftRemainder = x, v));
+            v => Change(Tr.T("Change returned item"), nameof(ItemAsset.CraftRemainder), () => _item.CraftRemainder, x => _item.CraftRemainder = x, v));
         AddFoodEffectCommand = new RelayCommand(AddFoodEffect);
         Events = [.. Enum.GetValues<ItemEventKind>().Select(k => new ItemEventViewModel(this, k))];
         RebuildFoodEffects();
@@ -45,7 +45,7 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
     public double Durability
     {
         get => _item.Durability;
-        set => ChangeNumber(Tr.T("Modifier la durabilité"), nameof(ItemAsset.Durability), value, () => _item.Durability, v => _item.Durability = v,
+        set => ChangeNumber(Tr.T("Change durability"), nameof(ItemAsset.Durability), value, () => _item.Durability, v => _item.Durability = v,
             v => Math.Clamp((int)Math.Round(v), 0, ItemAsset.MaxDurability));
     }
 
@@ -56,19 +56,19 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
     public override bool CanEditStackSize => !_item.HasDurability && !_item.Kind.IsEquipment();
 
     public override string StackSizeHint => !CanEditStackSize
-        ? Tr.T("Toujours 1 : un item à durabilité, un outil ou une armure ne s'empile pas.")
+        ? Tr.T("Always 1: an item with durability, a tool or an armor does not stack.")
         : base.StackSizeHint;
 
     public bool HasGlint
     {
         get => _item.HasGlint;
-        set => ChangeIfDifferent(Tr.T("Modifier l'effet brillant"), nameof(ItemAsset.HasGlint), () => _item.HasGlint, v => _item.HasGlint = v, value);
+        set => ChangeIfDifferent(Tr.T("Change glint effect"), nameof(ItemAsset.HasGlint), () => _item.HasGlint, v => _item.HasGlint = v, value);
     }
 
     public bool Handheld
     {
         get => _item.Handheld;
-        set => ChangeIfDifferent(Tr.T("Modifier la prise en main"), nameof(ItemAsset.Handheld), () => _item.Handheld, v => _item.Handheld = v, value);
+        set => ChangeIfDifferent(Tr.T("Change handheld rendering"), nameof(ItemAsset.Handheld), () => _item.Handheld, v => _item.Handheld = v, value);
     }
 
     // ----- Type d'item -----
@@ -105,7 +105,7 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
                 commands.Add(Property(nameof(ItemAsset.AttackSpeed), () => _item.AttackSpeed, v => _item.AttackSpeed = v, speed));
             }
 
-            Context.History.Execute(new CompositeCommand(Tr.T("Changer le type d'item"), commands));
+            Context.History.Execute(new CompositeCommand(Tr.T("Change item type"), commands));
             Context.History.Seal();
         }
     }
@@ -117,25 +117,25 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
     public ItemTier Tier
     {
         get => _item.Tier;
-        set => ChangeIfDifferent(Tr.T("Modifier le matériau"), nameof(ItemAsset.Tier), () => _item.Tier, v => _item.Tier = v, value);
+        set => ChangeIfDifferent(Tr.T("Change material"), nameof(ItemAsset.Tier), () => _item.Tier, v => _item.Tier = v, value);
     }
 
     public ArmorMaterialKind ArmorMaterial
     {
         get => _item.ArmorMaterial;
-        set => ChangeIfDifferent(Tr.T("Modifier le matériau"), nameof(ItemAsset.ArmorMaterial), () => _item.ArmorMaterial, v => _item.ArmorMaterial = v, value);
+        set => ChangeIfDifferent(Tr.T("Change material"), nameof(ItemAsset.ArmorMaterial), () => _item.ArmorMaterial, v => _item.ArmorMaterial = v, value);
     }
 
     public double AttackDamage
     {
         get => Math.Round(_item.AttackDamage, 2);
-        set => ChangeNumber(Tr.T("Modifier les dégâts"), nameof(ItemAsset.AttackDamage), value, () => _item.AttackDamage, v => _item.AttackDamage = v, v => (float)v);
+        set => ChangeNumber(Tr.T("Change damage"), nameof(ItemAsset.AttackDamage), value, () => _item.AttackDamage, v => _item.AttackDamage = v, v => (float)v);
     }
 
     public double AttackSpeed
     {
         get => Math.Round(_item.AttackSpeed, 2);
-        set => ChangeNumber(Tr.T("Modifier la vitesse d'attaque"), nameof(ItemAsset.AttackSpeed), value, () => _item.AttackSpeed, v => _item.AttackSpeed = v, v => (float)v);
+        set => ChangeNumber(Tr.T("Change attack speed"), nameof(ItemAsset.AttackSpeed), value, () => _item.AttackSpeed, v => _item.AttackSpeed = v, v => (float)v);
     }
 
     public double MaxAttack => ItemAsset.MaxAttack;
@@ -147,14 +147,14 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
     public bool NoRepair
     {
         get => _item.NoRepair;
-        set => ChangeIfDifferent(Tr.T("Modifier la réparation"), nameof(ItemAsset.NoRepair), () => _item.NoRepair, v => _item.NoRepair = v, value);
+        set => ChangeIfDifferent(Tr.T("Change repair"), nameof(ItemAsset.NoRepair), () => _item.NoRepair, v => _item.NoRepair = v, value);
     }
 
     /// <summary>Durée de combustion en secondes (charbon : 80) ; 0 = pas un combustible.</summary>
     public double BurnSeconds
     {
         get => _item.BurnTime / (double)TicksPerSecond;
-        set => ChangeNumber(Tr.T("Modifier la durée de combustion"), nameof(ItemAsset.BurnTime), value, () => _item.BurnTime, v => _item.BurnTime = v,
+        set => ChangeNumber(Tr.T("Change burn time"), nameof(ItemAsset.BurnTime), value, () => _item.BurnTime, v => _item.BurnTime = v,
             v => Math.Clamp((int)Math.Round(v * TicksPerSecond), 0, ItemAsset.MaxBurnTime));
     }
 
@@ -176,7 +176,7 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
             {
                 if (!NamespacedId.TryParse(line.TrimStart('#'), out NamespacedId? tag))
                 {
-                    SetError(nameof(TagsText), Tr.F("Tag invalide : « {0} » (exemple : c:gems/ruby).", line));
+                    SetError(nameof(TagsText), Tr.F("Invalid tag: \"{0}\" (example: c:gems/ruby).", line));
                     return;
                 }
 
@@ -186,7 +186,7 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
             ClearErrors(nameof(TagsText));
             if (!tags.SequenceEqual(_item.ItemTags))
             {
-                Change(Tr.T("Modifier les tags"), nameof(ItemAsset.ItemTags), () => _item.ItemTags, v => _item.ItemTags = v, tags);
+                Change(Tr.T("Change tags"), nameof(ItemAsset.ItemTags), () => _item.ItemTags, v => _item.ItemTags = v, tags);
             }
         }
     }
@@ -196,39 +196,39 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
     public bool IsFood
     {
         get => _item.IsFood;
-        set => ChangeIfDifferent(Tr.T("Rendre comestible"), nameof(ItemAsset.IsFood), () => _item.IsFood, v => _item.IsFood = v, value);
+        set => ChangeIfDifferent(Tr.T("Make edible"), nameof(ItemAsset.IsFood), () => _item.IsFood, v => _item.IsFood = v, value);
     }
 
     public double Nutrition
     {
         get => _item.Nutrition;
-        set => ChangeNumber(Tr.T("Modifier la valeur nutritive"), nameof(ItemAsset.Nutrition), value, () => _item.Nutrition, v => _item.Nutrition = v,
+        set => ChangeNumber(Tr.T("Change nutrition"), nameof(ItemAsset.Nutrition), value, () => _item.Nutrition, v => _item.Nutrition = v,
             v => Math.Clamp((int)Math.Round(v), 0, ItemAsset.MaxNutrition));
     }
 
     public double Saturation
     {
         get => _item.Saturation;
-        set => ChangeNumber(Tr.T("Modifier la saturation"), nameof(ItemAsset.Saturation), value, () => _item.Saturation, v => _item.Saturation = v,
+        set => ChangeNumber(Tr.T("Change saturation"), nameof(ItemAsset.Saturation), value, () => _item.Saturation, v => _item.Saturation = v,
             v => (float)Math.Clamp(v, 0d, ItemAsset.MaxSaturation));
     }
 
     public bool AlwaysEdible
     {
         get => _item.AlwaysEdible;
-        set => ChangeIfDifferent(Tr.T("Modifier « toujours mangeable »"), nameof(ItemAsset.AlwaysEdible), () => _item.AlwaysEdible, v => _item.AlwaysEdible = v, value);
+        set => ChangeIfDifferent(Tr.T("Change \"always edible\""), nameof(ItemAsset.AlwaysEdible), () => _item.AlwaysEdible, v => _item.AlwaysEdible = v, value);
     }
 
     public bool IsMeat
     {
         get => _item.IsMeat;
-        set => ChangeIfDifferent(Tr.T("Modifier « viande »"), nameof(ItemAsset.IsMeat), () => _item.IsMeat, v => _item.IsMeat = v, value);
+        set => ChangeIfDifferent(Tr.T("Change \"meat\""), nameof(ItemAsset.IsMeat), () => _item.IsMeat, v => _item.IsMeat = v, value);
     }
 
     public bool FastFood
     {
         get => _item.FastFood;
-        set => ChangeIfDifferent(Tr.T("Modifier « se mange vite »"), nameof(ItemAsset.FastFood), () => _item.FastFood, v => _item.FastFood = v, value);
+        set => ChangeIfDifferent(Tr.T("Change \"eaten quickly\""), nameof(ItemAsset.FastFood), () => _item.FastFood, v => _item.FastFood = v, value);
     }
 
     public ObservableCollection<FoodEffectViewModel> FoodEffects { get; } = [];
@@ -241,14 +241,14 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
     {
         List<FoodEffect> effects = [.. _item.FoodEffects];
         effects[index] = update(effects[index]);
-        Change(Tr.T("Modifier un effet"), nameof(ItemAsset.FoodEffects), () => _item.FoodEffects, v => _item.FoodEffects = v, effects);
+        Change(Tr.T("Change an effect"), nameof(ItemAsset.FoodEffects), () => _item.FoodEffects, v => _item.FoodEffects = v, effects);
     }
 
     public void RemoveFoodEffect(int index)
     {
         List<FoodEffect> effects = [.. _item.FoodEffects];
         effects.RemoveAt(index);
-        Change(Tr.T("Retirer un effet"), nameof(ItemAsset.FoodEffects), () => _item.FoodEffects, v => _item.FoodEffects = v, effects);
+        Change(Tr.T("Remove an effect"), nameof(ItemAsset.FoodEffects), () => _item.FoodEffects, v => _item.FoodEffects = v, effects);
         Context.History.Seal();
     }
 
@@ -258,8 +258,8 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
     public IReadOnlyList<ItemEventViewModel> Events { get; }
 
     public string EventsHint => _item.IsFood
-        ? Tr.T("Les événements s'exécutent côté serveur. « Mangé ou bu » se déclenche à la fin de la consommation.")
-        : Tr.T("Les événements s'exécutent côté serveur. « Mangé ou bu » ne se déclenche que pour un item comestible.");
+        ? Tr.T("Events run on the server. \"Eaten or drunk\" triggers when consumption ends.")
+        : Tr.T("Events run on the server. \"Eaten or drunk\" only triggers for a food item.");
 
     /// <summary>
     /// Relie un événement : un nœud événement est ajouté au graphe d'événements de l'item
@@ -272,14 +272,14 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
             .FirstOrDefault(g => g.Kind == GraphKind.Events && g.Graph.Nodes.Any(n => IsOwnEvent(n, itemRef)));
         int existing = graph?.Graph.Nodes.Count(n => NodeCatalog.Find(n.Kind)?.Category == NodeCategory.Event) ?? 0;
         GraphNode node = GraphNode.Create(NodeCatalog.ForItemEvent(kind).Kind, 0, existing * 220).WithValue("item", itemRef);
-        string description = Tr.F("Relier « {0} »", NodeCatalog.ForItemEvent(kind).Title);
+        string description = Tr.F("Connect \"{0}\"", NodeCatalog.ForItemEvent(kind).Title);
 
         if (graph is null)
         {
             ResourceId id = Context.Project.Assets.CreateUniqueResourceId(_item.ResourceId.Value + "_events", AssetType.Graph);
-            graph = new GraphAsset(Guid.NewGuid(), id, Tr.F("Événements de {0}", Header)) { Folder = _item.Folder };
+            graph = new GraphAsset(Guid.NewGuid(), id, Tr.F("{0} events", Header)) { Folder = _item.Folder };
             graph.Graph = graph.Graph.AddNode(node);
-            Context.History.Execute(new AddAssetCommand(Context.Project.Assets, graph, Tr.T("Graphe")));
+            Context.History.Execute(new AddAssetCommand(Context.Project.Assets, graph, Tr.T("Graph")));
         }
         else
         {
@@ -357,7 +357,7 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
 
     private void AddFoodEffect()
     {
-        Change(Tr.T("Ajouter un effet"), nameof(ItemAsset.FoodEffects), () => _item.FoodEffects, v => _item.FoodEffects = v,
+        Change(Tr.T("Add an effect"), nameof(ItemAsset.FoodEffects), () => _item.FoodEffects, v => _item.FoodEffects = v,
             [.. _item.FoodEffects, new FoodEffect(FoodEffectKind.Regeneration, 5, 0, 1f)]);
         Context.History.Seal();
     }
@@ -387,7 +387,7 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
     }
 
     private PropertyChangeCommand<T> Property<T>(string name, Func<T> getter, Action<T> setter, T value) =>
-        new(Tr.T("Changer le type d'item"), Model, name, getter, setter, value);
+        new(Tr.T("Change item type"), Model, name, getter, setter, value);
 
     private static string TagsToText(IEnumerable<NamespacedId> tags) => string.Join(Environment.NewLine, tags.Select(t => t.ToString()));
 

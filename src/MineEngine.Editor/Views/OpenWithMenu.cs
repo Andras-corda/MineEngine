@@ -44,15 +44,15 @@ public static class OpenWithMenu
             openWith.Items.Add(new Separator());
         }
 
-        var standard = new MenuItem { Header = Tr.T("Application par défaut de Windows") };
+        var standard = new MenuItem { Header = Tr.T("Windows default application") };
         standard.Click += (_, _) => main.OpenWithDefault(file!);
         openWith.Items.Add(standard);
 
-        var other = new MenuItem { Header = Tr.T("Choisir une autre application...") };
+        var other = new MenuItem { Header = Tr.T("Choose another application...") };
         other.Click += (_, _) => main.ChooseProgram(file!);
         openWith.Items.Add(other);
 
         openWith.Items.Add(new Separator());
-        openWith.Items.Add(new MenuItem { Header = Tr.T("Configurer les programmes..."), Command = main.OpenSettingsCommand });
+        openWith.Items.Add(new MenuItem { Header = Tr.T("Configure programs..."), Command = main.OpenSettingsCommand });
     }
 }

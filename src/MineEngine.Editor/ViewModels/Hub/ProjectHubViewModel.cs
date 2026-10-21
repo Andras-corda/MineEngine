@@ -142,9 +142,9 @@ public sealed class ProjectHubViewModel : ObservableObject
 
     public IReadOnlyList<Assets.Choice<ProjectSort>> SortChoices { get; } =
     [
-        new(ProjectSort.Name, Tr.T("Nom du projet")),
-        new(ProjectSort.LastOpened, Tr.T("Ouvert récemment")),
-        new(ProjectSort.MinecraftVersion, Tr.T("Version de Minecraft")),
+        new(ProjectSort.Name, Tr.T("Project name")),
+        new(ProjectSort.LastOpened, Tr.T("Recently opened")),
+        new(ProjectSort.MinecraftVersion, Tr.T("Minecraft version")),
     ];
 
     public ProjectSort Sort
@@ -189,18 +189,18 @@ public sealed class ProjectHubViewModel : ObservableObject
 
     public string CountLabel => Projects.Count switch
     {
-        0 => Tr.T("aucun projet"),
-        1 => Tr.T("1 projet"),
-        int count => Tr.F("{0} projets", count),
+        0 => Tr.T("no projects"),
+        1 => Tr.T("1 project"),
+        int count => Tr.F("{0} projects", count),
     };
 
     public bool IsListEmpty => _view.IsEmpty;
 
     public string EmptyListMessage => Projects.Count == 0
-        ? Tr.T("Aucun projet pour l'instant. Créez-en un, ou ajoutez un projet existant.")
+        ? Tr.T("No projects yet. Create one, or add an existing project.")
         : ShowRecentOnly && _searchText.Length == 0
-            ? Tr.T("Aucun projet ouvert récemment.")
-            : Tr.T("Aucun projet ne correspond à la recherche.");
+            ? Tr.T("No recently opened project.")
+            : Tr.T("No project matches the search.");
 
     public ICommand NavigateCommand { get; }
 
@@ -274,7 +274,7 @@ public sealed class ProjectHubViewModel : ObservableObject
 
     private void AddExisting()
     {
-        string? directory = _dialogs.AskFolder(Tr.T("Choisir le dossier d'un projet Mine Engine"));
+        string? directory = _dialogs.AskFolder(Tr.T("Choose the folder of a Mine Engine project"));
         if (directory is null)
         {
             return;
@@ -282,7 +282,7 @@ public sealed class ProjectHubViewModel : ObservableObject
 
         if (ProjectSummary.TryRead(directory, _settingsSerializer) is null)
         {
-            _dialogs.ShowError(Tr.T("Ajouter un projet"), Tr.F("Le dossier '{0}' ne contient pas de projet Mine Engine (*{1}).", directory, ProjectLayout.ProjectFileExtension));
+            _dialogs.ShowError(Tr.T("Add a project"), Tr.F("The folder '{0}' does not contain a Mine Engine project (*{1}).", directory, ProjectLayout.ProjectFileExtension));
             return;
         }
 
@@ -296,7 +296,7 @@ public sealed class ProjectHubViewModel : ObservableObject
 
     private void Remove(ProjectCardViewModel card)
     {
-        if (!_dialogs.Confirm(Tr.T("Retirer de la liste"), Tr.F("Retirer '{0}' de la liste ? Le dossier du projet n'est pas supprimé.", card.Name)))
+        if (!_dialogs.Confirm(Tr.T("Remove from list"), Tr.F("Remove '{0}' from the list? The project folder is not deleted.", card.Name)))
         {
             return;
         }

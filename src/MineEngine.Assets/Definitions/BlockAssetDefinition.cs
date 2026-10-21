@@ -8,7 +8,7 @@ namespace MineEngine.Assets.Definitions;
 public sealed class BlockAssetDefinition : InventoryAssetDefinition<BlockAsset>
 {
     public override AssetType Type => AssetType.Block; // Type d'asset correspondant à cette définition 
-    public override string Label => Tr.T("Bloc"); // label de l'asset 
+    public override string Label => Tr.T("Block"); // label de l'asset 
     public override string DefaultResourceIdBase => "new_block"; // identifiant de ressource par défaut pour l'asset
     public override string DefaultDisplayName => Tr.T("New block"); // nom d'affichage par défaut pour l'asset
 

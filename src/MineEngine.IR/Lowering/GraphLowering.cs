@@ -17,7 +17,7 @@ public sealed class GraphLowering : AssetLowering<GraphAsset>
     protected override void Lower(GraphAsset asset, LoweringContext context)
     {
         var compiler = new GraphCompiler(asset, context.Program, (reference, type) =>
-            context.ResolveItem(asset, reference, Tr.F("Nœud {0}", type.BuiltInLabel.ToLowerInvariant())));
+            context.ResolveItem(asset, reference, Tr.F("{0} node", type.BuiltInLabel.ToLowerInvariant())));
         try
         {
             switch (asset.Kind)
@@ -56,6 +56,10 @@ public sealed class GraphLowering : AssetLowering<GraphAsset>
                 case GraphKind.Enum:
                     context.AddDefinition(new IREnum(asset.Id, asset.ResourceId, asset.DisplayName, asset.Access, asset.OwnerId, asset.Constants));
                     break;
+                case GraphKind.Library:
+                    // A Java class that only holds the static methods of its functions.
+                    context.AddDefinition(new IRClass(asset.Id, asset.ResourceId, asset.DisplayName, AccessLevel.Public, null, IRBody.Empty));
+                    break;
             }
         }
         catch (InvalidOperationException exception)
@@ -73,7 +77,26 @@ public sealed class GraphLowering : AssetLowering<GraphAsset>
                 && reference!.Kind == ContentReferenceKind.Asset
                 && context.Project.Assets.Find(reference.AssetId) is not null and not ItemAsset)
             {
-                context.Diagnostics.Error(Tr.F("« {0} » : seul un item (pas un bloc) peut avoir des événements d'item.", node), asset.ToString(), asset.Id);
+                context.Diagnostics.Error(Tr.F("\"{0}\": only an item (not a block) can have item events.", node), asset.ToString(), asset.Id);
+                return;
+            }
+        }
+
+        // An "On command" or "On key pressed" event names a command or a keybind of the mod.
+        foreach (GraphNode node in asset.Graph.Nodes.Where(n => NodeCatalog.Find(n.Kind)?.DirectEvent is not null))
+        {
+            NodeInfo info = NodeCatalog.Get(node.Kind);
+            string name = node.GetValue(info.Inputs[0].Name)?.Trim() ?? string.Empty;
+            AssetType type = info.DirectEvent == Core.GameData.DirectEventKind.Command ? AssetType.Command : AssetType.Keybind;
+            if (!context.Project.Assets.Any(a => a.Type == type && a.ResourceId.Value == name))
+            {
+                string[] known = [.. context.Project.Assets.Where(a => a.Type == type).Select(a => a.ResourceId.Value).Order(StringComparer.Ordinal)];
+                context.Diagnostics.Error(
+                    known.Length == 0
+                        ? Tr.F("\"{0}\": the project has no {1} yet: add one, then type its identifier.", info.Title, type == AssetType.Command ? Tr.T("command") : Tr.T("keybind"))
+                        : Tr.F("\"{0}\": \"{1}\" is not an identifier of the project ({2}).", info.Title, name, string.Join(", ", known)),
+                    asset.ToString(),
+                    asset.Id);
                 return;
             }
         }

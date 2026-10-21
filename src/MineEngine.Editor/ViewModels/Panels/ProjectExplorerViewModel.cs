@@ -308,7 +308,7 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
     {
         if (_project is null)
         {
-            return Tr.T("Aucun projet ouvert.");
+            return Tr.T("No project open.");
         }
 
         ProjectLayout layout = _project.Layout;
@@ -320,11 +320,11 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
         ];
         if (standard.Any(s => string.Equals(Path.TrimEndingDirectorySeparator(s), path, StringComparison.OrdinalIgnoreCase)))
         {
-            return Tr.T("Dossier ou fichier indispensable au projet.");
+            return Tr.T("Folder or file required by the project.");
         }
 
         return path.StartsWith(layout.ElementsDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-            ? Tr.T("Les fichiers des éléments se gèrent depuis le Dashboard (renommer l'identifiant, supprimer l'élément).")
+            ? Tr.T("Element files are managed from the Dashboard (rename the identifier, delete the element).")
             : null;
     }
 
@@ -377,10 +377,10 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
         string parent = SelectedFolder() ?? _project.Layout.JavaSourceDirectory;
 
         string? name = _dialogs.AskText(
-            isDirectory ? Tr.T("Nouveau dossier") : Tr.T("Nouveau fichier"),
+            isDirectory ? Tr.T("New folder") : Tr.T("New file"),
             isDirectory
-                ? Tr.F("Nom du dossier dans {0} :", _project.Layout.ToRelativePath(parent))
-                : Tr.F("Nom du fichier dans {0} :", _project.Layout.ToRelativePath(parent)),
+                ? Tr.F("Folder name in {0}:", _project.Layout.ToRelativePath(parent))
+                : Tr.F("File name in {0}:", _project.Layout.ToRelativePath(parent)),
             isDirectory ? "nouveau_dossier" : "nouveau_fichier.java");
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -389,14 +389,14 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
 
         if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
         {
-            _dialogs.ShowError(Tr.T("Nom invalide"), Tr.F("« {0} » contient des caractères interdits dans un nom de fichier.", name));
+            _dialogs.ShowError(Tr.T("Invalid name"), Tr.F("\"{0}\" contains characters that are not allowed in a file name.", name));
             return;
         }
 
         string path = Path.Combine(parent, name.Trim());
         if (File.Exists(path) || Directory.Exists(path))
         {
-            _dialogs.ShowError(Tr.T("Nom déjà utilisé"), Tr.F("« {0} » existe déjà dans ce dossier.", name));
+            _dialogs.ShowError(Tr.T("Name already used"), Tr.F("\"{0}\" already exists in this folder.", name));
             return;
         }
 
@@ -414,7 +414,7 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            _dialogs.ShowError(Tr.T("Création impossible"), exception.Message);
+            _dialogs.ShowError(Tr.T("Cannot create"), exception.Message);
             return;
         }
 
@@ -458,8 +458,8 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
         string package = (folder is null ? null : JavaClassTemplates.PackageForFolder(layout.ToRelativePath(folder)))
             ?? JavaClassTemplates.DefaultPackage(_project.Settings.ModId);
 
-        string? name = _dialogs.AskText(Tr.T("Nouvelle classe Java"),
-            Tr.F("Nom de la classe (package {0}) :", package.Length == 0 ? Tr.T("par défaut") : package),
+        string? name = _dialogs.AskText(Tr.T("New Java class"),
+            Tr.F("Class name (package {0}):", package.Length == 0 ? Tr.T("default") : package),
             kind == JavaClassKind.EventListener ? "MyEvents" : "MyClass");
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -469,14 +469,14 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
         name = name.Trim();
         if (!JavaClassTemplates.IsValidClassName(name))
         {
-            _dialogs.ShowError(Tr.T("Nom invalide"), Tr.F("« {0} » n'est pas un nom de classe Java (lettres, chiffres et _, sans commencer par un chiffre).", name));
+            _dialogs.ShowError(Tr.T("Invalid name"), Tr.F("\"{0}\" is not a Java class name (letters, digits and _, not starting with a digit).", name));
             return;
         }
 
         string path = layout.ToAbsolutePath(JavaClassTemplates.SourcePath(package, name));
         if (File.Exists(path))
         {
-            _dialogs.ShowError(Tr.T("Nom déjà utilisé"), Tr.F("La classe {0} existe déjà dans ce package.", name));
+            _dialogs.ShowError(Tr.T("Name already used"), Tr.F("The class {0} already exists in this package.", name));
             return;
         }
 
@@ -488,7 +488,7 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            _dialogs.ShowError(Tr.T("Création impossible"), exception.Message);
+            _dialogs.ShowError(Tr.T("Cannot create"), exception.Message);
             return;
         }
 
@@ -498,7 +498,7 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
 
     private void Rename(FileNodeViewModel node)
     {
-        string? name = _dialogs.AskText(Tr.T("Renommer"), Tr.F("Nouveau nom de « {0} » :", node.Name), node.Name);
+        string? name = _dialogs.AskText(Tr.T("Rename"), Tr.F("New name for \"{0}\":", node.Name), node.Name);
         if (string.IsNullOrWhiteSpace(name) || name == node.Name)
         {
             return;
@@ -518,7 +518,7 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            _dialogs.ShowError(Tr.T("Renommage impossible"), exception.Message);
+            _dialogs.ShowError(Tr.T("Cannot rename"), exception.Message);
             return;
         }
 
@@ -528,7 +528,7 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
     /// <summary>Envoie le fichier ou le dossier dans la corbeille de Windows (récupérable).</summary>
     private void Delete(FileNodeViewModel node)
     {
-        if (!_dialogs.Confirm(Tr.T("Mettre à la corbeille"), Tr.F("Mettre « {0} » à la corbeille ?", node.Name)))
+        if (!_dialogs.Confirm(Tr.T("Move to Recycle Bin"), Tr.F("Move \"{0}\" to the Recycle Bin?", node.Name)))
         {
             return;
         }
@@ -548,7 +548,7 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or OperationCanceledException)
         {
-            _dialogs.ShowError(Tr.T("Suppression impossible"), exception.Message);
+            _dialogs.ShowError(Tr.T("Cannot delete"), exception.Message);
             return;
         }
 

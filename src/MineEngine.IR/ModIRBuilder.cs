@@ -17,7 +17,7 @@ public sealed class ModIRBuilder
         {
             if (!_lowerings.TryAdd(lowering.AssetType, lowering))
             {
-                throw new ArgumentException(Tr.F("Deux traductions sont déclarées pour le type {0}.", lowering.AssetType));
+                throw new ArgumentException(Tr.F("Two translations are declared for type {0}.", lowering.AssetType));
             }
         }
     }
@@ -25,7 +25,9 @@ public sealed class ModIRBuilder
     public static ModIRBuilder CreateDefault() => new(
     [
         new ItemLowering(), new BlockLowering(), new MobLowering(), new RecipeLowering(), new TextureLowering(), new SoundLowering(),
-        new GraphLowering(),
+        new GraphLowering(), new BehaviorTreeLowering(), new ModelLowering(),
+        new CommandLowering(), new CreativeTabLowering(), new KeybindLowering(), new EnchantmentLowering(), new FluidLowering(),
+        new GameRuleLowering(), new EffectLowering(),
     ]);
 
     /// <summary>
@@ -52,21 +54,39 @@ public sealed class ModIRBuilder
             }
             else
             {
-                diagnostics.Warning(Tr.T("Ce type d'asset n'est pas encore pris en charge par le générateur ; il est ignoré."), asset.ToString());
+                diagnostics.Warning(Tr.T("This asset type is not supported by the generator yet; it is ignored."), asset.ToString());
             }
         }
 
-        return diagnostics.HasErrors ? null : new ModIR(CreateModInfo(project.Settings), context.BuildContent(), project.Localization);
+        return diagnostics.HasErrors ? null : new ModIR(CreateModInfo(project, diagnostics), context.BuildContent(), project.Localization);
     }
 
-    private static IRModInfo CreateModInfo(ProjectSettings settings) => new(
-        settings.ModId,
-        settings.ModName,
-        settings.ModVersion,
-        settings.Authors,
-        settings.Description,
-        settings.License,
-        settings.Website,
-        settings.MinecraftVersion,
-        settings.LoaderId);
+    private static IRModInfo CreateModInfo(ModProject project, DiagnosticBag diagnostics)
+    {
+        ProjectSettings settings = project.Settings;
+        string? icon = null;
+        if (settings.IconFile.Length > 0)
+        {
+            icon = project.Layout.ToAbsolutePath(settings.IconFile);
+            if (!File.Exists(icon))
+            {
+                diagnostics.Warning(Tr.F("The icon of the mod ({0}) cannot be found: the mod will have no icon.", settings.IconFile), Tr.T("Project"));
+                icon = null;
+            }
+        }
+
+        return new IRModInfo(
+            settings.ModId,
+            settings.ModName,
+            settings.ModVersion,
+            settings.Authors,
+            settings.Description,
+            settings.License,
+            settings.Website,
+            settings.MinecraftVersion,
+            settings.LoaderId)
+        {
+            IconFile = icon,
+        };
+    }
 }

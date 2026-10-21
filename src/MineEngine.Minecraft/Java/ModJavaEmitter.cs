@@ -76,6 +76,9 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             WriteBehaviorClass(context, naming, api, names, behavior);
         }
 
+        WriteBehaviorTrees(context, naming, api);
+        WriteGameplay(context, naming, api);
+
         if (content.Mobs.Count > 0)
         {
             Write(context, naming, naming.RegistryPackage, naming.EntitiesClass, WriteEntitiesClass(context, naming, api));
@@ -84,6 +87,8 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             {
                 WriteEntityClass(context, naming, api, mob);
             }
+
+            WriteCustomMobModels(context, naming, api);
         }
     }
 
@@ -140,6 +145,8 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         }
 
         imports.AddRange(content.Behaviors.Select(b => $"{naming.BehaviorPackage}.{naming.BehaviorClassFor(b.Id)}"));
+        JavaGameApi api = JavaGameApi.For(context.MinecraftVersion);
+        imports.AddRange(GameplayMainImports(context, naming, api));
 
         JavaSourceWriter w = WriteHeader(naming.RootPackage, imports, $"Classe principale du mod {mod.Name}.")
             .Line($"@Mod({naming.MainClass}.MOD_ID)")
@@ -178,9 +185,16 @@ public abstract partial class ModJavaEmitter : IFileEmitter
 
             // Le rendu n'existe que sur le client : un serveur dédié ne doit pas charger ces classes.
             w.OpenBlock($"if ({ClientEnvironmentCheck})")
-                .Line($"modEventBus.addListener({naming.EntityRenderersClass}::registerRenderers);")
-                .CloseBlock();
+                .Line($"modEventBus.addListener({naming.EntityRenderersClass}::registerRenderers);");
+            if (CustomModelMobs(context).Any())
+            {
+                w.Line($"modEventBus.addListener({naming.EntityRenderersClass}::registerLayerDefinitions);");
+            }
+
+            w.CloseBlock();
         }
+
+        WriteGameplayRegistrations(w, context, naming, api);
 
         // Graphes nodaux : leurs réactions s'inscrivent sur le bus des événements du jeu.
         foreach (IRBehavior behavior in content.Behaviors)
@@ -269,7 +283,8 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             calls.Add(".requiresCorrectToolForDrops()");
         }
 
-        if (settings.RenderType != BlockRenderType.Solid || settings.Model == BlockModelKind.Cross)
+        // A 3D model rarely fills the block: the neighbors must not hide their faces behind it.
+        if (settings.RenderType != BlockRenderType.Solid || settings.Model is BlockModelKind.Cross or BlockModelKind.Custom)
         {
             calls.Add(".noOcclusion()");
         }
@@ -489,7 +504,16 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             "net.minecraft.network.chat.Component",
             "net.minecraft.world.item.CreativeModeTab",
             "net.minecraft.world.item.CreativeModeTabs",
+            "net.minecraft.core.registries.BuiltInRegistries",
+            "net.minecraft.resources.ResourceLocation",
+            "net.minecraft.world.item.Item",
+            "net.minecraft.world.item.ItemStack",
+            "net.minecraft.world.item.Items",
         ]);
+        if (content.Fluids.Any(f => f.BucketId is not null))
+        {
+            imports = imports.Append($"{naming.RegistryPackage}.{FluidsClass}");
+        }
 
         JavaSourceWriter w = WriteHeader(naming.RegistryPackage, imports, "Onglets de l'inventaire créatif : celui du mod et les onglets vanilla.")
             .OpenBlock($"public final class {naming.CreativeTabsClass}")
@@ -505,6 +529,7 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             .Where(e => e.ItemForm!.InModCreativeTab)
             .Select(e => $"{naming.ItemsClass}.{naming.ConstantFor(e.Id)}")
             .Concat(spawnEggs)
+            .Concat(GameplayTabEntries(context))
             .ToList();
 
         if (modTabEntries.Count > 0)
@@ -527,6 +552,14 @@ public abstract partial class ModJavaEmitter : IFileEmitter
                 .Line(".build());")
                 .Unindent().Unindent().Unindent().Unindent();
         }
+
+        WriteProjectCreativeTabs(w, context, CreativeTabHolderType);
+
+        // Items are found by identifier: items of the mod and of Minecraft alike (tabs of the project).
+        w.Line()
+            .OpenBlock("private static Item item(String id)")
+            .Line($"return BuiltInRegistries.ITEM.get({JavaGameApi.For(context.MinecraftVersion).ParseResourceLocation("id")});")
+            .CloseBlock();
 
         // Ajout aux onglets vanilla choisis dans l'éditeur.
         string eventClass = SimpleName(BuildCreativeTabEventType);

@@ -5,7 +5,7 @@
         xmlns:ui="http://schemas.modernwpf.com/2019"
         ui:WindowHelper.UseModernWindowStyle="True"
         Background="{DynamicResource HubBackgroundBrush}"
-        Title="{l:Tr 'Gestionnaire de MDK'}"
+        Title="{l:Tr 'MDK Manager'}"
         Width="900" Height="620" MinWidth="700" MinHeight="480"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">
@@ -18,56 +18,56 @@
 
         <!-- Explication -->
         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
-            <TextBlock TextWrapping="Wrap" Text="{l:Tr 'Un MDK (Mod Development Kit) est le projet Gradle officiel de Forge ou de NeoForge pour une version de Minecraft. Mine Engine s\'appuie sur le MDK choisi dans chaque projet pour générer et compiler le mod.'}" />
+            <TextBlock TextWrapping="Wrap" Text="{l:Tr 'An MDK (Mod Development Kit) is the official Gradle project of Forge or NeoForge for a Minecraft version. Mine Engine relies on the MDK chosen in each project to generate and compile the mod.'}" />
             <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
-                       Text="{Binding SupportDescription, StringFormat={l:Tr 'Versions prises en charge par le générateur : {0}.'}}" />
+                       Text="{Binding SupportDescription, StringFormat={l:Tr 'Versions supported by the generator: {0}.'}}" />
         </StackPanel>
 
         <!-- Bas de fenêtre : dossier de la bibliothèque et fermeture -->
         <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
-            <Button DockPanel.Dock="Right" Content="{l:Tr 'Fermer'}" IsCancel="True" MinWidth="100" Padding="10,4" />
+            <Button DockPanel.Dock="Right" Content="{l:Tr 'Close'}" IsCancel="True" MinWidth="100" Padding="10,4" />
             <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" Foreground="{DynamicResource HintBrush}" />
         </DockPanel>
 
-        <GroupBox DockPanel.Dock="Bottom" Header="{l:Tr 'Dossier des MDK'}" Padding="8,6" Margin="0,12,0,0">
+        <GroupBox DockPanel.Dock="Bottom" Header="{l:Tr 'MDK folder'}" Padding="8,6" Margin="0,12,0,0">
             <StackPanel>
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
-                            Content="{l:Tr 'Ouvrir le dossier'}" Command="{Binding OpenLibraryFolderCommand}" />
+                            Content="{l:Tr 'Open folder'}" Command="{Binding OpenLibraryFolderCommand}" />
                     <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="6,0,0,0"
-                            Content="{l:Tr 'Actualiser'}" Command="{Binding RefreshCommand}" />
+                            Content="{l:Tr 'Refresh'}" Command="{Binding RefreshCommand}" />
                     <TextBox Text="{Binding LibraryDirectory, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas"
                              VerticalContentAlignment="Center" />
                 </DockPanel>
                 <TextBlock Style="{StaticResource FieldHint}" Margin="0,6,0,0"
-                           Text="{l:Tr 'Vous pouvez aussi déposer dans ce dossier une archive .zip de MDK ou un MDK déjà extrait, puis cliquer sur Actualiser.'}" />
+                           Text="{l:Tr 'You can also drop an MDK .zip archive or an already extracted MDK into this folder, then click Refresh.'}" />
             </StackPanel>
         </GroupBox>
 
         <!-- Téléchargements -->
-        <GroupBox DockPanel.Dock="Bottom" Header="{l:Tr 'Télécharger un MDK officiel'}" Padding="8,6" Margin="0,12,0,0">
+        <GroupBox DockPanel.Dock="Bottom" Header="{l:Tr 'Download an official MDK'}" Padding="8,6" Margin="0,12,0,0">
             <DockPanel>
                 <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="8,0,0,0" VerticalAlignment="Top"
-                        Content="{l:Tr 'Télécharger'}" Command="{Binding DownloadCommand}" />
+                        Content="{l:Tr 'Download'}" Command="{Binding DownloadCommand}" />
                 <DataGrid ItemsSource="{Binding Downloads}" SelectedItem="{Binding SelectedDownload}"
                           AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
                           SelectionMode="Single" CanUserAddRows="False" GridLinesVisibility="None" Height="110">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="{l:Tr 'MDK'}" Binding="{Binding DisplayName}" Width="220" />
-                        <DataGridTextColumn Header="{l:Tr 'État'}" Binding="{Binding Status}" Width="90" />
-                        <DataGridTextColumn Header="{l:Tr 'Adresse'}" Binding="{Binding Url}" Width="*" />
+                        <DataGridTextColumn Header="{l:Tr 'State'}" Binding="{Binding Status}" Width="90" />
+                        <DataGridTextColumn Header="{l:Tr 'Address'}" Binding="{Binding Url}" Width="*" />
                     </DataGrid.Columns>
                 </DataGrid>
             </DockPanel>
         </GroupBox>
 
         <!-- MDK installés -->
-        <GroupBox Header="{l:Tr 'MDK installés'}" Padding="8,6">
+        <GroupBox Header="{l:Tr 'Installed MDKs'}" Padding="8,6">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
-                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Importer une archive (.zip)...'}" Command="{Binding ImportArchiveCommand}" />
-                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Importer un dossier...'}" Command="{Binding ImportFolderCommand}" />
-                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Supprimer'}" Command="{Binding RemoveCommand}" />
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Import an archive (.zip)...'}" Command="{Binding ImportArchiveCommand}" />
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Import a folder...'}" Command="{Binding ImportFolderCommand}" />
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Delete'}" Command="{Binding RemoveCommand}" />
                 </StackPanel>
                 <Grid>
                     <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}"
@@ -76,14 +76,14 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="{l:Tr 'Loader'}" Binding="{Binding Loader}" Width="80" />
                             <DataGridTextColumn Header="{l:Tr 'Minecraft'}" Binding="{Binding MinecraftVersion}" Width="80" />
-                            <DataGridTextColumn Header="{l:Tr 'Version du loader'}" Binding="{Binding LoaderVersion}" Width="120" />
+                            <DataGridTextColumn Header="{l:Tr 'Loader version'}" Binding="{Binding LoaderVersion}" Width="120" />
                             <DataGridTextColumn Header="{l:Tr 'Java'}" Binding="{Binding Java}" Width="45" />
                             <DataGridTextColumn Header="{l:Tr 'Gradle'}" Binding="{Binding Gradle}" Width="60" />
-                            <DataGridTextColumn Header="{l:Tr 'Statut'}" Binding="{Binding Status}" Width="160" />
-                            <DataGridTextColumn Header="{l:Tr 'Origine'}" Binding="{Binding Source}" Width="*" />
+                            <DataGridTextColumn Header="{l:Tr 'Status'}" Binding="{Binding Status}" Width="160" />
+                            <DataGridTextColumn Header="{l:Tr 'Origin'}" Binding="{Binding Source}" Width="*" />
                         </DataGrid.Columns>
                     </DataGrid>
-                    <TextBlock Text="{l:Tr 'Aucun MDK installé. Téléchargez-en un ci-dessous ou importez une archive.'}"
+                    <TextBlock Text="{l:Tr 'No MDK installed. Download one below or import an archive.'}"
                                HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource HintBrush}"
                                Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
                 </Grid>

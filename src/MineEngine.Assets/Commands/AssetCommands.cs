@@ -29,7 +29,7 @@ public sealed class AddAssetCommand : IUndoableCommand
         _registry = registry;
         _asset = asset;
 
-        Description = Tr.F("Ajouter {0} '{1}'", typeLabel.ToLowerInvariant(), asset.ResourceId);
+        Description = Tr.F("Add {0} '{1}'", typeLabel.ToLowerInvariant(), asset.ResourceId);
     }
 
     public string Description { get; } // decription de la commande, affichée dans l'interface utilisateur pour indiquer l'action effectuée
@@ -68,7 +68,7 @@ public sealed class RemoveAssetCommand : IUndoableCommand
         _registry = registry;
         _asset = asset;
 
-        Description = Tr.F("Supprimer {0} '{1}'", typeLabel.ToLowerInvariant(), asset.ResourceId);
+        Description = Tr.F("Delete {0} '{1}'", typeLabel.ToLowerInvariant(), asset.ResourceId);
     }
 
     public string Description { get; } // description de la commande, affichée dans l'interface utilisateur pour indiquer l'action effectuée

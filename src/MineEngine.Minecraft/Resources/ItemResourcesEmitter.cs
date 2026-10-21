@@ -13,13 +13,20 @@ public sealed class ItemResourcesEmitter : ResourceEmitter
     {
     }
 
-    public override string Name => Tr.T("Ressources des items");
+    public override string Name => Tr.T("Item resources");
 
     public override void Emit(GenerationContext context)
     {
         ResourcePaths paths = context.Paths;
         foreach (IRItem item in context.Ir.Content.Items)
         {
+            // An item shown with a 3D model takes the model and its textures (see ModelsEmitter).
+            if (item.CustomModel is { } model)
+            {
+                WriteJson(context, paths.ItemModel(item.Id), new JsonObject { ["parent"] = paths.CustomModelReference(model) });
+                continue;
+            }
+
             WriteJson(context, paths.ItemModel(item.Id), new JsonObject
             {
                 // "handheld" : tenu en diagonale comme un outil ; "generated" : à plat.

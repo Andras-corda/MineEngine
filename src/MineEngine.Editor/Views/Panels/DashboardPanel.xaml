@@ -51,34 +51,34 @@
 
             <!-- Menu contextuel d'un élément ; Tag de l'élément = MainViewModel. -->
             <ContextMenu x:Key="AssetMenu" x:Shared="False">
-                <MenuItem Header="{l:Tr 'Ouvrir l\'éditeur nodal'}" CommandParameter="{Binding}" FontWeight="SemiBold"
+                <MenuItem Header="{l:Tr 'Open the node editor'}" CommandParameter="{Binding}" FontWeight="SemiBold"
                           Command="{Binding PlacementTarget.Tag.OpenGraphEditorCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                           Visibility="{Binding IsEnabled, RelativeSource={RelativeSource Self}, Converter={StaticResource BoolToVisibility}}" />
-                <MenuItem Header="{l:Tr 'Afficher dans Détails'}" CommandParameter="{Binding}"
+                <MenuItem Header="{l:Tr 'Show in Properties'}" CommandParameter="{Binding}"
                           Command="{Binding PlacementTarget.Tag.ShowAssetDetailsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                <MenuItem Header="{l:Tr 'Voir le fichier de l\'asset'}"
+                <MenuItem Header="{l:Tr 'View the asset\'s file'}"
                           Command="{Binding PlacementTarget.Tag.OpenAssetSourceCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 <!-- Rempli à l'ouverture du menu (voir OpenWithMenu). -->
-                <MenuItem Header="{l:Tr 'Ouvrir avec'}" Tag="openWith" />
-                <MenuItem Header="{l:Tr 'Voir le code Java'}"
+                <MenuItem Header="{l:Tr 'Open with'}" Tag="openWith" />
+                <MenuItem Header="{l:Tr 'View the Java code'}"
                           Command="{Binding PlacementTarget.Tag.OpenAssetJavaCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                <MenuItem Header="{l:Tr 'Dupliquer'}" InputGestureText="Ctrl+D"
+                <MenuItem Header="{l:Tr 'Duplicate'}" InputGestureText="Ctrl+D"
                           Command="{Binding PlacementTarget.Tag.DuplicateAssetCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 <Separator />
                 <!-- Rempli à l'ouverture du menu avec la racine et tous les dossiers. -->
-                <MenuItem Header="{l:Tr 'Déplacer vers'}" Tag="move" />
-                <MenuItem Header="{l:Tr 'Supprimer'}"
+                <MenuItem Header="{l:Tr 'Move to folder'}" Tag="move" />
+                <MenuItem Header="{l:Tr 'Delete'}"
                           Command="{Binding PlacementTarget.Tag.DeleteAssetCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
             </ContextMenu>
 
             <!-- Menu contextuel d'un dossier ; Tag du dossier = MainViewModel. -->
             <ContextMenu x:Key="FolderMenu" x:Shared="False">
-                <MenuItem Header="{l:Tr 'Ouvrir'}" FontWeight="SemiBold" CommandParameter="{Binding Path}"
+                <MenuItem Header="{l:Tr 'Open'}" FontWeight="SemiBold" CommandParameter="{Binding Path}"
                           Command="{Binding PlacementTarget.Tag.Project.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                <MenuItem Header="{l:Tr 'Renommer...'}" CommandParameter="{Binding}"
+                <MenuItem Header="{l:Tr 'Rename...'}" CommandParameter="{Binding}"
                           Command="{Binding PlacementTarget.Tag.RenameFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 <Separator />
-                <MenuItem Header="{l:Tr 'Supprimer le dossier (garder son contenu)'}" CommandParameter="{Binding}"
+                <MenuItem Header="{l:Tr 'Delete the folder (keep its contents)'}" CommandParameter="{Binding}"
                           Command="{Binding PlacementTarget.Tag.DeleteFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
             </ContextMenu>
 
@@ -109,14 +109,23 @@
                 <EventSetter Event="MouseDoubleClick" Handler="OnAssetDoubleClick" />
                 <EventSetter Event="PreviewMouseRightButtonDown" Handler="OnAssetRightClick" />
                 <EventSetter Event="PreviewMouseLeftButtonDown" Handler="OnAssetMouseDown" />
+                <EventSetter Event="PreviewMouseLeftButtonUp" Handler="OnAssetMouseUp" />
                 <EventSetter Event="PreviewMouseMove" Handler="OnAssetMouseMove" />
                 <EventSetter Event="ContextMenuOpening" Handler="OnAssetMenuOpening" />
+            </Style>
+
+            <!-- Grid view: the tiles get some room around them. -->
+            <Style x:Key="TileAssetItem" TargetType="ListBoxItem" BasedOn="{StaticResource AssetItem}">
+                <Setter Property="Margin" Value="0,0,12,12" />
+            </Style>
+            <Style x:Key="TileFolderItem" TargetType="ListBoxItem" BasedOn="{StaticResource FolderItem}">
+                <Setter Property="Margin" Value="0,0,12,12" />
             </Style>
         </ResourceDictionary>
     </UserControl.Resources>
 
     <ScrollViewer x:Name="Page" Background="{DynamicResource HubBackgroundBrush}" VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled">
+                  HorizontalScrollBarVisibility="Disabled" PreviewMouseWheel="OnPageMouseWheel">
         <DockPanel Margin="24,14,24,12" Visibility="{Binding HasProject, Converter={StaticResource BoolToVisibility}}">
 
             <!-- En-têtes de colonnes (mode liste, fenêtre large) -->
@@ -129,9 +138,9 @@
                     <ColumnDefinition Width="{Binding WideColumn, ElementName=Root}" />
                     <ColumnDefinition Width="90" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="1" Style="{StaticResource PanelCaption}" Text="{l:Tr 'ÉLÉMENT'}" />
-                <TextBlock Grid.Column="2" Style="{StaticResource PanelCaption}" Text="{l:Tr 'ÉTAT'}" />
-                <TextBlock Grid.Column="3" Style="{StaticResource PanelCaption}" Text="{l:Tr 'UTILISÉ PAR'}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource PanelCaption}" Text="{l:Tr 'ELEMENT'}" />
+                <TextBlock Grid.Column="2" Style="{StaticResource PanelCaption}" Text="{l:Tr 'STATUS'}" />
+                <TextBlock Grid.Column="3" Style="{StaticResource PanelCaption}" Text="{l:Tr 'USED BY'}" />
                 <TextBlock Grid.Column="4" Style="{StaticResource PanelCaption}" Text="{l:Tr 'TYPE'}" HorizontalAlignment="Right" />
             </Grid>
 
@@ -139,19 +148,19 @@
                 <!-- Mod vide -->
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420" Margin="0,40,0,0"
                             Visibility="{Binding Project.IsEmpty, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
-                    <TextBlock Text="{l:Tr 'Le mod est vide'}" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"
+                    <TextBlock Text="{l:Tr 'The mod is empty'}" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"
                                Foreground="{DynamicResource StrongTextBrush}" />
                     <TextBlock TextWrapping="Wrap" TextAlignment="Center" Margin="0,6,0,0" Foreground="{DynamicResource HintBrush}"
-                               Text="{l:Tr 'Ajoutez un item, un bloc, un mob, une recette ou un graphe avec les boutons ci-dessus, puis réglez-le dans le panneau Détails.'}" />
+                               Text="{l:Tr 'Add an item, a block, a mob, a recipe or a graph with the buttons above, then set it up in the Properties panel.'}" />
                 </StackPanel>
 
                 <!-- Dossier ouvert vide -->
                 <StackPanel HorizontalAlignment="Center" MaxWidth="420" Margin="0,30,0,0"
                             Visibility="{Binding Project.IsFolderEmpty, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
-                    <TextBlock Text="{l:Tr 'Ce dossier est vide'}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center"
+                    <TextBlock Text="{l:Tr 'This folder is empty'}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center"
                                Foreground="{DynamicResource StrongTextBrush}" />
                     <TextBlock TextWrapping="Wrap" TextAlignment="Center" Margin="0,6,0,0" Foreground="{DynamicResource HintBrush}"
-                               Text="{l:Tr 'Créez un élément avec les boutons ci-dessus (il sera rangé ici), ou glissez-y des éléments depuis un autre dossier.'}" />
+                               Text="{l:Tr 'Create an element with the buttons above (it will be stored here), or drag elements here from another folder.'}" />
                 </StackPanel>
 
                 <StackPanel>
@@ -192,7 +201,7 @@
                                     <TextBlock Text="{Binding ContentLabel}" FontSize="12" Margin="0,2,0,0" Foreground="{DynamicResource HintBrush}" />
                                 </StackPanel>
                                 <Border Grid.Column="2" Style="{StaticResource Badge}" HorizontalAlignment="Right">
-                                    <TextBlock Style="{StaticResource BadgeText}" Text="{l:Tr 'DOSSIER'}" />
+                                    <TextBlock Style="{StaticResource BadgeText}" Text="{l:Tr 'FOLDER'}" />
                                 </Border>
                             </Grid>
                         </DataTemplate>
@@ -200,7 +209,9 @@
                 </ListBox>
 
                 <!-- Liste -->
+                <!-- Ctrl+click and Shift+click select several elements. -->
                 <ListBox ItemsSource="{Binding Project.FilteredAssets}" SelectedItem="{Binding Project.SelectedAsset}"
+                         SelectionMode="Extended" SelectionChanged="OnAssetSelectionChanged"
                          Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource AssetItem}"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
                          PreviewMouseWheel="OnListMouseWheel"
@@ -235,7 +246,7 @@
                                 <ContentControl Grid.Column="2" Content="{Binding}" ContentTemplate="{StaticResource AssetIssue}" Focusable="False"
                                                 VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="3" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource HintBrush}">
-                                    <Run Text="{Binding UsageCount, Mode=OneWay}" /><Run Text="{l:Tr ' élément(s)'}" />
+                                    <Run Text="{Binding UsageCount, Mode=OneWay}" /><Run Text="{l:Tr ' element(s)'}" />
                                 </TextBlock>
                                 <Border Grid.Column="4" Style="{StaticResource Badge}" HorizontalAlignment="Right">
                                     <TextBlock Style="{StaticResource BadgeText}" Text="{Binding DetailsBadge}" />
@@ -246,7 +257,7 @@
                 </ListBox>
 
                 <!-- Dossiers (vignettes) -->
-                <ListBox ItemsSource="{Binding Project.Folders}" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource FolderItem}"
+                <ListBox ItemsSource="{Binding Project.Folders}" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource TileFolderItem}"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
                          PreviewMouseWheel="OnListMouseWheel">
                     <ListBox.Style>
@@ -270,7 +281,10 @@
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:FolderItemViewModel}">
-                            <StackPanel Width="120" Margin="0,4">
+                            <StackPanel Width="128" Margin="4,10">
+                                <StackPanel.LayoutTransform>
+                                    <ScaleTransform ScaleX="{Binding TileScale, ElementName=Root}" ScaleY="{Binding TileScale, ElementName=Root}" />
+                                </StackPanel.LayoutTransform>
                                 <Border Width="56" Height="56" CornerRadius="6" Background="{DynamicResource NavSelectedBrush}" HorizontalAlignment="Center">
                                     <TextBlock Text="{StaticResource Glyph.Folder}" FontFamily="{StaticResource IconFont}" FontSize="24" HorizontalAlignment="Center"
                                                VerticalAlignment="Center" Foreground="{DynamicResource AccentLineBrush}" />
@@ -285,7 +299,8 @@
 
                 <!-- Vignettes -->
                 <ListBox ItemsSource="{Binding Project.FilteredAssets}" SelectedItem="{Binding Project.SelectedAsset}"
-                         Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource AssetItem}"
+                         SelectionMode="Extended" SelectionChanged="OnAssetSelectionChanged"
+                         Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource TileAssetItem}"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
                          PreviewMouseWheel="OnListMouseWheel"
                          Visibility="{Binding Project.IsTileView, Converter={StaticResource BoolToVisibility}}">
@@ -296,7 +311,10 @@
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="{x:Type assets:AssetViewModel}">
-                            <StackPanel Width="120" Margin="0,4">
+                            <StackPanel Width="128" Margin="4,10">
+                                <StackPanel.LayoutTransform>
+                                    <ScaleTransform ScaleX="{Binding TileScale, ElementName=Root}" ScaleY="{Binding TileScale, ElementName=Root}" />
+                                </StackPanel.LayoutTransform>
                                 <Border Width="56" Height="56" CornerRadius="6" Background="{DynamicResource BadgeBrush}" HorizontalAlignment="Center">
                                     <Grid>
                                         <Image Source="{Binding IconPath, Converter={StaticResource FilePathToImage}}" Margin="8"

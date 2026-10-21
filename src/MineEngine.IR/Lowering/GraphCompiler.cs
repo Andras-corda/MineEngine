@@ -72,7 +72,11 @@ public sealed class GraphCompiler
     {
         _locals = [];
         List<IRStatement> body = CompileChain(_graph.NextNode(eventNode.Id, NodeInfo.ExecThen), eventNode, []);
-        return new IREventHandler(eventNode.Kind, eventNode.Id, body, BoundItem(eventNode)) { Locals = [.. _locals.Values] };
+        return new IREventHandler(eventNode.Kind, eventNode.Id, body, BoundItem(eventNode))
+        {
+            Locals = [.. _locals.Values],
+            Trigger = Info(eventNode).DirectEvent is null ? null : eventNode.GetValue(Info(eventNode).Inputs[0].Name)?.Trim(),
+        };
     }
 
     /// <summary>Item du mod visé par un événement d'item, sinon null.</summary>
@@ -88,7 +92,7 @@ public sealed class GraphCompiler
         {
             if (!path.Add(node.Id))
             {
-                throw new InvalidOperationException(Tr.F("Boucle d'exécution sur « {0} ».", Info(node).Title));
+                throw new InvalidOperationException(Tr.F("Execution loop on \"{0}\".", Info(node).Title));
             }
 
             NodeInfo info = Info(node);
@@ -100,6 +104,19 @@ public sealed class GraphCompiler
                     CompileChain(_graph.NextNode(node.Id, NodeInfo.ExecTrue), start, [.. path]),
                     CompileChain(_graph.NextNode(node.Id, NodeInfo.ExecFalse), start, [.. path])));
                 break;
+            }
+
+            if (info.Flow == NodeFlow.Loop)
+            {
+                // The body is compiled on its own; the chain goes on with "Completed".
+                statements.Add(new IRLoopStatement(
+                    node.Id,
+                    node.Kind,
+                    Arguments(node, info, start, skipTarget: false),
+                    [.. info.Outputs.Select(o => Local(node, o).Name)],
+                    CompileChain(_graph.NextNode(node.Id, NodeInfo.ExecBody), start, [.. path])));
+                node = _graph.NextNode(node.Id, NodeInfo.ExecThen);
+                continue;
             }
 
             statements.Add(Statement(node, info, start));
@@ -157,7 +174,7 @@ public sealed class GraphCompiler
 
         NodeInfo sourceInfo = Info(source);
         PinInfo output = sourceInfo.FindOutput(connection.FromPin)
-                         ?? throw new InvalidOperationException(Tr.F("Sortie « {0} » inconnue sur « {1} ».", connection.FromPin, sourceInfo.Title));
+                         ?? throw new InvalidOperationException(Tr.F("Unknown output \"{0}\" on \"{1}\".", connection.FromPin, sourceInfo.Title));
         IRExpression value = sourceInfo switch
         {
             { IsEntryPoint: true } when source.Kind == GraphNodeKind.FunctionEntry => new IRParameterValue(output.Type, Guid.Parse(output.Name)),
@@ -201,11 +218,11 @@ public sealed class GraphCompiler
         PinType.Boolean => new IRBooleanLiteral(bool.TryParse(text, out bool flag) && flag),
         PinType.Enum => Guid.TryParse(text, out Guid constant)
             ? new IREnumValue(pin.Type, constant)
-            : throw new InvalidOperationException(Tr.F("« {0} » : choisissez une valeur.", pin.Label)),
+            : throw new InvalidOperationException(Tr.F("\"{0}\": choose a value.", pin.Label)),
         PinType.Item or PinType.Block or PinType.Sound =>
             ContentReference.TryParseStorageText(text, out ContentReference? reference) && _resolveContent(reference!, pin.Type) is { } id
                 ? new IRContentLiteral(pin.Type, id)
-                : throw new InvalidOperationException(Tr.F("« {0} » ne désigne aucun {1}.", pin.Label, pin.Type.BuiltInLabel.ToLowerInvariant())),
-        _ => pin.Optional ? new IRDefaultValue(pin.Type) : throw new InvalidOperationException(Tr.F("L'entrée « {0} » doit être reliée.", pin.Label)),
+                : throw new InvalidOperationException(Tr.F("\"{0}\" does not refer to any {1}.", pin.Label, pin.Type.BuiltInLabel.ToLowerInvariant())),
+        _ => pin.Optional ? new IRDefaultValue(pin.Type) : throw new InvalidOperationException(Tr.F("The input \"{0}\" must be connected.", pin.Label)),
     };
 }

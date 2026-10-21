@@ -31,7 +31,7 @@ public sealed class MdkManagerViewModel : ObservableObject, IDisposable
         _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
         _shell = shell ?? throw new ArgumentNullException(nameof(shell));
         _uiContext = SynchronizationContext.Current
-            ?? throw new InvalidOperationException(Tr.T("Le gestionnaire de MDK doit être créé sur le thread de l'interface."));
+            ?? throw new InvalidOperationException(Tr.T("The MDK manager must be created on the UI thread."));
         _uiThreadId = Environment.CurrentManagedThreadId;
 
         ImportArchiveCommand = new RelayCommand(ImportArchive, () => !IsBusy);
@@ -104,16 +104,16 @@ public sealed class MdkManagerViewModel : ObservableObject, IDisposable
         string? archive = _dialogs.AskMdkArchive();
         if (archive is not null)
         {
-            Execute(Tr.T("Import du MDK"), () => _mdks.Library.ImportArchive(archive, Tr.T("Archive importée : ") + archive));
+            Execute(Tr.T("MDK import"), () => _mdks.Library.ImportArchive(archive, Tr.T("Archive imported: ") + archive));
         }
     }
 
     private void ImportFolder()
     {
-        string? folder = _dialogs.AskFolder(Tr.T("Dossier du MDK (il contient gradlew.bat)"));
+        string? folder = _dialogs.AskFolder(Tr.T("MDK folder (it contains gradlew.bat)"));
         if (folder is not null)
         {
-            Execute(Tr.T("Import du MDK"), () => _mdks.Library.ImportDirectory(folder));
+            Execute(Tr.T("MDK import"), () => _mdks.Library.ImportDirectory(folder));
         }
     }
 
@@ -121,8 +121,8 @@ public sealed class MdkManagerViewModel : ObservableObject, IDisposable
     {
         MdkItemViewModel? item = SelectedItem;
         if (item is null
-            || !_dialogs.Confirm(Tr.T("Supprimer le MDK"), Tr.F("Supprimer {0} et son dossier ?\n\n{1}\n\n", item.Descriptor.DisplayName, item.Directory) +
-                                                      Tr.T("Les projets qui l'utilisent devront en choisir un autre.")))
+            || !_dialogs.Confirm(Tr.T("Delete MDK"), Tr.F("Delete {0} and its folder?\n\n{1}\n\n", item.Descriptor.DisplayName, item.Directory) +
+                                                      Tr.T("Projects that use it will have to choose another one.")))
         {
             return;
         }
@@ -130,18 +130,18 @@ public sealed class MdkManagerViewModel : ObservableObject, IDisposable
         try
         {
             _mdks.Library.Remove(item.Descriptor);
-            StatusText = Tr.T("MDK supprimé : ") + item.Descriptor.DisplayName;
+            StatusText = Tr.T("MDK deleted: ") + item.Descriptor.DisplayName;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
-            _dialogs.ShowError(Tr.T("Supprimer le MDK"), exception.Message);
+            _dialogs.ShowError(Tr.T("Delete MDK"), exception.Message);
         }
     }
 
     private void Refresh()
     {
         _mdks.Library.Refresh(_mdks.Log);
-        StatusText = Tr.F("{0} MDK installé(s).", Items.Count);
+        StatusText = Tr.F("{0} MDK(s) installed.", Items.Count);
     }
 
     private async Task DownloadSelectedAsync()
@@ -153,18 +153,18 @@ public sealed class MdkManagerViewModel : ObservableObject, IDisposable
         }
 
         IsBusy = true;
-        StatusText = Tr.F("Téléchargement de {0}...", selected.DisplayName);
+        StatusText = Tr.F("Downloading {0}...", selected.DisplayName);
         try
         {
             MdkDescriptor mdk = await _mdks.Catalog.DownloadAsync(selected.Download, _mdks.Library, _mdks.Log, CancellationToken.None);
-            StatusText = Tr.T("MDK installé : ") + mdk.DisplayName;
+            StatusText = Tr.T("MDK installed: ") + mdk.DisplayName;
         }
         catch (Exception exception) when (exception is HttpRequestException or IOException or InvalidDataException
                                               or TaskCanceledException or UnauthorizedAccessException)
         {
-            _mdks.Log.Error(Tr.T("Téléchargement du MDK : ") + exception.Message);
-            StatusText = Tr.T("Échec du téléchargement.");
-            _dialogs.ShowError(Tr.T("Téléchargement du MDK"), exception.Message);
+            _mdks.Log.Error(Tr.T("MDK download: ") + exception.Message);
+            StatusText = Tr.T("Download failed.");
+            _dialogs.ShowError(Tr.T("MDK download"), exception.Message);
         }
         finally
         {
@@ -177,8 +177,8 @@ public sealed class MdkManagerViewModel : ObservableObject, IDisposable
         try
         {
             MdkDescriptor mdk = action();
-            _mdks.Log.Success(Tr.T("MDK installé : ") + mdk.DisplayName);
-            StatusText = Tr.T("MDK installé : ") + mdk.DisplayName;
+            _mdks.Log.Success(Tr.T("MDK installed: ") + mdk.DisplayName);
+            StatusText = Tr.T("MDK installed: ") + mdk.DisplayName;
             SelectedItem = Items.FirstOrDefault(i => i.Descriptor.Id == mdk.Id);
         }
         catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)

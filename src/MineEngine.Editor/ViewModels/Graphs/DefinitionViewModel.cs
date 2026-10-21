@@ -43,8 +43,8 @@ public sealed class DefinitionViewModel : ObservableObject
         _program = program ?? throw new ArgumentNullException(nameof(program));
         _createMember = createMember ?? throw new ArgumentNullException(nameof(createMember));
 
-        AddParameterCommand = new RelayCommand(() => AddVariable(VariableList.Parameters, Tr.T("paramètre")));
-        AddReturnCommand = new RelayCommand(() => AddVariable(VariableList.Returns, Tr.T("valeur")));
+        AddParameterCommand = new RelayCommand(() => AddVariable(VariableList.Parameters, Tr.T("parameter")));
+        AddReturnCommand = new RelayCommand(() => AddVariable(VariableList.Returns, Tr.T("value")));
         AddVariableCommand = new RelayCommand(() => AddVariable(VariableList.Variables, IsFieldList ? "champ" : "variable"));
         AddConstantCommand = new RelayCommand(AddConstant);
         AddMethodCommand = new RelayCommand(AddMethod);
@@ -62,31 +62,42 @@ public sealed class DefinitionViewModel : ObservableObject
     public string Name
     {
         get => _asset.DisplayName;
-        set => Change(nameof(GraphAsset.DisplayName), Tr.T("Renommer"), () => _asset.DisplayName, v => _asset.DisplayName = v, value ?? string.Empty);
+        set => Change(nameof(GraphAsset.DisplayName), Tr.T("Rename"), () => _asset.DisplayName, v => _asset.DisplayName = v, value ?? string.Empty);
     }
 
-    public bool ShowAccess => _asset.Kind != GraphKind.Events;
+    /// <summary>A library and its functions are always public: no choice to make.</summary>
+    public bool ShowAccess => _asset.Kind is not (GraphKind.Events or GraphKind.Library) && !IsInLibrary;
+
+    /// <summary>Function or procedure of a function library.</summary>
+    public bool IsInLibrary => _program().Find(_asset.OwnerId) is { Kind: GraphKind.Library };
+
+    public bool IsLibrary => _asset.Kind == GraphKind.Library;
 
     public IReadOnlyList<AccessLevel> AccessChoices { get; } = Enum.GetValues<AccessLevel>();
 
     public AccessLevel Access
     {
         get => _asset.Access;
-        set => Change(nameof(GraphAsset.Access), Tr.T("Changer l'accessibilité"), () => _asset.Access, v => _asset.Access = v, value);
+        set => Change(nameof(GraphAsset.Access), Tr.T("Change accessibility"), () => _asset.Access, v => _asset.Access = v, value);
     }
 
     /// <summary>Explication de l'accessibilité choisie, selon que la définition est intégrée à une classe ou non.</summary>
     public string AccessHint => (_asset.Access, _asset.OwnerId is not null) switch
     {
-        (AccessLevel.Public, _) => Tr.T("Utilisable dans tout le projet."),
-        (AccessLevel.Private, true) => Tr.T("Utilisable seulement dans sa classe."),
-        (AccessLevel.Protected, true) => Tr.T("Utilisable dans sa classe et dans celles qui en héritent."),
-        _ => Tr.T("Utilisable seulement depuis les graphes de son dossier du Dashboard."),
+        (AccessLevel.Public, _) => Tr.T("Usable in the whole project."),
+        (AccessLevel.Private, true) => Tr.T("Usable only in its class."),
+        (AccessLevel.Protected, true) => Tr.T("Usable in its class and in the classes that inherit from it."),
+        _ => Tr.T("Usable only from the graphs in its Dashboard folder."),
     };
 
     public bool IsOwned => _asset.OwnerId is not null;
 
-    public string OwnerLabel => _program().Find(_asset.OwnerId) is { } owner ? Tr.F("Intégré à la classe {0}", ProgramModel.Name(owner)) : string.Empty;
+    public string OwnerLabel => _program().Find(_asset.OwnerId) switch
+    {
+        { Kind: GraphKind.Library } library => Tr.F("In the function library {0}: public, usable in every graph", ProgramModel.Name(library)),
+        { } owner => Tr.F("Nested in class {0}", ProgramModel.Name(owner)),
+        _ => string.Empty,
+    };
 
     public ICommand OpenOwnerCommand { get; }
 
@@ -95,22 +106,22 @@ public sealed class DefinitionViewModel : ObservableObject
     public bool IsPure
     {
         get => _asset.IsPure;
-        set => Change(nameof(GraphAsset.IsPure), Tr.T("Fonction pure"), () => _asset.IsPure, v => _asset.IsPure = v, value);
+        set => Change(nameof(GraphAsset.IsPure), Tr.T("Pure function"), () => _asset.IsPure, v => _asset.IsPure = v, value);
     }
 
-    public bool ShowStatic => _asset.Kind.IsCallable() && _asset.OwnerId is not null;
+    public bool ShowStatic => _asset.Kind.IsCallable() && _asset.OwnerId is not null && !IsInLibrary;
 
     public bool IsStatic
     {
         get => _asset.IsStatic;
-        set => Change(nameof(GraphAsset.IsStatic), Tr.T("Méthode statique"), () => _asset.IsStatic, v => _asset.IsStatic = v, value);
+        set => Change(nameof(GraphAsset.IsStatic), Tr.T("Static method"), () => _asset.IsStatic, v => _asset.IsStatic = v, value);
     }
 
     // ----- Paramètres, valeurs renvoyées, variables -----
 
     public bool ShowParameters => _asset.Kind is GraphKind.Function or GraphKind.Procedure or GraphKind.Class;
 
-    public string ParametersTitle => _asset.Kind == GraphKind.Class ? Tr.T("PARAMÈTRES DU CONSTRUCTEUR") : Tr.T("PARAMÈTRES");
+    public string ParametersTitle => _asset.Kind == GraphKind.Class ? Tr.T("CONSTRUCTOR PARAMETERS") : Tr.T("PARAMETERS");
 
     public bool ShowReturns => _asset.Kind == GraphKind.Function;
 
@@ -121,16 +132,16 @@ public sealed class DefinitionViewModel : ObservableObject
     public string VariablesTitle => _asset.Kind switch
     {
         GraphKind.Class or GraphKind.Struct => "CHAMPS",
-        GraphKind.Events => Tr.T("VARIABLES DU GRAPHE"),
+        GraphKind.Events => Tr.T("GRAPH VARIABLES"),
         _ => "VARIABLES",
     };
 
     public string VariablesHint => _asset.Kind switch
     {
-        GraphKind.Events => Tr.T("Conservées tant que le jeu tourne, communes à tous les événements du graphe."),
-        GraphKind.Function or GraphKind.Procedure => Tr.T("Locales : remises à leur valeur à chaque appel. Globales : conservées d'un appel à l'autre."),
-        GraphKind.Struct => Tr.T("Chaque champ se donne à la création de la structure."),
-        _ => Tr.T("Chaque objet de la classe a ses propres valeurs."),
+        GraphKind.Events => Tr.T("Kept while the game runs, shared by all the events of the graph."),
+        GraphKind.Function or GraphKind.Procedure => Tr.T("Local: reset to their value at each call. Global: kept from one call to the next."),
+        GraphKind.Struct => Tr.T("Each field is given when the struct is created."),
+        _ => Tr.T("Each object of the class has its own values."),
     };
 
     public ObservableCollection<VariableItemViewModel> Parameters { get; } = [];
@@ -163,7 +174,7 @@ public sealed class DefinitionViewModel : ObservableObject
             ProgramModel program = _program();
             return
             [
-                new DefinitionChoice(null, Tr.T("(aucune)")),
+                new DefinitionChoice(null, Tr.T("(none)")),
                 .. program.Definitions
                     .Where(d => d.Kind == GraphKind.Class && d.Id != _asset.Id && program.IsVisible(d, _asset)
                                 && !program.Ancestors(d).Any(a => a.Id == _asset.Id))
@@ -180,7 +191,7 @@ public sealed class DefinitionViewModel : ObservableObject
         {
             if (value is not null && value.Id != _asset.BaseClassId)
             {
-                Change(nameof(GraphAsset.BaseClassId), Tr.T("Changer la classe parente"), () => _asset.BaseClassId, v => _asset.BaseClassId = v, value.Id);
+                Change(nameof(GraphAsset.BaseClassId), Tr.T("Change parent class"), () => _asset.BaseClassId, v => _asset.BaseClassId = v, value.Id);
             }
         }
     }
@@ -238,7 +249,7 @@ public sealed class DefinitionViewModel : ObservableObject
         foreach (string property in new[]
                  {
                      nameof(Name), nameof(Access), nameof(AccessHint), nameof(IsPure), nameof(IsStatic), nameof(OwnerLabel), nameof(IsOwned),
-                     nameof(BaseClassChoices), nameof(BaseClass), nameof(ShowStatic),
+                     nameof(BaseClassChoices), nameof(BaseClass), nameof(ShowStatic), nameof(ShowAccess), nameof(IsInLibrary),
                  })
         {
             OnPropertyChanged(property);
@@ -253,7 +264,7 @@ public sealed class DefinitionViewModel : ObservableObject
         SetList(list, [.. GetList(list).Select(v => v.Id == id ? change(v) : v)], description);
 
     internal void RemoveVariable(VariableList list, Guid id) =>
-        Structural(() => SetList(list, [.. GetList(list).Where(v => v.Id != id)], Tr.T("Supprimer une ligne")));
+        Structural(() => SetList(list, [.. GetList(list).Where(v => v.Id != id)], Tr.T("Delete a row")));
 
     internal void MoveVariable(VariableList list, Guid id, int delta)
     {
@@ -266,15 +277,15 @@ public sealed class DefinitionViewModel : ObservableObject
         }
 
         (items[index], items[target]) = (items[target], items[index]);
-        Structural(() => SetList(list, items, Tr.T("Déplacer une ligne")));
+        Structural(() => SetList(list, items, Tr.T("Move a row")));
     }
 
     internal void UpdateConstant(Guid id, string name) =>
-        Change(nameof(GraphAsset.Constants), Tr.T("Renommer une valeur"), () => _asset.Constants, v => _asset.Constants = v,
+        Change(nameof(GraphAsset.Constants), Tr.T("Rename a value"), () => _asset.Constants, v => _asset.Constants = v,
             [.. _asset.Constants.Select(c => c.Id == id ? c with { Name = name } : c)]);
 
     internal void RemoveConstant(Guid id) => Structural(() =>
-        Change(nameof(GraphAsset.Constants), Tr.T("Supprimer une valeur"), () => _asset.Constants, v => _asset.Constants = v,
+        Change(nameof(GraphAsset.Constants), Tr.T("Delete a value"), () => _asset.Constants, v => _asset.Constants = v,
             [.. _asset.Constants.Where(c => c.Id != id)]));
 
     internal void UpdateMethod(Guid id, Func<MethodSignature, MethodSignature> change, string description) =>
@@ -282,7 +293,7 @@ public sealed class DefinitionViewModel : ObservableObject
             [.. _asset.Methods.Select(m => m.Id == id ? change(m) : m)]);
 
     internal void RemoveMethod(Guid id) => Structural(() =>
-        Change(nameof(GraphAsset.Methods), Tr.T("Supprimer une méthode"), () => _asset.Methods, v => _asset.Methods = v,
+        Change(nameof(GraphAsset.Methods), Tr.T("Delete a method"), () => _asset.Methods, v => _asset.Methods = v,
             [.. _asset.Methods.Where(m => m.Id != id)]));
 
     internal void SetInterface(Guid id, bool implemented)
@@ -290,7 +301,7 @@ public sealed class DefinitionViewModel : ObservableObject
         IReadOnlyList<Guid> interfaces = implemented
             ? [.. _asset.InterfaceIds.Append(id).Distinct()]
             : [.. _asset.InterfaceIds.Where(i => i != id)];
-        Structural(() => Change(nameof(GraphAsset.InterfaceIds), implemented ? Tr.T("Implémenter une interface") : Tr.T("Retirer une interface"),
+        Structural(() => Change(nameof(GraphAsset.InterfaceIds), implemented ? Tr.T("Implement an interface") : Tr.T("Remove an interface"),
             () => _asset.InterfaceIds, v => _asset.InterfaceIds = v, interfaces));
     }
 
@@ -303,15 +314,15 @@ public sealed class DefinitionViewModel : ObservableObject
         IReadOnlyList<VariableDefinition> items = GetList(list);
         string name = UniqueName(baseName, items.Select(v => v.Name));
         Structural(() => SetList(list, [.. items, VariableDefinition.Create(name, DataType.Number) with { DefaultValue = list == VariableList.Returns ? string.Empty : "0" }],
-            Tr.T("Ajouter une ligne")));
+            Tr.T("Add a row")));
     }
 
     private void AddConstant() => Structural(() =>
-        Change(nameof(GraphAsset.Constants), Tr.T("Ajouter une valeur"), () => _asset.Constants, v => _asset.Constants = v,
-            [.. _asset.Constants, EnumConstant.Create(UniqueName(Tr.T("Valeur"), _asset.Constants.Select(c => c.Name)))]));
+        Change(nameof(GraphAsset.Constants), Tr.T("Add a value"), () => _asset.Constants, v => _asset.Constants = v,
+            [.. _asset.Constants, EnumConstant.Create(UniqueName(Tr.T("Value"), _asset.Constants.Select(c => c.Name)))]));
 
     private void AddMethod() => Structural(() =>
-        Change(nameof(GraphAsset.Methods), Tr.T("Ajouter une méthode"), () => _asset.Methods, v => _asset.Methods = v,
+        Change(nameof(GraphAsset.Methods), Tr.T("Add a method"), () => _asset.Methods, v => _asset.Methods = v,
             [.. _asset.Methods, MethodSignature.Create(UniqueName("methode", _asset.Methods.Select(m => m.Name)))]));
 
     private static string UniqueName(string baseName, IEnumerable<string> existing)
@@ -435,7 +446,7 @@ public sealed class VariableItemViewModel : ObservableObject, IIdentifiedItem
     public string Name
     {
         get => _model.Name;
-        set => _owner.UpdateVariable(_list, _model.Id, v => v with { Name = value ?? string.Empty }, Tr.T("Renommer"));
+        set => _owner.UpdateVariable(_list, _model.Id, v => v with { Name = value ?? string.Empty }, Tr.T("Rename"));
     }
 
     public IReadOnlyList<DataTypeChoice> TypeChoices => _owner.TypeChoices;
@@ -449,7 +460,7 @@ public sealed class VariableItemViewModel : ObservableObject, IIdentifiedItem
             {
                 // Une valeur par défaut n'a de sens que pour son type : elle repart de zéro.
                 string reset = _list == VariableList.Returns ? string.Empty : _owner.Program.DefaultValueFor(value.Type) ?? string.Empty;
-                _owner.UpdateVariable(_list, _model.Id, v => v with { Type = value.Type, DefaultValue = reset }, Tr.T("Changer de type"));
+                _owner.UpdateVariable(_list, _model.Id, v => v with { Type = value.Type, DefaultValue = reset }, Tr.T("Change type"));
             }
         }
     }
@@ -466,13 +477,13 @@ public sealed class VariableItemViewModel : ObservableObject, IIdentifiedItem
     public string DefaultText
     {
         get => _model.DefaultValue;
-        set => _owner.UpdateVariable(_list, _model.Id, v => v with { DefaultValue = value ?? string.Empty }, Tr.T("Valeur par défaut"));
+        set => _owner.UpdateVariable(_list, _model.Id, v => v with { DefaultValue = value ?? string.Empty }, Tr.T("Default value"));
     }
 
     public bool DefaultBool
     {
         get => bool.TryParse(_model.DefaultValue, out bool flag) && flag;
-        set => _owner.UpdateVariable(_list, _model.Id, v => v with { DefaultValue = value ? "true" : "false" }, Tr.T("Valeur par défaut"));
+        set => _owner.UpdateVariable(_list, _model.Id, v => v with { DefaultValue = value ? "true" : "false" }, Tr.T("Default value"));
     }
 
     public IReadOnlyList<EnumConstant> DefaultChoices => _owner.ConstantsOf(_model.Type);
@@ -484,7 +495,7 @@ public sealed class VariableItemViewModel : ObservableObject, IIdentifiedItem
         {
             if (value is not null)
             {
-                _owner.UpdateVariable(_list, _model.Id, v => v with { DefaultValue = value.Id.ToString("D") }, Tr.T("Valeur par défaut"));
+                _owner.UpdateVariable(_list, _model.Id, v => v with { DefaultValue = value.Id.ToString("D") }, Tr.T("Default value"));
             }
         }
     }
@@ -496,7 +507,7 @@ public sealed class VariableItemViewModel : ObservableObject, IIdentifiedItem
     public AccessLevel Access
     {
         get => _model.Access;
-        set => _owner.UpdateVariable(_list, _model.Id, v => v with { Access = value }, Tr.T("Changer l'accessibilité"));
+        set => _owner.UpdateVariable(_list, _model.Id, v => v with { Access = value }, Tr.T("Change accessibility"));
     }
 
     public bool ShowGlobal => _list == VariableList.Variables && _owner.Kind is GraphKind.Function or GraphKind.Procedure;
@@ -504,7 +515,7 @@ public sealed class VariableItemViewModel : ObservableObject, IIdentifiedItem
     public bool IsGlobal
     {
         get => _model.IsGlobal;
-        set => _owner.UpdateVariable(_list, _model.Id, v => v with { IsGlobal = value }, Tr.T("Variable globale"));
+        set => _owner.UpdateVariable(_list, _model.Id, v => v with { IsGlobal = value }, Tr.T("Global variable"));
     }
 
     public ICommand RemoveCommand { get; }
@@ -582,8 +593,8 @@ public sealed class MethodSignatureItemViewModel : ObservableObject, IIdentified
         _model = model;
         RemoveCommand = new RelayCommand(() => _owner.RemoveMethod(_model.Id));
         AddParameterCommand = new RelayCommand(() => _owner.UpdateMethod(_model.Id,
-            m => m with { Parameters = [.. m.Parameters, VariableDefinition.Create(Tr.F("paramètre {0}", m.Parameters.Count + 1), DataType.Number)] },
-            Tr.T("Ajouter un paramètre")));
+            m => m with { Parameters = [.. m.Parameters, VariableDefinition.Create(Tr.F("parameter {0}", m.Parameters.Count + 1), DataType.Number)] },
+            Tr.T("Add a parameter")));
     }
 
     public Guid Id => _model.Id;
@@ -591,7 +602,7 @@ public sealed class MethodSignatureItemViewModel : ObservableObject, IIdentified
     public string Name
     {
         get => _model.Name;
-        set => _owner.UpdateMethod(_model.Id, m => m with { Name = value ?? string.Empty }, Tr.T("Renommer une méthode"));
+        set => _owner.UpdateMethod(_model.Id, m => m with { Name = value ?? string.Empty }, Tr.T("Rename a method"));
     }
 
     public IReadOnlyList<DataTypeChoice> TypeChoices => _owner.TypeChoices;
@@ -605,8 +616,8 @@ public sealed class MethodSignatureItemViewModel : ObservableObject, IIdentified
             if (value is not null)
             {
                 _owner.UpdateMethod(_model.Id,
-                    m => m with { Returns = [m.Returns.FirstOrDefault() is { } r ? r with { Type = value.Type } : VariableDefinition.Create(Tr.T("valeur"), value.Type)] },
-                    Tr.T("Changer le type renvoyé"));
+                    m => m with { Returns = [m.Returns.FirstOrDefault() is { } r ? r with { Type = value.Type } : VariableDefinition.Create(Tr.T("value"), value.Type)] },
+                    Tr.T("Change return type"));
             }
         }
     }
@@ -615,8 +626,8 @@ public sealed class MethodSignatureItemViewModel : ObservableObject, IIdentified
     {
         get => _model.Returns.Count > 0;
         set => _owner.UpdateMethod(_model.Id,
-            m => m with { Returns = value ? [VariableDefinition.Create(Tr.T("valeur"), DataType.Number)] : [] },
-            Tr.T("Valeur renvoyée"));
+            m => m with { Returns = value ? [VariableDefinition.Create(Tr.T("value"), DataType.Number)] : [] },
+            Tr.T("Return value"));
     }
 
     public IReadOnlyList<MethodParameterViewModel> Parameters => [.. _model.Parameters.Select(p => new MethodParameterViewModel(this, p))];
@@ -629,7 +640,7 @@ public sealed class MethodSignatureItemViewModel : ObservableObject, IIdentified
         _owner.UpdateMethod(_model.Id, m => m with { Parameters = [.. m.Parameters.Select(p => p.Id == id ? change(p) : p)] }, description);
 
     internal void RemoveParameter(Guid id) =>
-        _owner.UpdateMethod(_model.Id, m => m with { Parameters = [.. m.Parameters.Where(p => p.Id != id)] }, Tr.T("Supprimer un paramètre"));
+        _owner.UpdateMethod(_model.Id, m => m with { Parameters = [.. m.Parameters.Where(p => p.Id != id)] }, Tr.T("Delete a parameter"));
 
     internal void Update(MethodSignature model)
     {
@@ -661,7 +672,7 @@ public sealed class MethodParameterViewModel : ObservableObject
     public string Name
     {
         get => _model.Name;
-        set => _method.UpdateParameter(_model.Id, p => p with { Name = value ?? string.Empty }, Tr.T("Renommer un paramètre"));
+        set => _method.UpdateParameter(_model.Id, p => p with { Name = value ?? string.Empty }, Tr.T("Rename a parameter"));
     }
 
     public IReadOnlyList<DataTypeChoice> TypeChoices => _method.TypeChoices;
@@ -673,7 +684,7 @@ public sealed class MethodParameterViewModel : ObservableObject
         {
             if (value is not null)
             {
-                _method.UpdateParameter(_model.Id, p => p with { Type = value.Type }, Tr.T("Changer de type"));
+                _method.UpdateParameter(_model.Id, p => p with { Type = value.Type }, Tr.T("Change type"));
             }
         }
     }
@@ -717,7 +728,7 @@ public sealed class MemberItemViewModel
     public MemberItemViewModel(GraphAsset member, Action open)
     {
         Name = ProgramModel.Name(member);
-        KindLabel = member.Kind.Label() + (member.IsStatic ? Tr.T(" statique") : string.Empty);
+        KindLabel = member.Kind.Label() + (member.IsStatic && member.Kind.IsCallable() ? Tr.T(" static") : string.Empty) + (member.IsPure ? Tr.T(" (pure)") : string.Empty);
         AccessLabel = member.Access.Label();
         OpenCommand = new RelayCommand(open);
     }

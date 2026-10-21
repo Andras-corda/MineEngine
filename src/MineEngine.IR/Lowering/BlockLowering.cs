@@ -46,13 +46,16 @@ public sealed class BlockLowering : AssetLowering<BlockAsset>
             settings,
             extraTextures,
             CreateDrop(asset, itemForm is not null, context),
-            itemForm));
+            itemForm)
+        {
+            CustomModel = context.ResolveCustomModel(asset),
+        });
     }
 
     private static IRBlockDrop CreateDrop(BlockAsset asset, bool hasItemForm, LoweringContext context) => asset.DropKind switch
     {
         BlockDropKind.Nothing => IRBlockDrop.Nothing,
-        BlockDropKind.OtherItem when context.ResolveItem(asset, asset.DropItem, Tr.T("Item laissé")) is { } item =>
+        BlockDropKind.OtherItem when context.ResolveItem(asset, asset.DropItem, Tr.T("Dropped item")) is { } item =>
             IRBlockDrop.OtherItem(item, asset.DropMin, asset.DropMax),
         BlockDropKind.Self when hasItemForm => IRBlockDrop.Self,
         _ => IRBlockDrop.Nothing,

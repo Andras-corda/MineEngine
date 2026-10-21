@@ -77,6 +77,9 @@ public sealed class EditorSettings
     /// <summary>Barre latérale de l'accueil réduite à ses icônes.</summary>
     public bool HubSidebarCollapsed { get; set; }
 
+    /// <summary>Debug mode (V0.6.4): detailed messages, timings, Debug menu and memory in the status bar.</summary>
+    public bool DebugMode { get; set; }
+
     /// <summary>Intervalle de la sauvegarde automatique, en minutes ; 0 la désactive.</summary>
     public int AutoSaveMinutes
     {

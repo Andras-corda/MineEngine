@@ -1,0 +1,270 @@
+﻿<UserControl x:Class="MineEngine.Editor.Views.Puppeteer.BehaviorTreeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:MineEngine.Editor.Localization"
+             xmlns:bt="clr-namespace:MineEngine.Editor.ViewModels.Puppeteer"
+             xmlns:local="clr-namespace:MineEngine.Editor.Views.Puppeteer"
+             Focusable="True" FocusVisualStyle="{x:Null}">
+
+    <!--
+        Puppeteer: behavior tree editor (like Unreal's Behavior Trees). DataContext:
+        BehaviorTreeDocumentViewModel. Nodes go from top to bottom, decorators above a node,
+        services below. The details of the selected element and the blackboard are in the
+        Inspector (BehaviorTreeDetailsPanel). Gestures are handled by the code-behind.
+    -->
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <local:BtCategoryBrushConverter x:Key="CategoryBrush" />
+
+            <!-- Pin: a dot on the edge of the node, from which a link is dragged. -->
+            <Style x:Key="Pin" TargetType="Border">
+                <Setter Property="Width" Value="22" />
+                <Setter Property="Height" Value="14" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Cursor" Value="Cross" />
+                <Setter Property="HorizontalAlignment" Value="Center" />
+            </Style>
+
+            <!-- Decorator or service attached to a node. -->
+            <DataTemplate x:Key="AttachmentTemplate" DataType="{x:Type bt:BtAttachmentViewModel}">
+                <Border x:Name="Card" Tag="attachment" Margin="6,3,6,0" CornerRadius="4" Padding="7,3,7,4" BorderThickness="1.5"
+                        BorderBrush="Transparent" Background="{Binding Category, Converter={StaticResource CategoryBrush}}" Cursor="SizeAll"
+                        ToolTip="{Binding Description}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Title}" Foreground="White" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Summary}" Foreground="White" Opacity="0.85" FontSize="11" TextWrapping="Wrap"
+                                   Visibility="{Binding Summary, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}" />
+                        <TextBlock Text="{Binding AbortLabel}" Foreground="White" Opacity="0.85" FontSize="11" FontStyle="Italic"
+                                   Visibility="{Binding AbortLabel, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}" />
+                    </StackPanel>
+                </Border>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                        <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding HasWarning}" Value="True">
+                        <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource LogWarningBrush}" />
+                        <Setter TargetName="Card" Property="ToolTip" Value="{Binding IssueText}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                        <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource LogErrorBrush}" />
+                        <Setter TargetName="Card" Property="ToolTip" Value="{Binding IssueText}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- A node: parent pin, card (decorators, header, services), children pin. -->
+            <DataTemplate x:Key="NodeTemplate" DataType="{x:Type bt:BtNodeViewModel}">
+                <Grid x:Name="NodeRoot" Tag="node" Width="230" SizeChanged="OnNodeSizeChanged" Loaded="OnNodeLoaded">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="14" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="14" />
+                    </Grid.RowDefinitions>
+                    <Border Style="{StaticResource Pin}" Tag="pin-in" Visibility="{Binding HasParentPin, Converter={StaticResource BoolToVisibility}}"
+                            ToolTip="{l:Tr 'Drag to a selector or a sequence to make it the parent; Alt+click: detach'}">
+                        <Ellipse Width="11" Height="11" StrokeThickness="2" Stroke="{DynamicResource StrongTextBrush}" Fill="{DynamicResource HubBackgroundBrush}"
+                                 VerticalAlignment="Bottom" Margin="0,0,0,-5" />
+                    </Border>
+                    <Border x:Name="Card" Grid.Row="1" CornerRadius="7" BorderThickness="1.5" Padding="0,0,0,6"
+                            Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource CardBorderBrush}">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.35" />
+                        </Border.Effect>
+                        <StackPanel>
+                            <ItemsControl ItemsSource="{Binding Decorators}" ItemTemplate="{StaticResource AttachmentTemplate}" Focusable="False" />
+                            <Border x:Name="Header" Tag="header" Margin="6,6,6,0" CornerRadius="5" Padding="8,5,8,6" Cursor="SizeAll"
+                                    Background="{Binding Category, Converter={StaticResource CategoryBrush}}" ToolTip="{Binding Description}">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <Border DockPanel.Dock="Right" CornerRadius="8" Padding="6,0" MinWidth="18" Background="#40000000"
+                                                Visibility="{Binding HasOrder, Converter={StaticResource BoolToVisibility}}"
+                                                ToolTip="{l:Tr 'Execution order (children run from left to right)'}">
+                                            <TextBlock Text="{Binding Order}" Foreground="White" FontSize="11" HorizontalAlignment="Center" />
+                                        </Border>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding CategoryLabel}" Foreground="White" Opacity="0.7" FontSize="10"
+                                                   VerticalAlignment="Center" Margin="6,0" />
+                                        <TextBlock Text="{Binding Title}" Foreground="White" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                    </DockPanel>
+                                    <ItemsControl ItemsSource="{Binding Summary}" Focusable="False" Margin="0,2,0,0"
+                                                  Visibility="{Binding HasSummary, Converter={StaticResource BoolToVisibility}}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" Foreground="White" Opacity="0.85" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                            <ItemsControl ItemsSource="{Binding Services}" ItemTemplate="{StaticResource AttachmentTemplate}" Focusable="False" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Row="2" Style="{StaticResource Pin}" Tag="pin-out" Visibility="{Binding HasChildrenPin, Converter={StaticResource BoolToVisibility}}"
+                            ToolTip="{l:Tr 'Drag to a node to make it a child; Alt+click: detach the children'}">
+                        <Ellipse Width="11" Height="11" StrokeThickness="2" Stroke="{DynamicResource StrongTextBrush}" Fill="{DynamicResource StrongTextBrush}"
+                                 VerticalAlignment="Top" Margin="0,-5,0,0" />
+                    </Border>
+                </Grid>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                        <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
+                        <Setter TargetName="Card" Property="BorderThickness" Value="2" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding HasWarning}" Value="True">
+                        <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource LogWarningBrush}" />
+                        <Setter TargetName="Header" Property="ToolTip" Value="{Binding IssueText}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                        <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource LogErrorBrush}" />
+                        <Setter TargetName="Header" Property="ToolTip" Value="{Binding IssueText}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsReachable}" Value="False">
+                        <Setter TargetName="NodeRoot" Property="Opacity" Value="0.55" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- Entry of the add menu. -->
+            <DataTemplate x:Key="ChoiceTemplate" DataType="{x:Type bt:BtChoiceViewModel}">
+                <DockPanel Margin="0,2">
+                    <Border DockPanel.Dock="Left" Width="4" CornerRadius="2" Margin="0,0,8,0"
+                            Background="{Binding Category, Converter={StaticResource CategoryBrush}}" />
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding CategoryLabel}" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Top"
+                               Foreground="{DynamicResource HintBrush}" />
+                    <StackPanel>
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" />
+                        <TextBlock Text="{Binding Description}" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource HintBrush}" />
+                    </StackPanel>
+                </DockPanel>
+            </DataTemplate>
+
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- ===== Canvas ===== -->
+        <Grid x:Name="Root" Background="{DynamicResource HubBackgroundBrush}" ClipToBounds="True"
+              MouseLeftButtonDown="OnRootMouseLeftButtonDown" MouseRightButtonDown="OnRootMouseRightButtonDown"
+              MouseDown="OnRootMouseDown" MouseMove="OnRootMouseMove" MouseUp="OnRootMouseUp" MouseWheel="OnRootMouseWheel"
+              LostMouseCapture="OnRootLostMouseCapture" SizeChanged="OnRootSizeChanged"
+              AllowDrop="True" DragOver="OnRootDragOver" Drop="OnRootDrop">
+
+            <Rectangle x:Name="GridLayer" IsHitTestVisible="False" Visibility="{DynamicResource GraphGridVisibility}" />
+
+            <Canvas x:Name="World">
+                <Canvas.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="Zoom" />
+                        <TranslateTransform x:Name="Pan" />
+                    </TransformGroup>
+                </Canvas.RenderTransform>
+                <ItemsControl ItemsSource="{Binding Links}" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type bt:BtLinkViewModel}">
+                            <Path Data="{Binding Geometry}" StrokeThickness="2.6" IsHitTestVisible="False" Stroke="{DynamicResource StrongTextBrush}"
+                                  StrokeLineJoin="Round" Opacity="0.75" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Path x:Name="PendingLink" StrokeThickness="2.4" StrokeDashArray="4 2" IsHitTestVisible="False" Visibility="Collapsed"
+                      Stroke="{DynamicResource AccentLineBrush}" />
+                <ItemsControl x:Name="NodesHost" ItemsSource="{Binding Nodes}" ItemTemplate="{StaticResource NodeTemplate}" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Canvas.Left" Value="{Binding X}" />
+                            <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                </ItemsControl>
+            </Canvas>
+
+            <Canvas IsHitTestVisible="False">
+                <Rectangle x:Name="Marquee" Visibility="Collapsed" StrokeThickness="1" StrokeDashArray="3 2"
+                           Stroke="{DynamicResource AccentLineBrush}" Fill="{DynamicResource CardSelectedBrush}" Opacity="0.6" />
+            </Canvas>
+
+            <!-- Empty tree -->
+            <Border Style="{StaticResource Card}" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="440" IsHitTestVisible="False"
+                    Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock Text="{l:Tr 'Empty tree'}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" />
+                    <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource HintBrush}"
+                               Text="{l:Tr 'Drag the bottom pin of the root into empty space to add a selector or a sequence, then add tasks to it (wander, attack...).'}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Toolbar -->
+            <Border Style="{StaticResource Card}" Padding="6,4" Margin="12" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <StackPanel Orientation="Horizontal">
+                    <Border Style="{StaticResource Badge}" VerticalAlignment="Center" Margin="4,0,8,0">
+                        <TextBlock Style="{StaticResource BadgeText}" Text="PUPPETEER" />
+                    </Border>
+                    <Button Style="{StaticResource FlatButton}" Click="OnAddNodeClick" ToolTip="{l:Tr 'Add a node (right-click in the tree)'}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" />
+                            <TextBlock Text="{l:Tr 'Add a node'}" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource FlatButton}" Click="OnArrangeClick" ToolTip="{l:Tr 'Arrange the nodes as a tree, without changing their order'}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource IconGlyph}" FontFamily="{StaticResource IconFont}" Text="&#xE8A9;" />
+                            <TextBlock Text="{l:Tr 'Arrange'}" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource FlatButton}" Click="OnFrameAllClick" ToolTip="{l:Tr 'Show the whole tree (F)'}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.FullScreen}" />
+                            <TextBlock Text="{l:Tr 'Show all'}" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock x:Name="ZoomLabel" Text="100 %" VerticalAlignment="Center" Margin="8,0,6,0" FontSize="12"
+                               Foreground="{DynamicResource HintBrush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Help and messages -->
+            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12" IsHitTestVisible="False">
+                <Border Style="{StaticResource InfoBanner}" Margin="0,0,0,6"
+                        Visibility="{Binding StatusText, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}">
+                    <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" FontSize="12" MaxWidth="480" />
+                </Border>
+                <TextBlock FontSize="11" Foreground="{DynamicResource HintBrush}" TextWrapping="Wrap"
+                           Text="{l:Tr 'Right-click: add a node, or the menu of a node (decorators, services) · Double-click: settings in Properties · Drag a pin: connect · Alt+click on a pin: detach · Children run from left to right · Wheel: zoom · Del: delete · Ctrl+D: duplicate'}" />
+            </StackPanel>
+
+            <!-- Add-node menu (placed where the click happened) -->
+            <Canvas>
+                <Border x:Name="Palette" Visibility="Collapsed" Width="340" Style="{StaticResource Card}" Padding="8"
+                        Background="{DynamicResource SidebarBrush}">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.4" />
+                    </Border.Effect>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelCaption}" Text="{l:Tr 'ADD A NODE'}" Margin="2,0,0,6" />
+                        <TextBox x:Name="PaletteSearchBox" DockPanel.Dock="Top" Margin="0,0,0,6"
+                                 Text="{Binding PaletteSearch, UpdateSourceTrigger=PropertyChanged}" PreviewKeyDown="OnPaletteSearchKeyDown" />
+                        <ListBox x:Name="PaletteList" MaxHeight="340" ItemsSource="{Binding PaletteChoices}" ItemTemplate="{StaticResource ChoiceTemplate}"
+                                 Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 MouseUp="OnPaletteListMouseUp" KeyDown="OnPaletteListKeyDown" />
+                    </DockPanel>
+                </Border>
+            </Canvas>
+        </Grid>
+
+    </Grid>
+</UserControl>

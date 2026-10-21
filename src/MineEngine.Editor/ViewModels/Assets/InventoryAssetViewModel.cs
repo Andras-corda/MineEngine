@@ -39,7 +39,7 @@ public abstract class InventoryAssetViewModel : TexturedAssetViewModel
     private string _tooltipText;
 
     protected InventoryAssetViewModel(InventoryAsset model, AssetEditingContext context, string typeLabel)
-        : base(model, context, typeLabel, Tr.T("Aucune (texture de remplacement)"))
+        : base(model, context, typeLabel, Tr.T("None (placeholder texture)"))
     {
         _inventory = model;
         _tooltipText = string.Join(Environment.NewLine, model.TooltipLines);
@@ -57,7 +57,7 @@ public abstract class InventoryAssetViewModel : TexturedAssetViewModel
     /// <summary>Faux quand la taille de pile est imposée (item à durabilité).</summary>
     public virtual bool CanEditStackSize => true;
 
-    public virtual string StackSizeHint => Tr.F("Entre {0} et {1} (64 pour la plupart des objets).", InventoryAsset.MinStackSize, InventoryAsset.MaxStackSizeLimit);
+    public virtual string StackSizeHint => Tr.F("Between {0} and {1} (64 for most objects).", InventoryAsset.MinStackSize, InventoryAsset.MaxStackSizeLimit);
 
     /// <summary>Taille de pile (double pour le champ numérique ; arrondie et bornée à l'application).</summary>
     public double MaxStackSize
@@ -74,7 +74,7 @@ public abstract class InventoryAssetViewModel : TexturedAssetViewModel
             int stackSize = Math.Clamp((int)Math.Round(value), InventoryAsset.MinStackSize, InventoryAsset.MaxStackSizeLimit);
             if (stackSize != _inventory.MaxStackSize)
             {
-                Change(Tr.T("Modifier la taille de pile"), nameof(InventoryAsset.MaxStackSize), () => _inventory.MaxStackSize, v => _inventory.MaxStackSize = v, stackSize);
+                Change(Tr.T("Change stack size"), nameof(InventoryAsset.MaxStackSize), () => _inventory.MaxStackSize, v => _inventory.MaxStackSize = v, stackSize);
             }
         }
     }
@@ -82,19 +82,19 @@ public abstract class InventoryAssetViewModel : TexturedAssetViewModel
     public ItemRarity Rarity
     {
         get => _inventory.Rarity;
-        set => ChangeIfDifferent(Tr.T("Modifier la rareté"), nameof(InventoryAsset.Rarity), () => _inventory.Rarity, v => _inventory.Rarity = v, value);
+        set => ChangeIfDifferent(Tr.T("Change rarity"), nameof(InventoryAsset.Rarity), () => _inventory.Rarity, v => _inventory.Rarity = v, value);
     }
 
     public bool FireResistant
     {
         get => _inventory.FireResistant;
-        set => ChangeIfDifferent(Tr.T("Modifier la résistance au feu"), nameof(InventoryAsset.FireResistant), () => _inventory.FireResistant, v => _inventory.FireResistant = v, value);
+        set => ChangeIfDifferent(Tr.T("Change fire resistance"), nameof(InventoryAsset.FireResistant), () => _inventory.FireResistant, v => _inventory.FireResistant = v, value);
     }
 
     public bool InModCreativeTab
     {
         get => _inventory.InModCreativeTab;
-        set => ChangeIfDifferent(Tr.T("Modifier l'onglet du mod"), nameof(InventoryAsset.InModCreativeTab), () => _inventory.InModCreativeTab, v => _inventory.InModCreativeTab = v, value);
+        set => ChangeIfDifferent(Tr.T("Change mod tab"), nameof(InventoryAsset.InModCreativeTab), () => _inventory.InModCreativeTab, v => _inventory.InModCreativeTab = v, value);
     }
 
     /// <summary>Info-bulle, une ligne par ligne de texte ; les lignes vides sont ignorées.</summary>
@@ -111,7 +111,7 @@ public abstract class InventoryAssetViewModel : TexturedAssetViewModel
             IReadOnlyList<string> lines = ParseLines(_tooltipText);
             if (!lines.SequenceEqual(_inventory.TooltipLines))
             {
-                Change(Tr.T("Modifier l'info-bulle"), nameof(InventoryAsset.TooltipLines), () => _inventory.TooltipLines, v => _inventory.TooltipLines = v, lines);
+                Change(Tr.T("Change tooltip"), nameof(InventoryAsset.TooltipLines), () => _inventory.TooltipLines, v => _inventory.TooltipLines = v, lines);
             }
         }
     }
@@ -135,7 +135,7 @@ public abstract class InventoryAssetViewModel : TexturedAssetViewModel
             tabs.Remove(tab);
         }
 
-        Change(Tr.T("Modifier les onglets créatifs"), nameof(InventoryAsset.CreativeTabs), () => _inventory.CreativeTabs, v => _inventory.CreativeTabs = v, tabs);
+        Change(Tr.T("Change creative tabs"), nameof(InventoryAsset.CreativeTabs), () => _inventory.CreativeTabs, v => _inventory.CreativeTabs = v, tabs);
         Context.History.Seal();
     }
 

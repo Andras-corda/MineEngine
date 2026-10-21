@@ -29,7 +29,24 @@ public partial class GraphDocumentView : UserControl
         MoveNodes,
         Wire,
         Marquee,
+        ResizeComment,
     }
+
+    /// <summary>Alignment of the nodes selected (menu of a right-click on a node).</summary>
+    private enum AlignMode
+    {
+        Left,
+        Center,
+        Right,
+        Top,
+        Middle,
+        Bottom,
+        DistributeHorizontally,
+        DistributeVertically,
+    }
+
+    /// <summary>Smallest gap between two nodes spread out by a distribution.</summary>
+    private const double MinDistributeGap = 30;
 
     private Gesture _gesture;
     private Point _gestureStart;
@@ -39,6 +56,11 @@ public partial class GraphDocumentView : UserControl
     private Point _paletteWorld;
     private GraphDocumentViewModel? _document;
     private bool _framed;
+    private GraphNodeViewModel? _resized;
+    private Size _resizeOrigin;
+
+    /// <summary>Node under a right-click: releasing without dragging opens its menu (instead of the add menu).</summary>
+    private GraphNodeViewModel? _menuNode;
 
     public GraphDocumentView()
     {
@@ -76,10 +98,11 @@ public partial class GraphDocumentView : UserControl
         Pan.Y = y;
         ZoomLabel.Text = string.Create(CultureInfo.CurrentCulture, $"{Scale * 100:0} %");
         UpdateGrid();
+        UpdateViewCenter();
     }
 
-    /// <summary>Pas sur lequel caler les nœuds lâchés, si l'option des paramètres est cochée (sinon 0).</summary>
-    private double SnapSize => TryFindResource(Services.WpfInterfaceService.GraphSnapToGridKey) is true ? GridSize : 0;
+    /// <summary>Pas sur lequel caler les nœuds lâchés, si le bouton Grille (ou l'option des paramètres) est actif (sinon 0).</summary>
+    private double SnapSize => Document?.Options.SnapToGrid == true ? GridSize : 0;
 
     /// <summary>Quadrillage aligné sur le monde : il suit le déplacement et le zoom.</summary>
     private void UpdateGrid()
@@ -156,6 +179,17 @@ public partial class GraphDocumentView : UserControl
         if (_document is not null)
         {
             _document.FocusRequested += OnFocusRequested;
+        }
+
+        UpdateViewCenter();
+    }
+
+    /// <summary>Tells the document which point of the graph is at the center of the view (nodes added from the Nodes window).</summary>
+    private void UpdateViewCenter()
+    {
+        if (Document is not null && Root.ActualWidth > 0)
+        {
+            Document.ViewCenter = ToWorld(new Point(Root.ActualWidth / 2, Root.ActualHeight / 2));
         }
     }
 
@@ -288,6 +322,16 @@ public partial class GraphDocumentView : UserControl
             return;
         }
 
+        if (FindTagged(source, "resize")?.DataContext is GraphNodeViewModel { IsComment: true } resized)
+        {
+            Document.SelectOnly(resized);
+            _resized = resized;
+            _resizeOrigin = new Size(resized.Width, resized.Height);
+            Begin(Gesture.ResizeComment, position);
+            e.Handled = true;
+            return;
+        }
+
         if (FindTagged(source, "header")?.DataContext is GraphNodeViewModel node)
         {
             if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
@@ -297,6 +341,17 @@ public partial class GraphDocumentView : UserControl
             }
 
             _moveOrigins = Document.SelectedNodes.ToDictionary(n => n, n => new Point(n.X, n.Y));
+
+            // A comment carries the nodes it frames, like in Blueprints.
+            foreach (GraphNodeViewModel comment in Document.SelectedNodes.Where(n => n.IsComment).ToList())
+            {
+                Rect frame = NodeBounds(comment);
+                foreach (GraphNodeViewModel inside in Document.Nodes.Where(n => !_moveOrigins.ContainsKey(n) && frame.Contains(NodeBounds(n))))
+                {
+                    _moveOrigins[inside] = new Point(inside.X, inside.Y);
+                }
+            }
+
             Begin(Gesture.MoveNodes, position);
             e.Handled = true;
             return;
@@ -333,6 +388,7 @@ public partial class GraphDocumentView : UserControl
 
         ClosePalette();
         Keyboard.Focus(this);
+        _menuNode = FindTagged(e.OriginalSource as DependencyObject, "node")?.DataContext as GraphNodeViewModel;
         Begin(Gesture.PanPending, e.GetPosition(Root));
         e.Handled = true;
     }
@@ -390,6 +446,12 @@ public partial class GraphDocumentView : UserControl
                     : GraphConnectionViewModel.Curve(_wireSource.Anchor, end);
                 break;
 
+            case Gesture.ResizeComment when _resized is not null:
+                Vector grown = (position - _gestureStart) / Scale;
+                _resized.Width = _resizeOrigin.Width + grown.X;
+                _resized.Height = _resizeOrigin.Height + grown.Y;
+                break;
+
             case Gesture.Marquee:
                 Rect rect = new(_gestureStart, position);
                 Canvas.SetLeft(Marquee, rect.X);
@@ -425,8 +487,17 @@ public partial class GraphDocumentView : UserControl
         EndGesture();
         switch (gesture)
         {
+            case Gesture.PanPending when _menuNode is not null:
+                OpenNodeMenu(_menuNode);
+                break;
+
             case Gesture.PanPending:
                 OpenPalette(position, null);
+                break;
+
+            case Gesture.ResizeComment when _resized is not null:
+                Document.ResizeComment(_resized, SnapSize);
+                _resized = null;
                 break;
 
             case Gesture.MoveNodes:
@@ -455,7 +526,8 @@ public partial class GraphDocumentView : UserControl
                 var area = new Rect(ToWorld(_gestureStart), ToWorld(position));
                 if (area.Width + area.Height > DragThreshold / Scale)
                 {
-                    foreach (GraphNodeViewModel node in Document.Nodes.Where(n => NodeBounds(n).IntersectsWith(area)))
+                    // A comment is taken only when the rectangle holds it entirely (it is often large).
+                    foreach (GraphNodeViewModel node in Document.Nodes.Where(n => n.IsComment ? area.Contains(NodeBounds(n)) : NodeBounds(n).IntersectsWith(area)))
                     {
                         node.IsSelected = true;
                     }
@@ -474,6 +546,12 @@ public partial class GraphDocumentView : UserControl
         if (_gesture == Gesture.MoveNodes)
         {
             Document?.CommitMove(SnapSize);
+        }
+
+        if (_gesture == Gesture.ResizeComment && _resized is not null)
+        {
+            Document?.ResizeComment(_resized, SnapSize);
+            _resized = null;
         }
 
         if (_gesture != Gesture.None)
@@ -511,10 +589,36 @@ public partial class GraphDocumentView : UserControl
 
     private void OnRootSizeChanged(object sender, SizeChangedEventArgs e)
     {
+        UpdateViewCenter();
         if (!_framed && e.NewSize.Width > 0 && IsLoaded)
         {
             FrameAll();
         }
+    }
+
+    // ----- Nodes window -----
+
+    private void OnRootDragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = Document is not null && e.Data.GetData(NodeLibraryViewModel.DragFormat) is NodeChoiceViewModel choice && Document.CanAdd(choice.Template)
+            ? DragDropEffects.Copy
+            : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    // The node is placed so that the pointer is on its header.
+    private void OnRootDrop(object sender, DragEventArgs e)
+    {
+        if (Document is null || e.Data.GetData(NodeLibraryViewModel.DragFormat) is not NodeChoiceViewModel choice || !Document.CanAdd(choice.Template))
+        {
+            return;
+        }
+
+        Point world = ToWorld(e.GetPosition(Root));
+        Document.PendingSource = null;
+        Document.AddNode(choice, new Point(world.X - 20, world.Y - 14));
+        Keyboard.Focus(this);
+        e.Handled = true;
     }
 
     // ----- Clavier -----
@@ -544,11 +648,143 @@ public partial class GraphDocumentView : UserControl
             case Key.Escape:
                 Document.SelectOnly(null);
                 break;
+            case Key.C when !control:
+                CommentSelection();
+                break;
+            case Key.T when !control:
+                TooltipSelection();
+                break;
             default:
                 return;
         }
 
         e.Handled = true;
+    }
+
+    // ----- Comments, tooltips, alignment -----
+
+    /// <summary>Bounds of the selected nodes (without the tooltips), or null if nothing is selected.</summary>
+    private Rect? SelectionBounds() =>
+        Document?.SelectedNodes.Where(n => !n.IsTooltip).Select(NodeBounds).ToList() is { Count: > 0 } bounds ? bounds.Aggregate(Rect.Union) : null;
+
+    /// <summary>C: frames the selected nodes with a comment (or adds one at the center of the view).</summary>
+    private void CommentSelection()
+    {
+        if (Document is null)
+        {
+            return;
+        }
+
+        Point center = ToWorld(new Point(Root.ActualWidth / 2, Root.ActualHeight / 2));
+        Document.AddComment(SelectionBounds() ?? new Rect(center.X - 150, center.Y - 80, 300, 160));
+    }
+
+    /// <summary>T: adds a tooltip bubble above the selected nodes.</summary>
+    private void TooltipSelection()
+    {
+        if (Document is not null)
+        {
+            Rect? bounds = SelectionBounds();
+            Document.AddTooltip(bounds is { } area ? new Point(area.Right - 70, area.Top - 34) : ToWorld(new Point(Root.ActualWidth / 2, Root.ActualHeight / 2)));
+        }
+    }
+
+    /// <summary>Menu of a right-click on a node: alignment of the selection, comment, tooltip, duplicate, delete.</summary>
+    private void OpenNodeMenu(GraphNodeViewModel node)
+    {
+        if (Document is null)
+        {
+            return;
+        }
+
+        if (!node.IsSelected)
+        {
+            Document.SelectOnly(node);
+        }
+
+        int count = Document.SelectedNodes.Count(n => !n.IsAnnotation);
+        var menu = new ContextMenu { PlacementTarget = Root, Placement = PlacementMode.MousePoint };
+        MenuItem Item(string header, Action action, bool enabled = true, string? gesture = null)
+        {
+            var item = new MenuItem { Header = header, IsEnabled = enabled, InputGestureText = gesture ?? string.Empty };
+            item.Click += (_, _) => action();
+            return item;
+        }
+
+        menu.Items.Add(Item(Tr.T("Align horizontally (in a row)"), () => Align(AlignMode.Middle), count >= 2));
+        menu.Items.Add(Item(Tr.T("Align vertically (in a column)"), () => Align(AlignMode.Center), count >= 2));
+        var more = new MenuItem { Header = Tr.T("Align"), IsEnabled = count >= 2 };
+        more.Items.Add(Item(Tr.T("Left edges"), () => Align(AlignMode.Left)));
+        more.Items.Add(Item(Tr.T("Right edges"), () => Align(AlignMode.Right)));
+        more.Items.Add(Item(Tr.T("Top edges"), () => Align(AlignMode.Top)));
+        more.Items.Add(Item(Tr.T("Bottom edges"), () => Align(AlignMode.Bottom)));
+        more.Items.Add(new Separator());
+        more.Items.Add(Item(Tr.T("Distribute horizontally"), () => Align(AlignMode.DistributeHorizontally), count >= 3));
+        more.Items.Add(Item(Tr.T("Distribute vertically"), () => Align(AlignMode.DistributeVertically), count >= 3));
+        menu.Items.Add(more);
+        menu.Items.Add(new Separator());
+        menu.Items.Add(Item(Tr.T("Add a comment"), CommentSelection, gesture: "C"));
+        menu.Items.Add(Item(Tr.T("Add a tooltip"), TooltipSelection, gesture: "T"));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(Item(Tr.T("Duplicate"), Document.DuplicateSelection, gesture: "Ctrl+D"));
+        menu.Items.Add(Item(Tr.T("Delete"), Document.DeleteSelection, gesture: Tr.T("Del")));
+        menu.Closed += (_, _) => Keyboard.Focus(this);
+        menu.IsOpen = true;
+    }
+
+    /// <summary>Aligns or spreads out the selected nodes (comments and tooltips stay where they are); one step.</summary>
+    private void Align(AlignMode mode)
+    {
+        if (Document is null)
+        {
+            return;
+        }
+
+        List<(GraphNodeViewModel Node, Rect Bounds)> items = [.. Document.SelectedNodes.Where(n => !n.IsAnnotation).Select(n => (n, NodeBounds(n)))];
+        if (items.Count < 2)
+        {
+            return;
+        }
+
+        double left = items.Min(i => i.Bounds.Left);
+        double right = items.Max(i => i.Bounds.Right);
+        double top = items.Min(i => i.Bounds.Top);
+        double bottom = items.Max(i => i.Bounds.Bottom);
+        var positions = new Dictionary<Guid, (double X, double Y)>();
+        switch (mode)
+        {
+            case AlignMode.DistributeHorizontally or AlignMode.DistributeVertically:
+                bool horizontal = mode == AlignMode.DistributeHorizontally;
+                var ordered = items.OrderBy(i => horizontal ? i.Bounds.X : i.Bounds.Y).ToList();
+                double span = horizontal ? right - left : bottom - top;
+                double sizes = ordered.Sum(i => horizontal ? i.Bounds.Width : i.Bounds.Height);
+                double gap = Math.Max(MinDistributeGap, (span - sizes) / (ordered.Count - 1));
+                double next = horizontal ? left : top;
+                foreach ((GraphNodeViewModel node, Rect bounds) in ordered)
+                {
+                    positions[node.Id] = horizontal ? (next, bounds.Y) : (bounds.X, next);
+                    next += (horizontal ? bounds.Width : bounds.Height) + gap;
+                }
+
+                break;
+            default:
+                foreach ((GraphNodeViewModel node, Rect b) in items)
+                {
+                    positions[node.Id] = mode switch
+                    {
+                        AlignMode.Left => (left, b.Y),
+                        AlignMode.Right => (right - b.Width, b.Y),
+                        AlignMode.Center => ((left + right) / 2 - b.Width / 2, b.Y),
+                        AlignMode.Top => (b.X, top),
+                        AlignMode.Bottom => (b.X, bottom - b.Height),
+                        _ => (b.X, (top + bottom) / 2 - b.Height / 2),
+                    };
+                }
+
+                break;
+        }
+
+        Document.MoveNodesTo(positions, items.Count == 2 ? Tr.T("Align 2 nodes") : Tr.F("Align {0} nodes", items.Count));
     }
 
     // ----- Menu d'ajout -----

@@ -21,6 +21,7 @@
 
             <local:PinTypeBrushConverter x:Key="PinBrush" />
             <local:NodeCategoryBrushConverter x:Key="CategoryBrush" />
+            <local:CommentBrushConverter x:Key="CommentBrush" />
 
             <!-- Broche : triangle pour l'exécution, rond pour une valeur ; pleine quand elle est reliée. -->
             <DataTemplate x:Key="PinTemplate" DataType="{x:Type graphs:GraphPinViewModel}">
@@ -108,7 +109,7 @@
                 <Border x:Name="NodeRoot" Tag="node" MinWidth="170" CornerRadius="7" BorderThickness="1.5"
                         Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
                         SizeChanged="OnNodeSizeChanged" Loaded="OnNodeLoaded" PreviewMouseLeftButtonDown="OnNodePreviewMouseDown"
-                        ToolTipService.ShowOnDisabled="True">
+                        ToolTipService.ShowOnDisabled="True" ToolTip="{Binding HoverText}">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.35" />
                     </Border.Effect>
@@ -121,6 +122,11 @@
                                                 Focusable="False" />
                                 <ContentControl DockPanel.Dock="Right" Content="{Binding ExecOutput}" ContentTemplate="{StaticResource PinTemplate}"
                                                 Focusable="False" />
+                                <!-- The node is described by a tooltip (T): its message shows over the node. -->
+                                <TextBlock DockPanel.Dock="Right" FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Info}" FontSize="11"
+                                           Foreground="White" Opacity="0.85" VerticalAlignment="Center" Margin="4,0"
+                                           ToolTip="{Binding AttachedTooltip}"
+                                           Visibility="{Binding AttachedTooltip, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}" />
                                 <TextBlock Text="{Binding Title}" Foreground="White" FontWeight="SemiBold" FontSize="13"
                                            VerticalAlignment="Center" Margin="6,0" />
                             </DockPanel>
@@ -197,7 +203,71 @@
                 </DataTemplate.Triggers>
             </DataTemplate>
 
-            <local:NodeTemplateSelector x:Key="NodeTemplates" NodeTemplate="{StaticResource NodeTemplate}" RerouteTemplate="{StaticResource RerouteTemplate}" />
+
+            <!-- Comment (C on a selection), like in Blueprints: its box is drawn behind the wires (CommentBackTemplate);
+                 here only its title (moved like a header) and its resize grip catch the mouse. -->
+            <DataTemplate x:Key="CommentTemplate" DataType="{x:Type graphs:GraphNodeViewModel}">
+                <Grid x:Name="NodeRoot" Tag="node" Width="{Binding Width}" Height="{Binding Height}"
+                      PreviewMouseLeftButtonDown="OnNodePreviewMouseDown">
+                    <Border x:Name="Header" Tag="header" VerticalAlignment="Top" Height="34" CornerRadius="6,6,0,0" Cursor="SizeAll"
+                            BorderThickness="2" BorderBrush="Transparent" ToolTip="{Binding HoverText}" ToolTipService.InitialShowDelay="200"
+                            Background="{Binding CommentColor, Converter={StaticResource CommentBrush}, ConverterParameter=header}">
+                        <DockPanel Margin="10,0">
+                            <TextBlock DockPanel.Dock="Right" FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Info}" FontSize="12"
+                                       Foreground="White" Opacity="0.8" VerticalAlignment="Center"
+                                       Visibility="{Binding HoverText, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}" />
+                            <TextBlock Text="{Binding AnnotationText}" FontSize="16" FontWeight="SemiBold" Foreground="White"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
+                    </Border>
+                    <Border Tag="resize" Width="18" Height="18" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent"
+                            Cursor="SizeNWSE" ToolTip="{l:Tr 'Resize the comment'}">
+                        <Path Data="M 15,5 L 5,15 M 15,10 L 10,15" Stroke="{DynamicResource HintBrush}" StrokeThickness="1.4" />
+                    </Border>
+                </Grid>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                        <Setter TargetName="Header" Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- Box of a comment, behind the wires and the nodes. -->
+            <DataTemplate x:Key="CommentBackTemplate" DataType="{x:Type graphs:GraphNodeViewModel}">
+                <Border Width="{Binding Width}" Height="{Binding Height}" CornerRadius="6" BorderThickness="1.5"
+                        Background="{Binding CommentColor, Converter={StaticResource CommentBrush}, ConverterParameter=fill}"
+                        BorderBrush="{Binding CommentColor, Converter={StaticResource CommentBrush}, ConverterParameter=header}" />
+            </DataTemplate>
+
+            <DataTemplate x:Key="NothingTemplate">
+                <Grid />
+            </DataTemplate>
+
+            <!-- Tooltip (T on a selection): a small bubble; its message shows when the mouse is over it or over the nodes it describes. -->
+            <DataTemplate x:Key="TooltipTemplate" DataType="{x:Type graphs:GraphNodeViewModel}">
+                <Border x:Name="NodeRoot" Tag="node" Background="Transparent" PreviewMouseLeftButtonDown="OnNodePreviewMouseDown"
+                        ToolTip="{Binding HoverText}" ToolTipService.InitialShowDelay="100">
+                    <Border x:Name="Bubble" Tag="header" Cursor="SizeAll" CornerRadius="11,11,11,2" Padding="7,3" BorderThickness="1.5"
+                            Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource CardBorderBrush}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Info}" FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource AccentLineBrush}" />
+                            <TextBlock Text="{l:Tr 'Tooltip'}" FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource HintBrush}" />
+                        </StackPanel>
+                    </Border>
+                </Border>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                        <Setter TargetName="Bubble" Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
+                        <Setter TargetName="Bubble" Property="BorderThickness" Value="2" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <local:NodeTemplateSelector x:Key="NodeTemplates" NodeTemplate="{StaticResource NodeTemplate}" RerouteTemplate="{StaticResource RerouteTemplate}"
+                                        CommentTemplate="{StaticResource CommentTemplate}" TooltipTemplate="{StaticResource TooltipTemplate}" />
+            <local:NodeTemplateSelector x:Key="BackTemplates" NodeTemplate="{StaticResource NothingTemplate}" RerouteTemplate="{StaticResource NothingTemplate}"
+                                        CommentTemplate="{StaticResource CommentBackTemplate}" TooltipTemplate="{StaticResource NothingTemplate}" />
 
             <!-- Fil entre deux broches. -->
             <DataTemplate x:Key="ConnectionTemplate" DataType="{x:Type graphs:GraphConnectionViewModel}">
@@ -242,7 +312,8 @@
     <Grid x:Name="Root" Grid.Column="2" Background="{DynamicResource HubBackgroundBrush}" ClipToBounds="True"
           MouseLeftButtonDown="OnRootMouseLeftButtonDown" MouseRightButtonDown="OnRootMouseRightButtonDown"
           MouseDown="OnRootMouseDown" MouseMove="OnRootMouseMove" MouseUp="OnRootMouseUp" MouseWheel="OnRootMouseWheel"
-          LostMouseCapture="OnRootLostMouseCapture" SizeChanged="OnRootSizeChanged">
+          LostMouseCapture="OnRootLostMouseCapture" SizeChanged="OnRootSizeChanged"
+          AllowDrop="True" DragOver="OnRootDragOver" Drop="OnRootDrop">
 
         <!-- Quadrillage (déplacé et zoomé avec le monde) -->
         <Rectangle x:Name="GridLayer" IsHitTestVisible="False" Visibility="{DynamicResource GraphGridVisibility}" />
@@ -255,6 +326,20 @@
                     <TranslateTransform x:Name="Pan" />
                 </TransformGroup>
             </Canvas.RenderTransform>
+            <!-- Boxes of the comments, behind everything else. -->
+            <ItemsControl ItemsSource="{Binding Nodes}" ItemTemplateSelector="{StaticResource BackTemplates}" Focusable="False" IsHitTestVisible="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Canvas.Left" Value="{Binding X}" />
+                        <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
+            </ItemsControl>
             <ItemsControl ItemsSource="{Binding Connections}" ItemTemplate="{StaticResource ConnectionTemplate}" Focusable="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -273,6 +358,12 @@
                     <Style TargetType="ContentPresenter">
                         <Setter Property="Canvas.Left" Value="{Binding X}" />
                         <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                        <Style.Triggers>
+                            <!-- The title of a comment stays under the nodes it frames. -->
+                            <DataTrigger Binding="{Binding IsComment}" Value="True">
+                                <Setter Property="Panel.ZIndex" Value="-1" />
+                            </DataTrigger>
+                        </Style.Triggers>
                     </Style>
                 </ItemsControl.ItemContainerStyle>
             </ItemsControl>
@@ -288,9 +379,9 @@
         <Border Style="{StaticResource Card}" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420" IsHitTestVisible="False"
                 Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
             <StackPanel>
-                <TextBlock Text="{l:Tr 'Graphe vide'}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" />
+                <TextBlock Text="{l:Tr 'Empty graph'}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" />
                 <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource HintBrush}"
-                           Text="{l:Tr 'Faites un clic droit pour ajouter un nœud. Commencez par un événement (« Clic droit sur un bloc »), puis reliez sa sortie blanche à une condition ou à une action.'}" />
+                           Text="{l:Tr 'Right-click to add a node. Start with an event (&quot;Right-click on a block&quot;), then connect its white output to a condition or an action.'}" />
             </StackPanel>
         </Border>
 
@@ -300,21 +391,33 @@
                 <Border Style="{StaticResource Badge}" VerticalAlignment="Center" Margin="4,0,8,0">
                     <TextBlock Style="{StaticResource BadgeText}" Text="{Binding KindLabel}" />
                 </Border>
-                <Button Style="{StaticResource FlatButton}" Click="OnAddNodeClick" ToolTip="{l:Tr 'Ajouter un nœud (clic droit dans le graphe)'}">
+                <Button Style="{StaticResource FlatButton}" Click="OnAddNodeClick" ToolTip="{l:Tr 'Add a node (right-click in the graph)'}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" />
-                        <TextBlock Text="{l:Tr 'Ajouter un nœud'}" />
+                        <TextBlock Text="{l:Tr 'Add a node'}" />
                     </StackPanel>
                 </Button>
-                <Button Style="{StaticResource FlatButton}" Click="OnFrameAllClick" ToolTip="{l:Tr 'Afficher tout le graphe (F)'}">
+                <Button Style="{StaticResource FlatButton}" Click="OnFrameAllClick" ToolTip="{l:Tr 'Show the whole graph (F)'}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.FullScreen}" />
-                        <TextBlock Text="{l:Tr 'Tout afficher'}" />
+                        <TextBlock Text="{l:Tr 'Show all'}" />
                     </StackPanel>
                 </Button>
                 <TextBlock x:Name="ZoomLabel" Text="100 %" VerticalAlignment="Center" Margin="8,0,6,0" FontSize="12"
                            Foreground="{DynamicResource HintBrush}" />
             </StackPanel>
+        </Border>
+
+        <!-- Snapping to the grid: moved nodes stay aligned, and the wires straight. -->
+        <Border Style="{StaticResource Card}" Padding="4" Margin="12" HorizontalAlignment="Right" VerticalAlignment="Top">
+            <ToggleButton IsChecked="{Binding Options.SnapToGrid}" Padding="8,3" MinHeight="0" Focusable="False"
+                          AutomationProperties.Name="{l:Tr 'Snap to the grid'}"
+                          ToolTip="{l:Tr 'Snap to the grid: moved nodes and resized comments are placed on the grid, so that they stay aligned and the wires stay straight. Same option as Settings > Editors.'}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.GridView}" />
+                    <TextBlock Text="{l:Tr 'Grid'}" />
+                </StackPanel>
+            </ToggleButton>
         </Border>
 
         <!-- Aide et messages -->
@@ -324,7 +427,7 @@
                 <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" FontSize="12" MaxWidth="480" />
             </Border>
             <TextBlock FontSize="11" Foreground="{DynamicResource HintBrush}" TextWrapping="Wrap"
-                       Text="{l:Tr 'Clic droit : ajouter · Glisser une broche : relier · Alt+clic : débrancher · Clic droit glissé ou molette pressée : déplacer la vue · Molette : zoom · Suppr ou Retour arrière : effacer · Ctrl+D : dupliquer · Double-clic sur un fil : redirection'}" />
+                       Text="{l:Tr 'Right-click: add (on a node: align...) · Drag a pin: connect · Alt+click: disconnect · Right-drag or middle button: pan · Wheel: zoom · Del or Backspace: delete · Ctrl+D: duplicate · Double-click a wire: reroute · C: comment · T: tooltip'}" />
         </StackPanel>
 
         <!-- Menu d'ajout de nœud (placé au point du clic) -->
@@ -335,7 +438,7 @@
                     <DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.4" />
                 </Border.Effect>
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelCaption}" Text="{l:Tr 'AJOUTER UN NŒUD'}" Margin="2,0,0,6" />
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PanelCaption}" Text="{l:Tr 'ADD A NODE'}" Margin="2,0,0,6" />
                     <TextBox x:Name="PaletteSearchBox" DockPanel.Dock="Top" Margin="0,0,0,6"
                              Text="{Binding PaletteSearch, UpdateSourceTrigger=PropertyChanged}" PreviewKeyDown="OnPaletteSearchKeyDown" />
                     <ListBox x:Name="PaletteList" MaxHeight="330" ItemsSource="{Binding PaletteChoices}" ItemTemplate="{StaticResource ChoiceTemplate}"

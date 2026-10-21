@@ -48,6 +48,20 @@ public sealed class ResourcePaths
 
     public string SoundsDefinition => $"{AssetsRoot}/sounds.json";
 
+    /// <summary>Imported Java JSON model, referenced as "&lt;mod&gt;:custom/&lt;id&gt;".</summary>
+    public string CustomModel(ResourceId id) => $"{AssetsRoot}/models/custom/{id}.json";
+
+    /// <summary>Reference of a model of the project, as a parent of a block or item model ("magicmod:custom/altar").</summary>
+    public string CustomModelReference(ResourceId id) => Reference($"custom/{id}");
+
+    /// <summary>Texture of a 3D model, in the block atlas so that blocks and items can use it.</summary>
+    public string ModelTexture(ResourceId model, string key) => $"{AssetsRoot}/textures/block/model/{model}_{key}.png";
+
+    public string ModelTextureReference(ResourceId model, string key) => Reference($"block/model/{model}_{key}");
+
+    /// <summary>Variant or layer texture of a mob model ("variant_1", "layer_1").</summary>
+    public string EntityModelTexture(ResourceId model, string suffix) => $"{AssetsRoot}/textures/entity/model/{model}_{suffix}.png";
+
     public string SoundFile(ResourceId id) => $"{AssetsRoot}/sounds/{id}.ogg";
 
     public string Language(string locale) => $"{AssetsRoot}/lang/{locale}.json";
@@ -89,4 +103,33 @@ public sealed class ResourcePaths
     public string SubtitleTranslationKey(ResourceId id) => $"subtitles.{Namespace}.{id}";
 
     public string CreativeTabTranslationKey => $"itemGroup.{Namespace}";
+
+    /// <summary>Title of a creative tab of the project (V0.6.2).</summary>
+    public string CreativeTabTranslationKeyFor(ResourceId id) => $"itemGroup.{Namespace}.{id}";
+
+    /// <summary>Name of a keybind in the Controls screen.</summary>
+    public string KeyTranslationKey(ResourceId id) => $"key.{Namespace}.{id}";
+
+    /// <summary>Section of the keybinds of the mod in the Controls screen.</summary>
+    public string KeyCategoryTranslationKey => $"key.categories.{Namespace}";
+
+    public string EnchantmentTranslationKey(ResourceId id) => $"enchantment.{Namespace}.{id}";
+
+    public string FluidTypeTranslationKey(ResourceId id) => $"fluid_type.{Namespace}.{id}";
+
+    public string EffectTranslationKey(ResourceId id) => $"effect.{Namespace}.{id}";
+
+    /// <summary>Name of a potion: the key has only the path of the potion ("item.minecraft.potion.effect.frenzy").</summary>
+    public static string PotionTranslationKey(string form, ResourceId id) => $"item.minecraft.{form}.effect.{id}";
+
+    /// <summary>Name of a game rule in the "Edit game rules" screen.</summary>
+    public static string GameRuleTranslationKey(ResourceId id) => $"gamerule.{id}";
+
+    /// <summary>Enchantment of the mod as data (1.21).</summary>
+    public string Enchantment(ResourceId id) => $"{DataRoot}/enchantment/{id}.json";
+
+    /// <summary>Tag of enchantments of Minecraft (1.21), to which the enchantments of the mod are added.</summary>
+    public string VanillaEnchantmentTag(string tag) => $"{ResourcesRoot}/data/minecraft/tags/enchantment/{tag}.json";
+
+    public string MobEffectTexture(ResourceId id) => $"{AssetsRoot}/textures/mob_effect/{id}.png";
 }

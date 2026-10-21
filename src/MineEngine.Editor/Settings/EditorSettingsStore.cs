@@ -44,6 +44,7 @@ public sealed class EditorSettingsStore
             settings.GraphSnapToGrid = root["graphSnapToGrid"]?.GetValue<bool>() ?? settings.GraphSnapToGrid;
             settings.ReopenLastProject = root["reopenLastProject"]?.GetValue<bool>() ?? settings.ReopenLastProject;
             settings.HubSidebarCollapsed = root["hubSidebarCollapsed"]?.GetValue<bool>() ?? settings.HubSidebarCollapsed;
+            settings.DebugMode = root["debugMode"]?.GetValue<bool>() ?? settings.DebugMode;
             settings.AutoSaveMinutes = root["autoSaveMinutes"]?.GetValue<int>() ?? settings.AutoSaveMinutes;
             settings.BackupsToKeep = root["backupsToKeep"]?.GetValue<int>() ?? settings.BackupsToKeep;
             if (root["externalPrograms"] is JsonArray programs)
@@ -85,6 +86,7 @@ public sealed class EditorSettingsStore
             ["graphShowGrid"] = settings.GraphShowGrid,
             ["graphSnapToGrid"] = settings.GraphSnapToGrid,
             ["reopenLastProject"] = settings.ReopenLastProject,
+            ["debugMode"] = settings.DebugMode,
             ["hubSidebarCollapsed"] = settings.HubSidebarCollapsed,
             ["autoSaveMinutes"] = settings.AutoSaveMinutes,
             ["backupsToKeep"] = settings.BackupsToKeep,

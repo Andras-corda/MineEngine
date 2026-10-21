@@ -26,8 +26,17 @@ public sealed class FileLog : ILog, IDisposable
 
     public string CurrentFile => Path.Combine(_directory, $"mineengine-{Today():yyyyMMdd}.log");
 
+    /// <summary>Folder of the log files.</summary>
+    public string LogDirectory => _directory;
+
     public void Write(LogLevel level, string message)
     {
+        // Detailed messages are kept only in debug mode (the crash reports keep them in memory anyway).
+        if (level == LogLevel.Debug && !Diagnostics.EngineDebug.Enabled)
+        {
+            return;
+        }
+
         DateTimeOffset now = _clock.GetLocalNow();
         string line = $"{now:HH:mm:ss.fff} [{level.ToString().ToUpperInvariant(),-7}] {message}";
 

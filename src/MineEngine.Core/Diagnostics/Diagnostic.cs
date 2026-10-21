@@ -42,11 +42,11 @@ public sealed class Diagnostic
     {
         string label = Severity switch
         {
-            DiagnosticSeverity.Error => Tr.T("Erreur"),
-            DiagnosticSeverity.Warning => Tr.T("Avertissement"),
+            DiagnosticSeverity.Error => Tr.T("Error"),
+            DiagnosticSeverity.Warning => Tr.T("Warning"),
             _ => Tr.T("Info"),
         };
 
-        return Source is null ? $"[{label}] {Message}" : Tr.F("[{0}] {1} : {2}", label, Source, Message);
+        return Source is null ? $"[{label}] {Message}" : Tr.F("[{0}] {1}: {2}", label, Source, Message);
     }
 }

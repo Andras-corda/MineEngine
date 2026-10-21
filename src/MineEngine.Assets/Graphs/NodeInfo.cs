@@ -22,6 +22,9 @@ public enum NodeCategory
 
     /// <summary>Objets : création, champs, valeurs d'énumération, variables du graphe.</summary>
     Object,
+
+    /// <summary>Call of a function or a procedure of a function library (gray).</summary>
+    Library,
 }
 
 /// <summary>Sorte de nœud. Le nom est enregistré dans les fichiers : ne pas renommer.</summary>
@@ -118,6 +121,176 @@ public enum GraphNodeKind
     // Mise en page (V0.5.4)
     /// <summary>Point de passage d'un fil (voir <see cref="Reroutes"/>) : sans effet sur le programme.</summary>
     Reroute,
+
+    // Blocks (V0.6.2): actions
+    RemoveBlock,
+    ReplaceBlock,
+    UpdateBlock,
+    BreakBlock,
+    SetBlockNbtNumber,
+    SetBlockNbtText,
+    SetBlockNbtBoolean,
+    SetBlockProperty,
+    UseBlock,
+    SetBlockDirection,
+
+    // Blocks: values
+    GetBlockAt,
+    GetBlockProperty,
+    GetBlockDirection,
+    GetBlockOpacity,
+    GetBlockHardness,
+    GetLightLevel,
+    GetEnchantPowerBonus,
+    IsBlockSolid,
+    GetBlockNbtNumber,
+    GetBlockNbtText,
+    GetBlockNbtBoolean,
+
+    // Items (V0.6.2): actions
+    SetItemCooldown,
+    AddEnchantment,
+    RemoveEnchantment,
+    RemoveAllEnchantments,
+    SetItemDisplayName,
+
+    // Items: values
+    MainHandItem,
+    NewItemStack,
+    ItemOfStack,
+    ItemCooldownPercent,
+    IsItemOnCooldown,
+    CopyItemStack,
+    ItemMaxStackSize,
+    ItemCount,
+    IsItemStackable,
+    ItemDamage,
+    ItemMaxDamage,
+    IsItemDamageable,
+    IsItemDamaged,
+    EnchantmentLevel,
+    HasEnchantment,
+    IsItemEnchantable,
+    IsItemEnchanted,
+    ItemFoodValue,
+    ItemSaturation,
+    IsItemFood,
+    CanHarvestBlock,
+    ItemHasRarity,
+    ItemRarity,
+    ItemDisplayName,
+    ItemRegistryName,
+    CanBeSmelted,
+
+    // ----- V0.6.2: commands and keybinds -----
+    OnCommand,
+    OnKeyPressed,
+
+    // ----- V0.6.3: game rules and effects -----
+    GetGameRuleBoolean,
+    GetGameRuleNumber,
+    SetGameRuleBoolean,
+    SetGameRuleNumber,
+    GiveEffect,
+    RemoveEffect,
+    HasEffect,
+
+    // ----- V0.6.5: logic -----
+    And,
+    Or,
+    NumbersNotEqual,
+    GreaterOrEqual,
+    LessOrEqual,
+    TextEquals,
+
+    // ----- V0.6.5: loops -----
+    Repeat,
+    While,
+    ForEachPlayer,
+
+    // ----- V0.6.5: math -----
+    Divide,
+    Modulo,
+    Power,
+    SquareRoot,
+    Minimum,
+    Maximum,
+    Absolute,
+
+    // ----- V0.6.5: text -----
+    TextLength,
+    TextContains,
+    ReplaceText,
+    TextToNumber,
+    NumberToText,
+
+    // ----- V0.6.5: world -----
+    Dimension,
+    WorldTime,
+    IsDay,
+    IsRaining,
+    IsThundering,
+    SetWorldTime,
+    SetWeather,
+    SpawnEntity,
+    SpawnParticles,
+
+    // ----- V0.6.5: players -----
+    PlayerHealth,
+    PlayerMaxHealth,
+    PlayerFood,
+    IsPlayerAlive,
+    SetPlayerHealth,
+    HealPlayer,
+    DamagePlayer,
+    TeleportPlayer,
+    ArmorItem,
+    OffhandItem,
+    LookedAtBlock,
+
+    // ----- V0.6.5: inventory and item data -----
+    ItemInSlot,
+    ClearSlot,
+    CountItemInInventory,
+    SetItemNbtNumber,
+    SetItemNbtText,
+    GetItemNbtNumber,
+    GetItemNbtText,
+
+    // ----- V0.6.5: positions -----
+    PositionX,
+    PositionY,
+    PositionZ,
+    MakePosition,
+    Distance,
+    PositionsEqual,
+    IsInArea,
+    OffsetInDirection,
+
+    // ----- V0.6.5: events -----
+    OnPlayerLeave,
+    OnPlayerTick,
+    OnPlayerHurt,
+    OnEntitySpawn,
+    OnEntityDeath,
+
+    // ----- Annotations (see GraphAnnotations): no effect on the program -----
+    Comment,
+    Tooltip,
+}
+
+/// <summary>Domain of a node, used to sort the Nodes window like MCreator's procedure blocks.</summary>
+public enum NodeGroup
+{
+    Events,
+    Logic,
+    Math,
+    Text,
+    Player,
+    Item,
+    Block,
+    World,
+    Program,
 }
 
 /// <summary>
@@ -147,6 +320,9 @@ public sealed class NodeInfo
     public const string ExecTrue = "true";
 
     public const string ExecFalse = "false";
+
+    /// <summary>Execution output of a loop: run at each turn (V0.6.5).</summary>
+    public const string ExecBody = "body";
 
     /// <summary>Entrée "objet" d'une méthode ou d'un champ.</summary>
     public const string TargetInput = "target";
@@ -182,7 +358,8 @@ public sealed class NodeInfo
         ExecOutputs = Flow switch
         {
             NodeFlow.Start or NodeFlow.Step => [ThenPin],
-            NodeFlow.Branch => [new PinInfo(ExecTrue, Tr.T("Vrai"), DataType.Exec), new PinInfo(ExecFalse, Tr.T("Faux"), DataType.Exec)],
+            NodeFlow.Branch => [new PinInfo(ExecTrue, Tr.T("True"), DataType.Exec), new PinInfo(ExecFalse, Tr.T("False"), DataType.Exec)],
+            NodeFlow.Loop => [new PinInfo(ExecBody, Tr.T("Loop body"), DataType.Exec), new PinInfo(ExecThen, Tr.T("Completed"), DataType.Exec)],
             _ => [],
         };
     }
@@ -206,7 +383,7 @@ public sealed class NodeInfo
     /// <summary>Sorties d'exécution : "then", ou "true" et "false" pour une condition.</summary>
     public IReadOnlyList<PinInfo> ExecOutputs { get; }
 
-    public bool HasExecInput => Flow is NodeFlow.Branch or NodeFlow.Step or NodeFlow.End;
+    public bool HasExecInput => Flow is NodeFlow.Branch or NodeFlow.Step or NodeFlow.End or NodeFlow.Loop;
 
     /// <summary>Point de départ d'une exécution : événement, ou entrée d'une fonction.</summary>
     public bool IsEntryPoint => Flow == NodeFlow.Start;
@@ -220,8 +397,17 @@ public sealed class NodeInfo
     /// <summary>Événement propre à un item du mod (son entrée "item" désigne l'item), sinon null.</summary>
     public ItemEventKind? ItemEvent { get; init; }
 
+    /// <summary>
+    /// Event run by a command or a keybind of the mod (V0.6.2), called directly by the generated code
+    /// rather than by the event bus; its first input names the command or the keybind.
+    /// </summary>
+    public DirectEventKind? DirectEvent { get; init; }
+
     /// <summary>Vrai si la définition visée par le nœud n'existe plus (le nœud est alors en erreur).</summary>
     public bool IsMissing { get; init; }
+
+    /// <summary>Name of the function library of a called function: its domain in the Nodes window.</summary>
+    public string? Library { get; init; }
 
     public PinInfo? FindInput(string name) => Inputs.FirstOrDefault(p => p.Name == name);
 
@@ -255,4 +441,7 @@ public enum NodeFlow
 
     /// <summary>Valeur calculée à la demande, sans fil d'exécution.</summary>
     Pure,
+
+    /// <summary>Loop (V0.6.5): an input, outputs "Loop body" (each turn) and "Completed".</summary>
+    Loop,
 }

@@ -116,26 +116,26 @@ public sealed class ProgramTests
 
         // Héritage circulaire.
         sample.Chest.BaseClassId = sample.CursedChest.Id;
-        Assert.Contains("circulaire", Errors(sample.Chest));
+        Assert.Contains("Circular", Errors(sample.Chest));
         sample.Chest.BaseClassId = null;
 
         // Méthode d'interface manquante.
         sample.Reward.Methods = [.. sample.Reward.Methods, MethodSignature.Create("ouvrir")];
-        Assert.Contains("« ouvrir »", Errors(sample.Chest));
+        Assert.Contains("\"ouvrir\"", Errors(sample.Chest));
         sample.Reward.Methods = [.. sample.Reward.Methods.Take(2)];
 
         // Redéfinition avec une autre signature.
         sample.CursedGive.Parameters = [];
-        Assert.Contains("mêmes paramètres", Errors(sample.CursedGive));
+        Assert.Contains("same parameters", Errors(sample.CursedGive));
         sample.CursedGive.Parameters = [VariableDefinition.Create("joueur", DataType.Player)];
 
         // Constructeur parent oublié alors qu'il a des paramètres.
         sample.CursedChest.Graph = sample.CursedChest.Graph.RemoveNodes(sample.CursedChest.Graph.Nodes.Where(n => n.Kind == GraphNodeKind.SuperConstructor).Select(n => n.Id));
-        Assert.Contains("Constructeur parent", Errors(sample.CursedChest));
+        Assert.Contains("Parent constructor", Errors(sample.CursedChest));
 
         // Nom de type réservé.
         sample.Loot.DisplayName = "Player";
-        Assert.Contains("déjà le nom", Errors(sample.Loot));
+        Assert.Contains("already the name", Errors(sample.Loot));
     }
 
     [Fact]
@@ -266,7 +266,7 @@ public sealed class ProgramTests
     }
 
     /// <summary>Backend sans MDK : seules les sources sont générées.</summary>
-    private sealed class SourceBackend : IModLoaderBackend
+    internal sealed class SourceBackend : IModLoaderBackend
     {
         private readonly IFileEmitter _emitter;
 

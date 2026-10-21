@@ -26,20 +26,20 @@ public static class ThemeFileSerializer
             int version = root["formatVersion"]?.GetValue<int>() ?? FormatVersion;
             if (version > FormatVersion)
             {
-                throw new InvalidDataException(Tr.F("{0} a été créé par une version plus récente de Mine Engine.", sourceName));
+                throw new InvalidDataException(Tr.F("{0} was created by a newer version of Mine Engine.", sourceName));
             }
 
             string name = root["name"]?.GetValue<string>()?.Trim() ?? string.Empty;
             if (name.Length == 0)
             {
-                throw new InvalidDataException(Tr.F("{0} n'indique pas le nom du thème.", sourceName));
+                throw new InvalidDataException(Tr.F("{0} does not give the theme name.", sourceName));
             }
 
             ThemeBase themeBase = (root["base"]?.GetValue<string>() ?? "dark").Trim().ToLowerInvariant() switch
             {
                 "dark" => ThemeBase.Dark,
                 "light" => ThemeBase.Light,
-                string other => throw new InvalidDataException(Tr.F("Base de thème inconnue dans {0} : {1} (attendu : dark ou light).", sourceName, other)),
+                string other => throw new InvalidDataException(Tr.F("Unknown theme base in {0}: {1} (expected: dark or light).", sourceName, other)),
             };
 
             var colors = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -55,7 +55,7 @@ public static class ThemeFileSerializer
                     string text = value?.GetValue<string>() ?? string.Empty;
                     if (!RgbColor.TryParse(text, out RgbColor color))
                     {
-                        throw new InvalidDataException(Tr.F("Couleur invalide pour {0} dans {1} : {2} (attendu : #RRGGBB).", key, sourceName, text));
+                        throw new InvalidDataException(Tr.F("Invalid color for {0} in {1}: {2} (expected: #RRGGBB).", key, sourceName, text));
                     }
 
                     colors[key] = color.ToString();
@@ -66,7 +66,7 @@ public static class ThemeFileSerializer
         }
         catch (Exception exception) when (exception is InvalidOperationException or FormatException or JsonException)
         {
-            throw new InvalidDataException(Tr.F("{0} n'est pas un fichier de thème valide : {1}", sourceName, exception.Message), exception);
+            throw new InvalidDataException(Tr.F("{0} is not a valid theme file: {1}", sourceName, exception.Message), exception);
         }
     }
 

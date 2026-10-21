@@ -17,7 +17,7 @@ public sealed class BlockResourcesEmitter : ResourceEmitter
     {
     }
 
-    public override string Name => Tr.T("Ressources des blocs");
+    public override string Name => Tr.T("Block resources");
 
     public override void Emit(GenerationContext context)
     {
@@ -25,7 +25,8 @@ public sealed class BlockResourcesEmitter : ResourceEmitter
         foreach (IRBlock block in context.Ir.Content.Blocks)
         {
             string blockModel = paths.Reference($"block/{block.Id}");
-            IReadOnlyList<BlockTextureSlot> slots = UsedSlots(block.Settings.Model);
+            // A block shown with a 3D model takes the textures of the model (see ModelsEmitter).
+            IReadOnlyList<BlockTextureSlot> slots = block.CustomModel is null ? UsedSlots(block.Settings.Model) : [];
 
             foreach (BlockTextureSlot slot in slots.Where(s => s == BlockTextureSlot.Main || block.ExtraTextures.ContainsKey(s)))
             {
@@ -105,6 +106,7 @@ public sealed class BlockResourcesEmitter : ResourceEmitter
 
         JsonObject model = block.Settings.Model switch
         {
+            BlockModelKind.Custom when block.CustomModel is { } custom => new JsonObject { ["parent"] = paths.CustomModelReference(custom) },
             BlockModelKind.CubeFaces => new JsonObject
             {
                 ["parent"] = "minecraft:block/cube",

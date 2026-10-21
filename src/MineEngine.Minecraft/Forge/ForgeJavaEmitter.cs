@@ -88,8 +88,29 @@ public sealed class ForgeJavaEmitter : ModJavaEmitter
         GraphNodeKind.OnUseItem => ("net.minecraftforge.event.entity.player.PlayerInteractEvent", "PlayerInteractEvent.RightClickItem"),
         GraphNodeKind.OnPlayerJoin => ("net.minecraftforge.event.entity.player.PlayerEvent", "PlayerEvent.PlayerLoggedInEvent"),
         GraphNodeKind.OnBlockBroken => ("net.minecraftforge.event.level.BlockEvent", "BlockEvent.BreakEvent"),
+        GraphNodeKind.OnPlayerLeave => ("net.minecraftforge.event.entity.player.PlayerEvent", "PlayerEvent.PlayerLoggedOutEvent"),
+        GraphNodeKind.OnPlayerTick => ("net.minecraftforge.event.TickEvent", "TickEvent.PlayerTickEvent"),
+        GraphNodeKind.OnPlayerHurt => ("net.minecraftforge.event.entity.living.LivingHurtEvent", "LivingHurtEvent"),
+        GraphNodeKind.OnEntitySpawn => ("net.minecraftforge.event.entity.EntityJoinLevelEvent", "EntityJoinLevelEvent"),
+        GraphNodeKind.OnEntityDeath => ("net.minecraftforge.event.entity.living.LivingDeathEvent", "LivingDeathEvent"),
         _ => throw new NotSupportedException($"{eventKind} n'est pas un événement."),
     };
+
+    /// <summary>The tick of a player is read in the field "player", once per tick (at its end).</summary>
+    protected override IReadOnlyList<string>? EventPrologue(GraphNodeKind eventKind) => eventKind == GraphNodeKind.OnPlayerTick
+        ?
+        [
+            "if (event.phase != TickEvent.Phase.END) {",
+            "    return;",
+            "}",
+            "Player player = event.player;",
+            "Level level = player.level();",
+            "if (level.isClientSide()) {",
+            "    return;",
+            "}",
+            "BlockPos position = player.blockPosition();",
+        ]
+        : null;
 
     /// <summary>Forge (1.20.1 et 1.21.1) : la durée de combustion est une méthode de l'item (IForgeItem).</summary>
     protected override IReadOnlyList<string>? BurnTimeOverride(int ticks) =>
@@ -105,6 +126,37 @@ public sealed class ForgeJavaEmitter : ModJavaEmitter
         "net.minecraft.world.item.ItemStack",
         "net.minecraft.world.item.crafting.RecipeType",
     ];
+
+    // ----- V0.6.2 / V0.6.3 -----
+
+    protected override IReadOnlyList<string> RegistryImports { get; } =
+    [
+        "net.minecraftforge.registries.DeferredRegister",
+        "net.minecraftforge.registries.RegistryObject",
+    ];
+
+    protected override string RegistryHolderType(string registryType, string valueType) => $"RegistryObject<{valueType}>";
+
+    protected override string HolderOf(string field) => $"{field}.getHolder().get()";
+
+    protected override string RegisterCommandsEventType => "net.minecraftforge.event.RegisterCommandsEvent";
+
+    protected override string RegisterKeyMappingsEventType => "net.minecraftforge.client.event.RegisterKeyMappingsEvent";
+
+    protected override string InputEventType => "net.minecraftforge.client.event.InputEvent";
+
+    protected override string ClientSetupEventType => "net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent";
+
+    protected override (string Expression, string Import) FluidTypesRegistry =>
+        ("ForgeRegistries.Keys.FLUID_TYPES", "net.minecraftforge.registries.ForgeRegistries");
+
+    protected override string FluidTypeClass => "net.minecraftforge.fluids.FluidType";
+
+    protected override string FlowingFluidClass => "net.minecraftforge.fluids.ForgeFlowingFluid";
+
+    protected override string ClientFluidExtensionsClass => "net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions";
+
+    protected override string? RegisterClientExtensionsEventType => null;
 
     protected override string EntityTypeHolderType(string entityClass) => $"RegistryObject<EntityType<{entityClass}>>";
 

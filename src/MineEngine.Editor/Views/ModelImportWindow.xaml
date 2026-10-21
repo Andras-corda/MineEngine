@@ -1,0 +1,123 @@
+<Window x:Class="MineEngine.Editor.Views.ModelImportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:MineEngine.Editor.Localization"
+        xmlns:ui="http://schemas.modernwpf.com/2019"
+        xmlns:assets="clr-namespace:MineEngine.Editor.ViewModels.Assets"
+        ui:WindowHelper.UseModernWindowStyle="True"
+        Background="{DynamicResource HubBackgroundBrush}"
+        Title="{l:Tr 'Import a 3D model'}"
+        Width="680" Height="720" MinWidth="520" MinHeight="420"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        FocusManager.FocusedElement="{Binding ElementName=NameBox}">
+
+    <!--
+        Import of a Blockbench or Java JSON model: its textures are bound before it is added,
+        variants and layers are prepared for mobs, and an item, a block or a mob can be created.
+        DataContext: ModelImportViewModel.
+    -->
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- A texture row: preview, name, choice of the texture, import of a PNG file. -->
+            <DataTemplate x:Key="TextureRow" DataType="{x:Type assets:ImportTextureRowViewModel}">
+                <DockPanel Margin="0,4">
+                    <Border DockPanel.Dock="Left" Width="48" Height="48" Margin="0,0,10,0" BorderThickness="1" VerticalAlignment="Top"
+                            BorderBrush="{DynamicResource PreviewBorderBrush}" Background="{DynamicResource PreviewBackgroundBrush}">
+                        <Image Source="{Binding PreviewPath, Converter={StaticResource FilePathToImage}}"
+                               RenderOptions.BitmapScalingMode="NearestNeighbor" Stretch="Uniform" Margin="3" />
+                    </Border>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Content="{l:Tr 'Remove'}" Command="{Binding RemoveCommand}"
+                            VerticalAlignment="Top" Margin="6,0,0,0"
+                            Visibility="{Binding IsRemovable, Converter={StaticResource BoolToVisibility}}" />
+                    <StackPanel>
+                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold"
+                                   Visibility="{Binding IsRemovable, Converter={StaticResource InverseBoolToVisibility}}" />
+                        <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:Tr 'Name'}"
+                                 Visibility="{Binding IsRemovable, Converter={StaticResource BoolToVisibility}}" />
+                        <DockPanel Margin="0,4,0,0">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Content="{l:Tr 'PNG file...'}" Margin="6,0,0,0"
+                                    Command="{Binding ImportFileCommand}" ToolTip="{l:Tr 'Choose a PNG image: it is imported as a texture with the model'}" />
+                            <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding Choices}" SelectedItem="{Binding Selected}"
+                                      DisplayMemberPath="Label" AutomationProperties.Name="{Binding Label}" />
+                        </DockPanel>
+                    </StackPanel>
+                </DockPanel>
+            </DataTemplate>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button x:Name="ConfirmButton" Content="{l:Tr 'Import'}" Command="{Binding ConfirmCommand}" IsDefault="True" MinWidth="110" Margin="0,0,8,0"
+                    Style="{DynamicResource AccentButtonStyle}" />
+            <Button Content="{l:Tr 'Cancel'}" IsCancel="True" MinWidth="110" />
+        </StackPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="0,0,8,0">
+                <!-- The file -->
+                <TextBlock Text="{Binding FileName}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource HintBrush}" Margin="0,2,0,10" TextWrapping="Wrap" />
+
+                <Grid Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{l:Tr 'Name'}" Margin="0,0,12,0" VerticalAlignment="Center" />
+                    <TextBox x:Name="NameBox" Grid.Column="1" Style="{StaticResource FieldBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Grid.Row="1" Style="{StaticResource FieldLabel}" Text="{l:Tr 'Create with it'}" Margin="0,0,12,0" VerticalAlignment="Center" />
+                    <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,4" HorizontalAlignment="Stretch" ItemsSource="{Binding UseChoices}"
+                              DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Use}"
+                              AutomationProperties.Name="{l:Tr 'Create with it'}" />
+                </Grid>
+
+                <!-- Textures of the model -->
+                <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Textures of the model'}" Margin="0,10,0,2" />
+                <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap"
+                           Text="{l:Tr 'Each texture of the file can keep its image or take a texture of the project or a PNG file.'}" />
+                <ItemsControl ItemsSource="{Binding Slots}" ItemTemplate="{StaticResource TextureRow}" Focusable="False" />
+                <TextBlock Style="{StaticResource FieldHint}" Text="{l:Tr 'The model uses no texture.'}" Margin="0,4"
+                           Visibility="{Binding HasSlots, Converter={StaticResource InverseBoolToVisibility}}" />
+
+                <!-- Variants -->
+                <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Variants'}" Margin="0,14,0,2" />
+                <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" Text="{Binding VariantsHint}" />
+                <ItemsControl ItemsSource="{Binding Variants}" ItemTemplate="{StaticResource TextureRow}" Focusable="False" />
+                <WrapPanel Margin="0,4">
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Add a variant'}" Command="{Binding AddVariantCommand}" />
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Add PNG files...'}" Command="{Binding AddVariantFilesCommand}"
+                            ToolTip="{l:Tr 'One variant per image chosen'}" />
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Add the other images of the file'}" Command="{Binding AddEmbeddedVariantsCommand}"
+                            ToolTip="{l:Tr 'One variant per image embedded in the Blockbench file, after the first'}" />
+                </WrapPanel>
+
+                <!-- Layers -->
+                <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Layers'}" Margin="0,14,0,2" />
+                <ItemsControl ItemsSource="{Binding Layers}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TextureRow}" Focusable="False" />
+                                <CheckBox Content="{l:Tr 'Emissive (glows in the dark)'}" IsChecked="{Binding Emissive}" Margin="58,0,0,4" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <WrapPanel Margin="0,4">
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Add a layer'}" Command="{Binding AddLayerCommand}" />
+                </WrapPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

@@ -10,7 +10,7 @@ public static class BuiltInThemes
     public const string LightId = "light";
 
     /// <summary>Gris neutres contrastés, accent bleu (thème par défaut en sombre).</summary>
-    public static ThemeDefinition Dark { get; } = new(DarkId, "Sombre", ThemeBase.Dark, new Dictionary<string, string>
+    public static ThemeDefinition Dark { get; } = new(DarkId, "Dark", ThemeBase.Dark, new Dictionary<string, string>
         {
             ["HubBackgroundBrush"] = "#2B2C30",
             ["SidebarBrush"] = "#1E1F22",
@@ -78,7 +78,7 @@ public static class BuiltInThemes
         }, IsBuiltIn: true);
 
     /// <summary>Gris clairs, accent bleu.</summary>
-    public static ThemeDefinition Light { get; } = new(LightId, "Clair", ThemeBase.Light, new Dictionary<string, string>
+    public static ThemeDefinition Light { get; } = new(LightId, "Light", ThemeBase.Light, new Dictionary<string, string>
         {
             ["HubBackgroundBrush"] = "#F3F4F6",
             ["SidebarBrush"] = "#E6E7EA",
@@ -148,27 +148,27 @@ public static class BuiltInThemes
     // Palettes de couleurs (quatre teintes chacune) : fond le plus sombre, cartes, accent.
 
     /// <summary>Bleus nuit : #0D1433, #171F55, #274272, #6C90C3.</summary>
-    public static ThemeDefinition Blue { get; } = FromPalette("blue", "Bleu nuit",
+    public static ThemeDefinition Blue { get; } = FromPalette("blue", "Midnight blue",
         ThemePalette.Parse("#0D1433", "#0A0F28", "#171F55", "#E8EDF8", "#49699A"));
 
     /// <summary>Rouges carmin : #19171B, #75020F, #51080D, #2B0307.</summary>
-    public static ThemeDefinition Red { get; } = FromPalette("red", "Rouge carmin",
+    public static ThemeDefinition Red { get; } = FromPalette("red", "Crimson red",
         ThemePalette.Parse("#19171B", "#121014", "#271318", "#F2E8EA", "#75020F"));
 
     /// <summary>Verts forêt : #022B22, #275D46, #569578, #101C13.</summary>
-    public static ThemeDefinition Green { get; } = FromPalette("green", "Vert forêt",
+    public static ThemeDefinition Green { get; } = FromPalette("green", "Forest green",
         ThemePalette.Parse("#09231A", "#101C13", "#0B372B", "#E6F2EC", "#3E795F"));
 
     /// <summary>Or et bruns : #19171B, #9E8123, #2F2921, #563A17.</summary>
-    public static ThemeDefinition Gold { get; } = FromPalette("gold", "Or",
+    public static ThemeDefinition Gold { get; } = FromPalette("gold", "Gold",
         ThemePalette.Parse("#19171B", "#121014", "#2F2921", "#F2EEE4", "#9E8123"));
 
     /// <summary>Violets et ardoise : #1E202C, #60519B, #31323E, #BFC0D1.</summary>
-    public static ThemeDefinition Purple { get; } = FromPalette("purple", "Violet",
+    public static ThemeDefinition Purple { get; } = FromPalette("purple", "Purple",
         ThemePalette.Parse("#1E202C", "#17181F", "#292A37", "#ECECF4", "#60519B"));
 
     /// <summary>Fonds noirs, textes blancs et bordures marquées.</summary>
-    public static ThemeDefinition HighContrast { get; } = new("contrast", "Contraste élevé", ThemeBase.Dark, new Dictionary<string, string>
+    public static ThemeDefinition HighContrast { get; } = new("contrast", "High contrast", ThemeBase.Dark, new Dictionary<string, string>
         {
             ["HubBackgroundBrush"] = "#000000",
             ["SidebarBrush"] = "#0A0A0A",

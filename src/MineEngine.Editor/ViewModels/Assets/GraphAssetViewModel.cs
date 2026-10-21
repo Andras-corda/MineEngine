@@ -39,6 +39,7 @@ public sealed class GraphAssetViewModel : AssetViewModel
         GraphKind.Struct => "StructGeometry",
         GraphKind.Interface => "InterfaceGeometry",
         GraphKind.Enum => "EnumGeometry",
+        GraphKind.Library => "LibraryGeometry",
         _ => base.TypeIcon,
     };
 
@@ -54,7 +55,7 @@ public sealed class GraphAssetViewModel : AssetViewModel
 
     /// <summary>Problèmes du graphe (erreurs et avertissements), tels qu'affichés dans Diagnostics.</summary>
     public IReadOnlyList<string> Problems =>
-        [.. ProgramValidator.Validate(Graph, ProgramModel.From(Context.Project.Assets))
+        [.. ProgramValidator.Validate(Graph, Context.Project.Assets.Program)
             .Where(i => i.Severity != DiagnosticSeverity.Info).Select(i => i.Message)];
 
     public bool HasProblems => Problems.Count > 0;

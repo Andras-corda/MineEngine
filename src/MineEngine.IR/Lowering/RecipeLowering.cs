@@ -14,7 +14,7 @@ public sealed class RecipeLowering : AssetLowering<RecipeAsset>
 
     protected override void Lower(RecipeAsset asset, LoweringContext context)
     {
-        if (context.ResolveItem(asset, asset.Result, Tr.T("Résultat")) is not { } result)
+        if (context.ResolveItem(asset, asset.Result, Tr.T("Result")) is not { } result)
         {
             return;
         }
@@ -67,7 +67,7 @@ public sealed class RecipeLowering : AssetLowering<RecipeAsset>
 
                 if (!letters.TryGetValue(reference, out char letter))
                 {
-                    if (context.ResolveIngredient(asset, reference, Tr.T("Ingrédient")) is not { } ingredient)
+                    if (context.ResolveIngredient(asset, reference, Tr.T("Ingredient")) is not { } ingredient)
                     {
                         return null;
                     }
@@ -91,7 +91,7 @@ public sealed class RecipeLowering : AssetLowering<RecipeAsset>
         var ingredients = new List<IRIngredient>();
         foreach (ContentReference reference in asset.Grid.OfType<ContentReference>())
         {
-            if (context.ResolveIngredient(asset, reference, Tr.T("Ingrédient")) is not { } ingredient)
+            if (context.ResolveIngredient(asset, reference, Tr.T("Ingredient")) is not { } ingredient)
             {
                 return null;
             }
@@ -105,7 +105,7 @@ public sealed class RecipeLowering : AssetLowering<RecipeAsset>
     }
 
     private static IRSmeltingRecipe? LowerSmelting(RecipeAsset asset, NamespacedId result, LoweringContext context) =>
-        asset.SmeltingInput is { } input && context.ResolveIngredient(asset, input, Tr.T("Ingrédient")) is { } ingredient
+        asset.SmeltingInput is { } input && context.ResolveIngredient(asset, input, Tr.T("Ingredient")) is { } ingredient
             ? new IRSmeltingRecipe(asset.Id, asset.ResourceId, ingredient, result, asset.Experience, asset.CookingTime)
             : null;
 }

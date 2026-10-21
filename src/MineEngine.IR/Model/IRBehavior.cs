@@ -38,6 +38,12 @@ public sealed record IREventHandler(GraphNodeKind Event, Guid NodeId, IReadOnlyL
 {
     public bool IsItemEvent => Item is not null;
 
+    /// <summary>Command or keybind (its identifier) that runs an "On command" or "On key pressed" event, or null.</summary>
+    public string? Trigger { get; init; }
+
+    /// <summary>Called directly by the generated code (item, command, keybind) instead of the event bus.</summary>
+    public bool IsDirectCall => Item is not null || Trigger is not null;
+
     /// <summary>Valeurs produites par les nœuds exécutés (appel, création d'objet), déclarées en tête de méthode.</summary>
     public IReadOnlyList<IRLocal> Locals { get; init; } = [];
 }
@@ -58,6 +64,14 @@ public sealed record IRCallee(Guid Definition, Guid? InterfaceMethod = null);
 
 /// <summary>Instruction d'un comportement.</summary>
 public abstract record IRStatement(Guid NodeId);
+
+/// <summary>
+/// Loop (V0.6.5): Repeat, While or For each player. <paramref name="Outputs"/> are the locals that
+/// receive the values of each turn (number of the turn, player); <paramref name="Body"/> runs at each turn.
+/// </summary>
+public sealed record IRLoopStatement(
+    Guid NodeId, GraphNodeKind Kind, IReadOnlyList<IRExpression> Arguments, IReadOnlyList<string> Outputs, IReadOnlyList<IRStatement> Body)
+    : IRStatement(NodeId);
 
 /// <summary>Action sur le jeu (donner un item, placer un bloc...), avec ses arguments dans l'ordre des entrées du nœud.</summary>
 public sealed record IRActionStatement(Guid NodeId, GraphNodeKind Action, IReadOnlyList<IRExpression> Arguments) : IRStatement(NodeId);

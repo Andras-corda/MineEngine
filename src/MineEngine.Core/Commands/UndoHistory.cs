@@ -19,6 +19,9 @@ public sealed class UndoHistory
 
     public bool CanUndo => _undo.Count > 0;
 
+    /// <summary>Number of steps that can be undone (shown in debug mode).</summary>
+    public int UndoCount => _undo.Count;
+
     public bool CanRedo => _redo.Count > 0;
 
     public string? UndoDescription => _undo.Last?.Value.Description;
@@ -31,7 +34,7 @@ public sealed class UndoHistory
         ArgumentNullException.ThrowIfNull(command);
         if (_isApplying)
         {
-            throw new InvalidOperationException(Tr.T("Une commande ne peut pas en exécuter une autre pendant une annulation."));
+            throw new InvalidOperationException(Tr.T("A command cannot run another one during an undo."));
         }
 
         Apply(command.Execute);

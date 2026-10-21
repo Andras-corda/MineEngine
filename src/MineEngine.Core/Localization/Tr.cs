@@ -3,9 +3,9 @@ using System.Globalization;
 namespace MineEngine.Core.Localization;
 
 /// <summary>
-/// Point d'accès aux traductions de l'interface : Tr.T("Texte") pour un texte, Tr.F("{0} élément(s)", n)
-/// pour un texte avec des valeurs. La langue est choisie une fois au démarrage (changer de langue
-/// demande de relancer l'application) ; tant qu'aucune n'est choisie, les textes restent en français.
+/// Access point to the interface translations: Tr.T("Text") for a text, Tr.F("{0} item(s)", n)
+/// for a text with values. Texts are written in English. The language is chosen once at startup
+/// (changing it requires a restart); until one is chosen, texts stay in English.
 /// </summary>
 public static class Tr
 {
@@ -13,7 +13,7 @@ public static class Tr
 
     public static UiLanguage Language => Catalog.Language;
 
-    /// <summary>Choisit la langue de l'interface et la culture (dates, nombres) qui va avec.</summary>
+    /// <summary>Chooses the interface language and the matching culture (dates, numbers).</summary>
     public static void Use(UiLanguage language)
     {
         ArgumentNullException.ThrowIfNull(language);
@@ -34,12 +34,12 @@ public static class Tr
         CultureInfo.CurrentUICulture = culture;
     }
 
-    /// <summary>Traduction d'un texte de l'interface.</summary>
+    /// <summary>Translation of an interface text.</summary>
     public static string T(string text) => Catalog.Translate(text);
 
     /// <summary>
-    /// Traduction d'un texte composite ({0}, {1}...), puis remplacement des valeurs. Une traduction
-    /// mal formée (accolade oubliée dans un fichier de langue importé) retombe sur le texte source.
+    /// Translation of a composite text ({0}, {1}...), then the values are inserted. A malformed
+    /// translation (missing brace in an imported language file) falls back to the source text.
     /// </summary>
     public static string F(string format, params object?[] args)
     {

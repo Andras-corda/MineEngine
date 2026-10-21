@@ -88,6 +88,11 @@
     <sys:String x:Key="Glyph.Close">&#xE711;</sys:String>
     <sys:String x:Key="Glyph.Check">&#xE73E;</sys:String>
     <sys:String x:Key="Glyph.ChevronRight">&#xE76C;</sys:String>
+    <sys:String x:Key="Glyph.Back">&#xE72B;</sys:String>
+    <sys:String x:Key="Glyph.Keyboard">&#xE765;</sys:String>
+    <sys:String x:Key="Glyph.Star">&#xE734;</sys:String>
+    <sys:String x:Key="Glyph.Tab">&#xE7C4;</sys:String>
+    <sys:String x:Key="Glyph.Forward">&#xE72A;</sys:String>
     <sys:String x:Key="Glyph.ChevronDown">&#xE70D;</sys:String>
     <sys:String x:Key="Glyph.ChevronUp">&#xE70E;</sys:String>
     <sys:String x:Key="Glyph.Up">&#xE74A;</sys:String>           <!-- dossier parent -->
@@ -194,6 +199,27 @@
     </Geometry>
 
     <!-- Fonction : f cursif -->
+    <!-- 3D model: a cube seen in perspective. -->
+    <Geometry x:Key="ModelGeometry">
+        M8,1.5 L14,4.5 L14,11.5 L8,14.5 L2,11.5 L2,4.5 Z
+        M2,4.5 L8,7.5 L14,4.5
+        M8,7.5 V14.5
+    </Geometry>
+
+    <!-- Arbre de comportement Puppeteer : une racine reliée à deux enfants. -->
+    <Geometry x:Key="BehaviorTreeGeometry">
+        M6,1.5 H10 V4.5 H6 Z
+        M8,4.5 V7.5 M3.5,7.5 H12.5 M3.5,7.5 V10 M12.5,7.5 V10
+        M1.5,10 H5.5 V14 H1.5 Z
+        M10.5,10 H14.5 V14 H10.5 Z
+    </Geometry>
+    <!-- Function library: books on a shelf -->
+    <Geometry x:Key="LibraryGeometry">
+        M2.5,3 V13 M5,3 V13 M2.5,3 H5 M2.5,13 H5
+        M7.5,4 V13 M10,4 V13 M7.5,4 H10
+        M11.5,4.5 L13.5,4 L15,12.5 L13,13
+        M1.5,13.5 H14.5
+    </Geometry>
     <Geometry x:Key="FunctionGeometry">
         M11,2.5 Q8.5,1.8 8,4.5 L6.5,11.5 Q6,14 3.5,13.5
         M5,6.5 H10.5

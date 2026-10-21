@@ -49,7 +49,7 @@ public static class ModLocalizationSerializer
         {
             if ((root["formatVersion"]?.GetValue<int>() ?? FormatVersion) > FormatVersion)
             {
-                throw new InvalidDataException(Tr.F("{0} a été créé par une version plus récente de Mine Engine.", sourceName));
+                throw new InvalidDataException(Tr.F("{0} was created by a newer version of Mine Engine.", sourceName));
             }
 
             List<string> locales = root["locales"] is JsonArray array
@@ -71,7 +71,7 @@ public static class ModLocalizationSerializer
         }
         catch (Exception exception) when (exception is InvalidOperationException or FormatException or JsonException)
         {
-            throw new InvalidDataException(Tr.F("{0} n'est pas un fichier de langues valide : {1}", sourceName, exception.Message), exception);
+            throw new InvalidDataException(Tr.F("{0} is not a valid languages file: {1}", sourceName, exception.Message), exception);
         }
     }
 
@@ -85,7 +85,7 @@ public static class ModLocalizationSerializer
         }
         catch (Exception exception) when (exception is InvalidOperationException or FormatException or JsonException)
         {
-            throw new InvalidDataException(Tr.F("{0} n'est pas un fichier de langue Minecraft valide : {1}", sourceName, exception.Message), exception);
+            throw new InvalidDataException(Tr.F("{0} is not a valid Minecraft language file: {1}", sourceName, exception.Message), exception);
         }
     }
 

@@ -18,7 +18,7 @@ public static class ModLoaderKindExtensions
         ModLoaderKind.Forge => "Forge",
         ModLoaderKind.NeoForge => "NeoForge",
         ModLoaderKind.Fabric => "Fabric",
-        _ => Tr.T("Inconnu"),
+        _ => Tr.T("Unknown"),
     };
 
     public static ModLoaderKind FromId(string? id) =>

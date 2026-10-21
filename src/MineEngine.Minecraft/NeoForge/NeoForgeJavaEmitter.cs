@@ -82,8 +82,45 @@ public sealed class NeoForgeJavaEmitter : ModJavaEmitter
         GraphNodeKind.OnUseItem => ("net.neoforged.neoforge.event.entity.player.PlayerInteractEvent", "PlayerInteractEvent.RightClickItem"),
         GraphNodeKind.OnPlayerJoin => ("net.neoforged.neoforge.event.entity.player.PlayerEvent", "PlayerEvent.PlayerLoggedInEvent"),
         GraphNodeKind.OnBlockBroken => ("net.neoforged.neoforge.event.level.BlockEvent", "BlockEvent.BreakEvent"),
+        GraphNodeKind.OnPlayerLeave => ("net.neoforged.neoforge.event.entity.player.PlayerEvent", "PlayerEvent.PlayerLoggedOutEvent"),
+        GraphNodeKind.OnPlayerTick => ("net.neoforged.neoforge.event.tick.PlayerTickEvent", "PlayerTickEvent.Post"),
+        GraphNodeKind.OnPlayerHurt => ("net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent", "LivingIncomingDamageEvent"),
+        GraphNodeKind.OnEntitySpawn => ("net.neoforged.neoforge.event.entity.EntityJoinLevelEvent", "EntityJoinLevelEvent"),
+        GraphNodeKind.OnEntityDeath => ("net.neoforged.neoforge.event.entity.living.LivingDeathEvent", "LivingDeathEvent"),
         _ => throw new NotSupportedException($"{eventKind} n'est pas un événement."),
     };
+
+    // ----- V0.6.2 / V0.6.3 -----
+
+    protected override IReadOnlyList<string> RegistryImports { get; } =
+    [
+        "net.neoforged.neoforge.registries.DeferredHolder",
+        "net.neoforged.neoforge.registries.DeferredRegister",
+    ];
+
+    protected override string RegistryHolderType(string registryType, string valueType) => $"DeferredHolder<{registryType}, {valueType}>";
+
+    // A DeferredHolder is a Holder.
+    protected override string HolderOf(string field) => field;
+
+    protected override string RegisterCommandsEventType => "net.neoforged.neoforge.event.RegisterCommandsEvent";
+
+    protected override string RegisterKeyMappingsEventType => "net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent";
+
+    protected override string InputEventType => "net.neoforged.neoforge.client.event.InputEvent";
+
+    protected override string ClientSetupEventType => "net.neoforged.fml.event.lifecycle.FMLClientSetupEvent";
+
+    protected override (string Expression, string Import) FluidTypesRegistry =>
+        ("NeoForgeRegistries.Keys.FLUID_TYPES", "net.neoforged.neoforge.registries.NeoForgeRegistries");
+
+    protected override string FluidTypeClass => "net.neoforged.neoforge.fluids.FluidType";
+
+    protected override string FlowingFluidClass => "net.neoforged.neoforge.fluids.BaseFlowingFluid";
+
+    protected override string ClientFluidExtensionsClass => "net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions";
+
+    protected override string? RegisterClientExtensionsEventType => "net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent";
 
     protected override string EntityTypeHolderType(string entityClass) => $"DeferredHolder<EntityType<?>, EntityType<{entityClass}>>";
 

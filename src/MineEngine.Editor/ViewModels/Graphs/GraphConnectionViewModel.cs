@@ -67,10 +67,10 @@ public sealed record NodeChoiceViewModel(NodeTemplate Template)
 
     public string Title => Template.Info.Kind switch
     {
-        GraphNodeKind.GetVariable or GraphNodeKind.GetField => Tr.F("Lire {0}", Info.Title),
+        GraphNodeKind.GetVariable or GraphNodeKind.GetField => Tr.F("Get {0}", Info.Title),
         GraphNodeKind.EnumEquals => Info.Title,
-        GraphNodeKind.EnumLiteral => Info.Title + Tr.T(" (valeur)"),
-        GraphNodeKind.CallFunction => Tr.F("Appeler {0}", Info.Title),
+        GraphNodeKind.EnumLiteral => Info.Title + Tr.T(" (value)"),
+        GraphNodeKind.CallFunction => Tr.F("Call {0}", Info.Title),
         _ => Info.Title,
     };
 

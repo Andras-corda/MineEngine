@@ -77,7 +77,7 @@ public sealed class ThemeLibrary
     {
         if (BuiltInThemes.All.Any(t => t.Id == id))
         {
-            throw new InvalidOperationException(Tr.T("Les thèmes livrés avec Mine Engine ne peuvent pas être supprimés."));
+            throw new InvalidOperationException(Tr.T("Themes shipped with Mine Engine cannot be deleted."));
         }
 
         string file = FileOf(id);

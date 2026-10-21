@@ -56,18 +56,18 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBox Style="{StaticResource SmallBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" ToolTip="{l:Tr 'Nom'}" />
+                            <TextBox Style="{StaticResource SmallBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" ToolTip="{l:Tr 'Name'}" />
                             <ComboBox Grid.Column="2" Style="{StaticResource SmallCombo}" ItemsSource="{Binding TypeChoices}" SelectedItem="{Binding Type}"
                                       DisplayMemberPath="Label" ToolTip="{l:Tr 'Type'}" />
                             <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="4,0,0,0">
-                                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronUp}" Width="22" Command="{Binding MoveUpCommand}" ToolTip="{l:Tr 'Monter'}" />
-                                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronDown}" Width="22" Command="{Binding MoveDownCommand}" ToolTip="{l:Tr 'Descendre'}" />
-                                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Close}" Width="22" Command="{Binding RemoveCommand}" ToolTip="{l:Tr 'Supprimer'}" />
+                                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronUp}" Width="22" Command="{Binding MoveUpCommand}" ToolTip="{l:Tr 'Move up'}" />
+                                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronDown}" Width="22" Command="{Binding MoveDownCommand}" ToolTip="{l:Tr 'Move down'}" />
+                                <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Close}" Width="22" Command="{Binding RemoveCommand}" ToolTip="{l:Tr 'Delete'}" />
                             </StackPanel>
                         </Grid>
                         <WrapPanel Margin="0,6,0,0">
                             <StackPanel Orientation="Horizontal" Margin="0,0,10,0" Visibility="{Binding HasDefault, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="{l:Tr 'Défaut'}" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource HintBrush}" />
+                                <TextBlock Text="{l:Tr 'Default'}" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource HintBrush}" />
                                 <TextBox Style="{StaticResource SmallBox}" Width="90" Text="{Binding DefaultText, UpdateSourceTrigger=PropertyChanged}"
                                          Visibility="{Binding IsTextDefault, Converter={StaticResource BoolToVisibility}}" />
                                 <CheckBox MinWidth="0" IsChecked="{Binding DefaultBool}" VerticalAlignment="Center"
@@ -76,9 +76,9 @@
                                           DisplayMemberPath="Name" Visibility="{Binding IsChoiceDefault, Converter={StaticResource BoolToVisibility}}" />
                             </StackPanel>
                             <ComboBox Style="{StaticResource SmallCombo}" Width="96" Margin="0,0,10,0" ItemsSource="{Binding AccessChoices}" SelectedItem="{Binding Access}"
-                                      ItemTemplate="{StaticResource AccessItem}" ToolTip="{l:Tr 'Qui peut lire et modifier ce champ'}" Visibility="{Binding ShowAccess, Converter={StaticResource BoolToVisibility}}" />
-                            <CheckBox MinWidth="0" Content="{l:Tr 'Globale'}" FontSize="12" IsChecked="{Binding IsGlobal}"
-                                      ToolTip="{l:Tr 'Conservée d\'un appel à l\'autre (sinon remise à sa valeur par défaut à chaque appel)'}"
+                                      ItemTemplate="{StaticResource AccessItem}" ToolTip="{l:Tr 'Who can read and change this field'}" Visibility="{Binding ShowAccess, Converter={StaticResource BoolToVisibility}}" />
+                            <CheckBox MinWidth="0" Content="{l:Tr 'Global'}" FontSize="12" IsChecked="{Binding IsGlobal}"
+                                      ToolTip="{l:Tr 'Kept from one call to the next (otherwise reset to its default value at each call)'}"
                                       Visibility="{Binding ShowGlobal, Converter={StaticResource BoolToVisibility}}" />
                         </WrapPanel>
                     </StackPanel>
@@ -94,9 +94,9 @@
                 <Border DockPanel.Dock="Right" Style="{StaticResource Badge}" VerticalAlignment="Center">
                     <TextBlock Style="{StaticResource BadgeText}" Text="{Binding KindLabel}" />
                 </Border>
-                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'DÉFINITION'}" />
+                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'DEFINITION'}" />
             </DockPanel>
-            <TextBlock Text="{l:Tr 'Nom'}" Style="{StaticResource FieldLabel}" Margin="0,10,0,4" />
+            <TextBlock Text="{l:Tr 'Name'}" Style="{StaticResource FieldLabel}" Margin="0,10,0,4" />
             <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
 
             <StackPanel Visibility="{Binding IsOwned, Converter={StaticResource BoolToVisibility}}" Margin="0,8,0,0">
@@ -110,16 +110,16 @@
 
             <!-- Accessibilité -->
             <StackPanel Visibility="{Binding ShowAccess, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="{l:Tr 'Accessibilité'}" Style="{StaticResource FieldLabel}" Margin="0,10,0,4" />
+                <TextBlock Text="{l:Tr 'Accessibility'}" Style="{StaticResource FieldLabel}" Margin="0,10,0,4" />
                 <ComboBox ItemsSource="{Binding AccessChoices}" SelectedItem="{Binding Access}" ItemTemplate="{StaticResource AccessItem}" HorizontalAlignment="Stretch" />
                 <TextBlock Text="{Binding AccessHint}" Style="{StaticResource FieldHint}" />
             </StackPanel>
 
-            <CheckBox Content="{l:Tr 'Fonction pure (sans fil d\'exécution)'}" Margin="0,10,0,0" IsChecked="{Binding IsPure}"
-                      ToolTip="{l:Tr 'Calculée là où sa valeur est utilisée, comme un nœud de valeur ; à réserver aux calculs sans effet sur le jeu.'}"
+            <CheckBox Content="{l:Tr 'Pure function (no execution wire)'}" Margin="0,10,0,0" IsChecked="{Binding IsPure}"
+                      ToolTip="{l:Tr 'Computed where its value is used, like a value node; reserve it for calculations with no effect on the game.'}"
                       Visibility="{Binding ShowPure, Converter={StaticResource BoolToVisibility}}" />
-            <CheckBox Content="{l:Tr 'Statique (sans « Moi »)'}" Margin="0,6,0,0" IsChecked="{Binding IsStatic}"
-                      ToolTip="{l:Tr 'La méthode ne s\'exécute pas sur un objet : elle s\'appelle sans objet et n\'a pas accès aux champs.'}"
+            <CheckBox Content="{l:Tr 'Static (no &quot;Self&quot;)'}" Margin="0,6,0,0" IsChecked="{Binding IsStatic}"
+                      ToolTip="{l:Tr 'The method does not run on an object: it is called without an object and has no access to the fields.'}"
                       Visibility="{Binding ShowStatic, Converter={StaticResource BoolToVisibility}}" />
 
             <!-- Paramètres -->
@@ -127,27 +127,27 @@
                 <TextBlock Style="{StaticResource SectionTitle}" Text="{Binding ParametersTitle}" />
                 <ItemsControl ItemsSource="{Binding Parameters}" ItemTemplate="{StaticResource VariableRow}" Focusable="False" />
                 <Button Style="{StaticResource AddButton}" Command="{Binding AddParameterCommand}">
-                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Ajouter un paramètre'}" /></StackPanel>
+                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Add a parameter'}" /></StackPanel>
                 </Button>
             </StackPanel>
 
             <!-- Valeurs renvoyées -->
             <StackPanel Visibility="{Binding ShowReturns, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Style="{StaticResource SectionTitle}" Text="{l:Tr 'VALEURS RENVOYÉES'}" />
+                <TextBlock Style="{StaticResource SectionTitle}" Text="{l:Tr 'RETURN VALUES'}" />
                 <ItemsControl ItemsSource="{Binding Returns}" ItemTemplate="{StaticResource VariableRow}" Focusable="False" />
                 <Button Style="{StaticResource AddButton}" Command="{Binding AddReturnCommand}">
-                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Ajouter une valeur renvoyée'}" /></StackPanel>
+                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Add a return value'}" /></StackPanel>
                 </Button>
             </StackPanel>
 
             <!-- Classe : héritage et interfaces -->
             <StackPanel Visibility="{Binding IsClass, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Style="{StaticResource SectionTitle}" Text="{l:Tr 'HÉRITAGE'}" />
-                <TextBlock Text="{l:Tr 'Classe parente'}" Style="{StaticResource FieldLabel}" Margin="0,0,0,4" />
+                <TextBlock Style="{StaticResource SectionTitle}" Text="{l:Tr 'INHERITANCE'}" />
+                <TextBlock Text="{l:Tr 'Parent class'}" Style="{StaticResource FieldLabel}" Margin="0,0,0,4" />
                 <ComboBox ItemsSource="{Binding BaseClassChoices}" SelectedItem="{Binding BaseClass}" DisplayMemberPath="Label" HorizontalAlignment="Stretch" />
                 <TextBlock Style="{StaticResource FieldHint}"
-                           Text="{l:Tr 'La classe reçoit les champs et les méthodes de sa parente ; une méthode du même nom la redéfinit.'}" />
-                <TextBlock Text="{l:Tr 'Interfaces implémentées'}" Style="{StaticResource FieldLabel}" Margin="0,10,0,4" />
+                           Text="{l:Tr 'The class receives the fields and methods of its parent; a method with the same name overrides it.'}" />
+                <TextBlock Text="{l:Tr 'Implemented interfaces'}" Style="{StaticResource FieldLabel}" Margin="0,10,0,4" />
                 <ItemsControl ItemsSource="{Binding Interfaces}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type graphs:InterfaceChoiceViewModel}">
@@ -163,19 +163,49 @@
                 <TextBlock Style="{StaticResource FieldHint}" Text="{Binding VariablesHint}" Margin="0,0,0,6" />
                 <ItemsControl ItemsSource="{Binding Variables}" ItemTemplate="{StaticResource VariableRow}" Focusable="False" />
                 <Button Style="{StaticResource AddButton}" Command="{Binding AddVariableCommand}">
-                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Ajouter'}" /></StackPanel>
+                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Add'}" /></StackPanel>
                 </Button>
             </StackPanel>
 
-            <!-- Classe : méthodes et types intégrés -->
-            <StackPanel Visibility="{Binding IsClass, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Style="{StaticResource SectionTitle}" Text="{l:Tr 'MÉTHODES ET TYPES INTÉGRÉS'}" />
+            <!-- Function library: its functions and procedures -->
+            <StackPanel Visibility="{Binding IsLibrary, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Style="{StaticResource SectionTitle}" Text="{l:Tr 'FUNCTIONS OF THE LIBRARY'}" />
+                <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,8" TextWrapping="Wrap"
+                           Text="{l:Tr 'Public and usable in every graph of the project: in the Nodes window, they are grouped under the name of the library, in gray. A function can be pure (no execution wire), like in Blueprints.'}" />
                 <ItemsControl ItemsSource="{Binding Members}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type graphs:MemberItemViewModel}">
                             <Border Style="{StaticResource Card}" Padding="8,5" Margin="0,0,0,6">
                                 <DockPanel>
-                                    <Button DockPanel.Dock="Right" Style="{StaticResource FlatButton}" Command="{Binding OpenCommand}" Content="{l:Tr 'Ouvrir'}" />
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource FlatButton}" Command="{Binding OpenCommand}" Content="{l:Tr 'Open'}" />
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" />
+                                        <TextBlock FontSize="11" Foreground="{DynamicResource HintBrush}" Text="{Binding KindLabel}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource AddButton}" Command="{Binding AddMemberCommand}" CommandParameter="{x:Static program:GraphKind.Function}">
+                        <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Add a function'}" /></StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource AddButton}" Margin="8,0,0,0" Command="{Binding AddMemberCommand}" CommandParameter="{x:Static program:GraphKind.Procedure}">
+                        <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Add a procedure'}" /></StackPanel>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Classe : méthodes et types intégrés -->
+            <StackPanel Visibility="{Binding IsClass, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Style="{StaticResource SectionTitle}" Text="{l:Tr 'NESTED METHODS AND TYPES'}" />
+                <ItemsControl ItemsSource="{Binding Members}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type graphs:MemberItemViewModel}">
+                            <Border Style="{StaticResource Card}" Padding="8,5" Margin="0,0,0,6">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource FlatButton}" Command="{Binding OpenCommand}" Content="{l:Tr 'Open'}" />
                                     <StackPanel>
                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" />
                                         <TextBlock FontSize="11" Foreground="{DynamicResource HintBrush}">
@@ -190,17 +220,17 @@
                 <Button Style="{StaticResource AddButton}" Click="OnMenuButtonClick">
                     <Button.ContextMenu>
                         <ContextMenu>
-                            <MenuItem Header="{l:Tr 'Méthode (fonction)'}" Command="{Binding AddMemberCommand}" CommandParameter="{x:Static program:GraphKind.Function}" />
-                            <MenuItem Header="{l:Tr 'Méthode (procédure)'}" Command="{Binding AddMemberCommand}" CommandParameter="{x:Static program:GraphKind.Procedure}" />
+                            <MenuItem Header="{l:Tr 'Method (function)'}" Command="{Binding AddMemberCommand}" CommandParameter="{x:Static program:GraphKind.Function}" />
+                            <MenuItem Header="{l:Tr 'Method (procedure)'}" Command="{Binding AddMemberCommand}" CommandParameter="{x:Static program:GraphKind.Procedure}" />
                             <Separator />
-                            <MenuItem Header="{l:Tr 'Classe intégrée'}" Command="{Binding AddMemberCommand}" CommandParameter="{x:Static program:GraphKind.Class}" />
-                            <MenuItem Header="{l:Tr 'Structure intégrée'}" Command="{Binding AddMemberCommand}" CommandParameter="{x:Static program:GraphKind.Struct}" />
-                            <MenuItem Header="{l:Tr 'Interface intégrée'}" Command="{Binding AddMemberCommand}" CommandParameter="{x:Static program:GraphKind.Interface}" />
-                            <MenuItem Header="{l:Tr 'Énumération intégrée'}" Command="{Binding AddMemberCommand}" CommandParameter="{x:Static program:GraphKind.Enum}" />
+                            <MenuItem Header="{l:Tr 'Nested class'}" Command="{Binding AddMemberCommand}" CommandParameter="{x:Static program:GraphKind.Class}" />
+                            <MenuItem Header="{l:Tr 'Nested struct'}" Command="{Binding AddMemberCommand}" CommandParameter="{x:Static program:GraphKind.Struct}" />
+                            <MenuItem Header="{l:Tr 'Nested interface'}" Command="{Binding AddMemberCommand}" CommandParameter="{x:Static program:GraphKind.Interface}" />
+                            <MenuItem Header="{l:Tr 'Nested enumeration'}" Command="{Binding AddMemberCommand}" CommandParameter="{x:Static program:GraphKind.Enum}" />
                         </ContextMenu>
                     </Button.ContextMenu>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Ajouter une méthode ou un type'}" />
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Add a method or a type'}" />
                         <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.ChevronDown}" FontSize="9" Margin="6,1,0,0" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
@@ -208,12 +238,12 @@
 
             <!-- Énumération : valeurs -->
             <StackPanel Visibility="{Binding IsEnum, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Style="{StaticResource SectionTitle}" Text="{l:Tr 'VALEURS'}" />
+                <TextBlock Style="{StaticResource SectionTitle}" Text="{l:Tr 'VALUES'}" />
                 <ItemsControl ItemsSource="{Binding Constants}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type graphs:ConstantItemViewModel}">
                             <DockPanel Margin="0,0,0,6">
-                                <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Close}" Command="{Binding RemoveCommand}" ToolTip="{l:Tr 'Supprimer'}" />
+                                <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Close}" Command="{Binding RemoveCommand}" ToolTip="{l:Tr 'Delete'}" />
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource MonoHint}" Text="{Binding JavaName}" Margin="8,0" VerticalAlignment="Center" />
                                 <TextBox Style="{StaticResource SmallBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
                             </DockPanel>
@@ -221,23 +251,23 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <Button Style="{StaticResource AddButton}" Command="{Binding AddConstantCommand}">
-                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Ajouter une valeur'}" /></StackPanel>
+                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Add a value'}" /></StackPanel>
                 </Button>
             </StackPanel>
 
             <!-- Interface : méthodes -->
             <StackPanel Visibility="{Binding IsInterface, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Style="{StaticResource SectionTitle}" Text="{l:Tr 'MÉTHODES À FOURNIR'}" />
+                <TextBlock Style="{StaticResource SectionTitle}" Text="{l:Tr 'METHODS TO PROVIDE'}" />
                 <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,6"
-                           Text="{l:Tr 'Une classe qui implémente l\'interface doit avoir une méthode publique de même nom, avec les mêmes types.'}" />
+                           Text="{l:Tr 'A class that implements the interface must have a public method with the same name and the same types.'}" />
                 <ItemsControl ItemsSource="{Binding Methods}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type graphs:MethodSignatureItemViewModel}">
                             <Border Style="{StaticResource Card}" Padding="8,6" Margin="0,0,0,8">
                                 <StackPanel>
                                     <DockPanel>
-                                        <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Close}" Command="{Binding RemoveCommand}" ToolTip="{l:Tr 'Supprimer la méthode'}" />
-                                        <TextBox Style="{StaticResource SmallBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" ToolTip="{l:Tr 'Nom de la méthode'}" />
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Close}" Command="{Binding RemoveCommand}" ToolTip="{l:Tr 'Delete the method'}" />
+                                        <TextBox Style="{StaticResource SmallBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" ToolTip="{l:Tr 'Method name'}" />
                                     </DockPanel>
                                     <ItemsControl ItemsSource="{Binding Parameters}" Margin="0,6,0,0" Focusable="False">
                                         <ItemsControl.ItemTemplate>
@@ -249,7 +279,7 @@
                                                         <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBox Style="{StaticResource SmallBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" ToolTip="{l:Tr 'Paramètre'}" />
+                                                    <TextBox Style="{StaticResource SmallBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" ToolTip="{l:Tr 'Parameter'}" />
                                                     <ComboBox Grid.Column="2" Style="{StaticResource SmallCombo}" ItemsSource="{Binding TypeChoices}" SelectedItem="{Binding Type}"
                                                               DisplayMemberPath="Label" />
                                                     <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Close}" Width="22" Command="{Binding RemoveCommand}" />
@@ -257,9 +287,9 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <Button Style="{StaticResource AddButton}" Command="{Binding AddParameterCommand}" Content="{l:Tr '+ paramètre'}" />
+                                    <Button Style="{StaticResource AddButton}" Command="{Binding AddParameterCommand}" Content="{l:Tr '+ parameter'}" />
                                     <DockPanel Margin="0,6,0,0">
-                                        <CheckBox DockPanel.Dock="Left" MinWidth="0" Content="{l:Tr 'Renvoie'}" IsChecked="{Binding ReturnsValue}" Margin="0,0,8,0" />
+                                        <CheckBox DockPanel.Dock="Left" MinWidth="0" Content="{l:Tr 'Returns'}" IsChecked="{Binding ReturnsValue}" Margin="0,0,8,0" />
                                         <ComboBox Style="{StaticResource SmallCombo}" ItemsSource="{Binding TypeChoices}" SelectedItem="{Binding ReturnType}"
                                                   DisplayMemberPath="Label" IsEnabled="{Binding ReturnsValue}" />
                                     </DockPanel>
@@ -269,7 +299,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <Button Style="{StaticResource AddButton}" Command="{Binding AddMethodCommand}">
-                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Ajouter une méthode'}" /></StackPanel>
+                    <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" /><TextBlock Text="{l:Tr 'Add a method'}" /></StackPanel>
                 </Button>
             </StackPanel>
         </StackPanel>

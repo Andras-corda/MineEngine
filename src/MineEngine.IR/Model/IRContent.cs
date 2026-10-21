@@ -38,12 +38,33 @@ public sealed class IRContent
     /// <summary>Fonctions, procédures, classes, structures, interfaces et énumérations des graphes.</summary>
     public IReadOnlyList<IRDefinition> Definitions { get; init; } = [];
 
+    /// <summary>Minecraft Java JSON models copied into the mod (models/custom).</summary>
+    public IReadOnlyList<IRModel> Models { get; init; } = [];
+
+    /// <summary>Arbres de comportement Puppeteer.</summary>
+    public IReadOnlyList<IRBehaviorTree> BehaviorTrees { get; init; } = [];
+
+    public IReadOnlyList<IRCommand> Commands { get; init; } = [];
+
+    public IReadOnlyList<IRCreativeTab> CreativeTabs { get; init; } = [];
+
+    public IReadOnlyList<IRKeybind> Keybinds { get; init; } = [];
+
+    public IReadOnlyList<IREnchantment> Enchantments { get; init; } = [];
+
+    public IReadOnlyList<IRFluid> Fluids { get; init; } = [];
+
+    public IReadOnlyList<IRGameRule> GameRules { get; init; } = [];
+
+    public IReadOnlyList<IREffect> Effects { get; init; } = [];
+
     /// <summary>Mobs qui ont un œuf d'apparition.</summary>
     public IEnumerable<IRMob> MobsWithSpawnEgg => Mobs.Where(m => m.SpawnEgg is not null);
 
     public bool IsEmpty =>
         Items.Count == 0 && Blocks.Count == 0 && Mobs.Count == 0 && Recipes.Count == 0 && Sounds.Count == 0 && Behaviors.Count == 0
-        && Definitions.Count == 0;
+        && Definitions.Count == 0 && Commands.Count == 0 && CreativeTabs.Count == 0 && Keybinds.Count == 0 && Enchantments.Count == 0
+        && Fluids.Count == 0 && GameRules.Count == 0 && Effects.Count == 0;
 
     /// <summary>Tous les éléments qui ont une forme item (items, puis blocs avec item).</summary>
     public IEnumerable<IRElement> ElementsWithItemForm =>
@@ -70,6 +91,9 @@ public abstract class IRElement
 
     /// <summary>Texture principale.</summary>
     public IRTexture Texture { get; }
+
+    /// <summary>3D model of the project shown instead of the generated shape (see <see cref="IRModel"/>), or null.</summary>
+    public ResourceId? CustomModel { get; init; }
 
     /// <summary>Forme item (inventaire), ou null pour un bloc sans item.</summary>
     public abstract IRItemForm? ItemForm { get; }
@@ -294,17 +318,27 @@ public sealed class IRBlockSettings
 /// <summary>Texture d'un élément : un fichier PNG existant, ou une texture de remplacement.</summary>
 public sealed class IRTexture
 {
-    private IRTexture(string? sourceFile)
+    private IRTexture(string? sourceFile, byte[]? png = null)
     {
         SourceFile = sourceFile;
+        Png = png;
     }
 
     public static IRTexture Placeholder { get; } = new(null);
 
+    /// <summary>Image held in memory (texture embedded in a Blockbench model), or null.</summary>
+    public byte[]? Png { get; }
+
     /// <summary>Chemin absolu du PNG source, ou null pour la texture de remplacement.</summary>
     public string? SourceFile { get; }
 
-    public bool IsPlaceholder => SourceFile is null;
+    public bool IsPlaceholder => SourceFile is null && Png is null;
+
+    public static IRTexture FromPng(byte[] png)
+    {
+        ArgumentNullException.ThrowIfNull(png);
+        return new IRTexture(null, png);
+    }
 
     public static IRTexture FromFile(string absolutePath)
     {

@@ -19,6 +19,7 @@ public sealed class MobLowering : AssetLowering<MobAsset>
         context.AddMob(new IRMob(asset.Id, asset.ResourceId, asset.DisplayName)
         {
             Model = asset.Model,
+            CustomModel = context.ResolveCustomModel(asset),
             Kind = asset.Kind,
             Texture = context.ResolveOptionalTexture(asset, asset.TextureId),
             Width = width,
@@ -33,11 +34,12 @@ public sealed class MobLowering : AssetLowering<MobAsset>
             FireImmune = asset.FireImmune,
             BurnsInDaylight = asset.BurnsInDaylight,
             Persistent = asset.Persistent,
-            Goals = [.. asset.Goals.Where(g => isAnimal || !g.Info.RequiresAnimal).Select(g => LowerGoal(asset, g, context)).OfType<IRMobGoal>()],
-            BreedingItem = isAnimal ? context.ResolveItem(asset, asset.BreedingItem, Tr.T("Item de reproduction")) : null,
-            AmbientSound = context.ResolveSound(asset, asset.AmbientSound, Tr.T("Son ambiant")),
-            HurtSound = context.ResolveSound(asset, asset.HurtSound, Tr.T("Son de blessure")),
-            DeathSound = context.ResolveSound(asset, asset.DeathSound, Tr.T("Son de mort")),
+            BehaviorTree = asset.BehaviorTreeId is { } tree ? context.Project.Assets.Find(tree)?.ResourceId : null,
+            Goals = asset.UsesBehaviorTree ? [] : [.. asset.Goals.Where(g => isAnimal || !g.Info.RequiresAnimal).Select(g => LowerGoal(asset, g, context)).OfType<IRMobGoal>()],
+            BreedingItem = isAnimal ? context.ResolveItem(asset, asset.BreedingItem, Tr.T("Breeding item")) : null,
+            AmbientSound = context.ResolveSound(asset, asset.AmbientSound, Tr.T("Ambient sound")),
+            HurtSound = context.ResolveSound(asset, asset.HurtSound, Tr.T("Hurt sound")),
+            DeathSound = context.ResolveSound(asset, asset.DeathSound, Tr.T("Death sound")),
             Drops = [.. asset.Drops.Select(d => LowerDrop(asset, d, context)).OfType<IRMobDrop>()],
             SpawnEgg = asset.HasSpawnEgg ? new IRSpawnEgg(asset.SpawnEggId, asset.EggPrimaryColor, asset.EggSecondaryColor) : null,
             Spawning = asset.SpawnsNaturally && asset.SpawnBiomes.Count > 0
@@ -55,7 +57,7 @@ public sealed class MobLowering : AssetLowering<MobAsset>
         NamespacedId? item = null;
         if (goal.Info.UsesItem)
         {
-            item = context.ResolveItem(asset, goal.Item, Tr.F("IA « {0} »", goal.Info.Label));
+            item = context.ResolveItem(asset, goal.Item, Tr.F("AI \"{0}\"", goal.Info.Label));
             if (item is null)
             {
                 return null;
@@ -66,7 +68,7 @@ public sealed class MobLowering : AssetLowering<MobAsset>
     }
 
     private static IRMobDrop? LowerDrop(MobAsset asset, MobDrop drop, LoweringContext context) =>
-        context.ResolveItem(asset, drop.Item, Tr.T("Butin")) is { } item
+        context.ResolveItem(asset, drop.Item, Tr.T("Loot")) is { } item
             ? new IRMobDrop(item, Math.Min(drop.Min, drop.Max), Math.Max(drop.Min, drop.Max))
             : null;
 }

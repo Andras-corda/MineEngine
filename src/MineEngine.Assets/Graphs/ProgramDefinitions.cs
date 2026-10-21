@@ -23,6 +23,12 @@ public enum GraphKind
 
     /// <summary>Type dont les valeurs possibles sont une liste de noms.</summary>
     Enum,
+
+    /// <summary>
+    /// Function library: functions and procedures always public and usable in every graph; they
+    /// are its members (like the static methods of a class) and are grouped under its name.
+    /// </summary>
+    Library,
 }
 
 /// <summary>Qui peut utiliser une définition, un champ ou une méthode.</summary>
@@ -80,13 +86,14 @@ public static class GraphKindExtensions
 {
     public static string Label(this GraphKind kind) => kind switch
     {
-        GraphKind.Events => Tr.T("Graphe d'événements"),
-        GraphKind.Function => Tr.T("Fonction"),
-        GraphKind.Procedure => Tr.T("Procédure"),
-        GraphKind.Class => Tr.T("Classe"),
-        GraphKind.Struct => Tr.T("Structure"),
+        GraphKind.Events => Tr.T("Event graph"),
+        GraphKind.Function => Tr.T("Function"),
+        GraphKind.Procedure => Tr.T("Procedure"),
+        GraphKind.Class => Tr.T("Class"),
+        GraphKind.Struct => Tr.T("Struct"),
         GraphKind.Interface => Tr.T("Interface"),
-        _ => Tr.T("Énumération"),
+        GraphKind.Library => Tr.T("Function library"),
+        _ => Tr.T("Enumeration"),
     };
 
     /// <summary>Le graphe a un canevas de nœuds (corps d'une fonction, constructeur d'une classe, événements).</summary>
@@ -101,7 +108,7 @@ public static class GraphKindExtensions
     public static string Label(this AccessLevel access) => access switch
     {
         AccessLevel.Public => Tr.T("Public"),
-        AccessLevel.Protected => Tr.T("Protégé"),
-        _ => Tr.T("Privé"),
+        AccessLevel.Protected => Tr.T("Protected"),
+        _ => Tr.T("Private"),
     };
 }

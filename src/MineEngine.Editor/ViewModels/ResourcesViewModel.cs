@@ -21,9 +21,9 @@ public enum ResourceSort
 }
 
 /// <summary>
-/// Onglet Ressources : tous les éléments du projet, quel que soit leur dossier, rangés par
-/// sorte (Items, Blocs, Textures...) et triés au choix. Il complète le Dashboard, qui suit
-/// les dossiers ; la sélection est partagée avec lui et avec le panneau Détails.
+/// Resources tab: the asset files of the project (textures, sounds, 3D models), whatever their folder,
+/// grouped by kind and sorted at will. Game content (items, blocks, mobs, graphs...) stays in
+/// the Dashboard. The selection is shared with the Dashboard and the Details panel.
 /// </summary>
 public sealed class ResourcesViewModel : ObservableObject
 {
@@ -37,7 +37,7 @@ public sealed class ResourcesViewModel : ObservableObject
     public ResourcesViewModel(ProjectViewModel project, IEnumerable<(AssetType Type, string Label)> types)
     {
         _project = project ?? throw new ArgumentNullException(nameof(project));
-        Categories = [new AssetTypeFilter(Tr.T("Tout"), null), .. types.Select(t => new AssetTypeFilter(t.Label, t.Type))];
+        Categories = [new AssetTypeFilter(Tr.T("All"), null), .. types.Select(t => new AssetTypeFilter(t.Label, t.Type))];
         _category = Categories[0];
         _category.IsActive = true;
 
@@ -50,12 +50,12 @@ public sealed class ResourcesViewModel : ObservableObject
 
         SortChoices =
         [
-            new(ResourceSort.Name, Tr.T("Nom")),
-            new(ResourceSort.Identifier, Tr.T("Identifiant")),
-            new(ResourceSort.Type, Tr.T("Sorte")),
-            new(ResourceSort.Folder, Tr.T("Dossier")),
-            new(ResourceSort.Status, Tr.T("État (problèmes d'abord)")),
-            new(ResourceSort.Usage, Tr.T("Utilisations")),
+            new(ResourceSort.Name, Tr.T("Name")),
+            new(ResourceSort.Identifier, Tr.T("Identifier")),
+            new(ResourceSort.Type, Tr.T("Kind")),
+            new(ResourceSort.Folder, Tr.T("Folder")),
+            new(ResourceSort.Status, Tr.T("Status (problems first)")),
+            new(ResourceSort.Usage, Tr.T("Uses")),
         ];
         SelectCategoryCommand = new RelayCommand<AssetTypeFilter>(c => Category = c);
         ToggleOrderCommand = new RelayCommand(() => Descending = !Descending);
@@ -63,6 +63,9 @@ public sealed class ResourcesViewModel : ObservableObject
     }
 
     public IReadOnlyList<AssetTypeFilter> Categories { get; }
+
+    /// <summary>True for the kinds listed by the Resources tab: imported files, not game content.</summary>
+    public static bool IsResource(AssetType type) => type is AssetType.Texture or AssetType.Sound or AssetType.Model;
 
     public IReadOnlyList<Choice<ResourceSort>> SortChoices { get; }
 
@@ -152,7 +155,7 @@ public sealed class ResourcesViewModel : ObservableObject
 
     private bool Matches(object item)
     {
-        if (item is not AssetViewModel asset || (_category.Type is { } type && asset.Model.Type != type))
+        if (item is not AssetViewModel asset || !IsResource(asset.Model.Type) || (_category.Type is { } type && asset.Model.Type != type))
         {
             return false;
         }
@@ -173,7 +176,9 @@ public sealed class ResourcesViewModel : ObservableObject
     {
         foreach (AssetTypeFilter category in Categories)
         {
-            category.Count = category.Type is { } type ? _project.Assets.Count(a => a.Model.Type == type) : _project.Assets.Count;
+            category.Count = category.Type is { } type
+                ? _project.Assets.Count(a => a.Model.Type == type)
+                : _project.Assets.Count(a => IsResource(a.Model.Type));
         }
     }
 

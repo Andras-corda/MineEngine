@@ -25,7 +25,7 @@ public readonly record struct RgbColor(byte R, byte G, byte B)
     }
 
     public static RgbColor Parse(string text) =>
-        TryParse(text, out RgbColor color) ? color : throw new FormatException(Tr.F("Couleur invalide : {0} (attendu : #RRGGBB).", text));
+        TryParse(text, out RgbColor color) ? color : throw new FormatException(Tr.F("Invalid color: {0} (expected: #RRGGBB).", text));
 
     /// <summary>Mélange avec une autre couleur : 0 donne cette couleur, 1 l'autre.</summary>
     public RgbColor Mix(RgbColor other, double amount)

@@ -17,6 +17,9 @@ public abstract class JavaGameApi
     /// <summary>Vrai si la viande est déclarée par le tag minecraft:meat (et non par le builder).</summary>
     public abstract bool MeatUsesItemTag { get; }
 
+    /// <summary>True from 1.20.5: item data lives in data components and enchantments in a data-driven registry.</summary>
+    public abstract bool UsesDataComponents { get; }
+
     /// <summary>Imports nécessaires à la redéfinition de l'info-bulle.</summary>
     public abstract IReadOnlyList<string> TooltipImports { get; }
 
@@ -37,6 +40,33 @@ public abstract class JavaGameApi
 
     /// <summary>Instruction qui enflamme l'entité courante pour un nombre de secondes.</summary>
     public abstract string IgniteSelf(int seconds);
+
+    /// <summary>Copy of the properties of a vanilla block ("Blocks.WATER"): copy (1.20.1) or ofFullCopy (1.20.5).</summary>
+    public abstract string CopyBlockProperties(string block);
+
+    /// <summary>Fluid given to a liquid block or a bucket: the supplier (Forge 1.20.1) or the fluid itself (1.20.5).</summary>
+    public abstract string FluidArgument(string holder);
+
+    /// <summary>True from 1.21: enchantments are data (JSON) instead of Java classes.</summary>
+    public abstract bool EnchantmentsAreData { get; }
+
+    /// <summary>Line that adds an attribute modifier to a status effect (in its constructor).</summary>
+    public abstract string EffectAttributeModifier(string attribute, string id, double amount, bool multiply);
+
+    /// <summary>Overrides of a status effect that heals or hurts every <paramref name="interval"/> ticks.</summary>
+    public abstract IReadOnlyList<string> EffectTick(int interval, IReadOnlyList<string> actions);
+
+    /// <summary>True when EntityModel.renderToBuffer takes one packed color (1.21) instead of four floats.</summary>
+    public abstract bool PackedRenderColor { get; }
+
+    /// <summary>Override of defineSynchedData that gives an entity data its default value.</summary>
+    public abstract (string Signature, IReadOnlyList<string> Body) DefineSynchedData(string accessor, string defaultValue);
+
+    /// <summary>
+    /// Expressions Java qui créent une flèche et une petite boule de feu tirées par un mob
+    /// (Puppeteer) ; les variables level, mob, dx, dy et dz sont déjà définies.
+    /// </summary>
+    public abstract (string Arrow, string SmallFireball) ProjectileCreation { get; }
 
     /// <summary>Type de placement "au sol" des règles d'apparition, et son import.</summary>
     public abstract (string Expression, string Import) OnGroundSpawnPlacement { get; }
@@ -80,6 +110,8 @@ public sealed class LegacyJavaGameApi : JavaGameApi
 {
     public override bool MeatUsesItemTag => false;
 
+    public override bool UsesDataComponents => false;
+
     public override IReadOnlyList<string> TooltipImports { get; } =
     [
         "java.util.List",
@@ -108,6 +140,44 @@ public sealed class LegacyJavaGameApi : JavaGameApi
 
     public override string IgniteSelf(int seconds) => $"this.setSecondsOnFire({seconds});";
 
+    public override bool PackedRenderColor => false;
+
+    public override string CopyBlockProperties(string block) => $"BlockBehaviour.Properties.copy({block})";
+
+    public override string FluidArgument(string holder) => holder;
+
+    public override bool EnchantmentsAreData => false;
+
+    public override string EffectAttributeModifier(string attribute, string id, double amount, bool multiply) =>
+        $"this.addAttributeModifier(Attributes.{attribute}, {JavaNames.StringLiteral(DeterministicUuid(id))}, {JavaNames.DoubleLiteral(amount)}, "
+        + $"AttributeModifier.Operation.{(multiply ? "MULTIPLY_TOTAL" : "ADDITION")});";
+
+    public override IReadOnlyList<string> EffectTick(int interval, IReadOnlyList<string> actions) =>
+    [
+        "@Override",
+        "public boolean isDurationEffectTick(int duration, int amplifier) {",
+        $"    return duration % {interval} == 0;",
+        "}",
+        string.Empty,
+        "@Override",
+        "public void applyEffectTick(LivingEntity entity, int amplifier) {",
+        .. actions.Select(a => "    " + a),
+        "}",
+    ];
+
+    /// <summary>The same identifier always gives the same UUID: the modifier keeps its UUID from one build to the next.</summary>
+    private static string DeterministicUuid(string id)
+    {
+        byte[] hash = System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(id));
+        return new Guid(hash).ToString("D");
+    }
+
+    public override (string Signature, IReadOnlyList<string> Body) DefineSynchedData(string accessor, string defaultValue) =>
+        ("protected void defineSynchedData()", ["super.defineSynchedData();", $"this.entityData.define({accessor}, {defaultValue});"]);
+
+    public override (string Arrow, string SmallFireball) ProjectileCreation =>
+        ("new Arrow(level, mob)", "new SmallFireball(level, mob, dx, dy, dz)");
+
     public override (string Expression, string Import) OnGroundSpawnPlacement =>
         ("SpawnPlacements.Type.ON_GROUND", "net.minecraft.world.entity.SpawnPlacements");
 
@@ -128,6 +198,8 @@ public sealed class LegacyJavaGameApi : JavaGameApi
 public sealed class ModernJavaGameApi : JavaGameApi
 {
     public override bool MeatUsesItemTag => true;
+
+    public override bool UsesDataComponents => true;
 
     public override IReadOnlyList<string> TooltipImports { get; } =
     [
@@ -154,6 +226,39 @@ public sealed class ModernJavaGameApi : JavaGameApi
     public override string ParseResourceLocation(string textExpression) => $"ResourceLocation.parse({textExpression})";
 
     public override string IgniteSelf(int seconds) => $"this.igniteForSeconds({seconds});";
+
+    // Targets are 1.20.1 and 1.21.1: the packed color came with 1.21, after the data components of 1.20.5.
+    public override bool PackedRenderColor => true;
+
+    public override string CopyBlockProperties(string block) => $"BlockBehaviour.Properties.ofFullCopy({block})";
+
+    public override string FluidArgument(string holder) => holder + ".get()";
+
+    public override bool EnchantmentsAreData => true;
+
+    public override string EffectAttributeModifier(string attribute, string id, double amount, bool multiply) =>
+        $"this.addAttributeModifier(Attributes.{attribute}, {ParseResourceLocation(JavaNames.StringLiteral(id))}, {JavaNames.DoubleLiteral(amount)}, "
+        + $"AttributeModifier.Operation.{(multiply ? "ADD_MULTIPLIED_TOTAL" : "ADD_VALUE")});";
+
+    public override IReadOnlyList<string> EffectTick(int interval, IReadOnlyList<string> actions) =>
+    [
+        "@Override",
+        "public boolean shouldApplyEffectTickThisTick(int duration, int amplifier) {",
+        $"    return duration % {interval} == 0;",
+        "}",
+        string.Empty,
+        "@Override",
+        "public boolean applyEffectTick(LivingEntity entity, int amplifier) {",
+        .. actions.Select(a => "    " + a),
+        "    return true;",
+        "}",
+    ];
+
+    public override (string Signature, IReadOnlyList<string> Body) DefineSynchedData(string accessor, string defaultValue) =>
+        ("protected void defineSynchedData(SynchedEntityData.Builder builder)", ["super.defineSynchedData(builder);", $"builder.define({accessor}, {defaultValue});"]);
+
+    public override (string Arrow, string SmallFireball) ProjectileCreation =>
+        ("new Arrow(level, mob, new ItemStack(Items.ARROW), null)", "new SmallFireball(level, mob, new Vec3(dx, dy, dz).normalize())");
 
     public override (string Expression, string Import) OnGroundSpawnPlacement =>
         ("SpawnPlacementTypes.ON_GROUND", "net.minecraft.world.entity.SpawnPlacementTypes");

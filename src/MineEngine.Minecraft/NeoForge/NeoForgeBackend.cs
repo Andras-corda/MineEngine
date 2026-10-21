@@ -32,6 +32,7 @@ public sealed class NeoForgeBackend : MdkBackend
             .ReplaceExampleDescription(mod.Description)
             .SetOptionalString("authors", mod.Authors)
             .SetOptionalString("displayURL", mod.Website)
+            .SetOptionalString("logoFile", mod.IconFile is null ? null : ModIconEmitter.ResourceName(mod.ModId))
             .ToString();
         context.Files.WriteText(ModsTomlRelativePath, modsToml);
     }

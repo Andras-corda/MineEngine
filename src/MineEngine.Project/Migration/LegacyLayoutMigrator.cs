@@ -37,7 +37,7 @@ public sealed class LegacyLayoutMigrator
         var notes = new List<string>();
 
         string backup = Archive(root, layout);
-        notes.Add(Tr.F("Projet converti à la nouvelle organisation (comme un workspace MCreator). Ancienne version sauvegardée dans {0}.", layout.ToRelativePath(backup)));
+        notes.Add(Tr.F("Project converted to the new layout (like an MCreator workspace). Old version saved in {0}.", layout.ToRelativePath(backup)));
 
         File.Move(layout.LegacyProjectFile, layout.ProjectFile);
 
@@ -111,7 +111,7 @@ public sealed class LegacyLayoutMigrator
             string target = Path.Combine(layout.JavaSourceDirectory, folder, Path.GetFileName(file));
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             File.Move(file, target, overwrite: false);
-            notes.Add(Tr.F("{0} déplacé dans {1}.", layout.ToRelativePath(file), layout.ToRelativePath(target)));
+            notes.Add(Tr.F("{0} moved to {1}.", layout.ToRelativePath(file), layout.ToRelativePath(target)));
         }
 
         if (!Directory.EnumerateFileSystemEntries(scripts, "*", SearchOption.AllDirectories).Any(File.Exists))
@@ -141,7 +141,7 @@ public sealed class LegacyLayoutMigrator
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            notes.Add(Tr.T("L'ancien dossier Generated/ n'a pas pu être supprimé (fichier ouvert par Gradle ?). Il peut être supprimé à la main."));
+            notes.Add(Tr.T("The old Generated/ folder could not be deleted (file open in Gradle?). It can be deleted by hand."));
         }
     }
 }

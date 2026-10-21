@@ -44,4 +44,7 @@ public sealed class IRModInfo
     public string MinecraftVersion { get; }
 
     public string LoaderId { get; }
+
+    /// <summary>Absolute path of the PNG icon of the mod, or null when the mod has none.</summary>
+    public string? IconFile { get; init; }
 }

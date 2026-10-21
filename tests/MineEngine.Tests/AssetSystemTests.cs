@@ -176,7 +176,7 @@ public sealed class AssetSystemTests
         registry.Remove(ruby);
         var after = new DiagnosticBag();
         registry.Validate(after);
-        Assert.Contains(after, d => d.Severity == DiagnosticSeverity.Error && d.Message.Contains("supprimé") && d.AssetId == recipe.Id);
+        Assert.Contains(after, d => d.Severity == DiagnosticSeverity.Error && d.Message.Contains("deleted") && d.AssetId == recipe.Id);
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public sealed class AssetSystemTests
 
         var diagnostics = new DiagnosticBag();
         registry.Validate(diagnostics);
-        Assert.Contains(diagnostics, d => d.Severity == DiagnosticSeverity.Error && d.Message.Contains("forme item"));
+        Assert.Contains(diagnostics, d => d.Severity == DiagnosticSeverity.Error && d.Message.Contains("item form"));
     }
 
     // ----- Recettes -----
@@ -311,8 +311,8 @@ public sealed class AssetSystemTests
         mob.Validate(diagnostics);
 
         Assert.Contains(diagnostics, d => d.Severity == DiagnosticSeverity.Error && d.Message.Contains("Animal"));
-        Assert.Contains(diagnostics, d => d.Severity == DiagnosticSeverity.Error && d.Message.Contains("n'a pas d'item"));
-        Assert.Contains(diagnostics, d => d.Severity == DiagnosticSeverity.Warning && d.Message.Contains("cible"));
+        Assert.Contains(diagnostics, d => d.Severity == DiagnosticSeverity.Error && d.Message.Contains("has no item"));
+        Assert.Contains(diagnostics, d => d.Severity == DiagnosticSeverity.Warning && d.Message.Contains("target"));
     }
 
     [Fact]
