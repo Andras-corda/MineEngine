@@ -61,6 +61,9 @@ public interface IDialogService
     /// <summary>Import window of a 3D model (textures, variants, layers, element to create); true to import.</summary>
     bool ShowModelImport(ViewModels.Assets.ModelImportViewModel viewModel);
 
+    /// <summary>Asset browser (textures or 3D models of the project and of Minecraft); true when a choice was made.</summary>
+    bool ShowAssetBrowser(ViewModels.Assets.AssetBrowserViewModel viewModel);
+
     string? AskMdkArchive();
 
     string? AskFolder(string title);

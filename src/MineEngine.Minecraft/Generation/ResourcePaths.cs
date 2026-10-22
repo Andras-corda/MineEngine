@@ -86,6 +86,9 @@ public sealed class ResourcePaths
     public string ItemTag(NamespacedId tag) => $"{ResourcesRoot}/data/{tag.Namespace}/tags/{_itemTagFolder}/{tag.Path}.json";
 
     /// <summary>Data map NeoForge (1.21) : "furnace_fuels" pour les combustibles.</summary>
+    /// <summary>Feature of the world generation of the mod ("configured_feature", "placed_feature").</summary>
+    public string Worldgen(string kind, string name) => $"{DataRoot}/worldgen/{kind}/{name}.json";
+
     public string NeoForgeItemDataMap(string name) => $"{ResourcesRoot}/data/neoforge/data_maps/item/{name}.json";
 
     public string Reference(string path) => $"{Namespace}:{path}";

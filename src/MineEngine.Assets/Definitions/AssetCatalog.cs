@@ -46,6 +46,7 @@ public sealed class AssetCatalog
             new FluidAssetDefinition(),
             new GameRuleAssetDefinition(),
             new EffectAssetDefinition(),
+            new GlobalVariableAssetDefinition(),
         ]);
 
     /// <summary>

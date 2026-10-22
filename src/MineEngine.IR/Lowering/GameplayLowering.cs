@@ -76,6 +76,14 @@ public sealed class GameRuleLowering : AssetLowering<GameRuleAsset>
             asset.Id, asset.ResourceId, asset.DisplayName, asset.Kind, asset.Category, asset.DefaultBoolean, asset.DefaultNumber, asset.Description));
 }
 
+public sealed class GlobalVariableLowering : AssetLowering<GlobalVariableAsset>
+{
+    public override AssetType AssetType => AssetType.GlobalVariable;
+
+    protected override void Lower(GlobalVariableAsset asset, LoweringContext context) =>
+        context.AddGlobal(new IRGlobalVariable(asset.Id, asset.VariableName, asset.ValueType, asset.Scope, asset.DefaultValue));
+}
+
 public sealed class EffectLowering : AssetLowering<EffectAsset>
 {
     public override AssetType AssetType => AssetType.Effect;

@@ -1,3 +1,5 @@
+using MineEngine.Assets;
+using MineEngine.Assets.Graphs;
 using MineEngine.Core.GameData;
 using MineEngine.Core.Identifiers;
 
@@ -58,6 +60,12 @@ public sealed record IRFluid(Guid SourceAssetId, ResourceId Id, string Name)
 }
 
 /// <summary>Game rule (V0.6.3).</summary>
+/// <summary>Global variable of the mod (V0.6.7): stored by the class MineEngineGlobals according to its scope.</summary>
+public sealed record IRGlobalVariable(Guid Id, string Name, DataType Type, GlobalScope Scope, string DefaultValue)
+{
+    public bool IsPerPlayer => Scope is GlobalScope.PlayerLifetime or GlobalScope.PlayerPersistent;
+}
+
 public sealed record IRGameRule(
     Guid SourceAssetId, ResourceId Id, string Name, GameRuleKind Kind, GameRuleCategory Category, bool DefaultBoolean, int DefaultNumber, string Description);
 

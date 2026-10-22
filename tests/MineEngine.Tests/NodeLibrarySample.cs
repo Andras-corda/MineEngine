@@ -45,7 +45,9 @@ internal static class NodeLibrarySample
     public static IReadOnlyList<NodeInfo> Nodes =>
     [
         .. NodeCatalog.All
-            .Where(n => NodeCatalog.GroupOf(n) is NodeGroup.Block or NodeGroup.Item || IsV065(n) && n.Category != NodeCategory.Event)
+            .Where(n => NodeCatalog.GroupOf(n) is NodeGroup.Block or NodeGroup.Item || IsV065(n) && n.Category != NodeCategory.Event
+                        || n.Flow == NodeFlow.Multi || n.Kind is >= GraphNodeKind.RunCommandAsPlayer and <= GraphNodeKind.CreatureAppearance)
+            .Where(n => n.Kind < GraphNodeKind.GetGlobal) // V0.6.7 nodes: see GlobalsSample.
             .OrderBy(n => n.Kind),
     ];
 
@@ -168,6 +170,7 @@ internal static class NodeLibrarySample
             {
                 NodeFlow.Branch => NodeInfo.ExecTrue,
                 NodeFlow.Loop => NodeInfo.ExecBody,
+                NodeFlow.Multi => NodeCatalog.Get(node.Kind).ExecOutputs[0].Name,
                 _ => NodeInfo.ExecThen,
             };
         }

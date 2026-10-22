@@ -23,6 +23,7 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
     {
         asset.TextureId = reader.GetGuid("texture");
         asset.CustomModelId = reader.GetGuid("customModel");
+        asset.Appearances = AppearanceJson.Read(reader);
         asset.Model = reader.GetEnum("model", MobModel.Zombie);
         asset.Kind = reader.GetEnum("kind", MobKind.Monster);
         if (reader.GetObject("hitbox") is { } hitbox)
@@ -81,6 +82,7 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
     {
         properties["texture"] = asset.TextureId?.ToString("D");
         properties["customModel"] = asset.CustomModelId?.ToString("D");
+        AppearanceJson.Write(asset, properties);
         properties["model"] = asset.Model.ToString();
         properties["kind"] = asset.Kind.ToString();
         properties["hitbox"] = new JsonObject

@@ -32,6 +32,15 @@ public sealed class GraphConnectionViewModel : ObservableObject, IDisposable
 
     public bool IsExec => From.IsExec;
 
+    private bool _isHovered;
+
+    /// <summary>The mouse is over the wire: it is highlighted, and Backspace breaks it.</summary>
+    public bool IsHovered
+    {
+        get => _isHovered;
+        set => SetProperty(ref _isHovered, value);
+    }
+
     public Geometry Geometry => Curve(From.Anchor, To.Anchor);
 
     /// <summary>Courbe entre deux points, avec des tangentes horizontales.</summary>

@@ -137,7 +137,9 @@ public sealed class GraphAsset : Asset
         {
             if (node.Target is { } target)
             {
-                yield return new AssetReference(target, AssetReferenceKind.Definition, Tr.F("node {0}", node));
+                yield return node.Kind is GraphNodeKind.GetGlobal or GraphNodeKind.SetGlobal
+                    ? new AssetReference(target, AssetReferenceKind.GlobalVariable, Tr.F("node {0}", node))
+                    : new AssetReference(target, AssetReferenceKind.Definition, Tr.F("node {0}", node));
             }
 
             if (NodeCatalog.Find(node.Kind) is not { } info)

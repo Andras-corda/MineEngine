@@ -226,7 +226,7 @@ public sealed class PuppeteerTests
         string mob = File.ReadAllText(Path.Combine(workspace, "src/main/java/com/mineengine/mods/testmod/entity/ShadowPuppetEntity.java"));
 
         // Every kind of node is created in the tree and exists in the engine.
-        foreach (BtNodeKind kind in Enum.GetValues<BtNodeKind>().Where(k => k != BtNodeKind.Root))
+        foreach (BtNodeKind kind in Enum.GetValues<BtNodeKind>().Where(k => k != BtNodeKind.Root && !BtCatalog.Get(k).IsAnnotation))
         {
             if (kind == BtNodeKind.RunGoal)
             {

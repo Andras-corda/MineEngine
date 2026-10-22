@@ -51,6 +51,28 @@ public sealed class RerouteTests
     }
 
     [Fact]
+    public void A_reroute_reference_gives_the_value_of_its_reroute_anywhere()
+    {
+        (NodeGraph graph, GraphNode join, _, _, _, GraphNode value) = Sample();
+        var builder = new GraphBuilder();
+        GraphNode reference = Reroutes.CreateReference(value, 900, 400)!;
+        GraphNode second = GraphNode.Create(GraphNodeKind.SendMessage, 900, 0);
+        graph = graph.AddNode(reference).AddNode(second)
+            .Connect(new GraphConnection(reference.Id, Reroutes.ValueOutput, second.Id, "player"));
+
+        NodeInfo info = CatalogGraphContext.Instance.Describe(reference);
+        NodeGraph collapsed = Reroutes.Collapse(graph);
+
+        Assert.Empty(info.Inputs);
+        Assert.Equal(DataType.Player, Assert.Single(info.Outputs).Type);
+        Assert.Null(Reroutes.CreateReference(reference, 0, 0));
+        Assert.Null(Reroutes.CreateReference(Reroutes.Create(DataType.Exec, 0, 0), 0, 0));
+        GraphConnection wire = Assert.Single(collapsed.Connections, c => c.ToNode == second.Id);
+        Assert.Equal((join.Id, "player"), (wire.FromNode, wire.FromPin));
+        Assert.Equal([reference.Id], Reroutes.ReferencesTo(graph, [value.Id]));
+    }
+
+    [Fact]
     public void A_reroute_only_accepts_wires_of_its_type()
     {
         var builder = new GraphBuilder();

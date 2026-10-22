@@ -28,6 +28,7 @@ public sealed class LoweringContext
     private readonly List<IRFluid> _fluids = [];
     private readonly List<IRGameRule> _gameRules = [];
     private readonly List<IREffect> _effects = [];
+    private readonly List<IRGlobalVariable> _globals = [];
 
     public LoweringContext(ModProject project, DiagnosticBag diagnostics)
     {
@@ -73,11 +74,20 @@ public sealed class LoweringContext
 
     public void AddEffect(IREffect effect) => _effects.Add(effect);
 
+    public void AddGlobal(IRGlobalVariable global) => _globals.Add(global);
+
     /// <summary>Identifier of the 3D model an element is shown with, or null (missing models are reported by the validation).</summary>
     public ResourceId? ResolveCustomModel(TexturedAsset owner) =>
         owner.UsesCustomModel && owner.CustomModelId is { } id && Project.Assets.Find(id) is ModelAsset { IsUsedByTheGame: true } model
             ? model.ResourceId
             : null;
+
+    /// <summary>Appearances of an element, in order (an empty one keeps its number: the next ones do not move).</summary>
+    public IReadOnlyList<IRAppearance> ResolveAppearances(TexturedAsset owner) =>
+        [.. owner.Appearances.Select(a => new IRAppearance(
+            a.Name,
+            ResolveOptionalTexture(owner, a.TextureId),
+            owner.AppearancesCanUseModels && a.ModelId is { } id && Project.Assets.Find(id) is ModelAsset { IsUsedByTheGame: true } model ? model.ResourceId : null))];
 
     /// <summary>Définitions de programme du projet (fonctions, classes...), construites au premier besoin.</summary>
     public ProgramModel Program => Project.Assets.Program;
@@ -151,6 +161,7 @@ public sealed class LoweringContext
         Fluids = [.. _fluids.OrderBy(f => f.Id)],
         GameRules = [.. _gameRules.OrderBy(r => r.Id)],
         Effects = [.. _effects.OrderBy(e => e.Id)],
+        Globals = [.. _globals.OrderBy(g => g.Name, StringComparer.Ordinal)],
     };
 
     private NamespacedId? ResolveAsset(Asset owner, Guid assetId, string role)

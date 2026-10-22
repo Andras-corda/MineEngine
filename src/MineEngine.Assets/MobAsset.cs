@@ -13,6 +13,9 @@ namespace MineEngine.Assets;
 /// </summary>
 public sealed class MobAsset : TexturedAsset
 {
+    /// <summary>The geometry of a mob stays: its appearances are textures.</summary>
+    public override bool AppearancesCanUseModels => false;
+
     public const double MaxHealth = 1024;
     public const double MaxArmor = 30;
     public const double MaxMovementSpeed = 2;

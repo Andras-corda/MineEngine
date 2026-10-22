@@ -36,6 +36,17 @@ public sealed class TagsEmitter : IFileEmitter
             WriteTag(context, paths.VanillaBlockTag($"needs_{group.Key.ToString().ToLowerInvariant()}_tool"), group);
         }
 
+        // Ladders (entities climb them) and the soil of the plants.
+        if (content.Blocks.Where(b => b.Options.Ladder).ToList() is { Count: > 0 } ladders)
+        {
+            WriteTag(context, paths.VanillaBlockTag("climbable"), ladders);
+        }
+
+        if (content.Blocks.Where(b => b.Options.PlantsCanSustain).ToList() is { Count: > 0 } soils)
+        {
+            WriteTag(context, paths.VanillaBlockTag("dirt"), soils);
+        }
+
         // Tags d'items : ceux choisis dans l'éditeur, plus minecraft:meat depuis 1.20.5. Un même
         // tag peut venir de plusieurs sources : il est écrit une seule fois avec tous ses items.
         var itemTags = new Dictionary<string, List<IRElement>>(StringComparer.Ordinal);

@@ -25,6 +25,9 @@ public enum NodeCategory
 
     /// <summary>Call of a function or a procedure of a function library (gray).</summary>
     Library,
+
+    /// <summary>Read or change a global variable (Global tab).</summary>
+    Global,
 }
 
 /// <summary>Sorte de nœud. Le nom est enregistré dans les fichiers : ne pas renommer.</summary>
@@ -277,6 +280,151 @@ public enum GraphNodeKind
     // ----- Annotations (see GraphAnnotations): no effect on the program -----
     Comment,
     Tooltip,
+
+    // ----- Flow nodes with several execution outputs (see FlowNodes) -----
+    SwitchOnNumber,
+    SwitchOnText,
+    Sequence,
+    FlipFlop,
+
+    // ----- Commands, ray casts, physics, sounds and music -----
+    RunCommandAsPlayer,
+    RunCommandAsServer,
+    RaycastHitsBlock,
+    RaycastBlockPosition,
+    LooksAtCreature,
+    CreatureLookedAt,
+    SetVelocity,
+    AddVelocity,
+    LaunchForward,
+    SetGravity,
+    IsOnGround,
+    FallDistance,
+    PlaySoundAdvanced,
+    PlaySoundToPlayer,
+    StopSounds,
+    PlayMusic,
+    StopMusic,
+
+    // ----- Appearances: textures and 3D models switched while the game runs -----
+    SetItemAppearance,
+    ItemAppearance,
+    SetBlockAppearance,
+    BlockAppearance,
+    SetCreatureAppearance,
+    CreatureAppearance,
+
+    // ----- Global variables (V0.6.7): the node targets the variable (Target) -----
+    GetGlobal,
+    SetGlobal,
+
+    // ----- Collections (typed by their collection, see GenericNodes): keep this range together -----
+    CollectionSize,
+    CollectionClear,
+    CollectionContains,
+    CollectionRemove,
+    ListGet,
+    ListSet,
+    ListAdd,
+    ListRemoveAt,
+    MapGet,
+    MapPut,
+    ArrayResize,
+    ForEachInCollection,
+
+    // ----- Vectors (typed by their vector): keep this range together -----
+    MakeVector,
+    VectorX,
+    VectorY,
+    VectorZ,
+    VectorLength,
+    AddVectors,
+    VectorToPosition,
+
+    // ----- Decimal numbers, directions, block states, entities -----
+    PositionToVector,
+    RoundDecimal,
+    FloorDecimal,
+    DecimalAdd,
+    DecimalSubtract,
+    DecimalMultiply,
+    DecimalDivide,
+    DecimalGreater,
+    DecimalLess,
+    RandomDecimal,
+    PlayerFacing,
+    OppositeDirection,
+    OffsetByDirection,
+    DirectionName,
+    BlockStateAt,
+    SetBlockState,
+    BlockOfState,
+    DefaultBlockState,
+    StateProperty,
+    StateWithProperty,
+    EntityPosition,
+    EntityTypeId,
+    IsEntityAlive,
+    RemoveEntity,
+    NearestEntity,
+    EntityLookedAt,
+    TeleportEntity,
+    DamageEntity,
+    EntityHealth,
+    EntityIsPlayer,
+
+    // ----- Casts (typed by the wire connected to them, see GenericNodes): keep this range together -----
+    CastToNumber,
+    CastToLong,
+    CastToFloat,
+    CastToDecimal,
+    CastToByte,
+    CastToChar,
+    CastToText,
+    CastToComponent,
+    CastToIdentifier,
+    CastToUuid,
+    CastToLiving,
+    CastToPlayer,
+
+    // ----- Nodes of the types of TypesVar.md -----
+    CharAt,
+    EntityUuid,
+    EntityByUuid,
+    RandomUuid,
+    StyledText,
+    SendRichMessage,
+    IdentifierNamespace,
+    IdentifierPath,
+    EquipmentItem,
+    ItemInHand,
+    SwingHand,
+    StackRarity,
+    FluidAt,
+    PlaceFluid,
+    EntityBox,
+    MakeBox,
+    EntitiesInBox,
+    BoxContains,
+    GenericDamage,
+    DamageWithSource,
+    MakeEffect,
+    ApplyEffect,
+    NewNbt,
+    NbtPutNumber,
+    NbtPutText,
+    NbtGetNumber,
+    NbtGetText,
+    CurrentWorld,
+    WorldOf,
+    WorldDimension,
+    GameTime,
+
+    // ----- Guilds and groups (scopes player_guild and entity_group) -----
+    SetPlayerGuild,
+    PlayerGuild,
+    SetEntityGroup,
+    EntityGroup,
 }
 
 /// <summary>Domain of a node, used to sort the Nodes window like MCreator's procedure blocks.</summary>
@@ -291,6 +439,10 @@ public enum NodeGroup
     Block,
     World,
     Program,
+    Collections,
+    Entities,
+    Globals,
+    Conversions,
 }
 
 /// <summary>
@@ -333,6 +485,7 @@ public sealed class NodeInfo
     /// Fil d'exécution du nœud ; par défaut celui de sa famille : sortie seule pour un événement,
     /// entrée et sortie pour une action, Vrai / Faux pour une condition, aucun pour une valeur.
     /// </param>
+    /// <param name="execOutputs">Execution outputs of a <see cref="NodeFlow.Multi"/> node.</param>
     public NodeInfo(
         GraphNodeKind kind,
         NodeCategory category,
@@ -340,7 +493,8 @@ public sealed class NodeInfo
         string description,
         IReadOnlyList<PinInfo>? inputs = null,
         IReadOnlyList<PinInfo>? outputs = null,
-        NodeFlow? flow = null)
+        NodeFlow? flow = null,
+        IReadOnlyList<PinInfo>? execOutputs = null)
     {
         Kind = kind;
         Category = category;
@@ -360,6 +514,7 @@ public sealed class NodeInfo
             NodeFlow.Start or NodeFlow.Step => [ThenPin],
             NodeFlow.Branch => [new PinInfo(ExecTrue, Tr.T("True"), DataType.Exec), new PinInfo(ExecFalse, Tr.T("False"), DataType.Exec)],
             NodeFlow.Loop => [new PinInfo(ExecBody, Tr.T("Loop body"), DataType.Exec), new PinInfo(ExecThen, Tr.T("Completed"), DataType.Exec)],
+            NodeFlow.Multi => execOutputs ?? [],
             _ => [],
         };
     }
@@ -383,7 +538,10 @@ public sealed class NodeInfo
     /// <summary>Sorties d'exécution : "then", ou "true" et "false" pour une condition.</summary>
     public IReadOnlyList<PinInfo> ExecOutputs { get; }
 
-    public bool HasExecInput => Flow is NodeFlow.Branch or NodeFlow.Step or NodeFlow.End or NodeFlow.Loop;
+    public bool HasExecInput => Flow is NodeFlow.Branch or NodeFlow.Step or NodeFlow.End or NodeFlow.Loop or NodeFlow.Multi;
+
+    /// <summary>Execution outputs shown on the side of the node, with the value outputs (all but the single "then").</summary>
+    public bool HasSideExecOutputs => Flow is NodeFlow.Branch or NodeFlow.Loop or NodeFlow.Multi;
 
     /// <summary>Point de départ d'une exécution : événement, ou entrée d'une fonction.</summary>
     public bool IsEntryPoint => Flow == NodeFlow.Start;
@@ -419,7 +577,8 @@ public sealed class NodeInfo
     public string Signature => string.Join("|",
         new[] { Title, Flow.ToString() }
             .Concat(Inputs.Select(p => $"i:{p.Name}:{p.Label}:{p.Type}:{p.Optional}:{string.Join(',', p.Choices.Select(c => c.Name))}"))
-            .Concat(Outputs.Select(p => $"o:{p.Name}:{p.Label}:{p.Type}")));
+            .Concat(Outputs.Select(p => $"o:{p.Name}:{p.Label}:{p.Type}"))
+            .Concat(ExecOutputs.Select(p => $"x:{p.Name}:{p.Label}")));
 
     public override string ToString() => Title;
 }
@@ -444,4 +603,7 @@ public enum NodeFlow
 
     /// <summary>Loop (V0.6.5): an input, outputs "Loop body" (each turn) and "Completed".</summary>
     Loop,
+
+    /// <summary>An input and the execution outputs given to the node (Switch, Sequence, Flip Flop).</summary>
+    Multi,
 }

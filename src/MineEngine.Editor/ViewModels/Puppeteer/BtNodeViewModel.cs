@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using MineEngine.Assets.Puppeteer;
+using GraphAnnotations = MineEngine.Assets.Graphs.GraphAnnotations;
 using MineEngine.Core.Diagnostics;
 using MineEngine.Editor.Mvvm;
 
@@ -105,8 +106,80 @@ public sealed class BtNodeViewModel : BtItemViewModel
     /// <summary>Root or composite: a pin at the bottom for its children.</summary>
     public bool HasChildrenPin => Info.HasChildren;
 
-    /// <summary>Everything but the root: a pin at the top for its parent.</summary>
-    public bool HasParentPin => !IsRoot;
+    /// <summary>Everything but the root (and the comments and tooltips): a pin at the top for its parent.</summary>
+    public bool HasParentPin => !IsRoot && !IsAnnotation;
+
+    // ----- Comments and tooltips (values: see GraphAnnotations) -----
+
+    private double _commentWidth;
+    private double _commentHeight;
+    private string? _attachedTooltip;
+    private bool _isEditingTitle;
+
+    public bool IsComment => _model.Kind == BtNodeKind.Comment;
+
+    public bool IsTooltip => _model.Kind == BtNodeKind.Tooltip;
+
+    public bool IsAnnotation => Info.IsAnnotation;
+
+    /// <summary>Title of a comment, message of a tooltip.</summary>
+    public string AnnotationText
+    {
+        get => GraphAnnotations.Text(_model.Values);
+        set => Document.SetValue(this, GraphAnnotations.TextKey, value ?? string.Empty);
+    }
+
+    public string CommentTooltip
+    {
+        get => GraphAnnotations.Text(_model.Values, GraphAnnotations.TooltipKey);
+        set => Document.SetValue(this, GraphAnnotations.TooltipKey, value ?? string.Empty);
+    }
+
+    public string CommentColor
+    {
+        get => _model.Values.GetValueOrDefault(GraphAnnotations.ColorKey) ?? GraphAnnotations.CommentColors[0];
+        set => Document.SetValue(this, GraphAnnotations.ColorKey, value ?? GraphAnnotations.CommentColors[0]);
+    }
+
+    public IReadOnlyList<string> CommentColors => GraphAnnotations.CommentColors;
+
+    /// <summary>Size of a comment; follows the mouse while it is resized.</summary>
+    public double CommentWidth
+    {
+        get => _commentWidth;
+        set => SetProperty(ref _commentWidth, Math.Max(GraphAnnotations.MinWidth, value));
+    }
+
+    public double CommentHeight
+    {
+        get => _commentHeight;
+        set => SetProperty(ref _commentHeight, Math.Max(GraphAnnotations.MinHeight, value));
+    }
+
+    /// <summary>The title of the comment is being edited on the canvas (double-click).</summary>
+    public bool IsEditingTitle
+    {
+        get => _isEditingTitle;
+        set => SetProperty(ref _isEditingTitle, value);
+    }
+
+    /// <summary>Messages of the tooltips that describe this node, or null.</summary>
+    public string? AttachedTooltip
+    {
+        get => _attachedTooltip;
+        internal set
+        {
+            if (SetProperty(ref _attachedTooltip, value))
+            {
+                OnPropertyChanged(nameof(HoverText));
+            }
+        }
+    }
+
+    /// <summary>What the mouse shows over the node: its tooltips, the message of a bubble, the tooltip of a comment.</summary>
+    public string? HoverText => IsTooltip ? NullIfEmpty(AnnotationText) : IsComment ? NullIfEmpty(CommentTooltip) : _attachedTooltip;
+
+    private static string? NullIfEmpty(string text) => text.Length == 0 ? null : text;
 
     public ObservableCollection<BtAttachmentViewModel> Decorators { get; } = [];
 
@@ -203,9 +276,30 @@ public sealed class BtNodeViewModel : BtItemViewModel
         Refresh();
     }
 
+    private void RefreshAnnotation()
+    {
+        if (IsComment)
+        {
+            (double width, double height) = GraphAnnotations.Size(_model.Values);
+            CommentWidth = width;
+            CommentHeight = height;
+        }
+
+        OnPropertyChanged(nameof(AnnotationText));
+        OnPropertyChanged(nameof(CommentTooltip));
+        OnPropertyChanged(nameof(CommentColor));
+        OnPropertyChanged(nameof(HoverText));
+    }
+
     /// <summary>Recomputes the summary and the attached pieces (key or asset names may have changed).</summary>
     internal void Refresh()
     {
+        if (IsAnnotation)
+        {
+            RefreshAnnotation();
+            return;
+        }
+
         Summary = BtText.Summary(Info, _model.GetValue, Document.Keys.Select(k => k.Model).ToList(), Document.Assets);
         OnPropertyChanged(nameof(HasSummary));
         Sync(Decorators, _model.Decorators);

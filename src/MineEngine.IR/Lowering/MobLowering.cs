@@ -20,6 +20,7 @@ public sealed class MobLowering : AssetLowering<MobAsset>
         {
             Model = asset.Model,
             CustomModel = context.ResolveCustomModel(asset),
+            Appearances = context.ResolveAppearances(asset),
             Kind = asset.Kind,
             Texture = context.ResolveOptionalTexture(asset, asset.TextureId),
             Width = width,

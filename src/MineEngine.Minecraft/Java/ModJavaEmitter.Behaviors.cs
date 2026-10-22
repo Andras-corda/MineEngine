@@ -159,6 +159,14 @@ public abstract partial class ModJavaEmitter
                     WriteLoop(w, java, loop, nodeLines);
                     break;
 
+                case IRSwitchStatement choice:
+                    WriteSwitch(w, java, choice, nodeLines);
+                    break;
+
+                case IRFlipFlopStatement flipFlop:
+                    WriteFlipFlop(w, java, flipFlop, nodeLines);
+                    break;
+
                 default:
                     foreach (string line in java.Statement(statement))
                     {
@@ -168,7 +176,7 @@ public abstract partial class ModJavaEmitter
                     break;
             }
 
-            nodeLines.Add((first, statement is IRIfStatement or IRLoopStatement ? first : w.NextLineNumber - 1, statement.NodeId));
+            nodeLines.Add((first, statement is IRIfStatement or IRLoopStatement or IRSwitchStatement or IRFlipFlopStatement ? first : w.NextLineNumber - 1, statement.NodeId));
         }
     }
 
@@ -181,8 +189,63 @@ public abstract partial class ModJavaEmitter
     {
         IRReturnStatement => true,
         IRIfStatement branch => EndsWithReturn(branch.Then) && EndsWithReturn(branch.Else),
+        IRSwitchStatement choice => choice.Bodies.All(EndsWithReturn) && EndsWithReturn(choice.Default),
+        IRFlipFlopStatement flipFlop => EndsWithReturn(flipFlop.A) && EndsWithReturn(flipFlop.B),
         _ => false,
     };
+
+    /// <summary>Switch: the value in a local, then "if / else if" on each case and "else" for Default.</summary>
+    private static void WriteSwitch(JavaSourceWriter w, BehaviorJava java, IRSwitchStatement choice, List<(int, int, Guid)> nodeLines)
+    {
+        bool text = choice.Type.Kind == PinType.Text;
+        string value = "switch_" + choice.NodeId.ToString("N")[..8];
+        w.Line($"{(text ? "String" : "int")} {value} = {java.Expression(choice.Value)};");
+        for (int i = 0; i < choice.Cases.Count; i++)
+        {
+            string test = text ? $"{java.Expression(choice.Cases[i])}.equals({value})" : $"{value} == {java.Expression(choice.Cases[i])}";
+            if (i == 0)
+            {
+                w.OpenBlock($"if ({test})");
+            }
+            else
+            {
+                w.CloseBlock($" else if ({test}) {{").Indent();
+            }
+
+            WriteStatements(w, java, choice.Bodies[i], nodeLines);
+        }
+
+        if (choice.Cases.Count == 0)
+        {
+            WriteStatements(w, java, choice.Default, nodeLines);
+            return;
+        }
+
+        if (choice.Default.Count > 0)
+        {
+            w.CloseBlock(" else {").Indent();
+            WriteStatements(w, java, choice.Default, nodeLines);
+        }
+
+        w.CloseBlock();
+    }
+
+    /// <summary>Flip Flop: its state is kept by a helper of the class, per node.</summary>
+    private static void WriteFlipFlop(JavaSourceWriter w, BehaviorJava java, IRFlipFlopStatement flipFlop, List<(int, int, Guid)> nodeLines)
+    {
+        string isA = "flip_" + flipFlop.NodeId.ToString("N")[..8];
+        w.Line($"boolean {isA} = {java.FlipFlop(flipFlop.NodeId)};")
+            .Line($"{flipFlop.Output} = {isA};");
+        w.OpenBlock($"if ({isA})");
+        WriteStatements(w, java, flipFlop.A, nodeLines);
+        if (flipFlop.B.Count > 0)
+        {
+            w.CloseBlock(" else {").Indent();
+            WriteStatements(w, java, flipFlop.B, nodeLines);
+        }
+
+        w.CloseBlock();
+    }
 
     /// <summary>"if (...) { } else { }", en enchaînant "else if" quand la branche Faux n'est qu'une autre condition.</summary>
     private static void WriteIf(JavaSourceWriter w, BehaviorJava java, IRIfStatement branch, string keyword, List<(int, int, Guid)> nodeLines)
@@ -222,6 +285,16 @@ public abstract partial class ModJavaEmitter
                 break;
             case GraphNodeKind.While:
                 w.OpenBlock($"for (int guard_{suffix} = 0; guard_{suffix} < {MaxWhileTurns} && {java.Expression(loop.Arguments[0])}; guard_{suffix}++)");
+                break;
+            case GraphNodeKind.ForEachInCollection when loop.Arguments[0].Type.Kind == PinType.Map:
+                // A copy: the body may change the dictionary.
+                w.OpenBlock($"for (var entry_{suffix} : new java.util.ArrayList<>({java.Expression(loop.Arguments[0])}.entrySet()))")
+                    .Line($"{loop.Outputs[0]} = entry_{suffix}.getKey();")
+                    .Line($"{loop.Outputs[1]} = entry_{suffix}.getValue();");
+                break;
+            case GraphNodeKind.ForEachInCollection:
+                w.OpenBlock($"for (var each_{suffix} : new java.util.ArrayList<>({java.Expression(loop.Arguments[0])}))")
+                    .Line($"{loop.Outputs[0]} = each_{suffix};");
                 break;
             default:
                 w.OpenBlock($"for (Player each_{suffix} : level.players())")

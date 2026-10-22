@@ -1,3 +1,4 @@
+using MineEngine.Assets;
 using MineEngine.Core.GameData;
 using MineEngine.IR.Model;
 using MineEngine.Minecraft.Generation;
@@ -42,6 +43,18 @@ public abstract partial class ModJavaEmitter : IFileEmitter
     /// <summary>Type Java des champs qui portent un item.</summary>
     protected abstract string ItemHolderType { get; }
 
+    /// <summary>Class of the events of the players (Clone, SaveToFile, PlayerLoggedOutEvent) of the loader.</summary>
+    protected abstract string GlobalPlayerEvent { get; }
+
+    /// <summary>Event sent when the server starts (the session variables start again).</summary>
+    protected abstract string ServerStartingEvent { get; }
+
+    /// <summary>Event sent when the server stops (the global_server variables are written).</summary>
+    protected abstract string ServerStoppingEvent { get; }
+
+    /// <summary>Class of the folders of the game (FMLPaths.CONFIGDIR) of the loader.</summary>
+    protected abstract string FmlPaths { get; }
+
     /// <summary>Type Java du champ qui porte l'onglet créatif.</summary>
     protected abstract string CreativeTabHolderType { get; }
 
@@ -57,6 +70,7 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         Write(context, naming, naming.RegistryPackage, naming.BlocksClass, WriteBlocksClass(context, naming, api));
         Write(context, naming, naming.RegistryPackage, naming.ItemsClass, WriteItemsClass(context, naming, api));
         Write(context, naming, naming.RegistryPackage, naming.CreativeTabsClass, WriteCreativeTabsClass(context, naming));
+        Write(context, naming, naming.EntityPackage, AppearanceInterface, WriteAppearanceInterface(naming));
 
         IRContent content = context.Ir.Content;
         if (content.Sounds.Count > 0)
@@ -66,6 +80,12 @@ public abstract partial class ModJavaEmitter : IFileEmitter
 
         var names = new JavaProgramNames(naming, content.Definitions);
         names.AddBehaviorVariables(content.Behaviors.SelectMany(b => b.Variables));
+        names.AddGlobals(content.Globals);
+        if (content.Globals.Count > 0)
+        {
+            string globals = new GlobalsJava(names, api).Write(context.Mod.ModId.Value, GameEventBus, GlobalPlayerEvent, ServerStartingEvent, ServerStoppingEvent, FmlPaths);
+            context.Files.WriteText(naming.SourcePath(names.Package, JavaProgramNames.GlobalsClass), globals);
+        }
         foreach (IRDefinition definition in names.TopLevel)
         {
             WriteDefinitionFile(context, api, names, definition);
@@ -97,6 +117,18 @@ public abstract partial class ModJavaEmitter : IFileEmitter
 
     /// <summary>Déclaration du registre des items (champ ITEMS).</summary>
     protected abstract string ItemsRegisterDeclaration(JavaModNaming naming);
+
+    /// <summary>Interface of the mobs that have appearances; the appearance nodes of the graphs use it.</summary>
+    public const string AppearanceInterface = "MineEngineAppearance";
+
+    private static JavaSourceWriter WriteAppearanceInterface(JavaModNaming naming) =>
+        WriteHeader(naming.EntityPackage, [], "Mobs dont l'apparence change pendant le jeu (nœuds d'apparence des graphes).")
+            .OpenBlock($"public interface {AppearanceInterface}")
+            .Line("/** 0: normal look; 1, 2...: the appearances of the mob, in the order of its tab. */")
+            .Line("int getAppearance();")
+            .Line()
+            .Line("void setAppearance(int appearance);")
+            .CloseBlock();
 
     private static void Write(GenerationContext context, JavaModNaming naming, string package, string className, JavaSourceWriter source) =>
         context.Files.WriteText(naming.SourcePath(package, className), source.ToString());
@@ -196,6 +228,12 @@ public abstract partial class ModJavaEmitter : IFileEmitter
 
         WriteGameplayRegistrations(w, context, naming, api);
 
+        // Global variables: the events that load and save the data of the players.
+        if (content.Globals.Count > 0)
+        {
+            w.Line($"{naming.RootPackage}.code.{JavaProgramNames.GlobalsClass}.register();");
+        }
+
         // Graphes nodaux : leurs réactions s'inscrivent sur le bus des événements du jeu.
         foreach (IRBehavior behavior in content.Behaviors)
         {
@@ -234,18 +272,53 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             imports.Add("net.minecraft.util.valueproviders.UniformInt");
         }
 
+        if (content.Blocks.Any(b => b.Appearances.Count > 0))
+        {
+            imports.Add("net.minecraft.world.level.block.state.BlockState");
+            imports.Add("net.minecraft.world.level.block.state.StateDefinition");
+            imports.Add("net.minecraft.world.level.block.state.properties.IntegerProperty");
+        }
+
+        // Blocks with advanced settings have a class of their own (package "block").
+        foreach (IRBlock block in content.Blocks.Where(BlockJava.IsNeeded))
+        {
+            imports.Add($"{BlockJava.Package(naming)}.{BlockJava.ClassName(block)}");
+            Write(context, naming, BlockJava.Package(naming), BlockJava.ClassName(block), new BlockJava(block, naming, api).Write());
+        }
+
+        foreach (string import in content.Blocks.SelectMany(b => BlockPropertyImports(b.Options)))
+        {
+            imports.Add(import);
+        }
+
         JavaSourceWriter w = WriteHeader(naming.RegistryPackage, imports, "Blocs du mod.")
             .OpenBlock($"public final class {naming.BlocksClass}")
             .Line(BlocksRegisterDeclaration(naming));
+
+        // A block with appearances has a property "appearance" (0: normal look), set by the appearance nodes of the graphs.
+        foreach (IRBlock block in content.Blocks.Where(b => b.Appearances.Count > 0))
+        {
+            w.Line($"public static final IntegerProperty {naming.ConstantFor(block.Id)}_APPEARANCE = IntegerProperty.create(\"appearance\", 0, {block.Appearances.Count});");
+        }
 
         foreach (IRBlock block in content.Blocks)
         {
             w.Line();
             int firstLine = w.NextLineNumber;
-            (string head, string tail) = BlockConstruction(block, api);
+            (string head, string tail) = BlockJava.IsNeeded(block) ? ($"new {BlockJava.ClassName(block)}(", ")") : BlockConstruction(block, api);
+            IReadOnlyList<string> overrides = block.Appearances.Count == 0 || BlockJava.IsNeeded(block)
+                ? []
+                :
+                [
+                    "@Override",
+                    "protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {",
+                    "    super.createBlockStateDefinition(builder);",
+                    $"    builder.add({naming.ConstantFor(block.Id)}_APPEARANCE);",
+                    "}",
+                ];
             WriteRegistration(
                 w, BlockHolderType, naming.ConstantFor(block.Id), "BLOCKS", block.Id.Value,
-                head, "BlockBehaviour.Properties.of()", BlockPropertyCalls(block.Settings), tail, overrides: []);
+                head, "BlockBehaviour.Properties.of()", [.. BlockPropertyCalls(block.Settings), .. BlockOptionCalls(block.Options)], tail, overrides);
             context.SourceMap.Add(file, firstLine, w.NextLineNumber - 1, block.SourceAssetId, $"Bloc '{block.Id}'");
         }
 
@@ -258,6 +331,78 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         { DropsExperience: true } settings => api.ExperienceBlockConstruction(settings.ExperienceMin, settings.ExperienceMax),
         _ => ("new Block(", ")"),
     };
+
+    /// <summary>Calls of BlockBehaviour.Properties for the advanced settings (glow, replaceable, map color, pistons...).</summary>
+    private static List<string> BlockOptionCalls(BlockOptions options)
+    {
+        var calls = new List<string>();
+        if (options.Emissive)
+        {
+            calls.Add(".emissiveRendering((state, level, position) -> true)");
+            calls.Add(".hasPostProcess((state, level, position) -> true)");
+        }
+
+        if (options.Replaceable)
+        {
+            calls.Add(".replaceable()");
+        }
+
+        if (options.WalkThrough)
+        {
+            calls.Add(".noCollission()");
+        }
+
+        if (options.Boxes.Count > 0 || options.ConnectedSides)
+        {
+            calls.Add(".noOcclusion()");
+        }
+
+        if (options.RandomOffset != BlockOffset.None)
+        {
+            calls.Add($".offsetType(BlockBehaviour.OffsetType.{options.RandomOffset.ToString().ToUpperInvariant()})");
+            calls.Add(".dynamicShape()");
+        }
+
+        if (options.MapColor.Length > 0)
+        {
+            calls.Add($".mapColor(MapColor.{options.MapColor})");
+        }
+
+        if (options.Instrument.Length > 0)
+        {
+            calls.Add($".instrument(NoteBlockInstrument.{options.Instrument})");
+        }
+
+        if (options.PushReaction != BlockPushReaction.Normal)
+        {
+            calls.Add($".pushReaction(PushReaction.{options.PushReaction switch { BlockPushReaction.PushOnly => "PUSH_ONLY", _ => options.PushReaction.ToString().ToUpperInvariant() }})");
+        }
+
+        if (options.IgnitedByLava)
+        {
+            calls.Add(".ignitedByLava()");
+        }
+
+        return calls;
+    }
+
+    private static IEnumerable<string> BlockPropertyImports(BlockOptions options)
+    {
+        if (options.MapColor.Length > 0)
+        {
+            yield return "net.minecraft.world.level.material.MapColor";
+        }
+
+        if (options.Instrument.Length > 0)
+        {
+            yield return "net.minecraft.world.level.block.state.properties.NoteBlockInstrument";
+        }
+
+        if (options.PushReaction != BlockPushReaction.Normal)
+        {
+            yield return "net.minecraft.world.level.material.PushReaction";
+        }
+    }
 
     private static List<string> BlockPropertyCalls(IRBlockSettings settings)
     {

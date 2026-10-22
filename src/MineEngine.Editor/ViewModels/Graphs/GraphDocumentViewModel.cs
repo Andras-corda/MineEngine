@@ -136,11 +136,36 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, INodeLibraryHost
     /// <summary>Nodes of the program (without the comments and the tooltips).</summary>
     public int NodeCount => Nodes.Count(n => !n.IsAnnotation);
 
-    /// <summary>Message passager de l'éditeur (fil refusé...), ou null.</summary>
+    /// <summary>How long a message of the editor stays at the bottom of the graph.</summary>
+    public static readonly TimeSpan StatusDuration = TimeSpan.FromSeconds(3);
+
+    private DispatcherTimer? _statusTimer;
+
+    /// <summary>Message passager de l'éditeur (fil refusé...), ou null ; il disparaît après <see cref="StatusDuration"/>.</summary>
     public string? StatusText
     {
         get => _statusText;
-        set => SetProperty(ref _statusText, value);
+        set
+        {
+            SetProperty(ref _statusText, value);
+            _statusTimer?.Stop();
+            if (value is not null && Application.Current is not null)
+            {
+                _statusTimer ??= CreateStatusTimer();
+                _statusTimer.Start();
+            }
+        }
+    }
+
+    private DispatcherTimer CreateStatusTimer()
+    {
+        var timer = new DispatcherTimer { Interval = StatusDuration };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            StatusText = null;
+        };
+        return timer;
     }
 
     // ----- Menu "Ajouter un nœud" -----
@@ -183,6 +208,7 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, INodeLibraryHost
             return
             [
                 .. ProgramPalette.AvailableNodes(Program, _asset)
+                    .Select(TypedForPendingSource)
                     .Select(t => new NodeChoiceViewModel(t))
                     .Where(c => _pendingSource is null || FindCompatiblePin(c.Info, _pendingSource, context) is not null)
                     .Where(c => search.Length == 0
@@ -193,6 +219,17 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, INodeLibraryHost
             ];
         }
     }
+
+    /// <summary>
+    /// A collection or vector node offered after a wire dropped in empty space takes the type of
+    /// that wire (a list of texts gives "Add" a text value).
+    /// </summary>
+    private NodeTemplate TypedForPendingSource(NodeTemplate template) =>
+        _pendingSource is { IsInput: false, IsExec: false } source
+        && GenericNodes.MainInput(template.Info.Kind) is not null
+        && GenericNodes.Accepts(template.Info.Kind, source.Type)
+            ? ProgramPalette.Typed(template.Info.Kind, source.Type, Program)
+            : template;
 
     /// <summary>Project assets: the Nodes window follows their changes (new functions, classes...).</summary>
     public AssetRegistry Assets => _context.Project.Assets;
@@ -270,15 +307,87 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, INodeLibraryHost
         (GraphPinViewModel output, GraphPinViewModel input) = first.IsInput ? (second, first) : (first, second);
         var connection = new GraphConnection(output.Node.Id, output.Name, input.Node.Id, input.Name);
         IGraphContext context = Context;
-        if (_asset.Graph.DescribeConnectionProblem(connection, context) is { } problem)
+        NodeGraph graph = Retyped(_asset.Graph, input, output.Type, context);
+        if (graph.DescribeConnectionProblem(connection, context) is { } problem)
         {
+            if (WithCast(graph, output, input, context) is { } cast)
+            {
+                StatusText = Tr.F("A \"{0}\" node converts the value.", cast.Title);
+                Apply(cast.Graph, Tr.T("Connect nodes"));
+                return true;
+            }
+
             StatusText = problem;
             return false;
         }
 
         StatusText = null;
-        Apply(_asset.Graph.Connect(connection, context), Tr.T("Connect nodes"));
+        Apply(graph.Connect(connection, context), Tr.T("Connect nodes"));
         return true;
+    }
+
+    /// <summary>
+    /// The graph with a cast node between the two pins (an int connected to a float gives "To
+    /// float"), like the conversions inserted by Unreal; null when no cast fits.
+    /// </summary>
+    private (NodeGraph Graph, string Title)? WithCast(NodeGraph graph, GraphPinViewModel output, GraphPinViewModel input, IGraphContext context)
+    {
+        if (output.IsExec || input.IsExec || GenericNodes.CastBetween(output.Type, input.Type, context.CanFeed) is not { } kind)
+        {
+            return null;
+        }
+
+        NodeTemplate template = ProgramPalette.Typed(kind, output.Type, Program);
+        Point middle = new((output.Anchor.X + input.Anchor.X) / 2 - 60, (output.Anchor.Y + input.Anchor.Y) / 2 - 20);
+        GraphNode cast = template.Create(Math.Round(middle.X), Math.Round(middle.Y));
+        var into = new GraphConnection(output.Node.Id, output.Name, cast.Id, GenericNodes.CastInput);
+        var from = new GraphConnection(cast.Id, "result", input.Node.Id, input.Name);
+        NodeGraph result = graph.AddNode(cast);
+        if (result.DescribeConnectionProblem(into, context) is not null)
+        {
+            return null;
+        }
+
+        result = result.Connect(into, context);
+        return result.DescribeConnectionProblem(from, context) is null ? (result.Connect(from, context), template.Info.Title) : null;
+    }
+
+    /// <summary>
+    /// A wire connected to the main input of a collection or vector node gives it its type, like a
+    /// wildcard pin of Unreal; the other wires of the node that no longer fit are removed.
+    /// </summary>
+    private static NodeGraph Retyped(NodeGraph graph, GraphPinViewModel input, DataType type, IGraphContext context)
+    {
+        if (graph.FindNode(input.Node.Id) is not { } node
+            || GenericNodes.MainInput(node.Kind) != input.Name
+            || !GenericNodes.Accepts(node.Kind, type)
+            || GenericNodes.TypeOf(node) == type)
+        {
+            return graph;
+        }
+
+        NodeGraph retyped = graph.ReplaceNode(GenericNodes.Retype(node, type));
+        foreach (GraphConnection wire in retyped.Connections.Where(c => c.FromNode == node.Id || c.ToNode == node.Id))
+        {
+            NodeGraph without = retyped.Disconnect(wire);
+            if (without.DescribeConnectionProblem(wire, context) is not null)
+            {
+                retyped = without;
+            }
+        }
+
+        return retyped;
+    }
+
+    /// <summary>True if a wire between the two pins can be made, directly or with a cast.</summary>
+    public bool Accepts(GraphPinViewModel first, GraphPinViewModel second)
+    {
+        (GraphPinViewModel output, GraphPinViewModel input) = first.IsInput ? (second, first) : (first, second);
+        IGraphContext context = Context;
+        return output.IsExec == input.IsExec
+               && (output.IsExec || context.CanFeed(output.Type, input.Type)
+                   || (GenericNodes.MainInput(input.Node.Model.Kind) == input.Name && GenericNodes.Accepts(input.Node.Model.Kind, output.Type))
+                   || GenericNodes.CastBetween(output.Type, input.Type, context.CanFeed) is not null);
     }
 
     /// <summary>Retire les fils d'une broche (Alt+clic).</summary>
@@ -326,9 +435,132 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, INodeLibraryHost
         List<Guid> ids = [.. SelectedNodes.Where(n => !n.IsEntry).Select(n => n.Id)];
         if (ids.Count > 0)
         {
+            // The references of a deleted reroute go with it: their wires then start from its source.
+            ids = [.. ids.Union(Reroutes.ReferencesTo(_asset.Graph, ids))];
             NodeGraph graph = Reroutes.Bypass(_asset.Graph, ids).RemoveNodes(ids);
             Apply(graph, ids.Count == 1 ? Tr.T("Delete a node") : Tr.F("Delete {0} nodes", ids.Count));
         }
+    }
+
+    // ----- Wires under the mouse, connections of the selection -----
+
+    private GraphConnectionViewModel? _hoveredWire;
+
+    /// <summary>Wire under the mouse: highlighted, and Backspace or Delete breaks it.</summary>
+    public GraphConnectionViewModel? HoveredWire
+    {
+        get => _hoveredWire;
+        set
+        {
+            GraphConnectionViewModel? old = _hoveredWire;
+            if (SetProperty(ref _hoveredWire, value))
+            {
+                if (old is not null)
+                {
+                    old.IsHovered = false;
+                }
+
+                if (value is not null)
+                {
+                    value.IsHovered = true;
+                }
+            }
+        }
+    }
+
+    /// <summary>Breaks one wire (Backspace on the wire under the mouse).</summary>
+    public void Disconnect(GraphConnectionViewModel wire)
+    {
+        ArgumentNullException.ThrowIfNull(wire);
+        HoveredWire = null;
+        if (_asset.Graph.Connections.Contains(wire.Model))
+        {
+            Apply(_asset.Graph.Disconnect(wire.Model), Tr.T("Break a connection"));
+        }
+    }
+
+    /// <summary>Removes every wire of the selected nodes (right-click on a node).</summary>
+    public void BreakAllConnections()
+    {
+        var ids = SelectedNodes.Select(n => n.Id).ToHashSet();
+        GraphConnection[] wires = [.. _asset.Graph.Connections.Where(c => ids.Contains(c.FromNode) || ids.Contains(c.ToNode))];
+        if (wires.Length == 0)
+        {
+            StatusText = Tr.T("These nodes have no connection.");
+            return;
+        }
+
+        HoveredWire = null;
+        NodeGraph graph = wires.Aggregate(_asset.Graph, (current, wire) => current.Disconnect(wire));
+        Apply(graph, wires.Length == 1 ? Tr.T("Break a connection") : Tr.F("Break {0} connections", wires.Length));
+    }
+
+    /// <summary>
+    /// Refresh nodes (right-click on a node), as in Unreal: the selected nodes are described again
+    /// (a function, a variable or a type may have changed), the values of inputs that no longer
+    /// exist are dropped, new inputs take their default value and the wires that no longer fit
+    /// are removed.
+    /// </summary>
+    public void RefreshSelection()
+    {
+        IGraphContext context = Context;
+        NodeGraph graph = _asset.Graph;
+        int removed = 0;
+        foreach (GraphNodeViewModel selected in SelectedNodes.Where(n => !n.IsAnnotation).ToList())
+        {
+            if (graph.FindNode(selected.Id) is not { } node)
+            {
+                continue;
+            }
+
+            NodeInfo info = context.Describe(node);
+            var pins = info.Inputs.Select(i => i.Name).ToHashSet();
+            var values = node.Values;
+            foreach (string key in values.Keys.Where(k => !pins.Contains(k) && IsFormerParameter(k)).ToList())
+            {
+                values = values.Remove(key);
+            }
+
+            foreach (PinInfo input in info.Inputs.Where(i => i.DefaultValue is not null && !values.ContainsKey(i.Name)))
+            {
+                values = values.SetItem(input.Name, input.DefaultValue!);
+            }
+
+            graph = graph.ReplaceNode(node with { Values = values });
+            foreach (GraphConnection wire in graph.Connections.Where(c => c.FromNode == node.Id || c.ToNode == node.Id).ToList())
+            {
+                NodeGraph without = graph.Disconnect(wire);
+                if (without.DescribeConnectionProblem(wire, context) is not null)
+                {
+                    graph = without;
+                    removed++;
+                }
+            }
+        }
+
+        Apply(graph, Tr.T("Refresh nodes"));
+        StatusText = removed == 0 ? Tr.T("Nodes refreshed.") : Tr.F("Nodes refreshed: {0} connection(s) no longer fitted and were removed.", removed);
+    }
+
+    /// <summary>
+    /// A value kept for a parameter of a function, a field or a variable (named by its id) that no
+    /// longer exists; the settings of the node itself (type, number of pins...) are kept.
+    /// </summary>
+    private static bool IsFormerParameter(string key) => Guid.TryParse(key, out _);
+
+    /// <summary>A reference to a value reroute, placed below it and selected (like a named reroute of Unreal).</summary>
+    public void CreateRerouteReference(GraphNodeViewModel reroute)
+    {
+        ArgumentNullException.ThrowIfNull(reroute);
+        if (Reroutes.CreateReference(reroute.Model, reroute.X + 40, reroute.Y + 50) is not { } reference)
+        {
+            StatusText = Tr.T("Only a reroute of a value wire can have references.");
+            return;
+        }
+
+        Apply(_asset.Graph.AddNode(reference), Tr.T("Add a reroute reference"));
+        SelectOnly(_nodes[reference.Id]);
+        StatusText = Tr.T("Connect the reference wherever the value of the reroute is needed; move it anywhere in the graph.");
     }
 
     /// <summary>Copie les nœuds sélectionnés (et les fils entre eux) un peu plus bas à droite.</summary>
@@ -420,14 +652,35 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, INodeLibraryHost
         return added;
     }
 
-    /// <summary>Writes the size of a comment resized with the mouse (one step).</summary>
+    /// <summary>Writes the size (and the corner, for the left and top edges) of a comment resized with the mouse (one step).</summary>
     public void ResizeComment(GraphNodeViewModel comment, double gridSize = 0)
     {
         ArgumentNullException.ThrowIfNull(comment);
         if (_asset.Graph.FindNode(comment.Id) is { Kind: GraphNodeKind.Comment } current)
         {
-            Apply(_asset.Graph.ReplaceNode(GraphAnnotations.Resize(current, Snap(comment.Width, gridSize), Snap(comment.Height, gridSize))),
-                Tr.T("Resize a comment"));
+            GraphNode resized = GraphAnnotations.Resize(current, Snap(comment.Width, gridSize), Snap(comment.Height, gridSize))
+                .MoveTo(Snap(comment.X, gridSize), Snap(comment.Y, gridSize));
+            Apply(_asset.Graph.ReplaceNode(resized), Tr.T("Resize a comment"));
+        }
+    }
+
+    /// <summary>One more output on a Switch (the next case) or a Sequence.</summary>
+    public void AddPin(GraphNodeViewModel node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        if (_asset.Graph.FindNode(node.Id) is { } current && FlowNodes.IsDynamic(current.Kind))
+        {
+            Apply(_asset.Graph.ReplaceNode(FlowNodes.AddPin(current)), Tr.T("Add a pin"));
+        }
+    }
+
+    /// <summary>Removes the last output of a Switch or a Sequence, with its wire.</summary>
+    public void RemovePin(GraphNodeViewModel node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        if (_asset.Graph.FindNode(node.Id) is { } current && FlowNodes.RemovePin(current) is { } removed)
+        {
+            Apply(_asset.Graph.DisconnectPin(node.Id, removed.Pin).ReplaceNode(removed.Node), Tr.T("Remove a pin"));
         }
     }
 

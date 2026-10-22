@@ -27,6 +27,31 @@ public static class GraphBrushes
         [PinType.ItemStack] = Create("#5FD18A"),
         [PinType.Object] = Create("#7FA7FF"),
         [PinType.Enum] = Create("#C9B458"),
+        [PinType.Decimal] = Create("#A3D94A"),
+        [PinType.Direction] = Create("#E07A4A"),
+        [PinType.BlockState] = Create("#8C5A3A"),
+        [PinType.Entity] = Create("#2E7BC4"),
+        [PinType.Vector2i] = Create("#E8C547"),
+        [PinType.Vector3i] = Create("#F0B020"),
+        [PinType.Vector2f] = Create("#E8D98A"),
+        [PinType.Vector3f] = Create("#F2CC4E"),
+        [PinType.Char] = Create("#E9A3D4"),
+        [PinType.Long] = Create("#2E9E5A"),
+        [PinType.Float] = Create("#B8E36A"),
+        [PinType.Byte] = Create("#7CC68E"),
+        [PinType.Uuid] = Create("#9AA7C7"),
+        [PinType.LivingEntity] = Create("#4A90D9"),
+        [PinType.TextComponent] = Create("#F06EAA"),
+        [PinType.Identifier] = Create("#C7A6F0"),
+        [PinType.EquipmentSlot] = Create("#8FB3A0"),
+        [PinType.Hand] = Create("#D6B48C"),
+        [PinType.Rarity] = Create("#B07CE0"),
+        [PinType.Fluid] = Create("#3A8FE0"),
+        [PinType.BoundingBox] = Create("#E0C060"),
+        [PinType.DamageSource] = Create("#C0504A"),
+        [PinType.EffectInstance] = Create("#8E6FD8"),
+        [PinType.NbtTag] = Create("#A0A0A0"),
+        [PinType.World] = Create("#5FA35F"),
     };
 
     private static readonly Dictionary<NodeCategory, Brush> Categories = new()
@@ -38,6 +63,7 @@ public static class GraphBrushes
         [NodeCategory.Function] = Create("#6A4AAE"),
         [NodeCategory.Object] = Create("#2D7D8C"),
         [NodeCategory.Library] = Create("#6B7280"),
+        [NodeCategory.Global] = Create("#2F8F83"),
     };
 
     /// <summary>Gray of the function libraries (nodes and domains of the Nodes window).</summary>
@@ -55,12 +81,19 @@ public static class GraphBrushes
         [NodeGroup.Block] = Create("#9A6B3F"),
         [NodeGroup.World] = Create("#7A8B2E"),
         [NodeGroup.Program] = Create("#6A55B0"),
+        [NodeGroup.Collections] = Create("#8A6FC4"),
+        [NodeGroup.Entities] = Create("#3B7FBF"),
+        [NodeGroup.Globals] = Create("#2F8F83"),
+        [NodeGroup.Conversions] = Create("#8A8F98"),
     };
 
     private static readonly Brush AllGroups = Create("#6B7280");
 
     /// <summary>Couleur d'un type de valeur. L'exécution utilise la couleur du texte du thème (voir la vue).</summary>
-    public static Brush ForPin(DataType type) => Pins.GetValueOrDefault(type.Kind, Brushes.Gray);
+    /// <remarks>A collection takes the color of its values, as in Unreal.</remarks>
+    public static Brush ForPin(DataType type) => type.IsCollection && type.Element is { } element
+        ? ForPin(element)
+        : Pins.GetValueOrDefault(type.Kind, Brushes.Gray);
 
     public static Brush ForCategory(NodeCategory category) => Categories.GetValueOrDefault(category, Brushes.Gray);
 

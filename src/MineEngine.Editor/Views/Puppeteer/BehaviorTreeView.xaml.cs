@@ -31,6 +31,7 @@ public partial class BehaviorTreeView : UserControl
         MoveNodes,
         Link,
         Marquee,
+        ResizeComment,
     }
 
     private Gesture _gesture;
@@ -42,6 +43,9 @@ public partial class BehaviorTreeView : UserControl
     private Point _paletteWorld;
     private BehaviorTreeDocumentViewModel? _document;
     private bool _framed;
+    private BtNodeViewModel? _resized;
+    private Rect _resizeOrigin;
+    private string _resizeEdges = string.Empty;
 
     public BehaviorTreeView()
     {
@@ -279,6 +283,32 @@ public partial class BehaviorTreeView : UserControl
         Point position = e.GetPosition(Root);
         var source = e.OriginalSource as DependencyObject;
 
+        // A text box of the canvas (title of a comment being edited) keeps the mouse.
+        if (FindAncestor<TextBoxBase>(source) is not null)
+        {
+            return;
+        }
+
+        if (ResizeHandle(source) is ({ IsComment: true } resized, string edges))
+        {
+            Document.SelectOnly(resized);
+            _resized = resized;
+            _resizeOrigin = new Rect(resized.X, resized.Y, resized.CommentWidth, resized.CommentHeight);
+            _resizeEdges = edges;
+            Begin(Gesture.ResizeComment, position);
+            e.Handled = true;
+            return;
+        }
+
+        // Double-click on the title of a comment: it is edited on the canvas.
+        if (e.ClickCount == 2 && FindTagged(source, "header") is { DataContext: BtNodeViewModel { IsComment: true } edited } commentHeader)
+        {
+            Document.SelectOnly(edited);
+            EditCommentTitle(edited, commentHeader);
+            e.Handled = true;
+            return;
+        }
+
         // Pin: drag a link, or detach with Alt.
         foreach ((string tag, bool fromChildrenPin) in new[] { ("pin-out", true), ("pin-in", false) })
         {
@@ -335,6 +365,17 @@ public partial class BehaviorTreeView : UserControl
             }
 
             _moveOrigins = Document.SelectedNodes.ToDictionary(n => n, n => new Point(n.X, n.Y));
+
+            // A comment carries the nodes it frames, like in Blueprints.
+            foreach (BtNodeViewModel comment in Document.SelectedNodes.Where(n => n.IsComment).ToList())
+            {
+                Rect frame = comment.Bounds;
+                foreach (BtNodeViewModel inside in Document.Nodes.Where(n => !_moveOrigins.ContainsKey(n) && frame.Contains(n.Bounds)))
+                {
+                    _moveOrigins[inside] = new Point(inside.X, inside.Y);
+                }
+            }
+
             Begin(Gesture.MoveNodes, position);
             e.Handled = true;
             return;
@@ -417,6 +458,14 @@ public partial class BehaviorTreeView : UserControl
                     : BtLinkViewModel.Elbow(end, link.Node.TopAnchor);
                 break;
 
+            case Gesture.ResizeComment when _resized is not null:
+                Rect resizedFrame = Graphs.CommentFrames.Resized(_resizeOrigin, _resizeEdges, (position - _gestureStart) / Scale);
+                _resized.X = resizedFrame.X;
+                _resized.Y = resizedFrame.Y;
+                _resized.CommentWidth = resizedFrame.Width;
+                _resized.CommentHeight = resizedFrame.Height;
+                break;
+
             case Gesture.Marquee:
                 Rect rect = new(_gestureStart, position);
                 Canvas.SetLeft(Marquee, rect.X);
@@ -468,6 +517,11 @@ public partial class BehaviorTreeView : UserControl
                 Document.CommitMove(SnapSize);
                 break;
 
+            case Gesture.ResizeComment when _resized is not null:
+                Document.ResizeComment(_resized, SnapSize);
+                _resized = null;
+                break;
+
             case Gesture.Link when _linkSource is { } link:
                 _linkSource = null;
                 if (NodeAt(position) is { } target)
@@ -489,7 +543,7 @@ public partial class BehaviorTreeView : UserControl
                 var area = new Rect(ToWorld(_gestureStart), ToWorld(position));
                 if (area.Width + area.Height > DragThreshold / Scale)
                 {
-                    foreach (BtNodeViewModel node in Document.Nodes.Where(n => n.Bounds.IntersectsWith(area)))
+                    foreach (BtNodeViewModel node in Document.Nodes.Where(n => n.IsComment ? area.Contains(n.Bounds) : n.Bounds.IntersectsWith(area)))
                     {
                         node.IsSelected = true;
                     }
@@ -508,6 +562,12 @@ public partial class BehaviorTreeView : UserControl
         if (_gesture == Gesture.MoveNodes)
         {
             Document?.CommitMove(SnapSize);
+        }
+
+        if (_gesture == Gesture.ResizeComment && _resized is not null)
+        {
+            Document?.ResizeComment(_resized, SnapSize);
+            _resized = null;
         }
 
         if (_gesture != Gesture.None)
@@ -579,11 +639,87 @@ public partial class BehaviorTreeView : UserControl
             case Key.Escape:
                 Document.SelectOnly(null);
                 break;
+            case Key.C when !control:
+                CommentSelection();
+                break;
+            case Key.T when !control:
+                TooltipSelection();
+                break;
             default:
                 return;
         }
 
         e.Handled = true;
+    }
+
+    // ----- Comments and tooltips -----
+
+    /// <summary>Bounds of the selected nodes (without the tooltips), or null.</summary>
+    private Rect? SelectionBounds() =>
+        Document?.SelectedNodes.Where(n => !n.IsTooltip).Select(n => n.Bounds).ToList() is { Count: > 0 } bounds ? bounds.Aggregate(Rect.Union) : null;
+
+    /// <summary>C: frames the selected nodes with a comment (or adds one at the center of the view).</summary>
+    private void CommentSelection()
+    {
+        if (Document is not null)
+        {
+            Point center = ToWorld(new Point(Root.ActualWidth / 2, Root.ActualHeight / 2));
+            Document.AddComment(SelectionBounds() ?? new Rect(center.X - 150, center.Y - 80, 300, 160));
+        }
+    }
+
+    /// <summary>T: adds a tooltip bubble above the selected nodes.</summary>
+    private void TooltipSelection()
+    {
+        if (Document is not null)
+        {
+            Rect? bounds = SelectionBounds();
+            Document.AddTooltip(bounds is { } area ? new Point(area.Right - 70, area.Top - 34) : ToWorld(new Point(Root.ActualWidth / 2, Root.ActualHeight / 2)));
+        }
+    }
+
+    /// <summary>Comment and edges ("l", "tr"...) of the resize handle under the mouse, or null.</summary>
+    private (BtNodeViewModel Node, string Edges)? ResizeHandle(DependencyObject? source)
+    {
+        for (DependencyObject? current = source; current is not null && !ReferenceEquals(current, Root); current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is FrameworkElement { Tag: string tag, DataContext: BtNodeViewModel node } && tag.StartsWith("resize:", StringComparison.Ordinal))
+            {
+                return (node, tag[7..]);
+            }
+        }
+
+        return null;
+    }
+
+    private void EditCommentTitle(BtNodeViewModel comment, FrameworkElement header)
+    {
+        comment.IsEditingTitle = true;
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (Graphs.CommentFrames.FindTextBox(header) is { } box)
+            {
+                box.Focus();
+                box.SelectAll();
+            }
+        }, System.Windows.Threading.DispatcherPriority.Input);
+    }
+
+    private void OnCommentEditLostFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: BtNodeViewModel comment })
+        {
+            comment.IsEditingTitle = false;
+        }
+    }
+
+    private void OnCommentEditKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key is Key.Enter or Key.Escape)
+        {
+            Keyboard.Focus(this);
+            e.Handled = true;
+        }
     }
 
     // ----- Menus -----
@@ -607,6 +743,27 @@ public partial class BehaviorTreeView : UserControl
                 menu.Items.Add(Item(Tr.T("Remove"), () => document.RemoveAttachment(attachment)));
                 break;
 
+            case BtNodeViewModel { IsAnnotation: true } annotation:
+                if (!annotation.IsSelected)
+                {
+                    document.SelectOnly(annotation);
+                }
+
+                if (annotation.IsComment)
+                {
+                    menu.Items.Add(Item(Tr.T("Rename the comment"), () =>
+                    {
+                        if (NodesHost.ItemContainerGenerator.ContainerFromItem(annotation) is FrameworkElement container)
+                        {
+                            EditCommentTitle(annotation, container);
+                        }
+                    }));
+                }
+
+                menu.Items.Add(Item(Tr.T("Duplicate"), document.DuplicateSelection, "Ctrl+D"));
+                menu.Items.Add(Item(Tr.T("Delete"), document.DeleteSelection, Tr.T("Del")));
+                break;
+
             case BtNodeViewModel node:
                 if (!node.IsSelected)
                 {
@@ -625,6 +782,10 @@ public partial class BehaviorTreeView : UserControl
                 {
                     menu.Items.Add(Item(Tr.T("Detach the children"), () => document.DisconnectChildren(node)));
                 }
+
+                menu.Items.Add(new Separator());
+                menu.Items.Add(Item(Tr.T("Add a comment"), CommentSelection, "C"));
+                menu.Items.Add(Item(Tr.T("Add a tooltip"), TooltipSelection, "T"));
 
                 if (!node.IsRoot)
                 {

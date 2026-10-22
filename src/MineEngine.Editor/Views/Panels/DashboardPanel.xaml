@@ -121,11 +121,43 @@
             <Style x:Key="TileFolderItem" TargetType="ListBoxItem" BasedOn="{StaticResource FolderItem}">
                 <Setter Property="Margin" Value="0,0,12,12" />
             </Style>
+
+            <!-- Right-click in the empty part of the Dashboard (V0.6.9): folders, history, validation, build and launch. -->
+            <ContextMenu x:Key="PageMenu">
+                <MenuItem Header="{l:Tr 'Up to the parent folder'}" InputGestureText="Backspace"
+                          Command="{Binding Project.OpenParentFolderCommand}">
+                    <MenuItem.Icon><TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Up}" /></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="{l:Tr 'Back to the root'}" Command="{Binding Project.OpenFolderCommand}" CommandParameter="">
+                    <MenuItem.Icon><TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Home}" /></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="{l:Tr 'New folder'}" Command="{Binding NewFolderCommand}">
+                    <MenuItem.Icon><TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.NewFolder}" /></MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="{l:Tr 'Undo'}" InputGestureText="Ctrl+Z" Command="{Binding UndoCommand}">
+                    <MenuItem.Icon><TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Undo}" /></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="{l:Tr 'Redo'}" InputGestureText="Ctrl+Y" Command="{Binding RedoCommand}">
+                    <MenuItem.Icon><TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Redo}" /></MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="{l:Tr 'Validate'}" InputGestureText="F7" Command="{Binding ValidateCommand}">
+                    <MenuItem.Icon><TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Check}" /></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="{l:Tr 'Build'}" InputGestureText="Ctrl+Shift+B" Command="{Binding BuildCommand}">
+                    <MenuItem.Icon><TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Build}" /></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="{l:Tr 'Run'}" InputGestureText="F5" Command="{Binding RunClientCommand}">
+                    <MenuItem.Icon><TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Run}" /></MenuItem.Icon>
+                </MenuItem>
+            </ContextMenu>
         </ResourceDictionary>
     </UserControl.Resources>
 
     <ScrollViewer x:Name="Page" Background="{DynamicResource HubBackgroundBrush}" VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled" PreviewMouseWheel="OnPageMouseWheel">
+                  HorizontalScrollBarVisibility="Disabled" PreviewMouseWheel="OnPageMouseWheel"
+                  ContextMenu="{StaticResource PageMenu}" ContextMenuOpening="OnPageMenuOpening">
         <DockPanel Margin="24,14,24,12" Visibility="{Binding HasProject, Converter={StaticResource BoolToVisibility}}">
 
             <!-- En-têtes de colonnes (mode liste, fenêtre large) -->

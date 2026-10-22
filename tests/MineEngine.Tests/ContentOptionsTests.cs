@@ -106,7 +106,7 @@ public sealed class ContentOptionsTests
         Assert.Equal("minecraft:cutout", flower["render_type"]!.GetValue<string>());
 
         JsonNode log = JsonNode.Parse(Read("src/main/resources/assets/testmod/blockstates/star_log.json"))!;
-        Assert.Equal(90, log["variants"]!["axis=x"]!["x"]!.GetValue<int>());
+        Assert.Equal(90, log["variants"]!["axis=x,appearance=0"]!["x"]!.GetValue<int>()); // The log has appearances (AppearanceSample).
 
         JsonNode loot = JsonNode.Parse(Read("src/main/resources/data/testmod/loot_table/blocks/ruby_ore.json"))!;
         JsonNode entry = loot["pools"]![0]!["entries"]![0]!;

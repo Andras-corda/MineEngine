@@ -19,6 +19,9 @@ public sealed class IRMob
 
     public string DisplayName { get; }
 
+    /// <summary>Other textures (number 1, 2...) switched by the appearance nodes of the graphs.</summary>
+    public IReadOnlyList<IRAppearance> Appearances { get; init; } = [];
+
     public MobModel Model { get; init; } = MobModel.Zombie;
 
     /// <summary>Blockbench model of the project when <see cref="Model"/> is Custom (see <see cref="IRModel"/>).</summary>

@@ -146,6 +146,7 @@ public sealed class ProjectLayout
         AssetType.Fluid => "fluids",
         AssetType.GameRule => "gamerules",
         AssetType.Effect => "effects",
+        AssetType.GlobalVariable => "globals",
         _ => type.ToString().ToLowerInvariant(),
     };
 

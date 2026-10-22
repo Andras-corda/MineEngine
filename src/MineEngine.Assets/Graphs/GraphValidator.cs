@@ -80,6 +80,17 @@ public static class GraphValidator
         return issues;
     }
 
+    /// <summary>Names of the six directions, as Minecraft writes them.</summary>
+    public static IReadOnlyList<string> Directions { get; } = ["down", "up", "north", "south", "west", "east"];
+
+    /// <summary>"minecraft:stone" or "stone": a valid Minecraft identifier.</summary>
+    public static bool IsIdentifier(string? text) =>
+        text is { Length: > 0 } && System.Text.RegularExpressions.Regex.IsMatch(text.Trim(), "^([a-z0-9_.-]+:)?[a-z0-9_./-]+$");
+
+    /// <summary>A decimal number typed on an input (dot or comma), if it is valid.</summary>
+    public static bool TryParseDecimal(string? text, out double value) =>
+        double.TryParse(text?.Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out value) && double.IsFinite(value);
+
     /// <summary>Le nombre saisi sur une entrée, s'il est valide.</summary>
     public static bool TryParseNumber(string? text, out int value) =>
         int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value)
@@ -94,6 +105,23 @@ public static class GraphValidator
                 return TryParseNumber(value, out _) ? null : Tr.F("whole number expected (between -{0} and {1}).", NodeCatalog.MaxNumber, NodeCatalog.MaxNumber);
             case PinType.Boolean:
                 return bool.TryParse(value, out _) ? null : Tr.T("true or false expected.");
+            case PinType.Decimal:
+                return TryParseDecimal(value, out _) ? null : Tr.T("number expected (with a dot for decimals: 0.5).");
+            case PinType.Direction:
+                return Directions.Contains(value?.Trim().ToLowerInvariant()) ? null : Tr.T("up, down, north, south, east or west expected.");
+            case PinType.Char:
+                return value is { Length: 1 } ? null : Tr.T("exactly one character expected.");
+            case PinType.Long:
+                return long.TryParse(value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out _) ? null : Tr.T("whole number expected.");
+            case PinType.Byte:
+                return sbyte.TryParse(value?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out _) ? null : Tr.T("whole number from -128 to 127 expected.");
+            case PinType.Float:
+                return TryParseDecimal(value, out double single) && Math.Abs(single) <= float.MaxValue ? null : Tr.T("number expected (with a dot for decimals: 0.5).");
+            case PinType.Identifier or PinType.Fluid:
+                return IsIdentifier(value) ? null : Tr.T("identifier expected (minecraft:stone): lowercase letters, digits, _ - . / and one ':'.");
+            case PinType.EquipmentSlot or PinType.Hand or PinType.Rarity:
+                IReadOnlyList<string> names = DataType.NamedValues(pin.Type.Kind)!;
+                return names.Contains(value?.Trim().ToLowerInvariant()) ? null : Tr.F("one of these values expected: {0}.", string.Join(", ", names));
             case PinType.Item or PinType.Block or PinType.Sound:
                 if (!ContentReference.TryParseStorageText(value, out ContentReference? reference))
                 {

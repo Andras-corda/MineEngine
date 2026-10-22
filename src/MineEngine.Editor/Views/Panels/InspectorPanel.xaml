@@ -6,7 +6,9 @@
              xmlns:graphs="clr-namespace:MineEngine.Editor.ViewModels.Graphs"
              xmlns:graphviews="clr-namespace:MineEngine.Editor.Views.Graphs"
              xmlns:bt="clr-namespace:MineEngine.Editor.ViewModels.Puppeteer"
-             xmlns:puppeteer="clr-namespace:MineEngine.Editor.Views.Puppeteer">
+             xmlns:puppeteer="clr-namespace:MineEngine.Editor.Views.Puppeteer"
+             xmlns:assets="clr-namespace:MineEngine.Editor.ViewModels.Assets"
+             xmlns:views="clr-namespace:MineEngine.Editor.Views.Panels">
 
     <!--
         Panneau Détails / Inspecteur, façon Unreal et Unity : la cible (asset sélectionné ou
@@ -21,6 +23,81 @@
             </ResourceDictionary.MergedDictionaries>
 
             <graphviews:NodeCategoryBrushConverter x:Key="CategoryBrush" />
+
+            <!-- Element selected in the Dashboard: information only (it is edited in its tab, opened with Edit). -->
+            <DataTemplate x:Key="AssetSummaryTemplate" DataType="{x:Type assets:AssetViewModel}">
+                <StackPanel>
+                    <Border Style="{StaticResource DetailsSection}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'INFORMATION'}" Margin="0,0,0,6" />
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding TypeLabel}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Type'}" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding FolderLabel}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Folder'}" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding IssueLabel}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'State'}" />
+                            </DockPanel>
+                            <ItemsControl ItemsSource="{Binding SummaryLines}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type assets:SummaryLine}">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding Value}" TextWrapping="Wrap"
+                                                       MaxWidth="220" TextAlignment="Right" />
+                                            <TextBlock Style="{StaticResource DetailsLabel}" Text="{Binding Label}" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource DetailsSection}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'USED BY'}" Margin="0,0,0,6" />
+                            <TextBlock Style="{StaticResource FieldHint}" Text="{l:Tr 'Nothing uses this element.'}"
+                                       Visibility="{Binding IsUsed, Converter={StaticResource InverseBoolToVisibility}}" />
+                            <ItemsControl ItemsSource="{Binding UsedBy}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type assets:AssetLinkViewModel}">
+                                        <Button Style="{StaticResource FlatButton}" Padding="2,2" HorizontalContentAlignment="Left" Content="{Binding Label}"
+                                                Command="{Binding DataContext.OpenAssetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding TargetId}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'USES'}" Margin="0,10,0,6"
+                                       Visibility="{Binding HasUses, Converter={StaticResource BoolToVisibility}}" />
+                            <ItemsControl ItemsSource="{Binding Uses}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type assets:AssetLinkViewModel}">
+                                        <Button Style="{StaticResource FlatButton}" Padding="2,2" HorizontalContentAlignment="Left" Content="{Binding Label}"
+                                                Command="{Binding DataContext.OpenAssetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding TargetId}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Button Style="{DynamicResource AccentButtonStyle}" HorizontalAlignment="Left" Padding="14,5" Margin="0,0,0,10"
+                            Command="{Binding DataContext.OpenAssetEditorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Rename}" />
+                            <TextBlock Text="{l:Tr 'Edit the element'}" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap"
+                               Text="{l:Tr 'The element is edited in its own tab (double-click in the Dashboard, or Edit the element).'}" />
+                </StackPanel>
+            </DataTemplate>
+
+            <views:DetailsTemplateSelector x:Key="DetailsTemplates" AssetTemplate="{StaticResource AssetSummaryTemplate}" />
+
 
             <!-- Ligne libellé / valeur d'une section. -->
             <Style x:Key="DetailsRow" TargetType="DockPanel">
@@ -149,6 +226,14 @@
                             <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{DynamicResource HintBrush}" />
                             <TextBlock Text="{Binding IssueText}" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource LogWarningBrush}"
                                        Visibility="{Binding IssueText, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}" />
+
+                            <!-- Switch: its cases. -->
+                            <StackPanel Margin="0,10,0,0" Visibility="{Binding IsSwitch, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Cases (one per line)'}" Margin="0,0,0,4" />
+                                <TextBox Text="{Binding SwitchCases, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="NoWrap" MinHeight="70" />
+                                <TextBlock TextWrapping="Wrap" FontSize="11" Margin="0,4,0,0" Foreground="{DynamicResource HintBrush}"
+                                           Text="{l:Tr 'Each case is an output of the node; a value that matches no case runs Default. Wires follow the position of the case.'}" />
+                            </StackPanel>
 
                             <!-- Comment: title, color, tooltip. Tooltip: its message. -->
                             <StackPanel Margin="0,10,0,0" Visibility="{Binding IsComment, Converter={StaticResource BoolToVisibility}}">
@@ -306,7 +391,8 @@
                     </StackPanel>
                 </Border>
 
-                <ContentControl Content="{Binding Details}" IsEnabled="{Binding CanEdit}" Focusable="False" />
+                <ContentControl Content="{Binding Details}" IsEnabled="{Binding CanEdit}" Focusable="False"
+                                ContentTemplateSelector="{StaticResource DetailsTemplates}" />
             </StackPanel>
         </ScrollViewer>
     </Grid>

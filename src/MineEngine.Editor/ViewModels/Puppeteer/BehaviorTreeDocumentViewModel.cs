@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Threading;
 using MineEngine.Assets;
 using MineEngine.Assets.Puppeteer;
+using GraphAnnotations = MineEngine.Assets.Graphs.GraphAnnotations;
 using MineEngine.Core.Assets;
 using MineEngine.Core.Commands;
 using MineEngine.Core.Diagnostics;
@@ -203,11 +204,31 @@ public sealed class BehaviorTreeDocumentViewModel : DocumentViewModel, INodeLibr
         }
     }
 
-    /// <summary>Transient message of the editor (refused link...), or null.</summary>
+    private DispatcherTimer? _statusTimer;
+
+    /// <summary>Transient message of the editor (refused link...), or null; it goes away after a few seconds.</summary>
     public string? StatusText
     {
         get => _statusText;
-        set => SetProperty(ref _statusText, value);
+        set
+        {
+            SetProperty(ref _statusText, value);
+            _statusTimer?.Stop();
+            if (value is not null && Application.Current is not null)
+            {
+                if (_statusTimer is null)
+                {
+                    _statusTimer = new DispatcherTimer { Interval = GraphDocumentViewModel.StatusDuration };
+                    _statusTimer.Tick += (_, _) =>
+                    {
+                        _statusTimer.Stop();
+                        StatusText = null;
+                    };
+                }
+
+                _statusTimer.Start();
+            }
+        }
     }
 
     // ----- Menu d'ajout -----
@@ -460,6 +481,50 @@ public sealed class BehaviorTreeDocumentViewModel : DocumentViewModel, INodeLibr
         if (moved.Count > 0)
         {
             Apply(_asset.Tree.MoveNodes(moved), moved.Count == 1 ? Tr.T("Move a node") : Tr.F("Move {0} nodes", moved.Count));
+        }
+    }
+
+    // ----- Comments and tooltips -----
+
+    /// <summary>Frames <paramref name="area"/> (the selected nodes) with a comment, like C in Blueprints.</summary>
+    public void AddComment(Rect area)
+    {
+        var comment = new BtNode(Guid.NewGuid(), BtNodeKind.Comment,
+            Math.Round(area.X - GraphAnnotations.Margin), Math.Round(area.Y - GraphAnnotations.Margin - GraphAnnotations.TitleHeight),
+            GraphAnnotations.CommentValues(area.Width, area.Height, Tr.T("Comment")));
+        Apply(_asset.Tree.AddNode(comment), Tr.T("Add a comment"));
+        SelectOnly(_nodes.GetValueOrDefault(comment.Id));
+    }
+
+    /// <summary>Adds a tooltip bubble for the selected nodes; its message is set in Properties.</summary>
+    public void AddTooltip(Point position)
+    {
+        List<Guid> targets = [.. SelectedNodes.Where(n => !n.IsTooltip).Select(n => n.Id)];
+        if (targets.Count == 0)
+        {
+            StatusText = Tr.T("Select the nodes (or the comment) to describe, then press T.");
+            return;
+        }
+
+        var tooltip = new BtNode(Guid.NewGuid(), BtNodeKind.Tooltip, Math.Round(position.X), Math.Round(position.Y),
+            GraphAnnotations.TooltipValues(targets, Tr.T("Describe these nodes")));
+        Apply(_asset.Tree.AddNode(tooltip), Tr.T("Add a tooltip"));
+        SelectOnly(_nodes.GetValueOrDefault(tooltip.Id));
+        StatusText = Tr.T("Write the message of the tooltip in Properties: it is shown when the mouse is over these nodes.");
+    }
+
+    /// <summary>Writes the frame of a comment resized with the mouse (one step).</summary>
+    public void ResizeComment(BtNodeViewModel comment, double gridSize = 0)
+    {
+        if (_asset.Tree.FindNode(comment.Id) is { Kind: BtNodeKind.Comment } current)
+        {
+            BtNode resized = current with
+            {
+                X = Snap(comment.X, gridSize),
+                Y = Snap(comment.Y, gridSize),
+                Values = GraphAnnotations.Resize(current.Values, Snap(comment.CommentWidth, gridSize), Snap(comment.CommentHeight, gridSize)),
+            };
+            Apply(_asset.Tree.ReplaceNode(resized), Tr.T("Resize a comment"));
         }
     }
 
@@ -807,13 +872,24 @@ public sealed class BehaviorTreeDocumentViewModel : DocumentViewModel, INodeLibr
             }
         }
 
+        // Messages of the tooltips, shown over the nodes they describe.
+        ILookup<Guid, string> tooltips = tree.Nodes
+            .Where(n => n.Kind == BtNodeKind.Tooltip)
+            .SelectMany(t => GraphAnnotations.Targets(t.Values).Select(target => (Target: target, Text: GraphAnnotations.Text(t.Values))))
+            .Where(t => t.Text.Length > 0)
+            .ToLookup(t => t.Target, t => t.Text);
+        foreach (BtNodeViewModel node in Nodes)
+        {
+            node.AttachedTooltip = tooltips[node.Id].Any() ? string.Join("\n\n", tooltips[node.Id]) : null;
+        }
+
         IReadOnlyList<BtNode> order = tree.ExecutionOrder();
         var reachable = order.Select(n => n.Id).ToHashSet();
         Dictionary<Guid, int> rank = order.Select((n, i) => (n.Id, i)).ToDictionary(p => p.Id, p => p.i);
         foreach (BtNodeViewModel node in Nodes)
         {
             node.Order = rank.GetValueOrDefault(node.Id);
-            node.IsReachable = reachable.Contains(node.Id);
+            node.IsReachable = reachable.Contains(node.Id) || node.IsAnnotation;
         }
 
         IReadOnlyList<BtIssue> issues = BehaviorTreeValidator.Validate(_asset, id => Assets.Find(id) as BehaviorTreeAsset);

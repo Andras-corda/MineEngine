@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Company>Mine Engine</Company>
     <Product>Mine Engine</Product>
-    <Version>0.6.5</Version>
+    <Version>0.6.11</Version>
     <NeutralLanguage>en</NeutralLanguage>
     <Copyright>Copyright (c) 2026 Andras Corda</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

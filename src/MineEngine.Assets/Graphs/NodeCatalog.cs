@@ -16,6 +16,10 @@ public static class NodeCatalog
     private static readonly PinInfo PropertyName = new("property", Tr.T("Property"), PinType.Text, "lit");
     private static readonly PinInfo Direction = new("direction", Tr.T("Direction"), PinType.Text, "north");
     private static readonly PinInfo Stack = new("stack", Tr.T("Item stack"), PinType.ItemStack);
+
+    private static readonly PinInfo Entity = new("entity", Tr.T("Entity"), DataType.Entity);
+
+    private static readonly PinInfo Living = new("entity", Tr.T("Living entity"), DataType.LivingEntity);
     private static readonly PinInfo Enchantment = new("enchantment", Tr.T("Enchantment"), PinType.Text, "minecraft:sharpness");
     private static readonly PinInfo NumberOutput = new("value", Tr.T("Number"), PinType.Number);
     private static readonly PinInfo BooleanOutput = new("result", Tr.T("Result"), PinType.Boolean);
@@ -432,6 +436,251 @@ public static class NodeCatalog
         new(GraphNodeKind.OnEntityDeath, NodeCategory.Event, Tr.T("Creature dies"), Tr.T("A creature or a player dies."),
             outputs: [new PinInfo("position", Tr.T("Position"), PinType.Position), new PinInfo("entity", Tr.T("Creature (identifier)"), PinType.Text)]),
 
+        // ----- Flow: Switch, Sequence, Flip Flop -----
+        FlowNodes.Template(GraphNodeKind.SwitchOnNumber),
+        FlowNodes.Template(GraphNodeKind.SwitchOnText),
+        FlowNodes.Template(GraphNodeKind.Sequence),
+        FlowNodes.FlipFlop(),
+
+        // ----- Commands -----
+        new(GraphNodeKind.RunCommandAsPlayer, NodeCategory.Action, Tr.T("Run a command (as the player)"),
+            Tr.T("Runs a command of Minecraft or of the mod as if the player typed it (\"give @s diamond\", \"boost 5\"); the player needs the permission."),
+            inputs: [Player, TextIn("command", Tr.T("Command"), "say Hello")]),
+        new(GraphNodeKind.RunCommandAsServer, NodeCategory.Action, Tr.T("Run a command (as the server)"),
+            Tr.T("Runs a command of Minecraft or of the mod with every permission, at the position (\"time set day\", \"summon minecraft:pig ~ ~ ~\"), without message in the chat."),
+            inputs: [Position, TextIn("command", Tr.T("Command"), "weather clear")]),
+
+        // ----- Ray casts -----
+        new(GraphNodeKind.RaycastHitsBlock, NodeCategory.Variable, Tr.T("Ray cast hits a block"),
+            Tr.T("True if a block is in the direction the player looks, at most at the given distance."),
+            inputs: [Player, new PinInfo("distance", Tr.T("Distance (blocks)"), PinType.Number, "20"), new PinInfo("fluids", Tr.T("Stop on fluids"), PinType.Boolean, "false")],
+            outputs: [BooleanOutput]),
+        new(GraphNodeKind.RaycastBlockPosition, NodeCategory.Variable, Tr.T("Ray cast: block hit"),
+            Tr.T("Position of the first block in the direction the player looks (or the end of the ray if there is none)."),
+            inputs: [Player, new PinInfo("distance", Tr.T("Distance (blocks)"), PinType.Number, "20"), new PinInfo("fluids", Tr.T("Stop on fluids"), PinType.Boolean, "false")],
+            outputs: [new PinInfo("position", Tr.T("Position"), PinType.Position)]),
+        new(GraphNodeKind.LooksAtCreature, NodeCategory.Variable, Tr.T("Looks at a creature"),
+            Tr.T("True if the player looks at a creature (not hidden by a block), at most at the given distance."),
+            inputs: [Player, new PinInfo("distance", Tr.T("Distance (blocks)"), PinType.Number, "20")], outputs: [BooleanOutput]),
+        new(GraphNodeKind.CreatureLookedAt, NodeCategory.Variable, Tr.T("Creature looked at"),
+            Tr.T("Identifier of the creature the player looks at (minecraft:cow...), or an empty text."),
+            inputs: [Player, new PinInfo("distance", Tr.T("Distance (blocks)"), PinType.Number, "20")], outputs: [TextOut]),
+
+        // ----- Physics -----
+        new(GraphNodeKind.SetVelocity, NodeCategory.Action, Tr.T("Set velocity"),
+            Tr.T("Sets the speed of the player, in blocks per second on each axis (Y: up)."),
+            inputs: [Player, new PinInfo("x", "X", PinType.Number, "0"), new PinInfo("y", "Y", PinType.Number, "10"), new PinInfo("z", "Z", PinType.Number, "0")]),
+        new(GraphNodeKind.AddVelocity, NodeCategory.Action, Tr.T("Push"),
+            Tr.T("Adds speed to the player, in blocks per second on each axis (Y: up), like a knockback."),
+            inputs: [Player, new PinInfo("x", "X", PinType.Number, "0"), new PinInfo("y", "Y", PinType.Number, "5"), new PinInfo("z", "Z", PinType.Number, "0")]),
+        new(GraphNodeKind.LaunchForward, NodeCategory.Action, Tr.T("Launch forward"),
+            Tr.T("Launches the player forward, where the player looks, at the given speed (blocks per second)."),
+            inputs: [Player, new PinInfo("speed", Tr.T("Speed"), PinType.Number, "20")]),
+        new(GraphNodeKind.SetGravity, NodeCategory.Action, Tr.T("Set gravity"),
+            Tr.T("Turns the gravity of the player off (the player floats) or back on."),
+            inputs: [Player, new PinInfo("gravity", Tr.T("Gravity"), PinType.Boolean, "false")]),
+        new(GraphNodeKind.IsOnGround, NodeCategory.Variable, Tr.T("Is on the ground"), Tr.T("True if the player stands on a block."),
+            inputs: [Player], outputs: [BooleanOutput]),
+        new(GraphNodeKind.FallDistance, NodeCategory.Variable, Tr.T("Fall distance"), Tr.T("Blocks fallen since the player left the ground."),
+            inputs: [Player], outputs: [NumberOutput]),
+
+        // ----- Sounds and music -----
+        new(GraphNodeKind.PlaySoundAdvanced, NodeCategory.Action, Tr.T("Play a sound (volume, pitch)"),
+            Tr.T("Plays a sound at the position, heard by nearby players, with its volume and its pitch in percent (100: normal)."),
+            inputs:
+            [
+                Position, new PinInfo("sound", Tr.T("Sound"), PinType.Sound, "minecraft:block.note_block.bell"),
+                new PinInfo("volume", Tr.T("Volume (%)"), PinType.Number, "100"), new PinInfo("pitch", Tr.T("Pitch (%)"), PinType.Number, "100"),
+            ]),
+        new(GraphNodeKind.PlaySoundToPlayer, NodeCategory.Action, Tr.T("Play a sound to the player"),
+            Tr.T("Plays a sound that only this player hears, with its volume and its pitch in percent."),
+            inputs:
+            [
+                Player, new PinInfo("sound", Tr.T("Sound"), PinType.Sound, "minecraft:entity.experience_orb.pickup"),
+                new PinInfo("volume", Tr.T("Volume (%)"), PinType.Number, "100"), new PinInfo("pitch", Tr.T("Pitch (%)"), PinType.Number, "100"),
+            ]),
+        new(GraphNodeKind.StopSounds, NodeCategory.Action, Tr.T("Stop the sounds"), Tr.T("Stops every sound the player hears."), inputs: [Player]),
+        new(GraphNodeKind.PlayMusic, NodeCategory.Action, Tr.T("Play a music"),
+            Tr.T("Stops the music the player hears and plays this one (a music of the game, a music disc or a sound of the mod), with the Music volume."),
+            inputs: [Player, new PinInfo("music", Tr.T("Music"), PinType.Sound, "minecraft:music_disc.cat")]),
+        new(GraphNodeKind.StopMusic, NodeCategory.Action, Tr.T("Stop the music"), Tr.T("Stops the music the player hears."), inputs: [Player]),
+
+        // ----- Appearances (textures and 3D models switched while the game runs) -----
+        new(GraphNodeKind.SetItemAppearance, NodeCategory.Action, Tr.T("Set item appearance"),
+            Tr.T("Shows the item stack with another look: 0 is the normal one, 1, 2... are the appearances of the item (texture or 3D model, in its tab)."),
+            inputs: [Stack, new PinInfo("appearance", Tr.T("Appearance"), PinType.Number, "1")]),
+        new(GraphNodeKind.ItemAppearance, NodeCategory.Variable, Tr.T("Item appearance"), Tr.T("Number of the appearance of the item stack (0: normal)."),
+            inputs: [Stack], outputs: [NumberOutput]),
+        new(GraphNodeKind.SetBlockAppearance, NodeCategory.Action, Tr.T("Set block appearance"),
+            Tr.T("Shows the block at the position with another look: 0 is the normal one, 1, 2... are the appearances of the block (texture or 3D model, in its tab). Other blocks do not change."),
+            inputs: [Position, new PinInfo("appearance", Tr.T("Appearance"), PinType.Number, "1")]),
+        new(GraphNodeKind.BlockAppearance, NodeCategory.Variable, Tr.T("Block appearance"), Tr.T("Number of the appearance of the block at the position (0: normal)."),
+            inputs: [Position], outputs: [NumberOutput]),
+        new(GraphNodeKind.SetCreatureAppearance, NodeCategory.Action, Tr.T("Set creature appearance"),
+            Tr.T("Gives another texture to the mobs of the mod around the position: 0 is the normal one, 1, 2... are the appearances of the mob (in its tab). Creature: its identifier, or empty for every mob of the mod."),
+            inputs:
+            [
+                Position, new PinInfo("radius", Tr.T("Radius (blocks)"), PinType.Number, "8"), TextIn("creature", Tr.T("Creature (identifier)"), string.Empty),
+                new PinInfo("appearance", Tr.T("Appearance"), PinType.Number, "1"),
+            ]),
+        new(GraphNodeKind.CreatureAppearance, NodeCategory.Variable, Tr.T("Creature appearance"),
+            Tr.T("Number of the appearance of the nearest mob of the mod around the position (0: normal, or no such mob)."),
+            inputs: [Position, new PinInfo("radius", Tr.T("Radius (blocks)"), PinType.Number, "8"), TextIn("creature", Tr.T("Creature (identifier)"), string.Empty)],
+            outputs: [NumberOutput]),
+
+        // ----- Decimal numbers -----
+        new(GraphNodeKind.PositionToVector, NodeCategory.Variable, Tr.T("Position to vector"), Tr.T("The center of the block, as a decimal 3D vector."),
+            inputs: [Position], outputs: [new PinInfo("vector", Tr.T("Vector"), DataType.Vector3f)]),
+        new(GraphNodeKind.RoundDecimal, NodeCategory.Variable, Tr.T("Round"), Tr.T("The nearest whole number."),
+            inputs: [new PinInfo("a", "A", DataType.Decimal, "0.0")], outputs: [NumberOutput]),
+        new(GraphNodeKind.FloorDecimal, NodeCategory.Variable, Tr.T("Round down"), Tr.T("The whole number just below (2.9 gives 2, -0.5 gives -1)."),
+            inputs: [new PinInfo("a", "A", DataType.Decimal, "0.0")], outputs: [NumberOutput]),
+        Decimals(GraphNodeKind.DecimalAdd, Tr.T("Decimal addition (+)"), Tr.T("A plus B, with decimals."), DataType.Decimal),
+        Decimals(GraphNodeKind.DecimalSubtract, Tr.T("Decimal subtraction (-)"), Tr.T("A minus B, with decimals."), DataType.Decimal),
+        Decimals(GraphNodeKind.DecimalMultiply, Tr.T("Decimal multiplication (×)"), Tr.T("A times B, with decimals."), DataType.Decimal),
+        Decimals(GraphNodeKind.DecimalDivide, Tr.T("Decimal division (÷)"), Tr.T("A divided by B, with decimals (0 if B is 0)."), DataType.Decimal),
+        Decimals(GraphNodeKind.DecimalGreater, Tr.T("Decimal greater than (>)"), Tr.T("True if A is greater than B."), DataType.Boolean),
+        Decimals(GraphNodeKind.DecimalLess, Tr.T("Decimal less than (<)"), Tr.T("True if A is less than B."), DataType.Boolean),
+        new(GraphNodeKind.RandomDecimal, NodeCategory.Variable, Tr.T("Random decimal"), Tr.T("A random decimal number from 0 to 1."),
+            outputs: [new PinInfo("result", Tr.T("Result"), DataType.Decimal)]),
+
+        // ----- Directions -----
+        new(GraphNodeKind.PlayerFacing, NodeCategory.Variable, Tr.T("Facing"), Tr.T("The horizontal direction the player faces (north, south, east or west)."),
+            inputs: [Player], outputs: [new PinInfo("direction", Tr.T("Direction"), DataType.Direction)]),
+        new(GraphNodeKind.OppositeDirection, NodeCategory.Variable, Tr.T("Opposite direction"), Tr.T("North gives south, up gives down..."),
+            inputs: [new PinInfo("direction", Tr.T("Direction"), DataType.Direction, "north")], outputs: [new PinInfo("direction", Tr.T("Direction"), DataType.Direction)]),
+        new(GraphNodeKind.OffsetByDirection, NodeCategory.Variable, Tr.T("Move toward a direction"), Tr.T("The position moved by some blocks toward the direction."),
+            inputs: [Position, new PinInfo("direction", Tr.T("Direction"), DataType.Direction, "north"), new PinInfo("distance", Tr.T("Distance"), PinType.Number, "1")],
+            outputs: [new PinInfo("position", Tr.T("Position"), PinType.Position)]),
+        new(GraphNodeKind.DirectionName, NodeCategory.Variable, Tr.T("Direction name"), Tr.T("The name of the direction: up, down, north, south, east or west."),
+            inputs: [new PinInfo("direction", Tr.T("Direction"), DataType.Direction, "north")], outputs: [TextOut]),
+
+        // ----- Block states -----
+        new(GraphNodeKind.BlockStateAt, NodeCategory.Variable, Tr.T("Block state at"), Tr.T("The block at the position, with its properties (facing, lit...)."),
+            inputs: [Position], outputs: [new PinInfo("state", Tr.T("Block state"), DataType.BlockState)]),
+        new(GraphNodeKind.SetBlockState, NodeCategory.Action, Tr.T("Place a block state"), Tr.T("Places the block with exactly these properties."),
+            inputs: [Position, new PinInfo("state", Tr.T("Block state"), DataType.BlockState)]),
+        new(GraphNodeKind.BlockOfState, NodeCategory.Variable, Tr.T("Block of the state"), Tr.T("The block, without its properties."),
+            inputs: [new PinInfo("state", Tr.T("Block state"), DataType.BlockState)], outputs: [new PinInfo("block", Tr.T("Block"), PinType.Block)]),
+        new(GraphNodeKind.DefaultBlockState, NodeCategory.Variable, Tr.T("Default state"), Tr.T("The block with its default properties."),
+            inputs: [new PinInfo("block", Tr.T("Block"), PinType.Block, "minecraft:stone")], outputs: [new PinInfo("state", Tr.T("Block state"), DataType.BlockState)]),
+        new(GraphNodeKind.StateProperty, NodeCategory.Variable, Tr.T("State property"),
+            Tr.T("The value of a property of the block state, as a text (facing: north, lit: true...); empty if the block has no such property."),
+            inputs: [new PinInfo("state", Tr.T("Block state"), DataType.BlockState), TextIn("property", Tr.T("Property"), "facing")], outputs: [TextOut]),
+        new(GraphNodeKind.StateWithProperty, NodeCategory.Variable, Tr.T("State with a property"),
+            Tr.T("The block state with another value for a property (the same state if the value is not possible)."),
+            inputs: [new PinInfo("state", Tr.T("Block state"), DataType.BlockState), TextIn("property", Tr.T("Property"), "facing"), TextIn("value", Tr.T("Value"), "north")],
+            outputs: [new PinInfo("state", Tr.T("Block state"), DataType.BlockState)]),
+
+        // ----- Entities -----
+        new(GraphNodeKind.EntityPosition, NodeCategory.Variable, Tr.T("Entity position"), Tr.T("The block where the entity is."),
+            inputs: [Entity], outputs: [new PinInfo("position", Tr.T("Position"), PinType.Position)]),
+        new(GraphNodeKind.EntityTypeId, NodeCategory.Variable, Tr.T("Entity type"), Tr.T("Identifier of the kind of entity (minecraft:cow...); empty without entity."),
+            inputs: [Entity], outputs: [TextOut]),
+        new(GraphNodeKind.IsEntityAlive, NodeCategory.Variable, Tr.T("Entity is alive"), Tr.T("True if there is an entity and it is still in the world."),
+            inputs: [Entity], outputs: [BooleanOutput]),
+        new(GraphNodeKind.RemoveEntity, NodeCategory.Action, Tr.T("Remove the entity"), Tr.T("Removes the entity from the world, without drop (never a player)."),
+            inputs: [Entity]),
+        new(GraphNodeKind.NearestEntity, NodeCategory.Variable, Tr.T("Nearest entity"),
+            Tr.T("The nearest entity around the position (identifier: minecraft:cow, or empty for any entity but players); none if there is no such entity."),
+            inputs: [Position, new PinInfo("radius", Tr.T("Radius (blocks)"), PinType.Number, "16"), TextIn("entity", Tr.T("Entity (identifier)"), string.Empty)],
+            outputs: [new PinInfo("entity", Tr.T("Entity"), DataType.Entity)]),
+        new(GraphNodeKind.EntityLookedAt, NodeCategory.Variable, Tr.T("Entity looked at"), Tr.T("The entity the player looks at (not hidden by a block), or none."),
+            inputs: [Player, new PinInfo("distance", Tr.T("Distance (blocks)"), PinType.Number, "20")], outputs: [new PinInfo("entity", Tr.T("Entity"), DataType.Entity)]),
+        new(GraphNodeKind.TeleportEntity, NodeCategory.Action, Tr.T("Teleport the entity"), Tr.T("Moves the entity to the position, in the same dimension."),
+            inputs: [Entity, Position]),
+        new(GraphNodeKind.DamageEntity, NodeCategory.Action, Tr.T("Damage the entity"), Tr.T("Hurts the entity (armor reduces the damage)."),
+            inputs: [Entity, new PinInfo("amount", Tr.T("Amount"), PinType.Number, "2")]),
+        new(GraphNodeKind.EntityHealth, NodeCategory.Variable, Tr.T("Entity health"), Tr.T("Health points of a living entity (0 for the others)."),
+            inputs: [Entity], outputs: [NumberOutput]),
+        new(GraphNodeKind.EntityIsPlayer, NodeCategory.Variable, Tr.T("Entity is a player"), Tr.T("True if the entity is a player."),
+            inputs: [Entity], outputs: [BooleanOutput]),
+
+        // ----- Types of TypesVar.md (char, UUID, rich text, identifier, slots, fluids, boxes, damage, effects, NBT, worlds) -----
+        new(GraphNodeKind.CharAt, NodeCategory.Variable, Tr.T("Character at"), Tr.T("The character of the text at the index (0: the first one); a space outside the text."),
+            inputs: [TextIn("text", Tr.T("Text"), "Hello"), new PinInfo("index", Tr.T("Index"), PinType.Number, "0")],
+            outputs: [new PinInfo("char", Tr.T("Character"), DataType.Char)]),
+        new(GraphNodeKind.EntityUuid, NodeCategory.Variable, Tr.T("UUID of the entity"), Tr.T("The unique identifier of the entity or the player (kept between sessions)."),
+            inputs: [Entity], outputs: [new PinInfo("uuid", Tr.T("UUID"), DataType.Uuid)]),
+        new(GraphNodeKind.EntityByUuid, NodeCategory.Variable, Tr.T("Entity by UUID"), Tr.T("The entity with this UUID in this world, or none."),
+            inputs: [new PinInfo("uuid", Tr.T("UUID"), DataType.Uuid)], outputs: [new PinInfo("entity", Tr.T("Entity"), DataType.Entity)]),
+        new(GraphNodeKind.RandomUuid, NodeCategory.Variable, Tr.T("New UUID"), Tr.T("A new random unique identifier."),
+            outputs: [new PinInfo("uuid", Tr.T("UUID"), DataType.Uuid)]),
+        new(GraphNodeKind.StyledText, NodeCategory.Variable, Tr.T("Styled text"),
+            Tr.T("A rich text with a color (red, gold, aqua, light_purple... as in Minecraft) and bold or italic."),
+            inputs:
+            [
+                TextIn("text", Tr.T("Text"), "Hello"), TextIn("color", Tr.T("Color"), "gold"),
+                new PinInfo("bold", Tr.T("Bold"), PinType.Boolean, "false"), new PinInfo("italic", Tr.T("Italic"), PinType.Boolean, "false"),
+            ],
+            outputs: [new PinInfo("component", Tr.T("Rich text"), DataType.TextComponent)]),
+        new(GraphNodeKind.SendRichMessage, NodeCategory.Action, Tr.T("Send a rich message"), Tr.T("Shows a rich text (colors, bold...) in the player's chat."),
+            inputs: [Player, new PinInfo("component", Tr.T("Rich text"), DataType.TextComponent)]),
+        new(GraphNodeKind.IdentifierNamespace, NodeCategory.Variable, Tr.T("Namespace of the identifier"), Tr.T("\"minecraft\" for minecraft:stone."),
+            inputs: [new PinInfo("id", Tr.T("Identifier"), DataType.Identifier, "minecraft:stone")], outputs: [TextOut]),
+        new(GraphNodeKind.IdentifierPath, NodeCategory.Variable, Tr.T("Path of the identifier"), Tr.T("\"stone\" for minecraft:stone."),
+            inputs: [new PinInfo("id", Tr.T("Identifier"), DataType.Identifier, "minecraft:stone")], outputs: [TextOut]),
+        new(GraphNodeKind.EquipmentItem, NodeCategory.Variable, Tr.T("Equipment item"), Tr.T("The item stack in an equipment slot of the living entity (empty if none)."),
+            inputs: [Living, new PinInfo("slot", Tr.T("Slot"), DataType.EquipmentSlot, "head")], outputs: [StackOutput]),
+        new(GraphNodeKind.ItemInHand, NodeCategory.Variable, Tr.T("Item in hand"), Tr.T("The item stack held in the main hand or the off hand."),
+            inputs: [Player, new PinInfo("hand", Tr.T("Hand"), DataType.Hand, "main_hand")], outputs: [StackOutput]),
+        new(GraphNodeKind.SwingHand, NodeCategory.Action, Tr.T("Swing the hand"), Tr.T("Plays the animation of the arm of the player."),
+            inputs: [Player, new PinInfo("hand", Tr.T("Hand"), DataType.Hand, "main_hand")]),
+        new(GraphNodeKind.StackRarity, NodeCategory.Variable, Tr.T("Rarity of the stack"), Tr.T("Common, uncommon, rare or epic (the color of its name)."),
+            inputs: [Stack], outputs: [new PinInfo("rarity", Tr.T("Rarity"), DataType.Rarity)]),
+        new(GraphNodeKind.FluidAt, NodeCategory.Variable, Tr.T("Fluid at"), Tr.T("The fluid at the position (minecraft:empty if there is none)."),
+            inputs: [Position], outputs: [new PinInfo("fluid", Tr.T("Fluid"), DataType.Fluid)]),
+        new(GraphNodeKind.PlaceFluid, NodeCategory.Action, Tr.T("Place a fluid"), Tr.T("Places a source of the fluid at the position."),
+            inputs: [Position, new PinInfo("fluid", Tr.T("Fluid"), DataType.Fluid, "minecraft:water")]),
+        new(GraphNodeKind.EntityBox, NodeCategory.Variable, Tr.T("Box of the entity"), Tr.T("The box around the entity, used for its collisions."),
+            inputs: [Entity], outputs: [new PinInfo("box", Tr.T("Box"), DataType.BoundingBox)]),
+        new(GraphNodeKind.MakeBox, NodeCategory.Variable, Tr.T("Make a box"), Tr.T("The box between two blocks (both included)."),
+            inputs: [new PinInfo("from", Tr.T("From"), PinType.Position), new PinInfo("to", Tr.T("To"), PinType.Position)],
+            outputs: [new PinInfo("box", Tr.T("Box"), DataType.BoundingBox)]),
+        new(GraphNodeKind.EntitiesInBox, NodeCategory.Variable, Tr.T("Entities in the box"), Tr.T("Every entity inside the box, as a list."),
+            inputs: [new PinInfo("box", Tr.T("Box"), DataType.BoundingBox)], outputs: [new PinInfo("entities", Tr.T("Entities"), DataType.ListOf(DataType.Entity))]),
+        new(GraphNodeKind.BoxContains, NodeCategory.Variable, Tr.T("Box contains"), Tr.T("True if the point is inside the box."),
+            inputs: [new PinInfo("box", Tr.T("Box"), DataType.BoundingBox), new PinInfo("point", Tr.T("Point"), DataType.Vector3f)], outputs: [BooleanOutput]),
+        new(GraphNodeKind.GenericDamage, NodeCategory.Variable, Tr.T("Generic damage"), Tr.T("A damage source without cause, for the entity that will be hurt."),
+            inputs: [Entity], outputs: [new PinInfo("source", Tr.T("Damage source"), DataType.DamageSource)]),
+        new(GraphNodeKind.DamageWithSource, NodeCategory.Action, Tr.T("Damage with a source"), Tr.T("Hurts the entity with this damage source."),
+            inputs: [Entity, new PinInfo("source", Tr.T("Damage source"), DataType.DamageSource), new PinInfo("amount", Tr.T("Amount"), PinType.Number, "2")]),
+        new(GraphNodeKind.MakeEffect, NodeCategory.Variable, Tr.T("Make an effect"), Tr.T("An effect with its duration and its level, to give later; none if the effect does not exist."),
+            inputs: [EffectName, new PinInfo("seconds", Tr.T("Duration (seconds)"), PinType.Number, "10"), new PinInfo("level", Tr.T("Level"), PinType.Number, "1")],
+            outputs: [new PinInfo("effect", Tr.T("Effect"), DataType.EffectInstance)]),
+        new(GraphNodeKind.ApplyEffect, NodeCategory.Action, Tr.T("Apply an effect"), Tr.T("Gives the effect to the living entity."),
+            inputs: [Living, new PinInfo("effect", Tr.T("Effect"), DataType.EffectInstance)]),
+        new(GraphNodeKind.NewNbt, NodeCategory.Variable, Tr.T("New NBT data"), Tr.T("Empty NBT data, to fill with named values."),
+            outputs: [new PinInfo("nbt", Tr.T("NBT data"), DataType.NbtTag)]),
+        new(GraphNodeKind.NbtPutNumber, NodeCategory.Action, Tr.T("NBT: set a number"), Tr.T("Writes a number under the name."),
+            inputs: [new PinInfo("nbt", Tr.T("NBT data"), DataType.NbtTag), NbtName, new PinInfo("value", Tr.T("Value"), PinType.Number, "0")]),
+        new(GraphNodeKind.NbtPutText, NodeCategory.Action, Tr.T("NBT: set a text"), Tr.T("Writes a text under the name."),
+            inputs: [new PinInfo("nbt", Tr.T("NBT data"), DataType.NbtTag), NbtName, TextIn("value", Tr.T("Value"), string.Empty)]),
+        new(GraphNodeKind.NbtGetNumber, NodeCategory.Variable, Tr.T("NBT: number"), Tr.T("The number under the name (0 if missing)."),
+            inputs: [new PinInfo("nbt", Tr.T("NBT data"), DataType.NbtTag), NbtName], outputs: [NumberOutput]),
+        new(GraphNodeKind.NbtGetText, NodeCategory.Variable, Tr.T("NBT: text"), Tr.T("The text under the name (empty if missing)."),
+            inputs: [new PinInfo("nbt", Tr.T("NBT data"), DataType.NbtTag), NbtName], outputs: [TextOut]),
+        new(GraphNodeKind.CurrentWorld, NodeCategory.Variable, Tr.T("This world"), Tr.T("The world (dimension) where the graph runs."),
+            outputs: [new PinInfo("world", Tr.T("World"), DataType.World)]),
+        new(GraphNodeKind.WorldOf, NodeCategory.Variable, Tr.T("World of the entity"), Tr.T("The world (dimension) where the entity is."),
+            inputs: [Entity], outputs: [new PinInfo("world", Tr.T("World"), DataType.World)]),
+        new(GraphNodeKind.WorldDimension, NodeCategory.Variable, Tr.T("Dimension of the world"), Tr.T("Identifier of the dimension: minecraft:overworld, minecraft:the_nether..."),
+            inputs: [new PinInfo("world", Tr.T("World"), DataType.World)], outputs: [TextOut]),
+        new(GraphNodeKind.GameTime, NodeCategory.Variable, Tr.T("Game time"), Tr.T("Ticks since the world was created (a long number: 20 per second)."),
+            outputs: [new PinInfo("time", Tr.T("Time (ticks)"), DataType.Long)]),
+
+        // ----- Guilds of players and groups of entities (scopes player_guild and entity_group) -----
+        new(GraphNodeKind.SetPlayerGuild, NodeCategory.Action, Tr.T("Set the guild of the player"),
+            Tr.T("The player joins this guild (empty: no guild): the player_guild variables are then those of the guild."),
+            inputs: [Player, TextIn("guild", Tr.T("Guild"), "knights")]),
+        new(GraphNodeKind.PlayerGuild, NodeCategory.Variable, Tr.T("Guild of the player"), Tr.T("Name of the guild of the player (empty without guild)."),
+            inputs: [Player], outputs: [TextOut]),
+        new(GraphNodeKind.SetEntityGroup, NodeCategory.Action, Tr.T("Set the group of the entity"),
+            Tr.T("The entity joins this group (empty: no group): the entity_group variables are then those of the group."),
+            inputs: [Entity, TextIn("group", Tr.T("Group"), "pack")]),
+        new(GraphNodeKind.EntityGroup, NodeCategory.Variable, Tr.T("Group of the entity"), Tr.T("Name of the group of the entity (empty without group)."),
+            inputs: [Entity], outputs: [TextOut]),
+
         // ----- Game rules (V0.6.3) -----
         new(GraphNodeKind.GetGameRuleBoolean, NodeCategory.Variable, Tr.T("Game rule (true/false)"),
             Tr.T("Value of a true/false game rule of Minecraft or of the mod (keepInventory, doDaylightCycle...)."),
@@ -460,7 +709,13 @@ public static class NodeCatalog
         new(GraphNodeKind.HasEffect, NodeCategory.Variable, Tr.T("Has the effect"),
             Tr.T("True if the player has the status effect."),
             inputs: [Player, EffectName], outputs: [BooleanOutput]),
-    }.ToDictionary(n => n.Kind);
+    }
+    // Collections and vectors: typed by the wire connected to them (see GenericNodes).
+    .Concat(Enumerable.Range((int)GraphNodeKind.CollectionSize, GraphNodeKind.VectorToPosition - GraphNodeKind.CollectionSize + 1)
+        .Select(k => GenericNodes.Describe((GraphNodeKind)k, GenericNodes.DefaultType((GraphNodeKind)k), t => t.BuiltInLabel)))
+    .Concat(Enumerable.Range((int)GraphNodeKind.CastToNumber, GraphNodeKind.CastToPlayer - GraphNodeKind.CastToNumber + 1)
+        .Select(k => GenericNodes.Describe((GraphNodeKind)k, GenericNodes.DefaultType((GraphNodeKind)k), t => t.BuiltInLabel)))
+    .ToDictionary(n => n.Kind);
 
     private static PinInfo TextIn(string name, string label, string value) => new(name, label, PinType.Text, value);
 
@@ -516,7 +771,34 @@ public static class NodeCatalog
     public static NodeGroup GroupOf(NodeInfo info) => info.Kind switch
     {
         _ when info.Category == NodeCategory.Event => NodeGroup.Events,
+        GraphNodeKind.GetGlobal or GraphNodeKind.SetGlobal => NodeGroup.Globals,
         GraphNodeKind.Branch or GraphNodeKind.Not or GraphNodeKind.Chance or GraphNodeKind.BooleanValue or GraphNodeKind.CancelEvent => NodeGroup.Logic,
+        GraphNodeKind.SwitchOnNumber or GraphNodeKind.SwitchOnText or GraphNodeKind.Sequence or GraphNodeKind.FlipFlop => NodeGroup.Logic,
+        GraphNodeKind.RunCommandAsPlayer or GraphNodeKind.RunCommandAsServer => NodeGroup.World,
+        >= GraphNodeKind.RaycastHitsBlock and <= GraphNodeKind.FallDistance => NodeGroup.Player,
+        GraphNodeKind.PlaySoundAdvanced => NodeGroup.World,
+        >= GraphNodeKind.PlaySoundToPlayer and <= GraphNodeKind.StopMusic => NodeGroup.Player,
+        GraphNodeKind.SetItemAppearance or GraphNodeKind.ItemAppearance => NodeGroup.Item,
+        GraphNodeKind.SetBlockAppearance or GraphNodeKind.BlockAppearance => NodeGroup.Block,
+        GraphNodeKind.SetCreatureAppearance or GraphNodeKind.CreatureAppearance => NodeGroup.World,
+        >= GraphNodeKind.CollectionSize and <= GraphNodeKind.ForEachInCollection => NodeGroup.Collections,
+        >= GraphNodeKind.MakeVector and <= GraphNodeKind.PositionToVector => NodeGroup.Math,
+        >= GraphNodeKind.RoundDecimal and <= GraphNodeKind.RandomDecimal => NodeGroup.Math,
+        >= GraphNodeKind.PlayerFacing and <= GraphNodeKind.DirectionName => NodeGroup.World,
+        >= GraphNodeKind.BlockStateAt and <= GraphNodeKind.StateWithProperty => NodeGroup.Block,
+        >= GraphNodeKind.EntityPosition and <= GraphNodeKind.EntityIsPlayer => NodeGroup.Entities,
+        >= GraphNodeKind.CastToNumber and <= GraphNodeKind.CastToPlayer => NodeGroup.Conversions,
+        GraphNodeKind.CharAt or GraphNodeKind.StyledText or GraphNodeKind.IdentifierNamespace or GraphNodeKind.IdentifierPath => NodeGroup.Text,
+        GraphNodeKind.EntityUuid or GraphNodeKind.EntityByUuid or GraphNodeKind.RandomUuid or GraphNodeKind.EntityBox or GraphNodeKind.GenericDamage
+            or GraphNodeKind.DamageWithSource or GraphNodeKind.EquipmentItem or GraphNodeKind.ApplyEffect or GraphNodeKind.WorldOf => NodeGroup.Entities,
+        GraphNodeKind.SendRichMessage or GraphNodeKind.ItemInHand or GraphNodeKind.SwingHand or GraphNodeKind.MakeEffect => NodeGroup.Player,
+        GraphNodeKind.StackRarity => NodeGroup.Item,
+        GraphNodeKind.FluidAt or GraphNodeKind.PlaceFluid => NodeGroup.Block,
+        >= GraphNodeKind.MakeBox and <= GraphNodeKind.BoxContains => NodeGroup.World,
+        >= GraphNodeKind.NewNbt and <= GraphNodeKind.NbtGetText => NodeGroup.Program,
+        >= GraphNodeKind.CurrentWorld and <= GraphNodeKind.GameTime => NodeGroup.World,
+        GraphNodeKind.SetPlayerGuild or GraphNodeKind.PlayerGuild => NodeGroup.Player,
+        GraphNodeKind.SetEntityGroup or GraphNodeKind.EntityGroup => NodeGroup.Entities,
         GraphNodeKind.NumberValue or GraphNodeKind.RandomNumber or GraphNodeKind.GreaterThan or GraphNodeKind.LessThan or GraphNodeKind.NumbersEqual
             or GraphNodeKind.Add or GraphNodeKind.Subtract or GraphNodeKind.Multiply => NodeGroup.Math,
         GraphNodeKind.TextValue or GraphNodeKind.JoinText => NodeGroup.Text,
@@ -548,8 +830,17 @@ public static class NodeCatalog
         NodeGroup.Item => Tr.T("Items"),
         NodeGroup.Block => Tr.T("Blocks"),
         NodeGroup.World => Tr.T("World"),
+        NodeGroup.Collections => Tr.T("Collections"),
+        NodeGroup.Entities => Tr.T("Entities"),
+        NodeGroup.Globals => Tr.T("Global variables"),
+        NodeGroup.Conversions => Tr.T("Conversions"),
         _ => Tr.T("Program"),
     };
+
+    private static NodeInfo Decimals(GraphNodeKind kind, string title, string description, DataType result) =>
+        new(kind, NodeCategory.Variable, title, description,
+            inputs: [new PinInfo("a", "A", DataType.Decimal, "0.0"), new PinInfo("b", "B", DataType.Decimal, "0.0")],
+            outputs: [new PinInfo("result", Tr.T("Result"), result)]);
 
     private static NodeInfo Arithmetic(GraphNodeKind kind, string title, string description) =>
         new(kind, NodeCategory.Variable, title, description,

@@ -21,6 +21,9 @@ public sealed class JsonPropertyReader
 
     public int GetInt32(string name, int defaultValue) => Get(name, defaultValue, n => n.GetValue<int>());
 
+    /// <summary>The raw JSON of a property (read by a record of its own), or null.</summary>
+    public JsonNode? GetNode(string name) => _properties[name];
+
     public float GetSingle(string name, float defaultValue) => Get(name, defaultValue, n => n.GetValue<float>());
 
     public double GetDouble(string name, double defaultValue) => Get(name, defaultValue, n => n.GetValue<double>());

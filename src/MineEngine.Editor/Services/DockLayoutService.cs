@@ -133,6 +133,7 @@ public sealed class DockLayoutService
             .OfType<string>()
             .ToHashSet();
         string[] missing = [.. contents.Keys.Where(id => !restored.Contains(id))];
+        missing = [.. missing.Where(id => !AddBesideHome(manager, id, contents[id]))];
         if (missing.Length > 0 && !ReferenceEquals(layout, _defaultLayout) && !AddBesideExplorer(manager, missing, contents))
         {
             Apply(manager, _defaultLayout!);
@@ -163,6 +164,29 @@ public sealed class DockLayoutService
             });
         }
 
+        return true;
+    }
+
+    /// <summary>
+    /// A view of the toolbar added by a newer version (the Global tab...) joins the documents of
+    /// the Dashboard, without tab, like the other views. False if the id is not one of them.
+    /// </summary>
+    private bool AddBesideHome(DockingManager manager, string id, object content)
+    {
+        if (!Views.MineEngineDockTheme.ToolbarDocuments.Contains(id)
+            || manager.Layout.Descendents().OfType<LayoutDocument>().FirstOrDefault(d => d.ContentId == "home")?.Parent is not LayoutDocumentPane pane)
+        {
+            return false;
+        }
+
+        pane.Children.Add(new LayoutDocument
+        {
+            ContentId = id,
+            Title = _initialTitles.GetValueOrDefault(id),
+            Content = content,
+            CanClose = false,
+            CanFloat = false,
+        });
         return true;
     }
 

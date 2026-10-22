@@ -82,6 +82,14 @@ public sealed class ForgeJavaEmitter : ModJavaEmitter
 
     protected override (string Expression, string Import) GameEventBus => ("MinecraftForge.EVENT_BUS", "net.minecraftforge.common.MinecraftForge");
 
+    protected override string GlobalPlayerEvent => "net.minecraftforge.event.entity.player.PlayerEvent";
+
+    protected override string ServerStartingEvent => "net.minecraftforge.event.server.ServerStartingEvent";
+
+    protected override string ServerStoppingEvent => "net.minecraftforge.event.server.ServerStoppingEvent";
+
+    protected override string FmlPaths => "net.minecraftforge.fml.loading.FMLPaths";
+
     protected override (string Import, string TypeName) GameEventType(GraphNodeKind eventKind) => eventKind switch
     {
         GraphNodeKind.OnRightClickBlock => ("net.minecraftforge.event.entity.player.PlayerInteractEvent", "PlayerInteractEvent.RightClickBlock"),

@@ -76,6 +76,14 @@ public sealed class NeoForgeJavaEmitter : ModJavaEmitter
 
     protected override (string Expression, string Import) GameEventBus => ("NeoForge.EVENT_BUS", "net.neoforged.neoforge.common.NeoForge");
 
+    protected override string GlobalPlayerEvent => "net.neoforged.neoforge.event.entity.player.PlayerEvent";
+
+    protected override string ServerStartingEvent => "net.neoforged.neoforge.event.server.ServerStartingEvent";
+
+    protected override string ServerStoppingEvent => "net.neoforged.neoforge.event.server.ServerStoppingEvent";
+
+    protected override string FmlPaths => "net.neoforged.fml.loading.FMLPaths";
+
     protected override (string Import, string TypeName) GameEventType(GraphNodeKind eventKind) => eventKind switch
     {
         GraphNodeKind.OnRightClickBlock => ("net.neoforged.neoforge.event.entity.player.PlayerInteractEvent", "PlayerInteractEvent.RightClickBlock"),

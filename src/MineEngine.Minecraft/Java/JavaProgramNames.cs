@@ -177,28 +177,129 @@ public sealed class JavaProgramNames
     {
         PinType.Boolean => "boolean",
         PinType.Number => "int",
+        PinType.Decimal => "double",
         PinType.Text => "String",
         PinType.Player => "Player",
+        PinType.Entity => "Entity",
         PinType.Position => "BlockPos",
+        PinType.Direction => "Direction",
         PinType.Item => "Item",
         PinType.Block => "Block",
+        PinType.BlockState => "BlockState",
         PinType.Sound => "SoundEvent",
         PinType.ItemStack => "ItemStack",
+        PinType.Vector2i => "Vector2i",
+        PinType.Vector3i => "Vec3i",
+        PinType.Vector2f => "Vec2",
+        PinType.Vector3f => "Vec3",
+        PinType.Char => "char",
+        PinType.Long => "long",
+        PinType.Float => "float",
+        PinType.Byte => "byte",
+        PinType.Uuid => "UUID",
+        PinType.LivingEntity => "LivingEntity",
+        PinType.TextComponent => "Component",
+        PinType.Identifier => "ResourceLocation",
+        PinType.EquipmentSlot => "EquipmentSlot",
+        PinType.Hand => "InteractionHand",
+        PinType.Rarity => "Rarity",
+        PinType.Fluid => "Fluid",
+        PinType.BoundingBox => "AABB",
+        PinType.DamageSource => "DamageSource",
+        PinType.EffectInstance => "MobEffectInstance",
+        PinType.NbtTag => "CompoundTag",
+        PinType.World => "Level",
+        PinType.Array or PinType.List => $"List<{BoxedType(type.Element!)}>",
+        PinType.Set => $"Set<{BoxedType(type.Element!)}>",
+        PinType.Map => $"Map<{BoxedType(type.Key!)}, {BoxedType(type.Element!)}>",
         PinType.Object or PinType.Enum => type.Definition is { } id ? TypeName(id) : "Object",
         _ => "Object",
     };
 
-    /// <summary>Imports Minecraft nécessaires pour écrire ce type.</summary>
-    public static IEnumerable<string> ImportsFor(DataType type) => type.Kind switch
+    /// <summary>Java type of a value inside a collection (Integer for int...).</summary>
+    public string BoxedType(DataType type) => type.Kind switch
+    {
+        PinType.Boolean => "Boolean",
+        PinType.Number => "Integer",
+        PinType.Decimal => "Double",
+        PinType.Char => "Character",
+        PinType.Long => "Long",
+        PinType.Float => "Float",
+        PinType.Byte => "Byte",
+        _ => JavaType(type),
+    };
+
+    /// <summary>Imports Minecraft (et java.util) nécessaires pour écrire ce type et ceux qui le composent.</summary>
+    public static IEnumerable<string> ImportsFor(DataType type) => type.Parts().SelectMany(OwnImports).Distinct();
+
+    private static IEnumerable<string> OwnImports(DataType type) => type.Kind switch
     {
         PinType.Player => ["net.minecraft.world.entity.player.Player"],
+        PinType.Entity => ["net.minecraft.world.entity.Entity"],
         PinType.Position => ["net.minecraft.core.BlockPos"],
+        PinType.Direction => ["net.minecraft.core.Direction"],
         PinType.Item => ["net.minecraft.world.item.Item"],
         PinType.Block => ["net.minecraft.world.level.block.Block"],
+        PinType.BlockState => ["net.minecraft.world.level.block.state.BlockState"],
         PinType.Sound => ["net.minecraft.sounds.SoundEvent"],
         PinType.ItemStack => ["net.minecraft.world.item.ItemStack"],
+        PinType.Vector2i => ["org.joml.Vector2i"],
+        PinType.Vector3i => ["net.minecraft.core.Vec3i"],
+        PinType.Vector2f => ["net.minecraft.world.phys.Vec2"],
+        PinType.Vector3f => ["net.minecraft.world.phys.Vec3"],
+        PinType.Uuid => ["java.util.UUID"],
+        PinType.LivingEntity => ["net.minecraft.world.entity.LivingEntity"],
+        PinType.TextComponent => ["net.minecraft.network.chat.Component"],
+        PinType.Identifier => ["net.minecraft.resources.ResourceLocation"],
+        PinType.EquipmentSlot => ["net.minecraft.world.entity.EquipmentSlot"],
+        PinType.Hand => ["net.minecraft.world.InteractionHand"],
+        PinType.Rarity => ["net.minecraft.world.item.Rarity"],
+        PinType.Fluid => ["net.minecraft.world.level.material.Fluid"],
+        PinType.BoundingBox => ["net.minecraft.world.phys.AABB"],
+        PinType.DamageSource => ["net.minecraft.world.damagesource.DamageSource"],
+        PinType.EffectInstance => ["net.minecraft.world.effect.MobEffectInstance"],
+        PinType.NbtTag => ["net.minecraft.nbt.CompoundTag"],
+        PinType.World => ["net.minecraft.world.level.Level"],
+        PinType.Array or PinType.List => ["java.util.List", "java.util.ArrayList"],
+        PinType.Set => ["java.util.Set", "java.util.HashSet"],
+        PinType.Map => ["java.util.Map", "java.util.HashMap"],
         _ => [],
     };
+
+    // ----- Global variables (class MineEngineGlobals of the package "code") -----
+
+    public const string GlobalsClass = "MineEngineGlobals";
+
+    private readonly Dictionary<Guid, (IRGlobalVariable Global, string Name)> _globals = [];
+
+    /// <summary>Declares the global variables: each one gets a Java name unique in the class (score, score2...).</summary>
+    public void AddGlobals(IEnumerable<IRGlobalVariable> globals)
+    {
+        var used = new HashSet<string>(StringComparer.Ordinal);
+        foreach (IRGlobalVariable global in globals)
+        {
+            string name = Safe(ProgramNames.Identifier(global.Name));
+            if (name.Length == 0)
+            {
+                name = "variable";
+            }
+
+            string unique = name;
+            for (int i = 2; !used.Add(unique); i++)
+            {
+                unique = name + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            _globals[global.Id] = (global, unique);
+        }
+    }
+
+    public IEnumerable<(IRGlobalVariable Global, string Name)> Globals => _globals.Values;
+
+    public (IRGlobalVariable Global, string Name)? FindGlobal(Guid id) => _globals.TryGetValue(id, out var found) ? found : null;
+
+    /// <summary>"Score" from "score": the accessors are getScore and setScore.</summary>
+    public static string Accessor(string name) => char.ToUpperInvariant(name[0]) + name[1..];
 
     /// <summary>Type renvoyé par une fonction : void, le type de sa seule valeur, ou son record.</summary>
     public string ReturnType(IRFunction function) => function.Returns.Count switch

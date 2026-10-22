@@ -201,7 +201,7 @@ public sealed class GraphTests
         var diagnostics = new DiagnosticBag();
         ModIR ir = ModIRBuilder.CreateDefault().Build(reopened, diagnostics)!;
         Assert.True(ir is not null, string.Join('\n', diagnostics));
-        Assert.Equal(7, ir.Content.Behaviors.Count); // With the event graph of LibrarySample.
+        Assert.Equal(10, ir.Content.Behaviors.Count); // With the event graphs of LibrarySample, GlobalsSample, TypesSample and ScopesSample.
     }
 
     [Fact]

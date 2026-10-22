@@ -65,7 +65,7 @@ public sealed class WorkspaceTests
         Assert.Equal("Test Mod", summary.Settings.ModName);
         Assert.Equal("Un mod de test", summary.Settings.Description);
         Assert.Equal(14, summary.Count(AssetType.Item));
-        Assert.Equal(6, summary.Count(AssetType.Block));
+        Assert.Equal(10, summary.Count(AssetType.Block)); // With the 4 blocks of BlockOptionsSample.
         Assert.Equal(5, summary.Count(AssetType.Mob));
         Assert.Equal(3, summary.Count(AssetType.Recipe));
         Assert.Equal(2, summary.PreviewTextures.Count);

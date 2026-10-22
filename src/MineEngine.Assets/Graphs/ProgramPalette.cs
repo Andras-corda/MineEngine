@@ -6,7 +6,14 @@ namespace MineEngine.Assets.Graphs;
 /// <summary>Nœud proposé dans le menu d'ajout : sa description et la définition (et le membre) qu'il vise.</summary>
 public sealed record NodeTemplate(NodeInfo Info, Guid? Target = null, Guid? Member = null)
 {
-    public GraphNode Create(double x, double y) => GraphNode.Create(Info, x, y, Target, Member);
+    /// <summary>Values given to the new node (type of a collection or vector node), or null.</summary>
+    public System.Collections.Immutable.ImmutableDictionary<string, string>? Values { get; init; }
+
+    public GraphNode Create(double x, double y)
+    {
+        GraphNode node = GraphNode.Create(Info, x, y, Target, Member);
+        return Values is null ? node : node with { Values = node.Values.SetItems(Values) };
+    }
 }
 
 /// <summary>
@@ -29,7 +36,15 @@ public static class ProgramPalette
         foreach (NodeInfo info in NodeCatalog.All)
         {
             bool eventOnly = info.Category == NodeCategory.Event || info.Kind == GraphNodeKind.CancelEvent;
-            if (graph.Kind == GraphKind.Events || !eventOnly)
+            if (info.Kind == GraphNodeKind.MakeVector)
+            {
+                // One "Make vector" per kind of vector: nothing else gives it its type.
+                foreach (PinType kind in new[] { PinType.Vector2i, PinType.Vector3i, PinType.Vector2f, PinType.Vector3f })
+                {
+                    yield return Typed(GraphNodeKind.MakeVector, new DataType(kind), program);
+                }
+            }
+            else if (graph.Kind == GraphKind.Events || !eventOnly)
             {
                 yield return new NodeTemplate(info);
             }
@@ -71,6 +86,12 @@ public static class ProgramPalette
             yield return Make(GraphNodeKind.Self);
         }
 
+        foreach (GlobalVariableAsset global in program.Globals.OrderBy(g => g.VariableName, StringComparer.CurrentCultureIgnoreCase))
+        {
+            yield return Make(GraphNodeKind.GetGlobal, global.Id);
+            yield return Make(GraphNodeKind.SetGlobal, global.Id);
+        }
+
         foreach (VariableDefinition variable in graph.Kind is GraphKind.Events or GraphKind.Function or GraphKind.Procedure ? graph.Variables : [])
         {
             yield return Make(GraphNodeKind.GetVariable, member: variable.Id);
@@ -110,6 +131,13 @@ public static class ProgramPalette
             }
         }
     }
+
+    /// <summary>A collection or vector node already typed (add menu after a wire dropped in empty space, "Make vector").</summary>
+    public static NodeTemplate Typed(GraphNodeKind kind, DataType type, ProgramModel program) =>
+        new(GenericNodes.Describe(kind, type, program.TypeLabel, (name, label, valueType) => program.Pin(name, label, valueType)))
+        {
+            Values = ImmutableDictionary<string, string>.Empty.Add(GenericNodes.TypeKey, type.ToStorageText()),
+        };
 
     /// <summary>Base de l'identifiant d'un nouveau graphe ("new_function").</summary>
     public static string ResourceIdBase(GraphKind kind) => kind switch

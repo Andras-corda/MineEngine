@@ -140,6 +140,15 @@
                             <ItemsControl ItemsSource="{Binding Inputs}" ItemTemplate="{StaticResource InputTemplate}" Focusable="False" />
                             <ItemsControl Grid.Column="2" ItemsSource="{Binding Outputs}" ItemTemplate="{StaticResource OutputTemplate}" Focusable="False" />
                         </Grid>
+                        <!-- Switch and Sequence: one more output, like "Add pin" in Blueprints. -->
+                        <Button Style="{StaticResource FlatButton}" HorizontalAlignment="Right" Margin="0,-4,6,4" Padding="6,1" FontSize="11"
+                                Command="{Binding AddPinCommand}" Visibility="{Binding CanAddPin, Converter={StaticResource BoolToVisibility}}"
+                                ToolTip="{l:Tr 'Add an output (right-click on the node: remove the last one)'}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.NewItem}" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                <TextBlock Text="{l:Tr 'Add pin'}" />
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Border>
                 <DataTemplate.Triggers>
@@ -195,6 +204,12 @@
                         <Setter TargetName="InLine" Property="Height" Value="2.8" />
                         <Setter TargetName="OutLine" Property="Height" Value="2.8" />
                     </DataTrigger>
+                    <DataTrigger Binding="{Binding IsRerouteReference}" Value="True">
+                        <Setter TargetName="In" Property="Visibility" Value="Hidden" />
+                        <Setter TargetName="Knot" Property="Stroke" Value="{Binding RerouteType, Converter={StaticResource PinBrush}}" />
+                        <Setter TargetName="Knot" Property="Fill" Value="{DynamicResource HubBackgroundBrush}" />
+                        <Setter TargetName="Knot" Property="StrokeThickness" Value="2.5" />
+                    </DataTrigger>
                     <DataTrigger Binding="{Binding IsSelected}" Value="True">
                         <Setter TargetName="Knot" Property="Stroke" Value="{DynamicResource AccentLineBrush}" />
                         <Setter TargetName="Knot" Property="Width" Value="14" />
@@ -216,11 +231,26 @@
                             <TextBlock DockPanel.Dock="Right" FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Info}" FontSize="12"
                                        Foreground="White" Opacity="0.8" VerticalAlignment="Center"
                                        Visibility="{Binding HoverText, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}" />
-                            <TextBlock Text="{Binding AnnotationText}" FontSize="16" FontWeight="SemiBold" Foreground="White"
-                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <Grid VerticalAlignment="Center">
+                                <TextBlock Text="{Binding AnnotationText}" FontSize="16" FontWeight="SemiBold" Foreground="White"
+                                           TextTrimming="CharacterEllipsis"
+                                           Visibility="{Binding IsEditingTitle, Converter={StaticResource InverseBoolToVisibility}}" />
+                                <!-- Double-click on the title: it is edited here (Enter or Escape to finish). -->
+                                <TextBox Tag="comment-edit" Text="{Binding AnnotationText, UpdateSourceTrigger=PropertyChanged}" FontSize="15" MinHeight="0"
+                                         Padding="4,1" Visibility="{Binding IsEditingTitle, Converter={StaticResource BoolToVisibility}}"
+                                         LostKeyboardFocus="OnCommentEditLostFocus" PreviewKeyDown="OnCommentEditKeyDown" />
+                            </Grid>
                         </DockPanel>
                     </Border>
-                    <Border Tag="resize" Width="18" Height="18" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="Transparent"
+                    <!-- Edges and corners: resize, like the comments of Blueprints. -->
+                    <Border Tag="resize:l" Width="6" HorizontalAlignment="Left" Margin="-3,34,0,8" Background="Transparent" Cursor="SizeWE" />
+                    <Border Tag="resize:r" Width="6" HorizontalAlignment="Right" Margin="0,8,-3,8" Background="Transparent" Cursor="SizeWE" />
+                    <Border Tag="resize:t" Height="5" VerticalAlignment="Top" Margin="8,-3,8,0" Background="Transparent" Cursor="SizeNS" />
+                    <Border Tag="resize:b" Height="6" VerticalAlignment="Bottom" Margin="8,0,8,-3" Background="Transparent" Cursor="SizeNS" />
+                    <Border Tag="resize:tl" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-4,-4,0,0" Background="Transparent" Cursor="SizeNWSE" />
+                    <Border Tag="resize:tr" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0" Background="Transparent" Cursor="SizeNESW" />
+                    <Border Tag="resize:bl" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-4,0,0,-4" Background="Transparent" Cursor="SizeNESW" />
+                    <Border Tag="resize:br" Width="18" Height="18" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-3,-3" Background="Transparent"
                             Cursor="SizeNWSE" ToolTip="{l:Tr 'Resize the comment'}">
                         <Path Data="M 15,5 L 5,15 M 15,10 L 10,15" Stroke="{DynamicResource HintBrush}" StrokeThickness="1.4" />
                     </Border>
@@ -271,12 +301,21 @@
 
             <!-- Fil entre deux broches. -->
             <DataTemplate x:Key="ConnectionTemplate" DataType="{x:Type graphs:GraphConnectionViewModel}">
-                <Path x:Name="Wire" Data="{Binding Geometry}" StrokeThickness="2.2" IsHitTestVisible="False"
-                      Stroke="{Binding Type, Converter={StaticResource PinBrush}}" />
+                <Grid>
+                    <!-- Halo of the wire under the mouse (Backspace breaks it). -->
+                    <Path x:Name="Halo" Data="{Binding Geometry}" StrokeThickness="8" IsHitTestVisible="False" Opacity="0.35"
+                          Stroke="{DynamicResource AccentLineBrush}" Visibility="Collapsed" />
+                    <Path x:Name="Wire" Data="{Binding Geometry}" StrokeThickness="2.2" IsHitTestVisible="False"
+                          Stroke="{Binding Type, Converter={StaticResource PinBrush}}" />
+                </Grid>
                 <DataTemplate.Triggers>
                     <DataTrigger Binding="{Binding IsExec}" Value="True">
                         <Setter TargetName="Wire" Property="Stroke" Value="{DynamicResource StrongTextBrush}" />
                         <Setter TargetName="Wire" Property="StrokeThickness" Value="2.8" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsHovered}" Value="True">
+                        <Setter TargetName="Halo" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="Wire" Property="StrokeThickness" Value="3.6" />
                     </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>
@@ -311,7 +350,7 @@
 
     <Grid x:Name="Root" Grid.Column="2" Background="{DynamicResource HubBackgroundBrush}" ClipToBounds="True"
           MouseLeftButtonDown="OnRootMouseLeftButtonDown" MouseRightButtonDown="OnRootMouseRightButtonDown"
-          MouseDown="OnRootMouseDown" MouseMove="OnRootMouseMove" MouseUp="OnRootMouseUp" MouseWheel="OnRootMouseWheel"
+          MouseDown="OnRootMouseDown" MouseMove="OnRootMouseMove" MouseLeave="OnRootMouseLeave" MouseUp="OnRootMouseUp" MouseWheel="OnRootMouseWheel"
           LostMouseCapture="OnRootLostMouseCapture" SizeChanged="OnRootSizeChanged"
           AllowDrop="True" DragOver="OnRootDragOver" Drop="OnRootDrop">
 

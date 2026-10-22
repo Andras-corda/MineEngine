@@ -33,10 +33,31 @@ public sealed class BlockResourcesEmitter : ResourceEmitter
                 WriteTexture(context, block.GetTexture(slot), paths.BlockTexture(block.Id, Suffix(slot)));
             }
 
-            WriteJson(context, paths.BlockState(block.Id), CreateBlockState(block, blockModel));
-            WriteJson(context, paths.BlockModel(block.Id), CreateBlockModel(block, paths));
+            JsonObject baseModel = CreateBlockModel(block, paths);
+            WriteJson(context, paths.BlockState(block.Id), CreateBlockState(block, blockModel, paths));
+            WriteJson(context, paths.BlockModel(block.Id), baseModel);
+            WriteAppearances(context, block, baseModel);
 
-            if (block.ItemForm is not null)
+            if (block.ItemTexture is { } itemTexture)
+            {
+                WriteTexture(context, itemTexture, paths.BlockTexture(block.Id, "_item"));
+            }
+
+            if (block.ParticleTexture is { } particle)
+            {
+                WriteTexture(context, particle, paths.BlockTexture(block.Id, "_particle"));
+            }
+
+            if (block.ItemForm is not null && block.ItemTexture is not null)
+            {
+                // Its own texture in the inventory and in hand, like an item.
+                WriteJson(context, paths.ItemModel(block.Id), new JsonObject
+                {
+                    ["parent"] = "minecraft:item/generated",
+                    ["textures"] = new JsonObject { ["layer0"] = paths.Reference($"block/{block.Id}_item") },
+                });
+            }
+            else if (block.ItemForm is not null)
             {
                 JsonObject itemModel = block.Settings.Model == BlockModelKind.Cross
                     ? new JsonObject
@@ -78,26 +99,119 @@ public sealed class BlockResourcesEmitter : ResourceEmitter
         return paths.Reference($"block/{block.Id}{suffix}");
     }
 
-    private static JsonObject CreateBlockState(IRBlock block, string blockModel)
+    /// <summary>
+    /// Blockstate: one variant per value of the "appearance" property (0: the normal model) and per
+    /// orientation: axis of a column (turned like a log), facing of a block that turns (and its face:
+    /// floor, wall, ceiling). The other properties (water, those of the user) do not change the model.
+    /// </summary>
+    private static JsonObject CreateBlockState(IRBlock block, string blockModel, ResourcePaths paths)
     {
-        if (block.Settings.Model != BlockModelKind.Column)
+        int count = block.Appearances.Count;
+        string ModelFor(int number) => number == 0 ? blockModel : paths.Reference($"block/{IRAppearance.FileId(block.Id, number)}");
+        string Key(string orientation, int number) => string.Join(",", new[] { orientation, count == 0 ? string.Empty : $"appearance={number}" }.Where(p => p.Length > 0));
+
+        var variants = new JsonObject();
+        for (int number = 0; number <= count; number++)
         {
-            return new JsonObject
+            foreach ((string orientation, int x, int y) in Orientations(block))
             {
-                ["variants"] = new JsonObject { [""] = new JsonObject { ["model"] = blockModel } },
-            };
+                var variant = new JsonObject { ["model"] = ModelFor(number) };
+                if (x != 0)
+                {
+                    variant["x"] = x;
+                }
+
+                if (y != 0)
+                {
+                    variant["y"] = y;
+                }
+
+                variants[Key(orientation, number)] = variant;
+            }
         }
 
-        // Colonne : orientée selon l'axe de pose, comme une bûche.
-        return new JsonObject
+        return new JsonObject { ["variants"] = variants };
+    }
+
+    private static readonly (string Name, int Y)[] Horizontal = [("north", 0), ("east", 90), ("south", 180), ("west", 270)];
+
+    /// <summary>Orientations of the block: the key of the variant and its rotation (x, y) in degrees.</summary>
+    private static IEnumerable<(string Key, int X, int Y)> Orientations(IRBlock block)
+    {
+        if (block.Settings.Model == BlockModelKind.Column)
         {
-            ["variants"] = new JsonObject
-            {
-                ["axis=x"] = new JsonObject { ["model"] = blockModel, ["x"] = 90, ["y"] = 90 },
-                ["axis=y"] = new JsonObject { ["model"] = blockModel },
-                ["axis=z"] = new JsonObject { ["model"] = blockModel, ["x"] = 90 },
-            },
+            return [("axis=x", 90, 90), ("axis=y", 0, 0), ("axis=z", 90, 0)];
+        }
+
+        return block.Options.Rotation switch
+        {
+            MineEngine.Assets.BlockRotation.Horizontal when block.Options.HasPitchRotation =>
+            [
+                .. Horizontal.Select(h => ($"face=floor,facing={h.Name}", 0, h.Y)),
+                .. Horizontal.Select(h => ($"face=wall,facing={h.Name}", 90, h.Y)),
+                .. Horizontal.Select(h => ($"face=ceiling,facing={h.Name}", 180, (h.Y + 180) % 360)),
+            ],
+            MineEngine.Assets.BlockRotation.Horizontal => [.. Horizontal.Select(h => ($"facing={h.Name}", 0, h.Y))],
+            MineEngine.Assets.BlockRotation.AllDirections => [.. Horizontal.Select(h => ($"facing={h.Name}", 0, h.Y)), ("facing=up", 270, 0), ("facing=down", 90, 0)],
+            _ => [(string.Empty, 0, 0)],
         };
+    }
+
+    /// <summary>
+    /// Model of each appearance: its 3D model, or the shape of the block covered with its texture
+    /// (every face); without either, the normal model.
+    /// </summary>
+    private void WriteAppearances(GenerationContext context, IRBlock block, JsonObject baseModel)
+    {
+        ResourcePaths paths = context.Paths;
+        for (int number = 1; number <= block.Appearances.Count; number++)
+        {
+            IRAppearance appearance = block.Appearances[number - 1];
+            MineEngine.Core.Identifiers.ResourceId fileId = IRAppearance.FileId(block.Id, number);
+            string texture = paths.Reference($"block/{fileId}");
+            JsonObject model;
+            if (appearance.Model is { } custom)
+            {
+                model = new JsonObject { ["parent"] = paths.CustomModelReference(custom) };
+            }
+            else if (appearance.Texture is { } image)
+            {
+                WriteTexture(context, image, paths.BlockTexture(fileId));
+                model = block.Settings.Model switch
+                {
+                    BlockModelKind.Cross => new JsonObject { ["parent"] = "minecraft:block/cross", ["textures"] = new JsonObject { ["cross"] = texture } },
+                    BlockModelKind.Column => new JsonObject
+                    {
+                        ["parent"] = "minecraft:block/cube_column",
+                        ["textures"] = new JsonObject { ["end"] = texture, ["side"] = texture },
+                    },
+                    _ => new JsonObject { ["parent"] = "minecraft:block/cube_all", ["textures"] = new JsonObject { ["all"] = texture } },
+                };
+            }
+            else
+            {
+                model = (JsonObject)baseModel.DeepClone();
+            }
+
+            AddRenderType(block, model);
+            WriteJson(context, paths.BlockModel(fileId), model);
+        }
+    }
+
+    /// <summary>Forge et NeoForge lisent le type de rendu directement dans le modèle.</summary>
+    private static void AddRenderType(IRBlock block, JsonObject model)
+    {
+        string? renderType = block.Settings.RenderType switch
+        {
+            BlockRenderType.Cutout => "minecraft:cutout",
+            BlockRenderType.CutoutMipped => "minecraft:cutout_mipped",
+            BlockRenderType.Translucent => "minecraft:translucent",
+            _ => null,
+        };
+        if (renderType is not null)
+        {
+            model["render_type"] = renderType;
+        }
     }
 
     private static JsonObject CreateBlockModel(IRBlock block, ResourcePaths paths)
@@ -142,17 +256,12 @@ public sealed class BlockResourcesEmitter : ResourceEmitter
             },
         };
 
-        // Forge et NeoForge lisent le type de rendu directement dans le modèle.
-        string? renderType = block.Settings.RenderType switch
+        AddRenderType(block, model);
+        if (block.ParticleTexture is not null)
         {
-            BlockRenderType.Cutout => "minecraft:cutout",
-            BlockRenderType.CutoutMipped => "minecraft:cutout_mipped",
-            BlockRenderType.Translucent => "minecraft:translucent",
-            _ => null,
-        };
-        if (renderType is not null)
-        {
-            model["render_type"] = renderType;
+            JsonObject textures = model["textures"] as JsonObject ?? [];
+            textures["particle"] = paths.Reference($"block/{block.Id}_particle");
+            model["textures"] = textures;
         }
 
         return model;

@@ -31,6 +31,14 @@ public sealed class MobResourcesEmitter : ResourceEmitter
                 WriteTexture(context, IRTexture.Placeholder, paths.EntityTexture(mob.Id));
             }
 
+            for (int number = 1; number <= mob.Appearances.Count; number++)
+            {
+                if (mob.Appearances[number - 1].Texture is { } texture)
+                {
+                    WriteTexture(context, texture, paths.EntityTexture(IRAppearance.FileId(mob.Id, number)));
+                }
+            }
+
             if (mob.SpawnEgg is { } egg)
             {
                 WriteJson(context, paths.ItemModel(egg.ItemId), new JsonObject { ["parent"] = "minecraft:item/template_spawn_egg" });

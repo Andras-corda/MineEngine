@@ -57,7 +57,8 @@ public partial class GraphDocumentView : UserControl
     private GraphDocumentViewModel? _document;
     private bool _framed;
     private GraphNodeViewModel? _resized;
-    private Size _resizeOrigin;
+    private Rect _resizeOrigin;
+    private string _resizeEdges = string.Empty;
 
     /// <summary>Node under a right-click: releasing without dragging opens its menu (instead of the add menu).</summary>
     private GraphNodeViewModel? _menuNode;
@@ -269,6 +270,47 @@ public partial class GraphDocumentView : UserControl
         return FindTagged(hit?.VisualHit, "pin")?.DataContext as GraphPinViewModel;
     }
 
+    /// <summary>Distance (pixels of the screen) at which a dropped wire snaps to a pin.</summary>
+    private const double PinSnapDistance = 26;
+
+    /// <summary>
+    /// Pin a wire dropped at <paramref name="screen"/> connects to: the pin under the mouse, else the
+    /// nearest free pin of the other direction a few pixels away, else (dropped on the body of a
+    /// node) its first pin that accepts the wire. Null when there is none.
+    /// </summary>
+    private GraphPinViewModel? DropTarget(Point screen, GraphPinViewModel source, DependencyObject? over)
+    {
+        if (Document is null)
+        {
+            return null;
+        }
+
+        if (PinAt(screen) is { } exact && !ReferenceEquals(exact, source))
+        {
+            return exact;
+        }
+
+        bool Candidate(GraphPinViewModel pin) =>
+            pin.IsInput != source.IsInput && pin.IsExec == source.IsExec && pin.CanConnect && !ReferenceEquals(pin.Node, source.Node);
+
+        Point world = ToWorld(screen);
+        double radius = PinSnapDistance / Scale;
+        GraphPinViewModel? nearest = Document.Nodes.Where(n => !n.IsAnnotation).SelectMany(n => n.AllPins).Where(Candidate)
+            .Select(p => (Pin: p, Distance: (p.Anchor - world).Length))
+            .Where(p => p.Distance <= radius)
+            .OrderBy(p => p.Distance)
+            .Select(p => p.Pin)
+            .FirstOrDefault();
+        if (nearest is not null)
+        {
+            return nearest;
+        }
+
+        return FindTagged(over, "node")?.DataContext is GraphNodeViewModel node && !ReferenceEquals(node, source.Node)
+            ? node.AllPins.Where(Candidate).OrderByDescending(p => Document.Accepts(source, p)).FirstOrDefault(p => Document.Accepts(source, p) || p.IsExec)
+            : null;
+    }
+
     /// <summary>Fil passant à quelques pixels du point (coordonnées de l'écran), ou null.</summary>
     private GraphConnectionViewModel? WireAt(Point screen)
     {
@@ -322,12 +364,28 @@ public partial class GraphDocumentView : UserControl
             return;
         }
 
-        if (FindTagged(source, "resize")?.DataContext is GraphNodeViewModel { IsComment: true } resized)
+        // A text box of the canvas (title of a comment being edited) keeps the mouse.
+        if (FindAncestor<TextBoxBase>(source) is not null)
+        {
+            return;
+        }
+
+        if (ResizeHandle(source) is ({ IsComment: true } resized, string edges))
         {
             Document.SelectOnly(resized);
             _resized = resized;
-            _resizeOrigin = new Size(resized.Width, resized.Height);
+            _resizeOrigin = new Rect(resized.X, resized.Y, resized.Width, resized.Height);
+            _resizeEdges = edges;
             Begin(Gesture.ResizeComment, position);
+            e.Handled = true;
+            return;
+        }
+
+        // Double-click on the title of a comment: it is edited on the canvas.
+        if (e.ClickCount == 2 && FindTagged(source, "header") is { DataContext: GraphNodeViewModel { IsComment: true } edited } header)
+        {
+            Document.SelectOnly(edited);
+            EditCommentTitle(edited, header);
             e.Handled = true;
             return;
         }
@@ -393,6 +451,14 @@ public partial class GraphDocumentView : UserControl
         e.Handled = true;
     }
 
+    private void OnRootMouseLeave(object sender, MouseEventArgs e)
+    {
+        if (Document is not null && _gesture == Gesture.None)
+        {
+            Document.HoveredWire = null;
+        }
+    }
+
     private void OnRootMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton == MouseButton.Middle)
@@ -412,10 +478,26 @@ public partial class GraphDocumentView : UserControl
 
     private void OnRootMouseMove(object sender, MouseEventArgs e)
     {
-        if (_gesture == Gesture.None || Document is null)
+        if (Document is null)
         {
             return;
         }
+
+        if (_gesture == Gesture.None)
+        {
+            // The wire under the mouse is highlighted (not under a node or the add menu).
+            DependencyObject? source = e.OriginalSource as DependencyObject;
+            Document.HoveredWire = FindTagged(source, "node") is null && !IsInPalette(source) ? WireAt(e.GetPosition(Root)) : null;
+            if (Document.HoveredWire is not null && !IsKeyboardFocusWithin && Keyboard.FocusedElement is not TextBoxBase)
+            {
+                // Backspace must reach the graph while the mouse is over the wire.
+                Keyboard.Focus(this);
+            }
+
+            return;
+        }
+
+        Document.HoveredWire = null;
 
         Point position = e.GetPosition(Root);
         switch (_gesture)
@@ -439,7 +521,8 @@ public partial class GraphDocumentView : UserControl
                 break;
 
             case Gesture.Wire when _wireSource is not null:
-                Point end = ToWorld(position);
+                // The end of the wire snaps to the pin it would connect to.
+                Point end = DropTarget(position, _wireSource, e.OriginalSource as DependencyObject)?.Anchor ?? ToWorld(position);
                 PendingWire.Visibility = Visibility.Visible;
                 PendingWire.Data = _wireSource.IsInput
                     ? GraphConnectionViewModel.Curve(end, _wireSource.Anchor)
@@ -447,9 +530,11 @@ public partial class GraphDocumentView : UserControl
                 break;
 
             case Gesture.ResizeComment when _resized is not null:
-                Vector grown = (position - _gestureStart) / Scale;
-                _resized.Width = _resizeOrigin.Width + grown.X;
-                _resized.Height = _resizeOrigin.Height + grown.Y;
+                Rect frame = CommentFrames.Resized(_resizeOrigin, _resizeEdges, (position - _gestureStart) / Scale);
+                _resized.X = frame.X;
+                _resized.Y = frame.Y;
+                _resized.Width = frame.Width;
+                _resized.Height = frame.Height;
                 break;
 
             case Gesture.Marquee:
@@ -507,7 +592,7 @@ public partial class GraphDocumentView : UserControl
             case Gesture.Wire when _wireSource is not null:
                 GraphPinViewModel source = _wireSource;
                 _wireSource = null;
-                if (PinAt(position) is { } target)
+                if (DropTarget(position, source, e.OriginalSource as DependencyObject) is { } target)
                 {
                     if (!ReferenceEquals(target, source))
                     {
@@ -633,6 +718,10 @@ public partial class GraphDocumentView : UserControl
         bool control = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
         switch (e.Key)
         {
+            case Key.Delete or Key.Back when Document.HoveredWire is { } wire:
+                // Backspace (or Delete) on the wire under the mouse breaks it, as in Unreal.
+                Document.Disconnect(wire);
+                break;
             case Key.Delete or Key.Back:
                 Document.DeleteSelection();
                 break;
@@ -662,6 +751,52 @@ public partial class GraphDocumentView : UserControl
     }
 
     // ----- Comments, tooltips, alignment -----
+
+    /// <summary>Comment and edges ("l", "tr"...) of the resize handle under the mouse, or null.</summary>
+    private (GraphNodeViewModel Node, string Edges)? ResizeHandle(DependencyObject? source)
+    {
+        for (DependencyObject? current = source; current is not null && !ReferenceEquals(current, Root); current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is FrameworkElement { Tag: string tag, DataContext: GraphNodeViewModel node } && tag.StartsWith("resize:", StringComparison.Ordinal))
+            {
+                return (node, tag[7..]);
+            }
+        }
+
+        return null;
+    }
+
+
+    /// <summary>Shows the text box of the title of a comment and gives it the keyboard.</summary>
+    private void EditCommentTitle(GraphNodeViewModel comment, FrameworkElement header)
+    {
+        comment.IsEditingTitle = true;
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (CommentFrames.FindTextBox(header) is { } box)
+            {
+                box.Focus();
+                box.SelectAll();
+            }
+        }, System.Windows.Threading.DispatcherPriority.Input);
+    }
+
+    private void OnCommentEditLostFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: GraphNodeViewModel comment })
+        {
+            comment.IsEditingTitle = false;
+        }
+    }
+
+    private void OnCommentEditKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key is Key.Enter or Key.Escape)
+        {
+            Keyboard.Focus(this);
+            e.Handled = true;
+        }
+    }
 
     /// <summary>Bounds of the selected nodes (without the tooltips), or null if nothing is selected.</summary>
     private Rect? SelectionBounds() =>
@@ -726,6 +861,37 @@ public partial class GraphDocumentView : UserControl
         menu.Items.Add(Item(Tr.T("Add a comment"), CommentSelection, gesture: "C"));
         menu.Items.Add(Item(Tr.T("Add a tooltip"), TooltipSelection, gesture: "T"));
         menu.Items.Add(new Separator());
+        if (node.CanAddPin)
+        {
+            menu.Items.Add(Item(Tr.T("Add pin"), () => Document.AddPin(node)));
+            menu.Items.Add(Item(Tr.T("Remove the last pin"), () => Document.RemovePin(node)));
+            menu.Items.Add(new Separator());
+        }
+
+        if (node.IsComment)
+        {
+            menu.Items.Add(Item(Tr.T("Rename the comment"), () =>
+            {
+                if (NodesHost.ItemContainerGenerator.ContainerFromItem(node) is FrameworkElement container)
+                {
+                    EditCommentTitle(node, container);
+                }
+            }));
+        }
+
+        if (node.CanHaveReferences)
+        {
+            menu.Items.Add(Item(Tr.T("Create a reference"), () => Document.CreateRerouteReference(node)));
+            menu.Items.Add(new Separator());
+        }
+
+        if (!node.IsAnnotation)
+        {
+            menu.Items.Add(Item(Tr.T("Refresh nodes"), Document.RefreshSelection));
+            menu.Items.Add(Item(Tr.T("Break all connections"), Document.BreakAllConnections));
+            menu.Items.Add(new Separator());
+        }
+
         menu.Items.Add(Item(Tr.T("Duplicate"), Document.DuplicateSelection, gesture: "Ctrl+D"));
         menu.Items.Add(Item(Tr.T("Delete"), Document.DeleteSelection, gesture: Tr.T("Del")));
         menu.Closed += (_, _) => Keyboard.Focus(this);

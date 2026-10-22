@@ -57,6 +57,7 @@ public sealed class AssetViewModelFactory
             FluidAsset fluid => new FluidAssetViewModel(fluid, context, label),
             GameRuleAsset rule => new GameRuleAssetViewModel(rule, context, label),
             EffectAsset effect => new EffectAssetViewModel(effect, context, label),
+            GlobalVariableAsset global => new GlobalVariableAssetViewModel(global, context, label),
             _ => throw new NotSupportedException(Tr.F("The editor cannot display assets of type {0} yet.", asset.Type)),
         };
     }

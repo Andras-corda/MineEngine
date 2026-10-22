@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using MineEngine.Assets;
+using MineEngine.Assets.Graphs;
 using MineEngine.Core.Assets;
 using MineEngine.Core.GameData;
 using MineEngine.Editor.Mvvm;
@@ -21,6 +22,56 @@ public sealed class CommandAssetViewModel : AssetViewModel
     public IReadOnlyList<Choice<CommandArgumentKind>> ArgumentChoices => GameDataChoices.CommandArguments;
 
     public IReadOnlyList<Choice<int>> PermissionChoices => GameDataChoices.PermissionLevels;
+
+    /// <summary>Name of the command, typed after "/": it is the identifier of the element.</summary>
+    public string CommandName
+    {
+        get => ResourceIdText;
+        set => ResourceIdText = (value ?? string.Empty).Trim().TrimStart('/');
+    }
+
+    /// <summary>Event graphs that react to this command (event "On command" with its name).</summary>
+    public IReadOnlyList<GraphAsset> Graphs =>
+        [.. Context.Project.Assets.OfType<GraphAsset>()
+            .Where(g => g.Graph.Nodes.Any(n => n.Kind == GraphNodeKind.OnCommand && string.Equals(n.GetValue("command")?.Trim(), _command.CommandName, StringComparison.Ordinal)))];
+
+    public bool HasGraph => Graphs.Count > 0;
+
+    public string GraphsLabel => Graphs.Count == 0
+        ? Tr.T("No graph reacts to this command yet.")
+        : string.Join(", ", Graphs.Select(g => string.IsNullOrWhiteSpace(g.DisplayName) ? g.ResourceId.Value : g.DisplayName));
+
+    /// <summary>Creates the event graph of the command (event "On command" ready) and opens it; or opens the existing one.</summary>
+    public ICommand OpenGraphCommand => _openGraph ??= new RelayCommand(OpenOrCreateGraph);
+
+    private ICommand? _openGraph;
+
+    private void OpenOrCreateGraph()
+    {
+        if (Graphs.FirstOrDefault() is { } existing)
+        {
+            Context.Navigation.Open(existing);
+            return;
+        }
+
+        string name = _command.CommandName;
+        GraphAsset graph = ProgramPalette.CreateGraph(
+            GraphKind.Events, Context.Project.Assets.CreateUniqueResourceId(name + "_command", AssetType.Graph), Tr.F("Command /{0}", name));
+        graph.Graph = NodeGraph.Empty.AddNode(GraphNode.Create(GraphNodeKind.OnCommand, 0, 0).WithValue("command", name));
+        graph.Folder = _command.Folder;
+        Context.History.Execute(new MineEngine.Assets.Commands.AddAssetCommand(Context.Project.Assets, graph, GraphKind.Events.Label()));
+        Context.Navigation.Open(graph);
+        OnPropertyChanged(nameof(Graphs));
+        OnPropertyChanged(nameof(HasGraph));
+        OnPropertyChanged(nameof(GraphsLabel));
+    }
+
+    public override IReadOnlyList<SummaryLine> SummaryLines =>
+    [
+        new(Tr.T("Typed in the chat"), Usage),
+        new(Tr.T("Who can run it"), PermissionChoices.FirstOrDefault(c => c.Value == _command.PermissionLevel)?.Label ?? string.Empty),
+        new(Tr.T("Graph"), GraphsLabel),
+    ];
 
     /// <summary>What the player types, with its argument ("/boost &lt;seconds&gt;").</summary>
     public string Usage => _command.Argument == CommandArgumentKind.None ? $"/{_command.CommandName}" : $"/{_command.CommandName} <{_command.ArgumentName}>";
@@ -70,6 +121,10 @@ public sealed class CommandAssetViewModel : AssetViewModel
         base.OnModelPropertyChanged(propertyName);
         OnPropertyChanged(propertyName);
         OnPropertyChanged(nameof(Usage));
+        OnPropertyChanged(nameof(CommandName));
+        OnPropertyChanged(nameof(Graphs));
+        OnPropertyChanged(nameof(HasGraph));
+        OnPropertyChanged(nameof(GraphsLabel));
         OnPropertyChanged(nameof(HasArgument));
         OnPropertyChanged(nameof(IsNumberArgument));
     }
@@ -585,4 +640,16 @@ public sealed class EffectAssetViewModel : AssetViewModel
             OnPropertyChanged(nameof(FullId));
         }
     }
+}
+
+/// <summary>A global variable (V0.6.7): it is edited in the Global tab, not in the Dashboard.</summary>
+public sealed class GlobalVariableAssetViewModel : AssetViewModel
+{
+    public GlobalVariableAssetViewModel(GlobalVariableAsset model, AssetEditingContext context, string typeLabel)
+        : base(model, context, typeLabel)
+    {
+    }
+
+    /// <summary>The variable does not exist in game under its identifier: it gives the name of its Java accessors.</summary>
+    public override bool HasGameId => false;
 }

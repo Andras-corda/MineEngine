@@ -47,28 +47,33 @@ public static class GraphAnnotations
     public static bool IsAnnotation(GraphNode node) => node.Kind is GraphNodeKind.Comment or GraphNodeKind.Tooltip;
 
     /// <summary>New comment that frames <paramref name="area"/> (the nodes selected), with room for its title.</summary>
-    public static GraphNode CreateComment(double x, double y, double width, double height, string text)
-    {
-        var values = ImmutableDictionary<string, string>.Empty
+    public static GraphNode CreateComment(double x, double y, double width, double height, string text) =>
+        new(Guid.NewGuid(), GraphNodeKind.Comment, Math.Round(x - Margin), Math.Round(y - Margin - TitleHeight), CommentValues(width, height, text));
+
+    /// <summary>Values of a new comment that frames an area of this size (also used by Puppeteer).</summary>
+    public static ImmutableDictionary<string, string> CommentValues(double width, double height, string text) =>
+        ImmutableDictionary<string, string>.Empty
             .Add(TextKey, text)
             .Add(WidthKey, Format(Math.Max(MinWidth, width + 2 * Margin)))
             .Add(HeightKey, Format(Math.Max(MinHeight, height + 2 * Margin + TitleHeight)))
             .Add(ColorKey, CommentColors[0]);
-        return new GraphNode(Guid.NewGuid(), GraphNodeKind.Comment, Math.Round(x - Margin), Math.Round(y - Margin - TitleHeight), values);
-    }
 
     /// <summary>New tooltip bubble, placed at (x, y), that describes <paramref name="targets"/>.</summary>
-    public static GraphNode CreateTooltip(IEnumerable<Guid> targets, double x, double y, string text)
-    {
-        var values = ImmutableDictionary<string, string>.Empty
+    public static GraphNode CreateTooltip(IEnumerable<Guid> targets, double x, double y, string text) =>
+        new(Guid.NewGuid(), GraphNodeKind.Tooltip, Math.Round(x), Math.Round(y), TooltipValues(targets, text));
+
+    /// <summary>Values of a new tooltip (also used by Puppeteer).</summary>
+    public static ImmutableDictionary<string, string> TooltipValues(IEnumerable<Guid> targets, string text) =>
+        ImmutableDictionary<string, string>.Empty
             .Add(TextKey, text)
             .Add(TargetsKey, string.Join(",", targets.Select(t => t.ToString("N"))));
-        return new GraphNode(Guid.NewGuid(), GraphNodeKind.Tooltip, Math.Round(x), Math.Round(y), values);
-    }
 
     /// <summary>Nodes described by a tooltip.</summary>
-    public static IReadOnlyList<Guid> Targets(GraphNode tooltip) =>
-        [.. (tooltip.Values.GetValueOrDefault(TargetsKey) ?? string.Empty)
+    public static IReadOnlyList<Guid> Targets(GraphNode tooltip) => Targets(tooltip.Values);
+
+    /// <summary>Nodes described by a tooltip, from its values.</summary>
+    public static IReadOnlyList<Guid> Targets(IReadOnlyDictionary<string, string> values) =>
+        [.. (values.GetValueOrDefault(TargetsKey) ?? string.Empty)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(t => Guid.TryParse(t, out Guid id) ? id : Guid.Empty)
             .Where(id => id != Guid.Empty)];
@@ -77,15 +82,21 @@ public static class GraphAnnotations
     public static GraphNode WithTargets(GraphNode tooltip, IEnumerable<Guid> targets) =>
         tooltip.WithValue(TargetsKey, string.Join(",", targets.Select(t => t.ToString("N"))));
 
-    public static string Text(GraphNode node, string key = TextKey) => node.Values.GetValueOrDefault(key) ?? string.Empty;
+    public static string Text(GraphNode node, string key = TextKey) => Text(node.Values, key);
+
+    public static string Text(IReadOnlyDictionary<string, string> values, string key = TextKey) => values.GetValueOrDefault(key) ?? string.Empty;
 
     /// <summary>Size of a comment, read from its values.</summary>
-    public static (double Width, double Height) Size(GraphNode comment) =>
-        (Math.Max(MinWidth, Number(comment, WidthKey, 300)), Math.Max(MinHeight, Number(comment, HeightKey, 200)));
+    public static (double Width, double Height) Size(GraphNode comment) => Size(comment.Values);
 
-    public static GraphNode Resize(GraphNode comment, double width, double height) => comment
-        .WithValue(WidthKey, Format(Math.Max(MinWidth, Math.Round(width))))
-        .WithValue(HeightKey, Format(Math.Max(MinHeight, Math.Round(height))));
+    public static (double Width, double Height) Size(IReadOnlyDictionary<string, string> values) =>
+        (Math.Max(MinWidth, Number(values, WidthKey, 300)), Math.Max(MinHeight, Number(values, HeightKey, 200)));
+
+    public static GraphNode Resize(GraphNode comment, double width, double height) => comment with { Values = Resize(comment.Values, width, height) };
+
+    public static ImmutableDictionary<string, string> Resize(ImmutableDictionary<string, string> values, double width, double height) => values
+        .SetItem(WidthKey, Format(Math.Max(MinWidth, Math.Round(width))))
+        .SetItem(HeightKey, Format(Math.Max(MinHeight, Math.Round(height))));
 
     /// <summary>A comment or a tooltip: no pins, nothing in the program.</summary>
     public static NodeInfo Describe(GraphNode node) => node.Kind == GraphNodeKind.Comment
@@ -103,8 +114,8 @@ public static class GraphAnnotations
         return graph.Nodes.Any(IsAnnotation) ? new NodeGraph(graph.Nodes.Where(n => !IsAnnotation(n)), graph.Connections) : graph;
     }
 
-    private static double Number(GraphNode node, string key, double fallback) =>
-        double.TryParse(node.Values.GetValueOrDefault(key), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ? value : fallback;
+    private static double Number(IReadOnlyDictionary<string, string> values, string key, double fallback) =>
+        double.TryParse(values.GetValueOrDefault(key), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ? value : fallback;
 
     private static string Format(double value) => value.ToString(CultureInfo.InvariantCulture);
 }

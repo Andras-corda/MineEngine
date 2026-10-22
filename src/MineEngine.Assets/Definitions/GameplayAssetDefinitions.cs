@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using MineEngine.Assets.Graphs;
 using MineEngine.Core.Assets;
 using MineEngine.Core.GameData;
 using MineEngine.Core.Identifiers;
@@ -162,6 +163,34 @@ public sealed class FluidAssetDefinition : AssetDefinition<FluidAsset>
         properties["stillTexture"] = asset.StillTextureId?.ToString("D");
         properties["flowingTexture"] = asset.FlowingTextureId?.ToString("D");
         properties["bucketTexture"] = asset.BucketTextureId?.ToString("D");
+    }
+}
+
+/// <summary>Global variable (V0.6.7).</summary>
+public sealed class GlobalVariableAssetDefinition : AssetDefinition<GlobalVariableAsset>
+{
+    public override AssetType Type => AssetType.GlobalVariable;
+
+    public override string Label => Tr.T("Global variable");
+
+    public override string DefaultResourceIdBase => "new_variable";
+
+    public override string DefaultDisplayName => Tr.T("new variable");
+
+    protected override GlobalVariableAsset Create(Guid id, ResourceId resourceId, string displayName) => new(id, resourceId, displayName);
+
+    protected override void ReadProperties(GlobalVariableAsset asset, JsonPropertyReader reader)
+    {
+        asset.ValueType = DataType.Parse(reader.GetString("type")) ?? DataType.Number;
+        asset.Scope = reader.GetEnum("scope", GlobalScope.Map);
+        asset.DefaultValue = reader.GetString("default") ?? string.Empty;
+    }
+
+    protected override void WriteProperties(GlobalVariableAsset asset, JsonObject properties)
+    {
+        properties["type"] = asset.ValueType.ToStorageText();
+        properties["scope"] = asset.Scope.ToString();
+        properties["default"] = asset.DefaultValue;
     }
 }
 

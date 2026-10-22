@@ -25,8 +25,25 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
         DropItemPicker = new ReferencePickerViewModel(
             context, ReferenceDomain.Item, () => _block.DropItem,
             v => Change(Tr.T("Change dropped item"), nameof(BlockAsset.DropItem), () => _block.DropItem, r => _block.DropItem = r, v));
+        Options = new BlockOptionsViewModel(model, ChangeOptions);
+        ItemTextureSlot = new TextureSlotViewModel(model, context, nameof(BlockAsset.Options), Tr.T("Item texture"),
+            Tr.T("The block itself"), () => model.Options.ItemTextureId, v => model.Options = model.Options with { ItemTextureId = v });
+        ParticleTextureSlot = new TextureSlotViewModel(model, context, nameof(BlockAsset.Options), Tr.T("Particle texture"),
+            Tr.T("Uses the main texture"), () => model.Options.ParticleTextureId, v => model.Options = model.Options with { ParticleTextureId = v });
         UpdateMainTextureLabel();
     }
+
+    /// <summary>Advanced settings (rotation, water, rendering, redstone, fire, shape, states, ore).</summary>
+    public BlockOptionsViewModel Options { get; }
+
+    /// <summary>Texture of the block in the inventory and in hand.</summary>
+    public TextureSlotViewModel ItemTextureSlot { get; }
+
+    /// <summary>Texture of the particles when the block breaks.</summary>
+    public TextureSlotViewModel ParticleTextureSlot { get; }
+
+    private void ChangeOptions(string description, BlockOptions value) =>
+        ChangeIfDifferent(description, nameof(BlockAsset.Options), () => _block.Options, v => _block.Options = v, value);
 
     // ----- Listes de choix -----
 
@@ -202,6 +219,9 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
         {
             slot.Refresh();
         }
+
+        ItemTextureSlot.Refresh();
+        ParticleTextureSlot.Refresh();
     }
 
     protected override void OnModelPropertyChanged(string propertyName)
@@ -225,6 +245,12 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
 
             case nameof(BlockAsset.DropItem):
                 DropItemPicker.Refresh();
+                break;
+
+            case nameof(BlockAsset.Options):
+                Options.Refresh();
+                ItemTextureSlot.Refresh();
+                ParticleTextureSlot.Refresh();
                 break;
 
             default:

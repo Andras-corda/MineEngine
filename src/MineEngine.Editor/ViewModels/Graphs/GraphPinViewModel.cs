@@ -82,7 +82,8 @@ public sealed class GraphPinViewModel : ObservableObject
         : Type.Kind switch
         {
             PinType.Number => PinEditorKind.Number,
-            PinType.Text => PinEditorKind.Text,
+            PinType.Text or PinType.Decimal or PinType.Direction or PinType.Char or PinType.Long or PinType.Float or PinType.Byte
+                or PinType.Identifier or PinType.Fluid or PinType.EquipmentSlot or PinType.Hand or PinType.Rarity => PinEditorKind.Text,
             PinType.Boolean => PinEditorKind.Boolean,
             PinType.Enum => PinEditorKind.Choice,
             _ => PinEditorKind.Reference,

@@ -76,6 +76,23 @@ public sealed record IRLoopStatement(
 /// <summary>Action sur le jeu (donner un item, placer un bloc...), avec ses arguments dans l'ordre des entrées du nœud.</summary>
 public sealed record IRActionStatement(Guid NodeId, GraphNodeKind Action, IReadOnlyList<IRExpression> Arguments) : IRStatement(NodeId);
 
+/// <summary>
+/// Switch on a number or a text: the value is computed once, then the body of the first equal
+/// case runs (<paramref name="Cases"/> and <paramref name="Bodies"/> go together), otherwise
+/// <paramref name="Default"/>.
+/// </summary>
+public sealed record IRSwitchStatement(
+    Guid NodeId, DataType Type, IRExpression Value, IReadOnlyList<IRExpression> Cases,
+    IReadOnlyList<IReadOnlyList<IRStatement>> Bodies, IReadOnlyList<IRStatement> Default)
+    : IRStatement(NodeId);
+
+/// <summary>Flip Flop: <paramref name="A"/> one time, <paramref name="B"/> the next; <paramref name="Output"/> receives "is A".</summary>
+public sealed record IRFlipFlopStatement(Guid NodeId, string Output, IReadOnlyList<IRStatement> A, IReadOnlyList<IRStatement> B)
+    : IRStatement(NodeId);
+
+/// <summary>Change of a global variable; <paramref name="Key"/>: the player, the entity or the position its scope needs, or null.</summary>
+public sealed record IRSetGlobalStatement(Guid NodeId, Guid GlobalId, IRExpression? Key, IRExpression Value) : IRStatement(NodeId);
+
 /// <summary>Choix entre deux suites d'instructions (nœud condition).</summary>
 public sealed record IRIfStatement(Guid NodeId, IRExpression Condition, IReadOnlyList<IRStatement> Then, IReadOnlyList<IRStatement> Else)
     : IRStatement(NodeId);
@@ -112,6 +129,21 @@ public sealed record IRTextLiteral(string Value) : IRExpression(DataType.Text);
 
 public sealed record IRBooleanLiteral(bool Value) : IRExpression(DataType.Boolean);
 
+/// <summary>Number with decimals typed on an input.</summary>
+public sealed record IRDecimalLiteral(double Value) : IRExpression(DataType.Decimal);
+
+/// <summary>One of the six directions ("north"), typed on an input.</summary>
+public sealed record IRDirectionLiteral(string Name) : IRExpression(DataType.Direction);
+
+/// <summary>
+/// Value typed on an input for the types of TypesVar.md (character, long, float, byte, identifier,
+/// fluid, equipment slot, hand, rarity); <paramref name="Text"/> is the text typed on the node.
+/// </summary>
+public sealed record IRValueLiteral(DataType ValueType, string Text) : IRExpression(ValueType);
+
+/// <summary>Value of a global variable; <paramref name="Key"/>: the player, the entity or the position its scope needs, or null.</summary>
+public sealed record IRGlobalValue(DataType ValueType, Guid GlobalId, IRExpression? Key) : IRExpression(ValueType);
+
 /// <summary>Item, bloc ou son désigné par son identifiant en jeu.</summary>
 public sealed record IRContentLiteral(DataType ContentType, NamespacedId Id) : IRExpression(ContentType);
 
@@ -121,7 +153,7 @@ public sealed record IREventValue(DataType ValueType, string Name) : IRExpressio
 /// <summary>Nœud de calcul (ou condition) du catalogue appliqué à ses arguments, dans l'ordre des entrées du nœud.</summary>
 public sealed record IRCallExpression(DataType ResultType, GraphNodeKind Kind, IReadOnlyList<IRExpression> Arguments) : IRExpression(ResultType);
 
-/// <summary>Conversion d'un nombre en texte (fil vert branché sur une entrée de texte).</summary>
+/// <summary>Conversion d'un nombre (entier ou décimal) en texte (fil branché sur une entrée de texte).</summary>
 public sealed record IRToText(IRExpression Value) : IRExpression(DataType.Text);
 
 /// <summary>Paramètre de la fonction, de la procédure ou du constructeur en cours.</summary>

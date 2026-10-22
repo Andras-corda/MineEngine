@@ -18,13 +18,24 @@ namespace MineEngine.Assets.Graphs;
 public sealed class ProgramModel
 {
     private readonly Dictionary<Guid, GraphAsset> _graphs;
+    private readonly Dictionary<Guid, GlobalVariableAsset> _globals;
 
-    public ProgramModel(IEnumerable<GraphAsset> graphs)
+    public ProgramModel(IEnumerable<GraphAsset> graphs, IEnumerable<GlobalVariableAsset>? globals = null)
     {
         _graphs = (graphs ?? []).GroupBy(g => g.Id).ToDictionary(g => g.Key, g => g.First());
+        _globals = (globals ?? []).GroupBy(g => g.Id).ToDictionary(g => g.Key, g => g.First());
     }
 
-    public static ProgramModel From(IEnumerable<Asset> assets) => new(assets.OfType<GraphAsset>());
+    public static ProgramModel From(IEnumerable<Asset> assets)
+    {
+        List<Asset> all = [.. assets];
+        return new ProgramModel(all.OfType<GraphAsset>(), all.OfType<GlobalVariableAsset>());
+    }
+
+    /// <summary>Global variables of the project (Global tab), usable in every graph.</summary>
+    public IEnumerable<GlobalVariableAsset> Globals => _globals.Values;
+
+    public GlobalVariableAsset? FindGlobal(Guid? id) => id is { } value ? _globals.GetValueOrDefault(value) : null;
 
     public IEnumerable<GraphAsset> Graphs => _graphs.Values;
 
@@ -40,9 +51,15 @@ public sealed class ProgramModel
     /// <summary>Type des valeurs d'une classe, d'une structure, d'une interface ou d'une énumération.</summary>
     public static DataType TypeOf(GraphAsset definition) => DataType.UserType(definition.Id, definition.Kind == GraphKind.Enum);
 
-    public string TypeLabel(DataType type) => type.Definition is { } id
-        ? Find(id) is { } definition ? Name(definition) : Tr.T("Type deleted")
-        : type.BuiltInLabel;
+    public string TypeLabel(DataType type) => type switch
+    {
+        { Kind: PinType.Map, Key: { } key, Element: { } value } => Tr.F("Dictionary {0} to {1}", TypeLabel(key), TypeLabel(value)),
+        { Kind: PinType.Array, Element: { } element } => Tr.F("Array of {0}", TypeLabel(element)),
+        { Kind: PinType.List, Element: { } element } => Tr.F("List of {0}", TypeLabel(element)),
+        { Kind: PinType.Set, Element: { } element } => Tr.F("Set of {0}", TypeLabel(element)),
+        { Definition: { } id } => Find(id) is { } definition ? Name(definition) : Tr.T("Type deleted"),
+        _ => type.BuiltInLabel,
+    };
 
     /// <summary>Nom affiché d'une définition (nom du graphe, sinon son identifiant).</summary>
     public static string Name(GraphAsset definition) =>
@@ -180,6 +197,16 @@ public sealed class ProgramModel
     /// <summary>Broches d'un nœud placé dans <paramref name="graph"/>.</summary>
     public NodeInfo Describe(GraphNode node, GraphAsset graph)
     {
+        if (FlowNodes.IsDynamic(node.Kind))
+        {
+            return FlowNodes.Describe(node);
+        }
+
+        if (GenericNodes.IsGeneric(node.Kind))
+        {
+            return GenericNodes.Describe(node, TypeLabel, (name, label, type) => Pin(name, label, type));
+        }
+
         if (NodeCatalog.Find(node.Kind) is { } catalog)
         {
             return catalog;
@@ -197,6 +224,7 @@ public sealed class ProgramModel
             GraphNodeKind.Self => Self(graph),
             GraphNodeKind.SuperConstructor => Super(node, graph),
             GraphNodeKind.Reroute => Reroutes.Describe(node, TypeLabel),
+            GraphNodeKind.GetGlobal or GraphNodeKind.SetGlobal => Global(node),
             GraphNodeKind.Comment or GraphNodeKind.Tooltip => GraphAnnotations.Describe(node),
             _ => NodeCatalog.Missing(node.Kind, node.Kind.ToString()),
         };
@@ -217,6 +245,14 @@ public sealed class ProgramModel
         return type.Kind switch
         {
             PinType.Number => "0",
+            PinType.Decimal => "0.0",
+            PinType.Direction => "north",
+            PinType.Char => "a",
+            PinType.Long or PinType.Byte => "0",
+            PinType.Float => "0.0",
+            PinType.Identifier => "minecraft:stone",
+            PinType.Fluid => "minecraft:water",
+            PinType.EquipmentSlot or PinType.Hand or PinType.Rarity => DataType.NamedValues(type.Kind)![0],
             PinType.Boolean => "false",
             PinType.Text or PinType.Item or PinType.Block or PinType.Sound => string.Empty,
             PinType.Enum => Find(type.Definition)?.Constants.FirstOrDefault()?.Id.ToString("D") ?? string.Empty,
@@ -334,6 +370,31 @@ public sealed class ProgramModel
             inputs: [.. arguments.Select(VariablePin)],
             outputs: [new PinInfo("object", Name(type), TypeOf(type))],
             flow: NodeFlow.Step);
+    }
+
+    /// <summary>Read or change a global variable; a variable per player takes the player.</summary>
+    private NodeInfo Global(GraphNode node)
+    {
+        if (FindGlobal(node.Target) is not { } global)
+        {
+            return NodeCatalog.Missing(node.Kind, Tr.T("Global variable not found"));
+        }
+
+        string name = global.VariableName;
+        List<PinInfo> inputs = GlobalVariableAsset.KeyOf(global.Scope) switch
+        {
+            GlobalScopeKey.Player => [new PinInfo("player", Tr.T("Player"), PinType.Player)],
+            GlobalScopeKey.Entity => [new PinInfo("entity", Tr.T("Entity"), DataType.Entity)],
+            GlobalScopeKey.Position => [new PinInfo("position", Tr.T("Position"), PinType.Position)],
+            _ => [],
+        };
+        string scope = GlobalVariableAsset.ScopeLabel(global.Scope);
+        return node.Kind == GraphNodeKind.GetGlobal
+            ? new NodeInfo(GraphNodeKind.GetGlobal, NodeCategory.Global, name, Tr.F("Value of the global variable \"{0}\" ({1}).", name, scope),
+                inputs: inputs, outputs: [new PinInfo("value", name, global.ValueType)])
+            : new NodeInfo(GraphNodeKind.SetGlobal, NodeCategory.Global, Tr.F("Set {0}", name),
+                Tr.F("Changes the global variable \"{0}\" ({1}).", name, scope),
+                inputs: [.. inputs, Pin("value", name, global.ValueType, global.DefaultValue)], flow: NodeFlow.Step);
     }
 
     private NodeInfo Variable(GraphNode node, GraphAsset graph)

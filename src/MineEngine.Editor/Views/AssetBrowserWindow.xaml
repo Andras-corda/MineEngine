@@ -1,0 +1,109 @@
+<Window x:Class="MineEngine.Editor.Views.AssetBrowserWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:MineEngine.Editor.Localization"
+        xmlns:ui="http://schemas.modernwpf.com/2019"
+        xmlns:assets="clr-namespace:MineEngine.Editor.ViewModels.Assets"
+        ui:WindowHelper.UseModernWindowStyle="True"
+        Background="{DynamicResource HubBackgroundBrush}"
+        Title="{Binding Title}"
+        Width="820" Height="640" MinWidth="480" MinHeight="380"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        FocusManager.FocusedElement="{Binding ElementName=SearchBox}">
+
+    <!--
+        Asset browser (V0.6.8, models and Minecraft in V0.6.11): the textures or the 3D models of the
+        project, or those of Minecraft, as tiles. Opened by a double-click on a texture slot or by
+        Browse... of a 3D model. DataContext: AssetBrowserViewModel.
+    -->
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <DockPanel Margin="16">
+        <!-- Search, size of the tiles, import -->
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <Button DockPanel.Dock="Right" Margin="10,0,0,0" Padding="10,4" Command="{Binding ImportCommand}"
+                    ToolTip="{l:Tr 'Import files: they become assets of the project'}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Import}" />
+                    <TextBlock Text="{l:Tr 'Import...'}" />
+                </StackPanel>
+            </Button>
+            <Slider DockPanel.Dock="Right" Width="120" Minimum="48" Maximum="192" Value="{Binding TileSize}" VerticalAlignment="Center"
+                    Margin="10,0,0,0" ToolTip="{l:Tr 'Size of the tiles'}" AutomationProperties.Name="{l:Tr 'Size of the tiles'}" />
+            <TextBlock DockPanel.Dock="Right" Text="{Binding CountLabel}" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="12"
+                       Foreground="{DynamicResource HintBrush}" />
+            <!-- Source: the project or Minecraft. -->
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center"
+                        Visibility="{Binding CanShowMinecraft, Converter={StaticResource BoolToVisibility}}">
+                <RadioButton Content="{l:Tr 'Project'}" IsChecked="{Binding ShowsProject}" MinWidth="0" Margin="0,0,10,0"
+                             AutomationProperties.AutomationId="SourceProject" />
+                <RadioButton Content="Minecraft" IsChecked="{Binding ShowsMinecraft}" MinWidth="0"
+                             AutomationProperties.AutomationId="SourceMinecraft" />
+            </StackPanel>
+            <Grid>
+                <TextBox x:Name="SearchBox" Padding="28,4,8,4" MinHeight="28" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Search}" FontSize="12" Margin="10,0,0,0"
+                           VerticalAlignment="Center" IsHitTestVisible="False" Foreground="{DynamicResource HintBrush}" />
+                <TextBlock Text="{Binding SearchHint}" Margin="29,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                           Foreground="{DynamicResource HintBrush}"
+                           Visibility="{Binding Text, ElementName=SearchBox, Converter={StaticResource EmptyToVisible}}" />
+            </Grid>
+        </DockPanel>
+
+        <!-- Choice -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+            <Button DockPanel.Dock="Right" Content="{l:Tr 'Cancel'}" Padding="14,5" Margin="8,0,0,0" Command="{Binding CancelCommand}" IsCancel="True" />
+            <Button DockPanel.Dock="Right" Style="{DynamicResource AccentButtonStyle}" Content="{l:Tr 'Choose'}" Padding="14,5" Command="{Binding AcceptCommand}"
+                    IsDefault="True" />
+            <TextBlock Text="{Binding SelectionLabel}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource HintBrush}" />
+        </DockPanel>
+
+        <!-- Where the files of Minecraft come from (or why there are none). -->
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8" Visibility="{Binding ShowsMinecraft, Converter={StaticResource BoolToVisibility}}">
+            <ProgressBar DockPanel.Dock="Left" Width="80" Height="4" IsIndeterminate="True" Margin="0,0,8,0" VerticalAlignment="Center"
+                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
+            <TextBlock Text="{Binding VanillaMessage}" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource HintBrush}" />
+        </DockPanel>
+
+        <ListBox ItemsSource="{Binding View}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" MouseDoubleClick="OnTileDoubleClick"
+                 AutomationProperties.Name="{Binding Title}">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel />
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="{x:Type assets:AssetBrowserItem}">
+                    <StackPanel Width="{Binding DataContext.TileSize, RelativeSource={RelativeSource AncestorType=ListBox}}" Margin="4" ToolTip="{Binding Details}">
+                        <Border Height="{Binding DataContext.TileSize, RelativeSource={RelativeSource AncestorType=ListBox}}" BorderThickness="1"
+                                BorderBrush="{DynamicResource PreviewBorderBrush}" Background="{DynamicResource PreviewBackgroundBrush}">
+                            <Grid>
+                                <Image Source="{Binding FullPath, Converter={StaticResource FilePathToImage}}" Margin="6"
+                                       RenderOptions.BitmapScalingMode="NearestNeighbor" Stretch="Uniform" />
+                                <TextBlock x:Name="None" Text="∅" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource HintBrush}" Visibility="Collapsed" />
+                            </Grid>
+                        </Border>
+                        <TextBlock Text="{Binding Name}" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding Details}" FontSize="10" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource HintBrush}" />
+                    </StackPanel>
+                    <DataTemplate.Triggers>
+                        <DataTrigger Binding="{Binding IsNone}" Value="True">
+                            <Setter TargetName="None" Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </DataTemplate.Triggers>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</Window>

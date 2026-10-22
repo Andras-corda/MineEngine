@@ -29,7 +29,7 @@ public static class BehaviorTreeValidator
         }
 
         var reachable = tree.ExecutionOrder().Select(n => n.Id).ToHashSet();
-        foreach (BtNode node in tree.Nodes.Where(n => n.Kind != BtNodeKind.Root))
+        foreach (BtNode node in tree.Nodes.Where(n => n.Kind != BtNodeKind.Root && !n.Info.IsAnnotation))
         {
             BtNodeInfo info = node.Info;
             if (!reachable.Contains(node.Id))

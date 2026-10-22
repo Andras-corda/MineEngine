@@ -26,6 +26,9 @@ public enum AssetReferenceKind
 
     /// <summary>A 3D model turned into a Java entity model for a mob (Blockbench only).</summary>
     EntityModel,
+
+    /// <summary>A global variable (Global tab).</summary>
+    GlobalVariable,
 }
 
 /// <summary>

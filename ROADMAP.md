@@ -27,14 +27,16 @@
 | V0.6.3 | creation d'enchantement/fluid/game rule/potion effect | F |
 | V0.6.4 | ajout d'un systeme de debug de l'engine (mode debug dans les paramètres + rapports de crash) | F |
 | V0.6.5 | ajout de node (voir node a ajouter.md : logique, boucles, maths, texte, monde, joueurs, inventaire, positions, événements) | F |
-| V0.6.6 | ajout de node (pour faire des raycast + gestion de physique + Changement dynamiqeu de texture et modele 3D + traitement du son + gestion de camera du joueur) | |
-| V0.6.7 | Création de l'onglet Global | |
-| V0.6.8 | Creation de la fenetre de gestion d'assets pour les elements (double click sur la case de texture et afficher en grid toutes les textures disponnibles) | |
-| V0.6.9 | Creer une interaction click droit dans l'onglet dashboard pour (sortir du dossier/revenir à la racine/undo/redo/validate/execute/compile) | |
+| V0.6.6 | ajout de node (pour faire des raycast + gestion de physique + Changement dynamiqeu de texture et modele 3D + traitement du son ; la caméra du joueur passe en V0.7.4) | F |
+| V0.6.7 | Création de l'onglet Global | F |
+| V0.6.8 | Creation de la fenetre de gestion d'assets pour les elements (double click sur la case de texture et afficher en grid toutes les textures disponnibles) | F |
+| V0.6.9 | Creer une interaction click droit dans l'onglet dashboard pour (sortir du dossier/revenir à la racine/undo/redo/validate/execute/compile) | F |
+| V0.6.10 | Fils et types : survol d'un fil + Retour arrière pour le couper, clic droit Rafraîchir les nœuds / Casser toutes les connexions, références de reroute, nœuds de cast + cast automatique (int vers float...), nouveaux types (char, long, float, byte, UUID, texte riche, identifiant, emplacement d'équipement, main, rareté, fluide, boîte AABB, source de dégâts, instance d'effet, NBT, monde, entité vivante) | F |
+| V0.6.11 | Pins aimantées, message de statut de 3 s, navigateur d'assets (textures et modèles 3D, ceux de Minecraft compris), portées des variables globales (scopeGlobalVariable.md), blocs façon MCreator (rotation, eau, gravité, rendu, forme en boîtes, états personnalisés, redstone, feu, balise, échelle, génération de minerai) | F |
 | V0.7.0 | Creation de plante/biome | |
 | V0.7.1 | Ajout de l'onglet tags | |
 | V0.7.2 | Integration de structure simple (arbre) | |
-| V0.7.3 | Ajout de l'onglet global variable | |
+| V0.7.3 | Ajout de l'onglet global variable (fait en V0.6.7) | F |
 | V0.7.4 | Node de gestion de la caméra du joueur | |
 | V0.7.5 | Ajout du sous programme sparkle (particule) | |
 | V0.7.6 | Ajouter des templace pour les sparkle (comme niagara system) | |

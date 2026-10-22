@@ -58,13 +58,16 @@ public sealed class IRContent
 
     public IReadOnlyList<IREffect> Effects { get; init; } = [];
 
+    /// <summary>Global variables (Global tab).</summary>
+    public IReadOnlyList<IRGlobalVariable> Globals { get; init; } = [];
+
     /// <summary>Mobs qui ont un œuf d'apparition.</summary>
     public IEnumerable<IRMob> MobsWithSpawnEgg => Mobs.Where(m => m.SpawnEgg is not null);
 
     public bool IsEmpty =>
         Items.Count == 0 && Blocks.Count == 0 && Mobs.Count == 0 && Recipes.Count == 0 && Sounds.Count == 0 && Behaviors.Count == 0
         && Definitions.Count == 0 && Commands.Count == 0 && CreativeTabs.Count == 0 && Keybinds.Count == 0 && Enchantments.Count == 0
-        && Fluids.Count == 0 && GameRules.Count == 0 && Effects.Count == 0;
+        && Fluids.Count == 0 && GameRules.Count == 0 && Effects.Count == 0 && Globals.Count == 0;
 
     /// <summary>Tous les éléments qui ont une forme item (items, puis blocs avec item).</summary>
     public IEnumerable<IRElement> ElementsWithItemForm =>
@@ -72,6 +75,16 @@ public sealed class IRContent
 }
 
 /// <summary>Élément de contenu qui apparaît en jeu avec un nom et une texture.</summary>
+/// <summary>
+/// Appearance of an item, a block or a mob: a texture, or a 3D model of the project (items and
+/// blocks); with neither, the element keeps its normal look for this number.
+/// </summary>
+public sealed record IRAppearance(string Name, IRTexture? Texture, ResourceId? Model)
+{
+    /// <summary>Identifier of the files of appearance <paramref name="number"/> ("ruby_appearance_2").</summary>
+    public static ResourceId FileId(ResourceId owner, int number) => ResourceId.Parse($"{owner.Value}_appearance_{number}");
+}
+
 public abstract class IRElement
 {
     protected IRElement(Guid sourceAssetId, ResourceId id, string displayName, IRTexture texture)
@@ -94,6 +107,9 @@ public abstract class IRElement
 
     /// <summary>3D model of the project shown instead of the generated shape (see <see cref="IRModel"/>), or null.</summary>
     public ResourceId? CustomModel { get; init; }
+
+    /// <summary>Other looks (number 1, 2...) switched by the appearance nodes of the graphs.</summary>
+    public IReadOnlyList<IRAppearance> Appearances { get; init; } = [];
 
     /// <summary>Forme item (inventaire), ou null pour un bloc sans item.</summary>
     public abstract IRItemForm? ItemForm { get; }
@@ -265,6 +281,15 @@ public sealed class IRBlock : IRElement
     }
 
     public IRBlockSettings Settings { get; }
+
+    /// <summary>Advanced settings of the block (rotation, water, redstone, shape, properties, ore).</summary>
+    public MineEngine.Assets.BlockOptions Options { get; init; } = MineEngine.Assets.BlockOptions.Default;
+
+    /// <summary>Texture of the block in the inventory, or null (the block itself).</summary>
+    public IRTexture? ItemTexture { get; init; }
+
+    /// <summary>Texture of the particles of the block, or null (its main texture).</summary>
+    public IRTexture? ParticleTexture { get; init; }
 
     /// <summary>Textures des emplacements secondaires ; un emplacement absent reprend la texture principale.</summary>
     public IReadOnlyDictionary<BlockTextureSlot, IRTexture> ExtraTextures { get; }

@@ -42,6 +42,7 @@ public sealed class BlockAsset : InventoryAsset
     private int _experienceMin;
     private int _experienceMax;
     private bool _hasItemForm = true;
+    private BlockOptions _options = BlockOptions.Default;
 
     public BlockAsset(Guid id, ResourceId resourceId, string displayName)
         : base(id, resourceId, displayName)
@@ -231,6 +232,18 @@ public sealed class BlockAsset : InventoryAsset
 
     public override bool HasItemForm => _hasItemForm;
 
+    // ----- Advanced settings (rotation, water, redstone, shape, ore...) -----
+
+    /// <summary>Advanced settings of the block, as in the block editor of MCreator.</summary>
+    public BlockOptions Options
+    {
+        get => _options;
+        set => SetField(ref _options, value ?? BlockOptions.Default);
+    }
+
+    /// <summary>Most combinations of the custom properties before a warning (each one is a state of the block).</summary>
+    public const long MaxPropertyCombinations = 256;
+
     public override IEnumerable<AssetReference> GetReferences()
     {
         foreach (AssetReference reference in base.GetReferences())
@@ -246,6 +259,16 @@ public sealed class BlockAsset : InventoryAsset
         if (DropKind == BlockDropKind.OtherItem && DropItem is { Kind: ContentReferenceKind.Asset } drop)
         {
             yield return new AssetReference(drop.AssetId, AssetReferenceKind.Item, Tr.T("dropped item"));
+        }
+
+        if (Options.ItemTextureId is { } itemTexture)
+        {
+            yield return new AssetReference(itemTexture, AssetReferenceKind.Texture, Tr.T("item texture"));
+        }
+
+        if (Options.ParticleTextureId is { } particle)
+        {
+            yield return new AssetReference(particle, AssetReferenceKind.Texture, Tr.T("particle texture"));
         }
     }
 
@@ -306,6 +329,89 @@ public sealed class BlockAsset : InventoryAsset
         if (Model == BlockModelKind.Cross && RenderType == BlockRenderType.Solid)
         {
             diagnostics.Info(Tr.T("A cross block is almost always transparent: choose \"Cutout\" for its texture."), source, Id);
+        }
+
+        ValidateOptions(diagnostics, source);
+    }
+
+    private void ValidateOptions(DiagnosticBag diagnostics, string source)
+    {
+        BlockOptions options = Options;
+        if (options.Rotation != BlockRotation.None && Model == BlockModelKind.Column)
+        {
+            diagnostics.Warning(Tr.T("A pillar block already turns like a log: its rotation mode is ignored."), source, Id);
+        }
+
+        if (options.HasPitchRotation && options.Rotation != BlockRotation.Horizontal)
+        {
+            diagnostics.Warning(Tr.T("The pitch rotation is only used by a block that turns horizontally."), source, Id);
+        }
+
+        if (options.HasGravity && (options.Rotation != BlockRotation.None || options.Waterloggable || DropsExperience))
+        {
+            diagnostics.Warning(Tr.T("A falling block cannot also turn, hold water or give experience: those settings are ignored."), source, Id);
+        }
+
+        if (options.EmitsRedstone && options.RedstonePower is < 0 or > BlockOptions.MaxRedstonePower)
+        {
+            diagnostics.Error(Tr.F("The redstone power must be between 0 and {0}.", BlockOptions.MaxRedstonePower), source, Id);
+        }
+
+        if (options.Combinations > MaxPropertyCombinations)
+        {
+            diagnostics.Warning(Tr.F("{0} combinations of properties: keep this number as small as possible (every one is a state of the block).", options.Combinations), source, Id);
+        }
+
+        var names = new HashSet<string>(StringComparer.Ordinal) { "facing", "face", "waterlogged", "axis", "appearance" };
+        foreach (BlockCustomProperty property in options.Properties)
+        {
+            if (!System.Text.RegularExpressions.Regex.IsMatch(property.Name, "^[a-z][a-z0-9_]*$"))
+            {
+                diagnostics.Error(Tr.F("Property \"{0}\": a name is made of lowercase letters, digits and _.", property.Name), source, Id);
+            }
+            else if (!names.Add(property.Name))
+            {
+                diagnostics.Error(Tr.F("Property \"{0}\": this name is already used by the block.", property.Name), source, Id);
+            }
+
+            if (property.Kind == BlockPropertyKind.Integer && (property.Min < 0 || property.Max <= property.Min))
+            {
+                diagnostics.Error(Tr.F("Property \"{0}\": the maximum must be greater than the minimum (0 or more).", property.Name), source, Id);
+            }
+
+            if (property.Kind == BlockPropertyKind.Choice
+                && (property.Values.Count < 2 || property.Values.Any(v => !System.Text.RegularExpressions.Regex.IsMatch(v, "^[a-z][a-z0-9_]*$"))))
+            {
+                diagnostics.Error(Tr.F("Property \"{0}\": give at least two values made of lowercase letters, digits and _.", property.Name), source, Id);
+            }
+        }
+
+        foreach (BlockBox box in options.Boxes)
+        {
+            if (box.MinX >= box.MaxX || box.MinY >= box.MaxY || box.MinZ >= box.MaxZ)
+            {
+                diagnostics.Error(Tr.T("A box of the shape has a minimum greater than or equal to its maximum."), source, Id);
+                break;
+            }
+        }
+
+        BlockOreGeneration ore = options.Ore;
+        if (ore.Enabled)
+        {
+            if (ore.MinHeight > ore.MaxHeight)
+            {
+                diagnostics.Error(Tr.T("Ore generation: the minimum height is greater than the maximum."), source, Id);
+            }
+
+            if (ore.GroupsPerChunk > 32 || ore.GroupSize > 32)
+            {
+                diagnostics.Warning(Tr.T("Ore generation: more than 32 groups per chunk or ores per group may make the generation of the world crash."), source, Id);
+            }
+
+            if (ore.Replace.Count == 0)
+            {
+                diagnostics.Error(Tr.T("Ore generation: choose the blocks the ore replaces (#minecraft:stone_ore_replaceables...)."), source, Id);
+            }
         }
     }
 

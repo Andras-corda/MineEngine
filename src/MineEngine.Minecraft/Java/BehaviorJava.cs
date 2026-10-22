@@ -1,5 +1,6 @@
 using System.Globalization;
 using MineEngine.Assets.Graphs;
+using MineEngine.Assets;
 using MineEngine.IR.Model;
 
 namespace MineEngine.Minecraft.Java;
@@ -105,6 +106,7 @@ public sealed class BehaviorJava
         IRNewStatement created => [$"{created.Result} = {New(created.TypeId, created.Arguments)};"],
         IRSetVariableStatement set => [$"{_names.Variable(set.VariableId)} = {Expression(set.Value)};"],
         IRSetFieldStatement set => [$"{Owner(set.Target)}.{_names.Variable(set.FieldId)} = {Expression(set.Value)};"],
+        IRSetGlobalStatement set => [GlobalAccess(set.GlobalId, set.Key, "set") + (HasScopeArgument(set.GlobalId) ? ", " : string.Empty) + Expression(set.Value) + ");"],
         IRReturnStatement ret => [Return(ret.Values)],
         IRSuperStatement super => [$"super({Arguments(super.Arguments, withLevel: true)});"],
         _ => throw new NotSupportedException($"Instruction {statement.GetType().Name} non traduite en Java."),
@@ -126,11 +128,102 @@ public sealed class BehaviorJava
             : $"return new {_names.ResultRecordType(function)}({string.Join(", ", actual.Select(Expression))});";
     }
 
+    private string Imported(string import, string code)
+    {
+        Use(import);
+        return code;
+    }
+
+    /// <summary>"0.5", "(-2.0)": a Java double literal.</summary>
+    public static string DecimalLiteral(double value)
+    {
+        string text = value.ToString("R", CultureInfo.InvariantCulture);
+        if (!text.Contains('.', StringComparison.Ordinal) && !text.Contains('E', StringComparison.Ordinal))
+        {
+            text += ".0";
+        }
+
+        return value < 0 ? $"({text})" : text;
+    }
+
+    /// <summary>"MineEngineGlobals.getScore(level" (without the closing parenthesis): the arguments depend on the scope.</summary>
+    private string GlobalAccess(Guid id, IRExpression? key, string verb)
+    {
+        if (_names.FindGlobal(id) is not ({ } global, { } name))
+        {
+            throw new NotSupportedException(Tr.T("Global variable not found."));
+        }
+
+        Use($"{_names.Package}.{JavaProgramNames.GlobalsClass}");
+        string value = key is null ? "null" : Expression(key);
+        string argument = GlobalsJava.Storage(global.Scope) switch
+        {
+            GlobalStorage.Static => string.Empty,
+            GlobalStorage.Level => JavaProgramNames.LevelParameter,
+            GlobalStorage.Player => value,
+            _ => $"{JavaProgramNames.LevelParameter}, {value}",
+        };
+        return $"{JavaProgramNames.GlobalsClass}.{verb}{JavaProgramNames.Accessor(name)}({argument}";
+    }
+
+    private bool HasScopeArgument(Guid id) => _names.FindGlobal(id) is ({ } global, _) && GlobalsJava.Storage(global.Scope) != GlobalStorage.Static;
+
     /// <summary>Valeur Java par défaut d'un type (0, false, "", BlockPos.ZERO, première constante, null).</summary>
     public string DefaultValue(DataType type)
     {
         switch (type.Kind)
         {
+            case PinType.Decimal:
+                return "0.0";
+            case PinType.Char:
+                return "' '";
+            case PinType.Long:
+                return "0L";
+            case PinType.Float:
+                return "0.0f";
+            case PinType.Byte:
+                return "((byte) 0)";
+            case PinType.Uuid:
+                Use("java.util.UUID");
+                return "new UUID(0L, 0L)";
+            case PinType.TextComponent:
+                Use("net.minecraft.network.chat.Component");
+                return "Component.empty()";
+            case PinType.Identifier or PinType.Fluid or PinType.EquipmentSlot or PinType.Hand or PinType.Rarity:
+                return JavaLiterals.Literal(type.Kind, string.Empty, _api, import => Use(import))!;
+            case PinType.BoundingBox:
+                Use("net.minecraft.world.phys.AABB");
+                return "new AABB(0, 0, 0, 0, 0, 0)";
+            case PinType.NbtTag:
+                Use("net.minecraft.nbt.CompoundTag");
+                return "new CompoundTag()";
+            case PinType.Direction:
+                Use("net.minecraft.core.Direction");
+                return "Direction.NORTH";
+            case PinType.BlockState:
+                Use("net.minecraft.world.level.block.Blocks");
+                return "Blocks.AIR.defaultBlockState()";
+            case PinType.Vector2i:
+                Use("org.joml.Vector2i");
+                return "new Vector2i()";
+            case PinType.Vector3i:
+                Use("net.minecraft.core.Vec3i");
+                return "Vec3i.ZERO";
+            case PinType.Vector2f:
+                Use("net.minecraft.world.phys.Vec2");
+                return "Vec2.ZERO";
+            case PinType.Vector3f:
+                Use("net.minecraft.world.phys.Vec3");
+                return "Vec3.ZERO";
+            case PinType.Array or PinType.List:
+                Use("java.util.ArrayList");
+                return "new ArrayList<>()";
+            case PinType.Set:
+                Use("java.util.HashSet");
+                return "new HashSet<>()";
+            case PinType.Map:
+                Use("java.util.HashMap");
+                return "new HashMap<>()";
             case PinType.Boolean:
                 return "false";
             case PinType.Number:
@@ -190,10 +283,44 @@ public sealed class BehaviorJava
             GraphNodeKind.ClearSlot => Helper("clearSlot", $"clearSlot({args[0]}, {args[1]});"),
             GraphNodeKind.SetItemNbtNumber => Helper("setItemNbtNumber", $"setItemNbtNumber({args[0]}, {args[1]}, {args[2]});"),
             GraphNodeKind.SetItemNbtText => Helper("setItemNbtText", $"setItemNbtText({args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.SetItemAppearance => Helper("setItemAppearance", $"setItemAppearance({args[0]}, {args[1]});"),
+            GraphNodeKind.SetBlockAppearance => Helper("setBlockAppearance", $"setBlockAppearance(level, {args[0]}, {args[1]});"),
+            GraphNodeKind.SetCreatureAppearance => Helper("setCreatureAppearance", $"setCreatureAppearance(level, {args[0]}, {args[1]}, {args[2]}, {args[3]});"),
+            GraphNodeKind.RunCommandAsPlayer => Helper("runCommandAsPlayer", $"runCommandAsPlayer({args[0]}, {args[1]});"),
+            GraphNodeKind.RunCommandAsServer => Helper("runCommandAsServer", $"runCommandAsServer(level, {args[0]}, {args[1]});"),
+            GraphNodeKind.SetVelocity => Helper("setVelocity", $"setVelocity({args[0]}, {args[1]}, {args[2]}, {args[3]});"),
+            GraphNodeKind.AddVelocity => Helper("addVelocity", $"addVelocity({args[0]}, {args[1]}, {args[2]}, {args[3]});"),
+            GraphNodeKind.LaunchForward => Helper("launchForward", $"launchForward({args[0]}, {args[1]});"),
+            GraphNodeKind.SetGravity => $"{args[0]}.setNoGravity(!{args[1]});",
+            GraphNodeKind.PlaySoundAdvanced => Helper("playSoundAt", $"playSoundAt(level, {args[0]}, {args[1]}, {args[2]}, {args[3]});"),
+            GraphNodeKind.PlaySoundToPlayer => Helper("playSoundTo", $"playSoundTo({args[0]}, {args[1]}, {args[2]}, {args[3]});"),
+            GraphNodeKind.StopSounds => Helper("stopSounds", $"stopSounds({args[0]}, false);"),
+            GraphNodeKind.PlayMusic => Helper("playMusic", $"playMusic({args[0]}, {args[1]});"),
+            GraphNodeKind.StopMusic => Helper("stopSounds", $"stopSounds({args[0]}, true);"),
             GraphNodeKind.SetGameRuleBoolean => Helper("setGameRuleBoolean", $"setGameRuleBoolean(level, {args[0]}, {args[1]});"),
             GraphNodeKind.SetGameRuleNumber => Helper("setGameRuleNumber", $"setGameRuleNumber(level, {args[0]}, {args[1]});"),
             GraphNodeKind.GiveEffect => Helper("giveEffect", $"giveEffect({args[0]}, {args[1]}, {args[2]}, {args[3]});"),
             GraphNodeKind.RemoveEffect => Helper("removeEffect", $"removeEffect({args[0]}, {args[1]});"),
+            GraphNodeKind.CollectionClear => $"{args[0]}.clear();",
+            GraphNodeKind.CollectionRemove => action.Arguments[0].Type.Kind == PinType.Map ? $"{args[0]}.remove({args[1]});" : $"{args[0]}.remove((Object) {args[1]});",
+            GraphNodeKind.ListSet => Helper("listSet", $"listSet({args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.ListAdd => $"{args[0]}.add({args[1]});",
+            GraphNodeKind.ListRemoveAt => Helper("listRemoveAt", $"listRemoveAt({args[0]}, {args[1]});"),
+            GraphNodeKind.MapPut => $"{args[0]}.put({args[1]}, {args[2]});",
+            GraphNodeKind.ArrayResize => Helper("arrayResize", $"arrayResize({args[0]}, {args[1]}, {DefaultValue(action.Arguments[0].Type.Element ?? DataType.Number)});"),
+            GraphNodeKind.SetBlockState => $"level.setBlockAndUpdate({args[0]}, {args[1]});",
+            GraphNodeKind.RemoveEntity => Helper("removeEntity", $"removeEntity({args[0]});"),
+            GraphNodeKind.TeleportEntity => Helper("teleportEntity", $"teleportEntity({args[0]}, {args[1]});"),
+            GraphNodeKind.DamageEntity => Helper("damageEntity", $"damageEntity({args[0]}, {args[1]});"),
+            GraphNodeKind.SendRichMessage => $"{args[0]}.sendSystemMessage({args[1]});",
+            GraphNodeKind.SwingHand => $"{args[0]}.swing({args[1]}, true);",
+            GraphNodeKind.PlaceFluid => $"level.setBlockAndUpdate({args[0]}, {args[1]}.defaultFluidState().createLegacyBlock());",
+            GraphNodeKind.DamageWithSource => Helper("damageWithSource", $"damageWithSource({args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.ApplyEffect => Helper("applyEffect", $"applyEffect({args[0]}, {args[1]});"),
+            GraphNodeKind.NbtPutNumber => $"{args[0]}.putInt({args[1]}, {args[2]});",
+            GraphNodeKind.NbtPutText => $"{args[0]}.putString({args[1]}, {args[2]});",
+            GraphNodeKind.SetPlayerGuild => $"{args[0]}.getPersistentData().putString(\"mineengine_guild\", {args[1]});",
+            GraphNodeKind.SetEntityGroup => Helper("setEntityGroup", $"setEntityGroup({args[0]}, {args[1]});"),
             _ => throw new NotSupportedException($"Action {action.Action} non traduite en Java."),
         };
     }
@@ -205,6 +332,10 @@ public sealed class BehaviorJava
             : number.Value.ToString(CultureInfo.InvariantCulture),
         IRTextLiteral text => JavaNames.StringLiteral(text.Value),
         IRBooleanLiteral flag => flag.Value ? "true" : "false",
+        IRDecimalLiteral number => DecimalLiteral(number.Value),
+        IRValueLiteral literal => JavaLiterals.Literal(literal.ValueType.Kind, literal.Text, _api, import => Use(import)) ?? "null",
+        IRDirectionLiteral direction => Imported("net.minecraft.core.Direction", "Direction." + direction.Name.ToUpperInvariant()),
+        IRGlobalValue global => GlobalAccess(global.GlobalId, global.Key, "get") + ")",
         IRContentLiteral content => Content(content),
         IREventValue value => value.Name,
         IRToText toText => $"String.valueOf({Expression(toText.Value)})",
@@ -324,10 +455,141 @@ public sealed class BehaviorJava
             GraphNodeKind.PositionsEqual => $"{a[0]}.equals({a[1]})",
             GraphNodeKind.IsInArea => Helper("isInArea", $"isInArea({a[0]}, {a[1]}, {a[2]})"),
             GraphNodeKind.OffsetInDirection => Helper("offsetInDirection", $"offsetInDirection({a[0]}, {a[1]}, {a[2]})"),
+            GraphNodeKind.ItemAppearance => Helper("itemAppearance", $"itemAppearance({a[0]})"),
+            GraphNodeKind.BlockAppearance => Helper("blockAppearance", $"blockAppearance(level, {a[0]})"),
+            GraphNodeKind.CreatureAppearance => Helper("creatureAppearance", $"creatureAppearance(level, {a[0]}, {a[1]}, {a[2]})"),
+            GraphNodeKind.RaycastHitsBlock => Helper("raycastBlock", $"(raycastBlock({a[0]}, {a[1]}, {a[2]}).getType() == HitResult.Type.BLOCK)"),
+            GraphNodeKind.RaycastBlockPosition => Helper("raycastPosition", $"raycastPosition({a[0]}, {a[1]}, {a[2]})"),
+            GraphNodeKind.LooksAtCreature => Helper("raycastEntity", $"(raycastEntity({a[0]}, {a[1]}) != null)"),
+            GraphNodeKind.CreatureLookedAt => Helper("lookedAtCreature", $"lookedAtCreature({a[0]}, {a[1]})"),
+            GraphNodeKind.IsOnGround => $"{a[0]}.onGround()",
+            GraphNodeKind.FallDistance => $"Math.round({a[0]}.fallDistance)",
             GraphNodeKind.GetGameRuleBoolean => Helper("gameRuleBoolean", $"gameRuleBoolean(level, {a[0]})"),
             GraphNodeKind.GetGameRuleNumber => Helper("gameRuleNumber", $"gameRuleNumber(level, {a[0]})"),
             GraphNodeKind.HasEffect => Helper("hasEffect", $"hasEffect({a[0]}, {a[1]})"),
+            GraphNodeKind.CollectionSize => $"{a[0]}.size()",
+            GraphNodeKind.CollectionContains => call.Arguments[0].Type.Kind == PinType.Map ? $"{a[0]}.containsKey({a[1]})" : $"{a[0]}.contains({a[1]})",
+            GraphNodeKind.ListGet => Helper("listGet", $"listGet({a[0]}, {a[1]}, {DefaultValue(call.ResultType)})"),
+            GraphNodeKind.MapGet => $"{a[0]}.getOrDefault({a[1]}, {DefaultValue(call.ResultType)})",
+            >= GraphNodeKind.MakeVector and <= GraphNodeKind.VectorToPosition => Vector(call, a),
+            GraphNodeKind.PositionToVector => Uses($"Vec3.atCenterOf({a[0]})", "net.minecraft.world.phys.Vec3"),
+            GraphNodeKind.RoundDecimal => $"((int) Math.round({a[0]}))",
+            GraphNodeKind.FloorDecimal => $"((int) Math.floor({a[0]}))",
+            GraphNodeKind.DecimalAdd => $"({a[0]} + {a[1]})",
+            GraphNodeKind.DecimalSubtract => $"({a[0]} - {a[1]})",
+            GraphNodeKind.DecimalMultiply => $"({a[0]} * {a[1]})",
+            GraphNodeKind.DecimalDivide => Helper("divideDecimal", $"divideDecimal({a[0]}, {a[1]})"),
+            GraphNodeKind.DecimalGreater => $"({a[0]} > {a[1]})",
+            GraphNodeKind.DecimalLess => $"({a[0]} < {a[1]})",
+            GraphNodeKind.RandomDecimal => "level.random.nextDouble()",
+            GraphNodeKind.PlayerFacing => $"{a[0]}.getDirection()",
+            GraphNodeKind.OppositeDirection => $"{a[0]}.getOpposite()",
+            GraphNodeKind.OffsetByDirection => $"{a[0]}.relative({a[1]}, {a[2]})",
+            GraphNodeKind.DirectionName => $"{a[0]}.getName()",
+            GraphNodeKind.BlockStateAt => $"level.getBlockState({a[0]})",
+            GraphNodeKind.BlockOfState => $"{a[0]}.getBlock()",
+            GraphNodeKind.DefaultBlockState => $"{a[0]}.defaultBlockState()",
+            GraphNodeKind.StateProperty => Helper("stateProperty", $"stateProperty({a[0]}, {a[1]})"),
+            GraphNodeKind.StateWithProperty => Helper("stateWithProperty", $"stateWithProperty({a[0]}, {a[1]}, {a[2]})"),
+            GraphNodeKind.EntityPosition => Helper("entityPosition", $"entityPosition({a[0]})"),
+            GraphNodeKind.EntityTypeId => Helper("entityTypeId", $"entityTypeId({a[0]})"),
+            GraphNodeKind.IsEntityAlive => Helper("isEntityAlive", $"isEntityAlive({a[0]})"),
+            GraphNodeKind.NearestEntity => Helper("nearestEntity", $"nearestEntity(level, {a[0]}, {a[1]}, {a[2]})"),
+            GraphNodeKind.EntityLookedAt => Helper("entityLookedAt", $"entityLookedAt({a[0]}, {a[1]})"),
+            GraphNodeKind.EntityHealth => Helper("entityHealth", $"entityHealth({a[0]})"),
+            GraphNodeKind.EntityIsPlayer => $"({a[0]} instanceof Player)",
+            >= GraphNodeKind.CastToNumber and <= GraphNodeKind.CastToPlayer => Cast(call, a[0]),
+            GraphNodeKind.CharAt => Helper("charAt", $"charAt({a[0]}, {a[1]})"),
+            GraphNodeKind.EntityUuid => Helper("entityUuid", $"entityUuid({a[0]})"),
+            GraphNodeKind.EntityByUuid => Helper("entityByUuid", $"entityByUuid(level, {a[0]})"),
+            GraphNodeKind.RandomUuid => Uses("UUID.randomUUID()", "java.util.UUID"),
+            GraphNodeKind.StyledText => Helper("styledText", $"styledText({a[0]}, {a[1]}, {a[2]}, {a[3]})"),
+            GraphNodeKind.IdentifierNamespace => $"{a[0]}.getNamespace()",
+            GraphNodeKind.IdentifierPath => $"{a[0]}.getPath()",
+            GraphNodeKind.EquipmentItem => Helper("equipmentItem", $"equipmentItem({a[0]}, {a[1]})"),
+            GraphNodeKind.ItemInHand => $"{a[0]}.getItemInHand({a[1]})",
+            GraphNodeKind.StackRarity => $"{a[0]}.getRarity()",
+            GraphNodeKind.FluidAt => $"level.getFluidState({a[0]}).getType()",
+            GraphNodeKind.EntityBox => Helper("entityBox", $"entityBox({a[0]})"),
+            GraphNodeKind.MakeBox => Helper("makeBox", $"makeBox({a[0]}, {a[1]})"),
+            GraphNodeKind.EntitiesInBox => Helper("entitiesInBox", $"entitiesInBox(level, {a[0]})"),
+            GraphNodeKind.BoxContains => $"{a[0]}.contains({a[1]})",
+            GraphNodeKind.GenericDamage => Helper("genericDamage", $"genericDamage(level, {a[0]})"),
+            GraphNodeKind.MakeEffect => Helper("makeEffect", $"makeEffect({a[0]}, {a[1]}, {a[2]})"),
+            GraphNodeKind.NewNbt => Uses("new CompoundTag()", "net.minecraft.nbt.CompoundTag"),
+            GraphNodeKind.NbtGetNumber => $"{a[0]}.getInt({a[1]})",
+            GraphNodeKind.NbtGetText => $"{a[0]}.getString({a[1]})",
+            GraphNodeKind.CurrentWorld => "level",
+            GraphNodeKind.WorldOf => Helper("worldOf", $"worldOf(level, {a[0]})"),
+            GraphNodeKind.WorldDimension => $"{a[0]}.dimension().location().toString()",
+            GraphNodeKind.GameTime => "level.getGameTime()",
+            GraphNodeKind.PlayerGuild => $"{a[0]}.getPersistentData().getString(\"mineengine_guild\")",
+            GraphNodeKind.EntityGroup => Helper("entityGroup", $"entityGroup({a[0]})"),
             _ => throw new NotSupportedException($"Nœud {call.Kind} non traduit en Java."),
+        };
+    }
+
+    /// <summary>Java of a cast node: a primitive cast, a conversion from a text, or a test of the class of an entity.</summary>
+    private string Cast(IRCallExpression call, string value)
+    {
+        PinType from = call.Arguments[0].Type.Kind;
+        return (call.Kind, from) switch
+        {
+            (GraphNodeKind.CastToNumber, PinType.Text) => Helper("toNumber", $"toNumber({value})"),
+            (GraphNodeKind.CastToNumber, PinType.Boolean) => $"({value} ? 1 : 0)",
+            (GraphNodeKind.CastToNumber, _) => $"((int) ({value}))",
+            (GraphNodeKind.CastToLong, PinType.Text) => Helper("toLong", $"toLong({value})"),
+            (GraphNodeKind.CastToLong, _) => $"((long) ({value}))",
+            (GraphNodeKind.CastToFloat, PinType.Text) => Helper("toDecimal", $"((float) toDecimal({value}))"),
+            (GraphNodeKind.CastToFloat, _) => $"((float) ({value}))",
+            (GraphNodeKind.CastToDecimal, PinType.Text) => Helper("toDecimal", $"toDecimal({value})"),
+            (GraphNodeKind.CastToDecimal, _) => $"((double) ({value}))",
+            (GraphNodeKind.CastToByte, _) => $"((byte) ({value}))",
+            (GraphNodeKind.CastToChar, PinType.Text) => Helper("charAt", $"charAt({value}, 0)"),
+            (GraphNodeKind.CastToChar, _) => $"((char) ({value}))",
+            (GraphNodeKind.CastToText, PinType.TextComponent) => $"{value}.getString()",
+            (GraphNodeKind.CastToText, _) => $"String.valueOf({value})",
+            (GraphNodeKind.CastToComponent, PinType.Text) => Uses($"Component.literal({value})", "net.minecraft.network.chat.Component"),
+            (GraphNodeKind.CastToComponent, _) => Uses($"Component.literal(String.valueOf({value}))", "net.minecraft.network.chat.Component"),
+            (GraphNodeKind.CastToIdentifier, _) => Helper("identifier", $"identifier({value})"),
+            (GraphNodeKind.CastToUuid, PinType.Text) => Helper("uuid", $"uuid({value})"),
+            (GraphNodeKind.CastToUuid, _) => Helper("entityUuid", $"entityUuid({value})"),
+            (GraphNodeKind.CastToLiving, _) => Helper("toLiving", $"toLiving({value})"),
+            _ => Helper("toPlayer", $"toPlayer({value})"),
+        };
+    }
+
+    /// <summary>Vector nodes: each kind of vector has its own Java class (JOML Vector2i, Vec3i, Vec2, Vec3).</summary>
+    private string Vector(IRCallExpression call, string[] a)
+    {
+        DataType type = call.Kind == GraphNodeKind.MakeVector ? call.ResultType : call.Arguments[0].Type;
+        foreach (string import in JavaProgramNames.ImportsFor(type))
+        {
+            Use(import);
+        }
+
+        return (call.Kind, type.Kind) switch
+        {
+            (GraphNodeKind.MakeVector, PinType.Vector2i) => $"new Vector2i({a[0]}, {a[1]})",
+            (GraphNodeKind.MakeVector, PinType.Vector3i) => $"new Vec3i({a[0]}, {a[1]}, {a[2]})",
+            (GraphNodeKind.MakeVector, PinType.Vector2f) => $"new Vec2((float) {a[0]}, (float) {a[1]})",
+            (GraphNodeKind.MakeVector, _) => $"new Vec3({a[0]}, {a[1]}, {a[2]})",
+            (GraphNodeKind.VectorX, PinType.Vector3i) => $"{a[0]}.getX()",
+            (GraphNodeKind.VectorY, PinType.Vector3i) => $"{a[0]}.getY()",
+            (GraphNodeKind.VectorZ, PinType.Vector3i) => $"{a[0]}.getZ()",
+            (GraphNodeKind.VectorX, PinType.Vector2f) => $"((double) {a[0]}.x)",
+            (GraphNodeKind.VectorY, PinType.Vector2f) => $"((double) {a[0]}.y)",
+            (GraphNodeKind.VectorX, _) => $"{a[0]}.x",
+            (GraphNodeKind.VectorY, _) => $"{a[0]}.y",
+            (GraphNodeKind.VectorZ, _) => $"{a[0]}.z",
+            (GraphNodeKind.VectorLength, PinType.Vector3i) => $"Math.sqrt({a[0]}.distSqr(Vec3i.ZERO))",
+            (GraphNodeKind.VectorLength, PinType.Vector2f) => $"((double) {a[0]}.length())",
+            (GraphNodeKind.VectorLength, _) => $"{a[0]}.length()",
+            (GraphNodeKind.AddVectors, PinType.Vector2i) => $"new Vector2i({a[0]}).add({a[1]})",
+            (GraphNodeKind.AddVectors, PinType.Vector3i) => $"{a[0]}.offset({a[1]})",
+            (GraphNodeKind.AddVectors, _) => $"{a[0]}.add({a[1]})",
+            (_, PinType.Vector3i) => Uses($"new BlockPos({a[0]})", "net.minecraft.core.BlockPos"),
+            _ => Uses($"BlockPos.containing({a[0]})", "net.minecraft.core.BlockPos"),
         };
     }
 
@@ -402,11 +664,20 @@ public sealed class BehaviorJava
 
     private const string Stack = "net.minecraft.world.item.ItemStack";
 
+    /// <summary>Call that tells whether a Flip Flop node runs A this time (its state is kept per node).</summary>
+    public string FlipFlop(Guid nodeId) => Helper("flipFlop", $"flipFlop(\"{nodeId:N}\")");
+
     private string Helper(string name, string code)
     {
         if (_helpers.Add(name))
         {
             Use([.. HelperImports(name)]);
+            if (name is "setCreatureAppearance" or "creatureAppearance" or "appearanceHolders")
+            {
+                // Interface of the mobs with appearances, in the entity package of the mod.
+                Use($"{_names.Package[..^".code".Length]}.entity.{ModJavaEmitter.AppearanceInterface}");
+            }
+
             // Helpers take the level, the position or the player: their types are imported even in a function without event prologue.
             Use("net.minecraft.core.BlockPos", "net.minecraft.world.entity.player.Player", "net.minecraft.world.level.Level");
             foreach (string dependency in GraphHelpersJava.Dependencies(name))

@@ -229,6 +229,30 @@ public partial class DashboardPanel : UserControl
         }
     }
 
+    /// <summary>The menu of the page opens only in the empty part: elements and folders have their own.</summary>
+    private void OnPageMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (e.OriginalSource is DependencyObject source && FindAncestor<ListBoxItem>(source) is not null || Main?.Project is null)
+        {
+            e.Handled = true;
+        }
+    }
+
+    private static T? FindAncestor<T>(DependencyObject? element)
+        where T : DependencyObject
+    {
+        for (DependencyObject? current = element; current is not null;
+             current = current is System.Windows.Media.Visual ? System.Windows.Media.VisualTreeHelper.GetParent(current) : LogicalTreeHelper.GetParent(current))
+        {
+            if (current is T match)
+            {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>"Déplacer vers" : la racine et tous les dossiers, sauf celui de l'élément.</summary>
     private void OnAssetMenuOpening(object sender, ContextMenuEventArgs e)
     {

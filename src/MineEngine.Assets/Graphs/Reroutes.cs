@@ -20,7 +20,41 @@ public static class Reroutes
     /// <summary>Sortie d'une redirection de valeur.</summary>
     public const string ValueOutput = "out";
 
+    /// <summary>
+    /// Value of a reference: the id of the reroute it repeats. A reference has no input: it gives the
+    /// value of its reroute anywhere in the graph, without a wire across it (named reroutes of Unreal).
+    /// </summary>
+    public const string ReferenceKey = "ref";
+
     private const string ExecType = "exec";
+
+    /// <summary>A reference to a value reroute, placed at (x, y); null for an execution reroute or a reference.</summary>
+    public static GraphNode? CreateReference(GraphNode reroute, double x, double y)
+    {
+        ArgumentNullException.ThrowIfNull(reroute);
+        if (!IsReroute(reroute) || IsReference(reroute) || TypeOf(reroute) is not { IsExec: false })
+        {
+            return null;
+        }
+
+        return new GraphNode(Guid.NewGuid(), GraphNodeKind.Reroute, x, y,
+            reroute.Values.SetItem(ReferenceKey, reroute.Id.ToString("D")));
+    }
+
+    /// <summary>True for a reference to another reroute.</summary>
+    public static bool IsReference(GraphNode node) => IsReroute(node) && node.Values.ContainsKey(ReferenceKey);
+
+    /// <summary>The reroute a reference repeats, or null.</summary>
+    public static Guid? ReferenceOf(GraphNode node) =>
+        IsReroute(node) && Guid.TryParse(node.Values.GetValueOrDefault(ReferenceKey), out Guid id) ? id : null;
+
+    /// <summary>The references of these reroutes (deleted with them: their wires then start from the real source).</summary>
+    public static IEnumerable<Guid> ReferencesTo(NodeGraph graph, IEnumerable<Guid> reroutes)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+        var targets = reroutes.ToHashSet();
+        return graph.Nodes.Where(n => ReferenceOf(n) is { } target && targets.Contains(target)).Select(n => n.Id);
+    }
 
     /// <summary>Nouvelle redirection pour un fil de ce type.</summary>
     public static GraphNode Create(DataType type, double x, double y)
@@ -60,6 +94,14 @@ public static class Reroutes
         }
 
         string label = typeLabel(type);
+        if (IsReference(node))
+        {
+            return new NodeInfo(GraphNodeKind.Reroute, NodeCategory.Variable, Tr.T("Reroute reference"),
+                Tr.F("Gives the {0} value of its reroute here, without a wire across the graph.", label),
+                outputs: [new PinInfo(ValueOutput, string.Empty, type)],
+                flow: NodeFlow.Pure);
+        }
+
         return new NodeInfo(GraphNodeKind.Reroute, NodeCategory.Variable, title,
             Tr.F("Waypoint of a {0} wire: it does not change the program.", label),
             inputs: [new PinInfo(ValueInput, string.Empty, type)],
@@ -76,8 +118,42 @@ public static class Reroutes
     public static NodeGraph Collapse(NodeGraph graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
-        graph = GraphAnnotations.Strip(graph);
+        graph = SplitFannedOut(GraphAnnotations.Strip(graph));
         return graph.Nodes.Any(IsReroute) ? Bypass(graph, graph.Nodes.Where(IsReroute).Select(n => n.Id)) : graph;
+    }
+
+    /// <summary>
+    /// An execution reroute that sends several wires becomes a Sequence: its wires run one after
+    /// the other, from the highest node to the lowest (like the outputs of a Sequence).
+    /// </summary>
+    private static NodeGraph SplitFannedOut(NodeGraph graph)
+    {
+        List<GraphNode> fanned =
+        [
+            .. graph.Nodes.Where(n => IsReroute(n) && TypeOf(n) is { IsExec: true }
+                                      && graph.OutputConnections(n.Id, NodeInfo.ExecThen).Skip(1).Any()),
+        ];
+        if (fanned.Count == 0)
+        {
+            return graph;
+        }
+
+        var connections = graph.Connections.ToList();
+        var nodes = graph.Nodes.ToList();
+        foreach (GraphNode reroute in fanned)
+        {
+            List<GraphConnection> outgoing =
+            [
+                .. graph.OutputConnections(reroute.Id, NodeInfo.ExecThen)
+                    .OrderBy(c => graph.FindNode(c.ToNode)?.Y ?? 0).ThenBy(c => graph.FindNode(c.ToNode)?.X ?? 0),
+            ];
+            connections.RemoveAll(c => c.FromNode == reroute.Id && c.FromPin == NodeInfo.ExecThen);
+            connections.AddRange(outgoing.Select((c, i) => c with { FromPin = FlowNodes.SequencePin(i) }));
+            nodes[nodes.IndexOf(reroute)] = new GraphNode(reroute.Id, GraphNodeKind.Sequence, reroute.X, reroute.Y,
+                ImmutableDictionary<string, string>.Empty.Add(FlowNodes.CountKey, outgoing.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        }
+
+        return new NodeGraph(nodes, connections);
     }
 
     /// <summary>
@@ -127,7 +203,20 @@ public static class Reroutes
     /// <summary>Broche réelle qui alimente l'entrée d'une redirection retirée (en remontant la chaîne).</summary>
     private static (Guid Node, string Pin)? Source(NodeGraph graph, Guid reroute, HashSet<Guid> removed, HashSet<Guid> seen)
     {
-        if (!seen.Add(reroute) || graph.InputConnection(reroute, ValueInput) is not { } incoming)
+        if (!seen.Add(reroute))
+        {
+            return null;
+        }
+
+        // A reference takes the value of its reroute (removed with it, or still in the graph).
+        if (graph.FindNode(reroute) is { } node && ReferenceOf(node) is { } target)
+        {
+            return graph.FindNode(target) is null ? null
+                : removed.Contains(target) ? Source(graph, target, removed, seen)
+                : (target, ValueOutput);
+        }
+
+        if (graph.InputConnection(reroute, ValueInput) is not { } incoming)
         {
             return null;
         }

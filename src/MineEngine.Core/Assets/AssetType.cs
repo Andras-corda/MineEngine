@@ -38,6 +38,9 @@ public enum AssetType
 
     /// <summary>Status effect of the mod, with an optional potion (V0.6.3).</summary>
     Effect,
+
+    /// <summary>Global variable, readable and changeable from every graph (V0.6.7, Global tab).</summary>
+    GlobalVariable,
 }
 
 /// <summary>
@@ -60,6 +63,7 @@ public enum AssetIdScope
     Enchantment,
     GameRule,
     Effect,
+    GlobalVariable,
 }
 
 public static class AssetTypeExtensions
@@ -78,6 +82,7 @@ public static class AssetTypeExtensions
         AssetType.Enchantment => AssetIdScope.Enchantment,
         AssetType.GameRule => AssetIdScope.GameRule,
         AssetType.Effect => AssetIdScope.Effect,
+        AssetType.GlobalVariable => AssetIdScope.GlobalVariable,
         _ => AssetIdScope.GameContent,
     };
 }

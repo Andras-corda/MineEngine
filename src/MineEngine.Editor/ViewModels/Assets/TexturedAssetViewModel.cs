@@ -12,7 +12,11 @@ public abstract class TexturedAssetViewModel : AssetViewModel
             model, context, nameof(TexturedAsset.TextureId), Tr.T("Texture"), emptyTextureLabel,
             () => model.TextureId, v => model.TextureId = v);
         CustomModel = new ModelPickerViewModel(model, context, entityModel: model is MobAsset);
+        AppearanceList = new AppearanceListViewModel(model, context);
     }
+
+    /// <summary>Other looks switched by the appearance nodes of the graphs.</summary>
+    public AppearanceListViewModel AppearanceList { get; }
 
     public TextureSlotViewModel MainTexture { get; }
 
@@ -31,6 +35,7 @@ public abstract class TexturedAssetViewModel : AssetViewModel
         base.OnProjectContentChanged();
         MainTexture.Refresh();
         CustomModel.Refresh();
+        AppearanceList.Refresh();
     }
 
     protected override void OnModelPropertyChanged(string propertyName)
@@ -41,6 +46,11 @@ public abstract class TexturedAssetViewModel : AssetViewModel
             CustomModel.Refresh();
             OnPropertyChanged(nameof(UsesCustomModel));
             OnPropertyChanged(nameof(ShowsModelPicker));
+        }
+
+        if (propertyName == nameof(TexturedAsset.Appearances))
+        {
+            AppearanceList.Refresh();
         }
 
         if (propertyName == nameof(TexturedAsset.TextureId))

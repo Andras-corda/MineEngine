@@ -25,6 +25,7 @@ public sealed class ModelPickerViewModel : ObservableObject
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _entityModel = entityModel;
         ImportCommand = new RelayCommand(Import);
+        BrowseCommand = new RelayCommand(Browse);
         OpenCommand = new RelayCommand(() => _context.SelectAsset(_asset.CustomModelId!.Value), () => Selected is not null);
     }
 
@@ -70,6 +71,19 @@ public sealed class ModelPickerViewModel : ObservableObject
     };
 
     public ICommand ImportCommand { get; }
+
+    /// <summary>Opens the asset browser on the 3D models (of the project, or of Minecraft).</summary>
+    public ICommand BrowseCommand { get; }
+
+    private void Browse()
+    {
+        var browser = new AssetBrowserViewModel(_context, AssetBrowserKind.Model, _asset.CustomModelId, _asset.DisplayName, Tr.T("(none)"), _entityModel);
+        if (_context.Dialogs.ShowAssetBrowser(browser))
+        {
+            SelectedModelId = browser.Result ?? Guid.Empty;
+            Refresh();
+        }
+    }
 
     public ICommand OpenCommand { get; }
 

@@ -60,6 +60,10 @@ public enum BtNodeKind
     FindNearestEntityService,
     RememberAttacker,
     UpdateDistance,
+
+    // ----- Annotations: no effect on the AI (see GraphAnnotations for their values) -----
+    Comment,
+    Tooltip,
 }
 
 /// <summary>Role of a kind of node in the tree.</summary>
@@ -70,6 +74,9 @@ public enum BtCategory
     Task,
     Decorator,
     Service,
+
+    /// <summary>Comment or tooltip: not part of the tree.</summary>
+    Annotation,
 }
 
 /// <summary>Type of a blackboard key (the memory of the mob).</summary>

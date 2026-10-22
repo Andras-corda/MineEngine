@@ -269,6 +269,13 @@
                         <TextBlock Text="{l:Tr 'Resources'}" VerticalAlignment="Center" Margin="0,0,6,0" />
                     </StackPanel>
                 </Button>
+                <Button Style="{StaticResource ViewButton}" Command="{Binding ShowGlobalsCommand}" Tag="{Binding IsGlobalsShown}"
+                        ToolTip="{l:Tr 'Show the global variables, readable and changeable from every graph (Ctrl+4)'}" AutomationProperties.Name="{l:Tr 'Global'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Field}" Margin="6,0,6,0" />
+                        <TextBlock Text="{l:Tr 'Global'}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    </StackPanel>
+                </Button>
                 <Button Style="{StaticResource ViewButton}" Command="{Binding ShowLanguagesCommand}" Tag="{Binding IsLanguagesShown}"
                         ToolTip="{l:Tr 'Show the languages of the mod and their translations (Ctrl+3)'}" AutomationProperties.Name="{l:Tr 'Languages'}">
                     <StackPanel Orientation="Horizontal">

@@ -27,6 +27,7 @@ public abstract class InventoryAssetDefinition<TAsset> : AssetDefinition<TAsset>
         asset.TooltipLines = reader.GetStringList(TooltipKey);
         asset.InModCreativeTab = reader.GetBoolean(InModTabKey, true);
         asset.CreativeTabs = reader.GetEnumSet<CreativeTab>(CreativeTabsKey);
+        asset.Appearances = AppearanceJson.Read(reader);
     }
 
     protected static void WriteInventory(TAsset asset, JsonObject properties)
@@ -39,5 +40,6 @@ public abstract class InventoryAssetDefinition<TAsset> : AssetDefinition<TAsset>
         properties[TooltipKey] = new JsonArray([.. asset.TooltipLines.Select(l => JsonValue.Create(l))]);
         properties[InModTabKey] = asset.InModCreativeTab;
         properties[CreativeTabsKey] = new JsonArray([.. asset.CreativeTabs.Order().Select(t => JsonValue.Create(t.ToString()))]);
+        AppearanceJson.Write(asset, properties);
     }
 }

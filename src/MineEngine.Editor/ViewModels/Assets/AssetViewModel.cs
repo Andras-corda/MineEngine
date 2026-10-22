@@ -12,6 +12,9 @@ namespace MineEngine.Editor.ViewModels.Assets;
 /// <param name="Label">Nom de l'asset et rôle du lien.</param>
 public sealed record AssetLinkViewModel(Guid TargetId, string Label);
 
+/// <summary>A fact of the summary of an element in Properties ("Typed in the chat: /boost").</summary>
+public sealed record SummaryLine(string Label, string Value);
+
 /// <summary>
 /// Propriétés communes à tous les assets, affichées dans l'Inspector. Chaque
 /// modification passe par l'historique du projet (annuler/rétablir) ; la vue est
@@ -100,6 +103,7 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
         AssetType.Fluid => "FluidGeometry",
         AssetType.GameRule => "Glyph.Settings",
         AssetType.Effect => "PotionGeometry",
+        AssetType.GlobalVariable => "Glyph.Field",
         _ => "Glyph.File",
     };
 
@@ -153,6 +157,20 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
             .ToList();
 
     public bool IsUsed => UsedBy.Count > 0;
+
+    /// <summary>Elements this one uses (texture, item, called function...), for the summary of Properties.</summary>
+    public IReadOnlyList<AssetLinkViewModel> Uses =>
+        Model.GetReferences()
+            .GroupBy(r => r.TargetId)
+            .Select(g => (Target: Context.Project.Assets.Find(g.Key), Roles: g.Select(r => r.Role).Distinct()))
+            .Where(t => t.Target is not null)
+            .Select(t => new AssetLinkViewModel(t.Target!.Id, Tr.F("{0}: {1}", DisplayLabel(t.Target!), string.Join(", ", t.Roles))))
+            .ToList();
+
+    public bool HasUses => Uses.Count > 0;
+
+    /// <summary>Main facts of the element shown in Properties when it is selected in the Dashboard.</summary>
+    public virtual IReadOnlyList<SummaryLine> SummaryLines => [];
 
     /// <summary>Ouvre un autre asset (paramètre : son identifiant interne).</summary>
     public ICommand OpenAssetCommand { get; }

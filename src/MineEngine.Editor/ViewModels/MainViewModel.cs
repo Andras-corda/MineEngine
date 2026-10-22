@@ -177,12 +177,16 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Onglet Langues du projet ouvert (langues du mod et traductions).</summary>
     public LanguagesViewModel? Languages { get; private set; }
 
+    /// <summary>Global tab of the open project (global variables).</summary>
+    public GlobalsViewModel? Globals { get; private set; }
+
     public ProjectViewModel? Project
     {
         get => _project;
         private set
         {
             Languages?.Dispose();
+            Globals?.Dispose();
             if (_project is not null)
             {
                 _project.PropertyChanged -= OnProjectPropertyChanged;
@@ -200,6 +204,8 @@ public sealed partial class MainViewModel : ObservableObject
             ResetNavigation();
             Languages = value is null ? null : new LanguagesViewModel(value, _dialogs, () => CanEdit);
             OnPropertyChanged(nameof(Languages));
+            Globals = value is null ? null : new GlobalsViewModel(value, () => CanEdit);
+            OnPropertyChanged(nameof(Globals));
             if (_project is not null)
             {
                 _project.PropertyChanged += OnProjectPropertyChanged;

@@ -97,6 +97,9 @@ public sealed class BtNodeInfo
     /// <summary>Composite or root: the node has children.</summary>
     public bool HasChildren => Category is BtCategory.Root or BtCategory.Composite;
 
+    /// <summary>Comment or tooltip: drawn on the canvas, never linked, ignored by the AI.</summary>
+    public bool IsAnnotation => Category == BtCategory.Annotation;
+
     /// <summary>What is attached to a node rather than placed in the tree.</summary>
     public bool IsAttachment => Category is BtCategory.Decorator or BtCategory.Service;
 

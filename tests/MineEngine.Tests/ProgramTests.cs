@@ -268,11 +268,11 @@ public sealed class ProgramTests
     /// <summary>Backend sans MDK : seules les sources sont générées.</summary>
     internal sealed class SourceBackend : IModLoaderBackend
     {
-        private readonly IFileEmitter _emitter;
+        private readonly IFileEmitter[] _emitters;
 
-        public SourceBackend(ModLoaderKind loader, string version, IFileEmitter emitter)
+        public SourceBackend(ModLoaderKind loader, string version, params IFileEmitter[] emitters)
         {
-            _emitter = emitter;
+            _emitters = emitters;
             Mdk = new MdkDescriptor("test", loader, MinecraftVersion.Parse(version), "0", 21, "8.8", Path.GetTempPath(), "test", DateTime.Now);
         }
 
@@ -290,7 +290,7 @@ public sealed class ProgramTests
 
         public Task PrepareWorkspaceAsync(GenerationContext context, CancellationToken cancellationToken) => Task.CompletedTask;
 
-        public IReadOnlyList<IFileEmitter> CreateEmitters() => [_emitter];
+        public IReadOnlyList<IFileEmitter> CreateEmitters() => _emitters;
 
         public string GetOutputJarPath(string workspaceDirectory, IRModInfo mod) => string.Empty;
     }

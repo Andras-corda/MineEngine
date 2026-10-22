@@ -17,6 +17,12 @@ public static class GraphHelpersJava
         "setBlockNbtNumber" or "setBlockNbtText" or "setBlockNbtBoolean" or "blockNbtNumber" or "blockNbtText" or "blockNbtBoolean" => ["customData"],
         "gameRuleBoolean" or "gameRuleNumber" or "setGameRuleBoolean" or "setGameRuleNumber" => ["gameRule"],
         "giveEffect" or "removeEffect" or "hasEffect" => ["effect"],
+        "raycastPosition" => ["raycastBlock"],
+        "lookedAtCreature" or "entityLookedAt" => ["raycastEntity"],
+        "stateProperty" or "stateWithProperty" => ["propertyValue"],
+        "makeEffect" => ["effect"],
+        "playMusic" => ["stopSounds"],
+        "setCreatureAppearance" or "creatureAppearance" => ["appearanceHolders"],
         _ => [],
     };
 
@@ -45,6 +51,67 @@ public static class GraphHelpersJava
                 : [Stack, "net.minecraft.nbt.CompoundTag"],
             "offsetInDirection" => ["net.minecraft.core.Direction", "java.util.Locale"],
             "divide" or "modulo" or "toNumber" or "teleport" or "isInArea" => [],
+            "divideDecimal" or "entityLookedAt" => [],
+            "toLong" or "toDecimal" or "charAt" => [],
+            "uuid" => ["java.util.UUID"],
+            "entityUuid" => ["java.util.UUID", "net.minecraft.world.entity.Entity"],
+            "entityByUuid" => ["java.util.UUID", "net.minecraft.world.entity.Entity", "net.minecraft.server.level.ServerLevel"],
+            "styledText" => ["net.minecraft.network.chat.Component", "net.minecraft.network.chat.MutableComponent", "net.minecraft.ChatFormatting", "java.util.Locale"],
+            "identifier" => ["net.minecraft.resources.ResourceLocation"],
+            "toLiving" => ["net.minecraft.world.entity.Entity", "net.minecraft.world.entity.LivingEntity"],
+            "toPlayer" => ["net.minecraft.world.entity.Entity"],
+            "equipmentItem" => ["net.minecraft.world.entity.LivingEntity", "net.minecraft.world.entity.EquipmentSlot", "net.minecraft.world.item.ItemStack"],
+            "entityBox" => ["net.minecraft.world.entity.Entity", "net.minecraft.world.phys.AABB"],
+            "makeBox" => ["net.minecraft.world.phys.AABB"],
+            "entitiesInBox" => ["net.minecraft.world.entity.Entity", "net.minecraft.world.phys.AABB", "java.util.List", "java.util.ArrayList"],
+            "genericDamage" => ["net.minecraft.world.entity.Entity", "net.minecraft.world.damagesource.DamageSource"],
+            "damageWithSource" => ["net.minecraft.world.entity.Entity", "net.minecraft.world.damagesource.DamageSource"],
+            "makeEffect" => modern
+                ? ["net.minecraft.core.Holder", "net.minecraft.world.effect.MobEffect", "net.minecraft.world.effect.MobEffectInstance"]
+                : ["net.minecraft.world.effect.MobEffect", "net.minecraft.world.effect.MobEffectInstance"],
+            "applyEffect" => ["net.minecraft.world.entity.LivingEntity", "net.minecraft.world.effect.MobEffectInstance"],
+            "worldOf" => ["net.minecraft.world.entity.Entity"],
+            "setEntityGroup" or "entityGroup" => ["net.minecraft.world.entity.Entity"],
+            "listGet" or "listSet" or "listRemoveAt" or "arrayResize" => ["java.util.List"],
+            "stateProperty" or "stateWithProperty" => [BlockState, Property],
+            "entityPosition" or "isEntityAlive" or "removeEntity" or "teleportEntity" or "damageEntity" => ["net.minecraft.world.entity.Entity"],
+            "entityTypeId" => ["net.minecraft.world.entity.Entity", "net.minecraft.world.entity.EntityType"],
+            "entityHealth" => ["net.minecraft.world.entity.Entity", "net.minecraft.world.entity.LivingEntity"],
+            "nearestEntity" =>
+            [
+                "net.minecraft.world.entity.Entity", "net.minecraft.world.entity.EntityType", "net.minecraft.world.phys.AABB", "net.minecraft.world.phys.Vec3",
+            ],
+            "flipFlop" => ["java.util.Set", "java.util.concurrent.ConcurrentHashMap"],
+            "runCommandAsPlayer" or "setVelocity" or "addVelocity" or "launchForward" => [],
+            "setItemAppearance" or "itemAppearance" => modern
+                ? [Stack, "net.minecraft.core.component.DataComponents", "net.minecraft.world.item.component.CustomModelData"]
+                : [Stack],
+            "setBlockAppearance" or "blockAppearance" =>
+            [
+                "net.minecraft.world.level.block.state.BlockState", "net.minecraft.world.level.block.state.properties.IntegerProperty",
+            ],
+            "appearanceHolders" =>
+            [
+                "java.util.List", "net.minecraft.world.entity.Entity", "net.minecraft.world.entity.EntityType", "net.minecraft.resources.ResourceLocation",
+                "net.minecraft.world.phys.AABB",
+            ],
+            "setCreatureAppearance" or "creatureAppearance" => ["java.util.List", "java.util.Comparator", "net.minecraft.world.entity.Entity"],
+            "runCommandAsServer" => ["net.minecraft.server.level.ServerLevel", "net.minecraft.world.phys.Vec3"],
+            "raycastBlock" => ["net.minecraft.world.phys.HitResult"],
+            "raycastPosition" => ["net.minecraft.world.phys.HitResult", "net.minecraft.world.phys.BlockHitResult"],
+            "raycastEntity" =>
+            [
+                "net.minecraft.world.entity.Entity", "net.minecraft.world.entity.projectile.ProjectileUtil", "net.minecraft.world.phys.AABB",
+                "net.minecraft.world.phys.EntityHitResult", "net.minecraft.world.phys.HitResult", "net.minecraft.world.phys.Vec3",
+            ],
+            "lookedAtCreature" => ["net.minecraft.world.entity.Entity", "net.minecraft.world.entity.EntityType"],
+            "playSoundAt" or "playSoundTo" => ["net.minecraft.sounds.SoundEvent", "net.minecraft.sounds.SoundSource"],
+            "playMusic" or "stopSounds" =>
+            [
+                "net.minecraft.sounds.SoundEvent", "net.minecraft.sounds.SoundSource", "net.minecraft.server.level.ServerPlayer",
+                "net.minecraft.network.protocol.game.ClientboundStopSoundPacket",
+            ],
+
 
             "replaceBlock" => [BlockState, Property, "net.minecraft.world.level.block.Block"],
             "blockData" => [BlockEntity, "net.minecraft.nbt.CompoundTag"],
@@ -351,6 +418,502 @@ public static class GraphHelpersJava
             [
                 "private static boolean isFood(ItemStack stack) {",
                 modern ? "    return stack.has(DataComponents.FOOD);" : "    return stack.isEdible();",
+                "}",
+            ],
+            "setItemAppearance" => modern
+                ?
+                [
+                    "// The appearance of an item is its custom model data: the model of the item lists one override per appearance.",
+                    "private static void setItemAppearance(ItemStack stack, int appearance) {",
+                    "    if (appearance <= 0) {",
+                    "        stack.remove(DataComponents.CUSTOM_MODEL_DATA);",
+                    "    } else {",
+                    "        stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(appearance));",
+                    "    }",
+                    "}",
+                ]
+                :
+                [
+                    "// The appearance of an item is its custom model data: the model of the item lists one override per appearance.",
+                    "private static void setItemAppearance(ItemStack stack, int appearance) {",
+                    "    if (appearance <= 0) {",
+                    "        if (stack.getTag() != null) {",
+                    "            stack.getTag().remove(\"CustomModelData\");",
+                    "        }",
+                    "    } else {",
+                    "        stack.getOrCreateTag().putInt(\"CustomModelData\", appearance);",
+                    "    }",
+                    "}",
+                ],
+            "itemAppearance" => modern
+                ?
+                [
+                    "private static int itemAppearance(ItemStack stack) {",
+                    "    CustomModelData data = stack.get(DataComponents.CUSTOM_MODEL_DATA);",
+                    "    return data == null ? 0 : data.value();",
+                    "}",
+                ]
+                :
+                [
+                    "private static int itemAppearance(ItemStack stack) {",
+                    "    return stack.getTag() == null ? 0 : stack.getTag().getInt(\"CustomModelData\");",
+                    "}",
+                ],
+            "setBlockAppearance" =>
+            [
+                "// A block with appearances has the property \"appearance\" (0: normal look).",
+                "private static void setBlockAppearance(Level level, BlockPos position, int appearance) {",
+                "    BlockState state = level.getBlockState(position);",
+                "    if (state.getBlock().getStateDefinition().getProperty(\"appearance\") instanceof IntegerProperty property",
+                "            && property.getPossibleValues().contains(appearance)) {",
+                "        level.setBlockAndUpdate(position, state.setValue(property, appearance));",
+                "    }",
+                "}",
+            ],
+            "blockAppearance" =>
+            [
+                "private static int blockAppearance(Level level, BlockPos position) {",
+                "    BlockState state = level.getBlockState(position);",
+                "    return state.getBlock().getStateDefinition().getProperty(\"appearance\") instanceof IntegerProperty property ? state.getValue(property) : 0;",
+                "}",
+            ],
+            "appearanceHolders" =>
+            [
+                "/** Mobs of the mod with appearances around the position; creature: \"goblin\", \"mymod:goblin\" or empty for all. */",
+                "private static List<Entity> appearanceHolders(Level level, BlockPos position, int radius, String creature) {",
+                "    int r = Math.max(0, radius);",
+                "    AABB area = new AABB(position.getX() - r, position.getY() - r, position.getZ() - r, position.getX() + r + 1, position.getY() + r + 1, position.getZ() + r + 1);",
+                "    String wanted = creature.strip();",
+                "    return level.getEntities((Entity) null, area, entity -> {",
+                "        if (!(entity instanceof MineEngineAppearance)) {",
+                "            return false;",
+                "        }",
+                "        ResourceLocation key = EntityType.getKey(entity.getType());",
+                "        return wanted.isEmpty() || key.toString().equals(wanted) || key.getPath().equals(wanted);",
+                "    });",
+                "}",
+            ],
+            "setCreatureAppearance" =>
+            [
+                "private static void setCreatureAppearance(Level level, BlockPos position, int radius, String creature, int appearance) {",
+                "    if (!level.isClientSide()) {",
+                "        for (Entity entity : appearanceHolders(level, position, radius, creature)) {",
+                "            ((MineEngineAppearance) entity).setAppearance(appearance);",
+                "        }",
+                "    }",
+                "}",
+            ],
+            "creatureAppearance" =>
+            [
+                "private static int creatureAppearance(Level level, BlockPos position, int radius, String creature) {",
+                "    List<Entity> found = appearanceHolders(level, position, radius, creature);",
+                "    return found.stream()",
+                "        .min(Comparator.comparingDouble(entity -> entity.distanceToSqr(position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5)))",
+                "        .map(entity -> ((MineEngineAppearance) entity).getAppearance())",
+                "        .orElse(0);",
+                "}",
+            ],
+            "runCommandAsPlayer" =>
+            [
+                "private static void runCommandAsPlayer(Player player, String command) {",
+                "    if (player.getServer() != null && !command.isBlank()) {",
+                "        player.getServer().getCommands().performPrefixedCommand(player.createCommandSourceStack(), command.strip());",
+                "    }",
+                "}",
+            ],
+            "runCommandAsServer" =>
+            [
+                "private static void runCommandAsServer(Level level, BlockPos position, String command) {",
+                "    if (level instanceof ServerLevel server && !command.isBlank()) {",
+                "        server.getServer().getCommands().performPrefixedCommand(",
+                "            server.getServer().createCommandSourceStack().withLevel(server).withPosition(Vec3.atCenterOf(position)).withSuppressedOutput(),",
+                "            command.strip());",
+                "    }",
+                "}",
+            ],
+            "setVelocity" =>
+            [
+                "// Speeds are given in blocks per second; Minecraft counts in blocks per tick (20 ticks per second).",
+                "private static void setVelocity(Player player, int x, int y, int z) {",
+                "    player.setDeltaMovement(x / 20.0, y / 20.0, z / 20.0);",
+                "    player.hurtMarked = true;",
+                "}",
+            ],
+            "addVelocity" =>
+            [
+                "private static void addVelocity(Player player, int x, int y, int z) {",
+                "    player.push(x / 20.0, y / 20.0, z / 20.0);",
+                "    player.hurtMarked = true;",
+                "}",
+            ],
+            "launchForward" =>
+            [
+                "private static void launchForward(Player player, int speed) {",
+                "    player.setDeltaMovement(player.getLookAngle().scale(speed / 20.0));",
+                "    player.hurtMarked = true;",
+                "}",
+            ],
+            "raycastBlock" =>
+            [
+                "private static HitResult raycastBlock(Player player, int distance, boolean fluids) {",
+                "    return player.pick(Math.max(1, distance), 0.0f, fluids);",
+                "}",
+            ],
+            "raycastPosition" =>
+            [
+                "private static BlockPos raycastPosition(Player player, int distance, boolean fluids) {",
+                "    HitResult hit = raycastBlock(player, distance, fluids);",
+                "    return hit instanceof BlockHitResult block && hit.getType() == HitResult.Type.BLOCK ? block.getBlockPos() : BlockPos.containing(hit.getLocation());",
+                "}",
+            ],
+            "raycastEntity" =>
+            [
+                "private static Entity raycastEntity(Player player, int distance) {",
+                "    double reach = Math.max(1, distance);",
+                "    Vec3 eye = player.getEyePosition();",
+                "    Vec3 look = player.getViewVector(1.0f).scale(reach);",
+                "    AABB area = player.getBoundingBox().expandTowards(look).inflate(1.0);",
+                "    EntityHitResult hit = ProjectileUtil.getEntityHitResult(player, eye, eye.add(look), area, entity -> !entity.isSpectator() && entity.isPickable(), reach * reach);",
+                "    if (hit == null) {",
+                "        return null;",
+                "    }",
+                "    // A block between the player and the creature hides it.",
+                "    HitResult block = player.pick(reach, 0.0f, false);",
+                "    return block.getType() != HitResult.Type.MISS && block.getLocation().distanceToSqr(eye) < hit.getLocation().distanceToSqr(eye) ? null : hit.getEntity();",
+                "}",
+            ],
+            "lookedAtCreature" =>
+            [
+                "private static String lookedAtCreature(Player player, int distance) {",
+                "    Entity entity = raycastEntity(player, distance);",
+                "    return entity == null ? \"\" : EntityType.getKey(entity.getType()).toString();",
+                "}",
+            ],
+            "playSoundAt" =>
+            [
+                "private static void playSoundAt(Level level, BlockPos position, SoundEvent sound, int volume, int pitch) {",
+                "    if (sound != null) {",
+                "        level.playSound(null, position, sound, SoundSource.BLOCKS, Math.max(0, volume) / 100.0f, Math.max(1, pitch) / 100.0f);",
+                "    }",
+                "}",
+            ],
+            "playSoundTo" =>
+            [
+                "private static void playSoundTo(Player player, SoundEvent sound, int volume, int pitch) {",
+                "    if (sound != null) {",
+                "        player.playNotifySound(sound, SoundSource.PLAYERS, Math.max(0, volume) / 100.0f, Math.max(1, pitch) / 100.0f);",
+                "    }",
+                "}",
+            ],
+            "stopSounds" =>
+            [
+                "private static void stopSounds(Player player, boolean musicOnly) {",
+                "    if (player instanceof ServerPlayer server) {",
+                "        server.connection.send(new ClientboundStopSoundPacket(null, musicOnly ? SoundSource.MUSIC : null));",
+                "    }",
+                "}",
+            ],
+            "playMusic" =>
+            [
+                "private static void playMusic(Player player, SoundEvent music) {",
+                "    if (music != null && player instanceof ServerPlayer server) {",
+                "        stopSounds(player, true);",
+                "        server.playNotifySound(music, SoundSource.MUSIC, 1.0f, 1.0f);",
+                "    }",
+                "}",
+            ],
+            "flipFlop" =>
+            [
+                "// Flip Flop nodes whose next run is B.",
+                "private static final Set<String> FLIP_FLOPS = ConcurrentHashMap.newKeySet();",
+                "",
+                "private static boolean flipFlop(String node) {",
+                "    // A the first time, then B, then A...",
+                "    return FLIP_FLOPS.add(node) || !FLIP_FLOPS.remove(node);",
+                "}",
+            ],
+            "toLong" =>
+            [
+                "private static long toLong(String text) {",
+                "    try {",
+                "        return Long.parseLong(text.trim());",
+                "    } catch (NumberFormatException exception) {",
+                "        return 0L;",
+                "    }",
+                "}",
+            ],
+            "toDecimal" =>
+            [
+                "private static double toDecimal(String text) {",
+                "    try {",
+                "        return Double.parseDouble(text.trim().replace(',', '.'));",
+                "    } catch (NumberFormatException exception) {",
+                "        return 0.0;",
+                "    }",
+                "}",
+            ],
+            "charAt" =>
+            [
+                "private static char charAt(String text, int index) {",
+                "    return text != null && index >= 0 && index < text.length() ? text.charAt(index) : ' ';",
+                "}",
+            ],
+            "uuid" =>
+            [
+                "private static UUID uuid(String text) {",
+                "    try {",
+                "        return UUID.fromString(text.trim());",
+                "    } catch (IllegalArgumentException exception) {",
+                "        return new UUID(0L, 0L);",
+                "    }",
+                "}",
+            ],
+            "entityUuid" =>
+            [
+                "private static UUID entityUuid(Entity entity) {",
+                "    return entity == null ? new UUID(0L, 0L) : entity.getUUID();",
+                "}",
+            ],
+            "entityByUuid" =>
+            [
+                "private static Entity entityByUuid(Level level, UUID uuid) {",
+                "    return level instanceof ServerLevel server && uuid != null ? server.getEntity(uuid) : null;",
+                "}",
+            ],
+            "styledText" =>
+            [
+                "private static Component styledText(String text, String color, boolean bold, boolean italic) {",
+                "    MutableComponent component = Component.literal(text);",
+                "    ChatFormatting formatting = ChatFormatting.getByName(color.trim().toLowerCase(Locale.ROOT));",
+                "    if (formatting != null && formatting.isColor()) {",
+                "        component = component.withStyle(formatting);",
+                "    }",
+                "    if (bold) {",
+                "        component = component.withStyle(ChatFormatting.BOLD);",
+                "    }",
+                "    if (italic) {",
+                "        component = component.withStyle(ChatFormatting.ITALIC);",
+                "    }",
+                "    return component;",
+                "}",
+            ],
+            "identifier" =>
+            [
+                "private static ResourceLocation identifier(String text) {",
+                "    ResourceLocation id = ResourceLocation.tryParse(text.trim());",
+                $"    return id != null ? id : {api.ParseResourceLocation("\"minecraft:air\"")};",
+                "}",
+            ],
+            "toLiving" =>
+            [
+                "private static LivingEntity toLiving(Entity entity) {",
+                "    return entity instanceof LivingEntity living ? living : null;",
+                "}",
+            ],
+            "toPlayer" =>
+            [
+                "private static Player toPlayer(Entity entity) {",
+                "    return entity instanceof Player player ? player : null;",
+                "}",
+            ],
+            "equipmentItem" =>
+            [
+                "private static ItemStack equipmentItem(LivingEntity entity, EquipmentSlot slot) {",
+                "    return entity == null ? ItemStack.EMPTY : entity.getItemBySlot(slot);",
+                "}",
+            ],
+            "entityBox" =>
+            [
+                "private static AABB entityBox(Entity entity) {",
+                "    return entity == null ? new AABB(0, 0, 0, 0, 0, 0) : entity.getBoundingBox();",
+                "}",
+            ],
+            "makeBox" =>
+            [
+                "private static AABB makeBox(BlockPos from, BlockPos to) {",
+                "    return new AABB(Math.min(from.getX(), to.getX()), Math.min(from.getY(), to.getY()), Math.min(from.getZ(), to.getZ()),",
+                "        Math.max(from.getX(), to.getX()) + 1, Math.max(from.getY(), to.getY()) + 1, Math.max(from.getZ(), to.getZ()) + 1);",
+                "}",
+            ],
+            "entitiesInBox" =>
+            [
+                "private static List<Entity> entitiesInBox(Level level, AABB box) {",
+                "    return new ArrayList<>(level.getEntities((Entity) null, box, entity -> true));",
+                "}",
+            ],
+            "genericDamage" =>
+            [
+                "private static DamageSource genericDamage(Level level, Entity entity) {",
+                "    return entity == null ? level.damageSources().generic() : entity.damageSources().generic();",
+                "}",
+            ],
+            "damageWithSource" =>
+            [
+                "private static void damageWithSource(Entity entity, DamageSource source, int amount) {",
+                "    if (entity != null && source != null && amount > 0) {",
+                "        entity.hurt(source, amount);",
+                "    }",
+                "}",
+            ],
+            "makeEffect" =>
+            [
+                "private static MobEffectInstance makeEffect(String id, int seconds, int level) {",
+                $"    {EffectType(modern)} effect = effect(id);",
+                "    return effect == null ? null : new MobEffectInstance(effect, Math.max(1, seconds) * 20, Math.max(0, level - 1));",
+                "}",
+            ],
+            "applyEffect" =>
+            [
+                "private static void applyEffect(LivingEntity entity, MobEffectInstance effect) {",
+                "    if (entity != null && effect != null) {",
+                "        entity.addEffect(new MobEffectInstance(effect));",
+                "    }",
+                "}",
+            ],
+            "setEntityGroup" =>
+            [
+                "private static void setEntityGroup(Entity entity, String group) {",
+                "    if (entity != null) {",
+                "        entity.getPersistentData().putString(\"mineengine_group\", group);",
+                "    }",
+                "}",
+            ],
+            "entityGroup" =>
+            [
+                "private static String entityGroup(Entity entity) {",
+                "    return entity == null ? \"\" : entity.getPersistentData().getString(\"mineengine_group\");",
+                "}",
+            ],
+            "worldOf" =>
+            [
+                "private static Level worldOf(Level level, Entity entity) {",
+                "    return entity == null ? level : entity.level();",
+                "}",
+            ],
+            "divideDecimal" =>
+            [
+                "private static double divideDecimal(double a, double b) {",
+                "    return b == 0.0 ? 0.0 : a / b;",
+                "}",
+            ],
+            "listGet" =>
+            [
+                "private static <T> T listGet(List<T> list, int index, T fallback) {",
+                "    return index >= 0 && index < list.size() ? list.get(index) : fallback;",
+                "}",
+            ],
+            "listSet" =>
+            [
+                "private static <T> void listSet(List<T> list, int index, T value) {",
+                "    if (index >= 0 && index < list.size()) {",
+                "        list.set(index, value);",
+                "    }",
+                "}",
+            ],
+            "listRemoveAt" =>
+            [
+                "private static void listRemoveAt(List<?> list, int index) {",
+                "    if (index >= 0 && index < list.size()) {",
+                "        list.remove(index);",
+                "    }",
+                "}",
+            ],
+            "arrayResize" =>
+            [
+                "private static <T> void arrayResize(List<T> list, int size, T fallback) {",
+                "    int target = Math.max(0, Math.min(size, 100000));",
+                "    while (list.size() > target) {",
+                "        list.remove(list.size() - 1);",
+                "    }",
+                "    while (list.size() < target) {",
+                "        list.add(fallback);",
+                "    }",
+                "}",
+            ],
+            "stateProperty" =>
+            [
+                "private static String stateProperty(BlockState state, String name) {",
+                "    Property<?> property = state.getBlock().getStateDefinition().getProperty(name);",
+                "    return property == null ? \"\" : propertyText(state, property);",
+                "}",
+            ],
+            "stateWithProperty" =>
+            [
+                "private static BlockState stateWithProperty(BlockState state, String name, String value) {",
+                "    Property<?> property = state.getBlock().getStateDefinition().getProperty(name);",
+                "    return property == null ? state : withProperty(state, property, value);",
+                "}",
+            ],
+            "entityPosition" =>
+            [
+                "private static BlockPos entityPosition(Entity entity) {",
+                "    return entity == null ? BlockPos.ZERO : entity.blockPosition();",
+                "}",
+            ],
+            "entityTypeId" =>
+            [
+                "private static String entityTypeId(Entity entity) {",
+                "    return entity == null ? \"\" : EntityType.getKey(entity.getType()).toString();",
+                "}",
+            ],
+            "isEntityAlive" =>
+            [
+                "private static boolean isEntityAlive(Entity entity) {",
+                "    return entity != null && entity.isAlive();",
+                "}",
+            ],
+            "removeEntity" =>
+            [
+                "private static void removeEntity(Entity entity) {",
+                "    if (entity != null && !(entity instanceof Player)) {",
+                "        entity.discard();",
+                "    }",
+                "}",
+            ],
+            "nearestEntity" =>
+            [
+                "private static Entity nearestEntity(Level level, BlockPos position, int radius, String id) {",
+                "    int r = Math.max(1, Math.min(radius, 128));",
+                "    AABB area = new AABB(position.getX() - r, position.getY() - r, position.getZ() - r, position.getX() + r + 1, position.getY() + r + 1, position.getZ() + r + 1);",
+                "    Vec3 center = Vec3.atCenterOf(position);",
+                "    Entity nearest = null;",
+                "    double best = Double.MAX_VALUE;",
+                "    for (Entity entity : level.getEntities((Entity) null, area, candidate -> id.isEmpty() ? !(candidate instanceof Player) : EntityType.getKey(candidate.getType()).toString().equals(id))) {",
+                "        double distance = entity.distanceToSqr(center);",
+                "        if (distance < best) {",
+                "            best = distance;",
+                "            nearest = entity;",
+                "        }",
+                "    }",
+                "    return nearest;",
+                "}",
+            ],
+            "entityLookedAt" =>
+            [
+                "private static Entity entityLookedAt(Player player, int distance) {",
+                "    return raycastEntity(player, distance);",
+                "}",
+            ],
+            "teleportEntity" =>
+            [
+                "private static void teleportEntity(Entity entity, BlockPos position) {",
+                "    if (entity != null) {",
+                "        entity.teleportTo(position.getX() + 0.5, position.getY(), position.getZ() + 0.5);",
+                "    }",
+                "}",
+            ],
+            "damageEntity" =>
+            [
+                "private static void damageEntity(Entity entity, int amount) {",
+                "    if (entity != null && amount > 0) {",
+                "        entity.hurt(entity.damageSources().generic(), amount);",
+                "    }",
+                "}",
+            ],
+            "entityHealth" =>
+            [
+                "private static int entityHealth(Entity entity) {",
+                "    return entity instanceof LivingEntity living ? Math.round(living.getHealth()) : 0;",
                 "}",
             ],
             "divide" =>

@@ -276,6 +276,7 @@
             <MenuItem Header="{l:Tr '_Window'}">
                 <MenuItem Header="{l:Tr '_Dashboard'}" Command="{Binding ShowDashboardCommand}" InputGestureText="{Binding Shortcuts[window.dashboard]}" />
                 <MenuItem Header="{l:Tr 'R_esources'}" Command="{Binding ShowResourcesCommand}" InputGestureText="{Binding Shortcuts[window.resources]}" />
+                <MenuItem Header="{l:Tr '_Global variables'}" Command="{Binding ShowGlobalsCommand}" InputGestureText="{Binding Shortcuts[window.globals]}" />
                 <MenuItem Header="{l:Tr 'Mod _languages'}" Command="{Binding ShowLanguagesCommand}" InputGestureText="{Binding Shortcuts[window.languages]}" />
                 <Separator />
                 <MenuItem Header="{l:Tr '_Explorer'}" Tag="explorer" Click="OnShowPanelClick" InputGestureText="Ctrl+B" />
@@ -384,6 +385,9 @@
                             </dock:LayoutDocument>
                             <dock:LayoutDocument Title="{l:Tr 'Resources'}" ContentId="resources" CanClose="False" CanFloat="False">
                                 <panels:ResourcesPanel x:Name="ResourcesPanel" />
+                            </dock:LayoutDocument>
+                            <dock:LayoutDocument Title="{l:Tr 'Global'}" ContentId="globals" CanClose="False" CanFloat="False">
+                                <panels:GlobalsPanel x:Name="GlobalsPanel" />
                             </dock:LayoutDocument>
                             <dock:LayoutDocument Title="{l:Tr 'Languages'}" ContentId="languages" CanClose="False" CanFloat="False">
                                 <panels:LanguagesPanel x:Name="LanguagesPanel" />

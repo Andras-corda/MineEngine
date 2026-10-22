@@ -49,7 +49,33 @@ public sealed class BlockLowering : AssetLowering<BlockAsset>
             itemForm)
         {
             CustomModel = context.ResolveCustomModel(asset),
+            Appearances = context.ResolveAppearances(asset),
+            Options = Normalize(asset),
+            ItemTexture = asset.Options.ItemTextureId is { } item ? context.ResolveTexture(asset, item) : null,
+            ParticleTexture = asset.Options.ParticleTextureId is { } particle ? context.ResolveTexture(asset, particle) : null,
         });
+    }
+
+    /// <summary>The settings that cannot go together are dropped (the diagnostics already warned).</summary>
+    private static BlockOptions Normalize(BlockAsset asset)
+    {
+        BlockOptions options = asset.Options;
+        if (asset.Model == BlockModelKind.Column || options.HasGravity)
+        {
+            options = options with { Rotation = BlockRotation.None };
+        }
+
+        if (options.HasGravity)
+        {
+            options = options with { Waterloggable = false };
+        }
+
+        if (options.Rotation != BlockRotation.Horizontal)
+        {
+            options = options with { HasPitchRotation = false };
+        }
+
+        return options with { RedstonePower = Math.Clamp(options.RedstonePower, 0, BlockOptions.MaxRedstonePower) };
     }
 
     private static IRBlockDrop CreateDrop(BlockAsset asset, bool hasItemForm, LoweringContext context) => asset.DropKind switch

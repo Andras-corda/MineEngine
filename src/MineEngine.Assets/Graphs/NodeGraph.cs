@@ -128,6 +128,13 @@ public sealed class NodeGraph
         }
 
         bool isExec = context.Describe(FindNode(connection.FromNode)!).FindExecOutput(connection.FromPin) is not null;
+
+        // An execution reroute can send several wires (they run from top to bottom, see Reroutes.Collapse).
+        if (isExec && FindNode(connection.FromNode)!.Kind == GraphNodeKind.Reroute)
+        {
+            return new NodeGraph(Nodes, Connections.Where(c => c != connection).Append(connection));
+        }
+
         IEnumerable<GraphConnection> kept = isExec
             ? Connections.Where(c => !(c.FromNode == connection.FromNode && c.FromPin == connection.FromPin))
             : Connections.Where(c => !(c.ToNode == connection.ToNode && c.ToPin == connection.ToPin));

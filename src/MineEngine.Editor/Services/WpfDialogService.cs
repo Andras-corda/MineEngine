@@ -123,6 +123,9 @@ public sealed class WpfDialogService : IDialogService
     public bool ShowModelImport(ViewModels.Assets.ModelImportViewModel viewModel) =>
         new Views.ModelImportWindow(viewModel) { Owner = Owner }.ShowDialog() == true;
 
+    public bool ShowAssetBrowser(ViewModels.Assets.AssetBrowserViewModel viewModel) =>
+        new Views.AssetBrowserWindow(viewModel) { Owner = Owner }.ShowDialog() == true;
+
     public IReadOnlyList<string> AskTextureFiles()
     {
         var dialog = new OpenFileDialog

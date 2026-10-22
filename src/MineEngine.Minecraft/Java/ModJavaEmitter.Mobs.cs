@@ -189,8 +189,11 @@ public abstract partial class ModJavaEmitter
             imports.UnionWith(goalImports);
         }
 
+        // Textures: the random variants of the model (chosen at spawn), then the appearances (set by the graphs).
         int variants = VariantCount(context, mob);
-        if (variants > 1)
+        int appearances = mob.Appearances.Count;
+        int textures = variants + appearances;
+        if (textures > 1)
         {
             imports.Add("net.minecraft.nbt.CompoundTag");
             imports.Add("net.minecraft.network.syncher.EntityDataAccessor");
@@ -230,8 +233,8 @@ public abstract partial class ModJavaEmitter
         }
 
         JavaSourceWriter w = WriteHeader(naming.EntityPackage, imports, $"Mob « {mob.DisplayName} » : attributs, IA et sons.")
-            .OpenBlock($"public class {className} extends {baseClass}");
-        if (variants > 1)
+            .OpenBlock($"public class {className} extends {baseClass}" + (appearances > 0 ? $" implements {AppearanceInterface}" : string.Empty));
+        if (textures > 1)
         {
             w.Line($"private static final EntityDataAccessor<Integer> VARIANT = SynchedEntityData.defineId({className}.class, EntityDataSerializers.INT);")
                 .Line();
@@ -249,9 +252,23 @@ public abstract partial class ModJavaEmitter
         }
 
         w.CloseBlock();
-        if (variants > 1)
+        if (textures > 1)
         {
             WriteVariantMembers(w, api);
+        }
+
+        if (appearances > 0)
+        {
+            w.Line()
+                .Line("@Override")
+                .OpenBlock("public int getAppearance()")
+                .Line($"return this.getVariant() < {variants} ? 0 : this.getVariant() - {variants} + 1;")
+                .CloseBlock()
+                .Line()
+                .Line("@Override")
+                .OpenBlock("public void setAppearance(int appearance)")
+                .Line($"this.setVariant(appearance <= 0 || appearance > {appearances} ? 0 : {variants} + appearance - 1);")
+                .CloseBlock();
         }
 
         // Attributs
@@ -398,6 +415,22 @@ public abstract partial class ModJavaEmitter
                 .Indent().Indent()
                 .Line(api.ParseResourceLocation(JavaNames.StringLiteral(texture)) + ";")
                 .Unindent().Unindent();
+
+            // Appearances: the texture follows the number the mob keeps (0: its normal texture).
+            if (mob.Appearances.Count > 0)
+            {
+                w.Line($"private static final ResourceLocation[] {TextureConstant(naming, mob.Id)}S = {{")
+                    .Indent().Indent()
+                    .Line(TextureConstant(naming, mob.Id) + ",");
+                foreach (string path in AppearanceTextures(mob, string.Empty))
+                {
+                    w.Line(path.Length == 0
+                        ? TextureConstant(naming, mob.Id) + ","
+                        : api.ParseResourceLocation(JavaNames.StringLiteral(context.Paths.Reference(path))) + ",");
+                }
+
+                w.Unindent().Unindent().Line("};");
+            }
         }
 
         w.Line().OpenBlock($"public static void registerRenderers({SimpleName(EntityRenderersEventType)}.RegisterRenderers event)");
@@ -423,7 +456,9 @@ public abstract partial class ModJavaEmitter
                 .Unindent()
                 .Line("@Override")
                 .OpenBlock($"public ResourceLocation getTextureLocation({entityClass} entity)")
-                .Line($"return {TextureConstant(naming, mob.Id)};")
+                .Line(mob.Appearances.Count > 0
+                    ? $"return {TextureConstant(naming, mob.Id)}S[Math.floorMod(entity.getVariant(), {TextureConstant(naming, mob.Id)}S.length)];"
+                    : $"return {TextureConstant(naming, mob.Id)};")
                 .CloseBlock()
                 .Unindent()
                 .Line("});");
@@ -531,7 +566,12 @@ public abstract partial class ModJavaEmitter
         string baseTexture = mob.Texture is not null || model.Textures.Count == 0
             ? $"textures/entity/{mob.Id}.png"
             : $"textures/block/model/{model.Id}_{model.Textures[0].Key}.png";
-        List<string> textures = [Location(baseTexture), .. Enumerable.Range(1, model.Variants.Count).Select(i => Location($"textures/entity/model/{model.Id}_variant_{i}.png"))];
+        List<string> textures =
+        [
+            Location(baseTexture),
+            .. Enumerable.Range(1, model.Variants.Count).Select(i => Location($"textures/entity/model/{model.Id}_variant_{i}.png")),
+            .. AppearanceTextures(mob, baseTexture).Select(Location),
+        ];
 
         var imports = new List<string>
         {
@@ -610,4 +650,8 @@ public abstract partial class ModJavaEmitter
     }
 
     private static string TextureConstant(JavaModNaming naming, ResourceId id) => naming.ConstantFor(id) + "_TEXTURE";
+
+    /// <summary>Texture paths of the appearances of a mob; one without texture takes <paramref name="baseTexture"/>.</summary>
+    private static IEnumerable<string> AppearanceTextures(IRMob mob, string baseTexture) =>
+        mob.Appearances.Select((a, i) => a.Texture is null ? baseTexture : $"textures/entity/{IRAppearance.FileId(mob.Id, i + 1)}.png");
 }

@@ -43,9 +43,10 @@ public sealed class GraphNodeViewModel : ObservableObject
         }
 
         Inputs = [.. info.Inputs.Select(p => new GraphPinViewModel(this, p, PinDirection.Input, CreatePicker(p, context)))];
+        AddPinCommand = new RelayCommand(() => Document.AddPin(this));
         Outputs =
         [
-            .. info.Flow is NodeFlow.Branch or NodeFlow.Loop ? info.ExecOutputs.Select(p => new GraphPinViewModel(this, p, PinDirection.Output, null)) : [],
+            .. info.HasSideExecOutputs ? info.ExecOutputs.Select(p => new GraphPinViewModel(this, p, PinDirection.Output, null)) : [],
             .. info.Outputs.Select(p => new GraphPinViewModel(this, p, PinDirection.Output, null)),
         ];
     }
@@ -71,7 +72,13 @@ public sealed class GraphNodeViewModel : ObservableObject
     public bool IsExecReroute => IsReroute && ExecInput is not null;
 
     /// <summary>Type du fil d'une redirection de valeur (couleur du point).</summary>
-    public DataType? RerouteType => RerouteInput?.Type;
+    public DataType? RerouteType => RerouteInput?.Type ?? RerouteOutput?.Type;
+
+    /// <summary>Reference to another reroute: drawn as a hollow point, without input.</summary>
+    public bool IsRerouteReference => Reroutes.IsReference(_model);
+
+    /// <summary>A value reroute can be given references (right-click).</summary>
+    public bool CanHaveReferences => IsReroute && !IsRerouteReference && !IsExecReroute;
 
     /// <summary>Le nœud d'entrée d'une fonction ne se supprime pas : le graphe n'aurait plus de début.</summary>
     public bool IsEntry => _model.Kind == GraphNodeKind.FunctionEntry;
@@ -133,7 +140,32 @@ public sealed class GraphNodeViewModel : ObservableObject
     /// <summary>Problèmes de ce nœud (info-bulle de son contour orange ou rouge).</summary>
     public string? IssueText => _issueText;
 
+    // ----- Switch and Sequence (see FlowNodes) -----
+
+    /// <summary>Switch or Sequence: outputs can be added.</summary>
+    public bool CanAddPin => FlowNodes.IsDynamic(_model.Kind);
+
+    public bool IsSwitch => FlowNodes.IsSwitch(_model.Kind);
+
+    public System.Windows.Input.ICommand AddPinCommand { get; }
+
+    /// <summary>Cases of a Switch, one per line (edited in Properties).</summary>
+    public string SwitchCases
+    {
+        get => _model.Values.GetValueOrDefault(FlowNodes.CasesKey) ?? string.Join("\n", FlowNodes.Cases(_model));
+        set => Document.SetValue(this, FlowNodes.CasesKey, (value ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal));
+    }
+
     // ----- Comments and tooltips (see GraphAnnotations) -----
+
+    private bool _isEditingTitle;
+
+    /// <summary>The title of the comment is being edited on the canvas (double-click).</summary>
+    public bool IsEditingTitle
+    {
+        get => _isEditingTitle;
+        set => SetProperty(ref _isEditingTitle, value);
+    }
 
     public bool IsComment => _model.Kind == GraphNodeKind.Comment;
 

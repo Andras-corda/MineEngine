@@ -1,0 +1,147 @@
+<UserControl x:Class="MineEngine.Editor.Views.Panels.GlobalsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:MineEngine.Editor.Localization"
+             xmlns:vm="clr-namespace:MineEngine.Editor.ViewModels"
+             x:Name="Root">
+
+    <!--
+        Global tab (V0.6.7, permanent like the Dashboard): the global variables of the mod, as in
+        MCreator. Each row is a variable: its name, a single value or a collection, the type of
+        its values, its scope and its starting value. DataContext: MainViewModel.
+    -->
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="ToolText" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="Padding" Value="10,4" />
+                <Setter Property="MinHeight" Value="28" />
+            </Style>
+
+            <Style x:Key="RowItem" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                <Setter Property="Padding" Value="8,3" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            </Style>
+
+            <Style x:Key="Cell" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                <Setter Property="Margin" Value="0,0,8,0" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="IsEnabled" Value="{Binding DataContext.Globals.CanEdit, ElementName=Root}" />
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource HubBackgroundBrush}">
+        <DockPanel Margin="16,12,16,8" DataContext="{Binding Globals}"
+                   Visibility="{Binding DataContext.HasProject, ElementName=Root, Converter={StaticResource BoolToVisibility}}">
+
+            <!-- Actions -->
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Style="{StaticResource ToolText}" Command="{Binding AddCommand}"
+                        AutomationProperties.AutomationId="AddGlobal" AutomationProperties.Name="{l:Tr 'New variable'}"
+                        ToolTip="{l:Tr 'Adds a global variable: its Get and Set nodes appear in every graph.'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" Margin="0,0,6,0" />
+                        <TextBlock Text="{l:Tr 'New variable'}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'GLOBAL VARIABLES'}" />
+                    <TextBlock Style="{StaticResource FieldHint}" Text="{Binding Summary}" Margin="0,2,0,0" />
+                </StackPanel>
+            </DockPanel>
+
+            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource FieldHint}" Margin="2,8,0,0" TextWrapping="Wrap"
+                       Text="{l:Tr 'player_*: one value per player (persistent, session, lifetime, per dimension, per account, per guild, per team). entity_*: shared by a type of mob, an owner, a group, or one per entity and dimension. global_*: the save, a dimension, the session, a chunk, the whole server. world_*: a structure, a biome, a dimension. Hover a scope for its meaning. A collection can hold numbers, texts, block states, vectors, entities... or the classes, structures and enumerations of the project.'}" />
+
+            <!-- Headers -->
+            <Grid DockPanel.Dock="Top" Margin="8,0,8,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.6*" MinWidth="100" />
+                    <ColumnDefinition Width="1.2*" MinWidth="130" />
+                    <ColumnDefinition Width="1.6*" MinWidth="130" />
+                    <ColumnDefinition Width="1.1*" MinWidth="110" />
+                    <ColumnDefinition Width="2.2*" MinWidth="190" />
+                    <ColumnDefinition Width="1.1*" MinWidth="100" />
+                    <ColumnDefinition Width="56" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'NAME'}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource PanelCaption}" Text="{l:Tr 'CONTAINER'}" />
+                <TextBlock Grid.Column="2" Style="{StaticResource PanelCaption}" Text="{l:Tr 'TYPE'}" />
+                <TextBlock Grid.Column="3" Style="{StaticResource PanelCaption}" Text="{l:Tr 'KEY'}" />
+                <TextBlock Grid.Column="4" Style="{StaticResource PanelCaption}" Text="{l:Tr 'SCOPE'}" />
+                <TextBlock Grid.Column="5" Style="{StaticResource PanelCaption}" Text="{l:Tr 'STARTING VALUE'}" />
+            </Grid>
+
+            <Grid>
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="420"
+                           Foreground="{DynamicResource HintBrush}"
+                           Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}"
+                           Text="{l:Tr 'No global variable yet. A global variable keeps a value (a score, a list of players, the state of a quest...) that every graph can read and change.'}" />
+
+                <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" Background="Transparent" BorderThickness="0"
+                         ItemContainerStyle="{StaticResource RowItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         KeyboardNavigation.TabNavigation="Continue" AutomationProperties.AutomationId="GlobalRows">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:GlobalRowViewModel}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.6*" MinWidth="100" />
+                                    <ColumnDefinition Width="1.2*" MinWidth="130" />
+                                    <ColumnDefinition Width="1.6*" MinWidth="130" />
+                                    <ColumnDefinition Width="1.1*" MinWidth="110" />
+                                    <ColumnDefinition Width="2.2*" MinWidth="190" />
+                                    <ColumnDefinition Width="1.1*" MinWidth="100" />
+                                    <ColumnDefinition Width="56" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox MinHeight="0" Padding="6,3" Margin="0,0,8,0" Text="{Binding Name}"
+                                         AutomationProperties.Name="{l:Tr 'Name'}"
+                                         IsEnabled="{Binding DataContext.Globals.CanEdit, ElementName=Root}" />
+                                <ComboBox Grid.Column="1" Style="{StaticResource Cell}" AutomationProperties.Name="{l:Tr 'Container'}"
+                                          ItemsSource="{Binding DataContext.Globals.ContainerChoices, ElementName=Root}" SelectedItem="{Binding Container}" />
+                                <ComboBox Grid.Column="2" Style="{StaticResource Cell}" AutomationProperties.Name="{l:Tr 'Type'}"
+                                          ItemsSource="{Binding DataContext.Globals.TypeChoices, ElementName=Root}" SelectedItem="{Binding Element}" />
+                                <ComboBox Grid.Column="3" Style="{StaticResource Cell}" AutomationProperties.Name="{l:Tr 'Key'}"
+                                          ItemsSource="{Binding DataContext.Globals.KeyChoices, ElementName=Root}" SelectedItem="{Binding KeyType}"
+                                          Visibility="{Binding IsDictionary, Converter={StaticResource BoolToVisibility}}"
+                                          ToolTip="{l:Tr 'Type of the keys of the dictionary'}" />
+                                <ComboBox Grid.Column="4" Style="{StaticResource Cell}" AutomationProperties.Name="{l:Tr 'Scope'}"
+                                          ItemsSource="{Binding DataContext.Globals.ScopeChoices, ElementName=Root}" SelectedItem="{Binding Scope}"
+                                          ToolTip="{Binding Scope.Description}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Label}" ToolTip="{Binding Description}" FontFamily="Consolas" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <Grid Grid.Column="5" Margin="0,0,8,0">
+                                    <TextBox x:Name="Default" MinHeight="0" Padding="6,3" Text="{Binding DefaultValue}"
+                                             AutomationProperties.Name="{l:Tr 'Starting value'}"
+                                             Visibility="{Binding HasDefaultValue, Converter={StaticResource BoolToVisibility}}"
+                                             IsEnabled="{Binding DataContext.Globals.CanEdit, ElementName=Root}" />
+                                    <TextBlock Text="{Binding DefaultHint}" Margin="9,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                                               FontStyle="Italic" Foreground="{DynamicResource HintBrush}" TextTrimming="CharacterEllipsis"
+                                               Visibility="{Binding Text, ElementName=Default, Converter={StaticResource EmptyToVisible}}" />
+                                </Grid>
+                                <StackPanel Grid.Column="6" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Warning}" Margin="0,0,6,0"
+                                               Foreground="{DynamicResource LogWarningBrush}" ToolTip="{Binding Warning}"
+                                               Visibility="{Binding HasWarning, Converter={StaticResource BoolToVisibility}}" />
+                                    <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}"
+                                            AutomationProperties.Name="{l:Tr 'Delete the variable'}"
+                                            ToolTip="{l:Tr 'Delete the variable (its nodes are then reported in the diagnostics)'}"
+                                            Command="{Binding RemoveCommand}" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </DockPanel>
+    </Grid>
+</UserControl>

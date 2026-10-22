@@ -116,8 +116,13 @@
     <!-- Un emplacement de texture : aperçu, choix d'une texture du projet, import. -->
     <DataTemplate DataType="{x:Type assets:TextureSlotViewModel}">
         <DockPanel Margin="0,4">
-            <Border DockPanel.Dock="Left" Width="56" Height="56" Margin="0,0,12,0" BorderThickness="1" VerticalAlignment="Top"
-                    BorderBrush="{DynamicResource PreviewBorderBrush}" Background="{DynamicResource PreviewBackgroundBrush}">
+            <!-- Double-click on the preview: the texture browser (every texture as a grid). -->
+            <Border DockPanel.Dock="Left" Width="56" Height="56" Margin="0,0,12,0" BorderThickness="1" VerticalAlignment="Top" Cursor="Hand"
+                    BorderBrush="{DynamicResource PreviewBorderBrush}" Background="{DynamicResource PreviewBackgroundBrush}"
+                    ToolTip="{l:Tr 'Double-click: choose among all the textures'}">
+                <Border.InputBindings>
+                    <MouseBinding Gesture="LeftDoubleClick" Command="{Binding BrowseCommand}" />
+                </Border.InputBindings>
                 <Image Source="{Binding FullPath, Converter={StaticResource FilePathToImage}}"
                        RenderOptions.BitmapScalingMode="NearestNeighbor" Stretch="Uniform" Margin="4" />
             </Border>
@@ -128,6 +133,8 @@
                 <TextBlock Text="{Binding PathLabel}" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap"
                            Foreground="{DynamicResource HintBrush}" Margin="0,0,0,4" />
                 <WrapPanel>
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Browse...'}" Command="{Binding BrowseCommand}"
+                            ToolTip="{l:Tr 'Every texture of the project as a grid (or double-click the preview)'}" />
                     <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Import...'}" Command="{Binding ImportCommand}"
                             ToolTip="{l:Tr 'Import a PNG image: it becomes a Texture asset'}" />
                     <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Remove'}" Command="{Binding ClearCommand}" />
@@ -145,6 +152,8 @@
             <ComboBox Margin="0,4" HorizontalAlignment="Stretch" ItemsSource="{Binding Options}" AutomationProperties.Name="{l:Tr '3D model'}"
                       DisplayMemberPath="Label" SelectedValuePath="Id" SelectedValue="{Binding SelectedModelId}" />
             <WrapPanel>
+                <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Browse...'}" Command="{Binding BrowseCommand}"
+                        ToolTip="{l:Tr 'Every 3D model of the project and of Minecraft, as a grid with a search'}" />
                 <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Import a model...'}" Command="{Binding ImportCommand}"
                         ToolTip="{l:Tr 'Import a Blockbench or Java JSON model and bind its textures'}" />
                 <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Open'}" Command="{Binding OpenCommand}"
@@ -220,6 +229,48 @@
         </StackPanel>
     </DataTemplate>
 
+    <!-- Appearances of an item, a block or a mob: other looks switched by the appearance nodes of the graphs. -->
+    <DataTemplate DataType="{x:Type assets:AppearanceListViewModel}">
+        <StackPanel Margin="0,12,0,0">
+            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Appearances'}" Margin="0,0,0,4" />
+            <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" Margin="0,0,0,6" Text="{Binding Hint}" />
+            <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type assets:AppearanceRowViewModel}">
+                        <Border Style="{StaticResource Card}" Padding="8,6" Margin="0,0,0,6">
+                            <DockPanel>
+                                <Border DockPanel.Dock="Left" Width="26" Height="26" CornerRadius="13" Margin="0,0,10,0" VerticalAlignment="Top"
+                                        Background="{DynamicResource AccentLineBrush}" ToolTip="{l:Tr 'Number given to the appearance nodes'}">
+                                    <TextBlock Text="{Binding Number}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                    <Button Style="{StaticResource ToolButton}" Content="▲" Command="{Binding MoveUpCommand}" ToolTip="{l:Tr 'Move up'}" />
+                                    <Button Style="{StaticResource ToolButton}" Content="▼" Command="{Binding MoveDownCommand}" ToolTip="{l:Tr 'Move down'}" />
+                                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Remove'}" Command="{Binding RemoveCommand}" />
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,4" ToolTip="{l:Tr 'Name of the appearance (only for you)'}" />
+                                    <StackPanel Visibility="{Binding CanUseModels, Converter={StaticResource BoolToVisibility}}">
+                                        <TextBlock Text="{l:Tr '3D model'}" FontSize="12" Margin="0,2,0,2" />
+                                        <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding ModelOptions}" DisplayMemberPath="Label"
+                                                  SelectedValuePath="Id" SelectedValue="{Binding ModelId}" AutomationProperties.Name="{l:Tr '3D model'}" />
+                                    </StackPanel>
+                                    <ContentControl Content="{Binding Texture}" Focusable="False" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Command="{Binding AddCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" />
+                    <TextBlock Text="{l:Tr 'Add an appearance'}" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+    </DataTemplate>
+
     <!-- ===================== Item ===================== -->
     <DataTemplate DataType="{x:Type assets:ItemAssetViewModel}">
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
@@ -235,6 +286,7 @@
                         </StackPanel>
                         <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Glint effect (like an enchanted book)'}" Margin="0,4" IsChecked="{Binding HasGlint}" />
                         <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Held like a tool (diagonally in the hand)'}" Margin="0,4" IsChecked="{Binding Handheld}" />
+                        <ContentControl Content="{Binding AppearanceList}" Focusable="False" />
                     </StackPanel>
                 </TabItem>
 
@@ -445,6 +497,10 @@
                             <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
                                        Text="{l:Tr 'Faces without a texture use the default texture.'}" />
                         </StackPanel>
+                        <ContentControl Content="{Binding ParticleTextureSlot}" Focusable="False" Margin="0,8,0,0" />
+                        <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap"
+                                   Text="{l:Tr 'Particle texture: the pieces that fly when the block breaks. Empty: the main texture.'}" />
+                        <ContentControl Content="{Binding AppearanceList}" Focusable="False" />
                     </StackPanel>
                 </TabItem>
 
@@ -540,6 +596,203 @@
                                   IsChecked="{Binding HasItemForm}" />
                         <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryFields}" Focusable="False"
                                         IsEnabled="{Binding HasItemForm}" />
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Item texture'}" Margin="0,12,0,4" />
+                        <ContentControl Content="{Binding ItemTextureSlot}" Focusable="False" IsEnabled="{Binding HasItemForm}" />
+                        <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap"
+                                   Text="{l:Tr 'Optional: a flat texture for the block in the inventory and in hand (like a door). Empty: the block itself.'}" />
+                    </StackPanel>
+                </TabItem>
+                <TabItem Header="{l:Tr 'Advanced'}">
+                    <StackPanel Style="{StaticResource TabContent}" DataContext="{Binding Options}">
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Rotation and water'}" Margin="0,0,0,4" />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Rotation'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Source={x:Static assets:BlockOptionsViewModel.Rotations}}"
+                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Rotation}" />
+                        </WrapPanel>
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Can also be placed on the floor and the ceiling (like a button)'}"
+                                  IsChecked="{Binding HasPitchRotation}" IsEnabled="{Binding CanHavePitch}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Can hold water (waterloggable, like a slab)'}" IsChecked="{Binding Waterloggable}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Falls like sand (gravity)'}" IsChecked="{Binding HasGravity}" />
+
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Rendering and physics'}" Margin="0,12,0,4" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Glows in the dark (emissive rendering)'}" IsChecked="{Binding Emissive}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Hides the faces between two blocks of this type (connected sides, like glass)'}"
+                                  IsChecked="{Binding ConnectedSides}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Replaceable (another block can be placed instead, like tall grass)'}"
+                                  IsChecked="{Binding Replaceable}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Entities can walk through it (no collision)'}" IsChecked="{Binding WalkThrough}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Custom light opacity'}" IsChecked="{Binding CustomLightOpacity}" />
+                        <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding CustomLightOpacity}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Light opacity'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="15" SmallChange="1"
+                                          Value="{Binding LightOpacity, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Light stopped by the block: 0 lets every light through (glass), 15 stops it (stone).'}" />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Random model offset'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Source={x:Static assets:BlockOptionsViewModel.Offsets}}"
+                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding RandomOffset}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Color on the map'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding MapColors}"
+                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding MapColor}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Note block instrument'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Instruments}"
+                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Instrument}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Reaction to pistons'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Source={x:Static assets:BlockOptionsViewModel.PushReactions}}"
+                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding PushReaction}" />
+                        </WrapPanel>
+
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Special behaviors'}" Margin="0,12,0,4" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Acts like a ladder (entities climb it)'}" IsChecked="{Binding Ladder}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Plants can grow on it (saplings, flowers)'}" IsChecked="{Binding PlantsCanSustain}" />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Enchanting power bonus'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="15" SmallChange="0.5"
+                                          Value="{Binding EnchantPowerBonus, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Given to a nearby enchanting table (a bookshelf gives 1).'}" />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Beacon beam color'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding BeaconColors}"
+                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding BeaconColor}" />
+                        </WrapPanel>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Redstone and fire'}">
+                    <StackPanel Style="{StaticResource TabContent}" DataContext="{Binding Options}">
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Redstone'}" Margin="0,0,0,4" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'The redstone dust connects to this block'}" IsChecked="{Binding RedstoneConnects}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Emits redstone power (like a redstone block)'}" IsChecked="{Binding EmitsRedstone}" />
+                        <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding EmitsRedstone}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Redstone power'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="15" SmallChange="1"
+                                          Value="{Binding RedstonePower, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Fire'}" Margin="0,12,0,4" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Can be ignited by lava'}" IsChecked="{Binding IgnitedByLava}" />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Flammability'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="300" SmallChange="5"
+                                          Value="{Binding Flammability, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Fire spreading speed'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="300" SmallChange="5"
+                                          Value="{Binding FireSpreadSpeed, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Wool: 60 and 30; planks: 20 and 5; 0: does not burn.'}" />
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Shape'}">
+                    <StackPanel Style="{StaticResource TabContent}" DataContext="{Binding Options}">
+                        <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                   Text="{l:Tr 'Boxes in pixels (0 to 16) for the collisions and the outline of the block; a subtracted box makes a hole. Without box: the full block. A block that turns uses the boxes drawn for the north.'}" />
+                        <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Add a box'}" Command="{Binding AddBoxCommand}" />
+                        <ItemsControl ItemsSource="{Binding Boxes}" Focusable="False" Margin="0,6,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type assets:BlockBoxViewModel}">
+                                    <WrapPanel Margin="0,2">
+                                        <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronUp}" Command="{Binding UpCommand}" />
+                                        <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronDown}" Command="{Binding DownCommand}" />
+                                        <TextBlock Text="{l:Tr 'From'}" VerticalAlignment="Center" Margin="4,0" />
+                                        <ui:NumberBox Width="62" Value="{Binding MinX, UpdateSourceTrigger=PropertyChanged}" ToolTip="X" />
+                                        <ui:NumberBox Width="62" Value="{Binding MinY, UpdateSourceTrigger=PropertyChanged}" ToolTip="Y" />
+                                        <ui:NumberBox Width="62" Value="{Binding MinZ, UpdateSourceTrigger=PropertyChanged}" ToolTip="Z" />
+                                        <TextBlock Text="{l:Tr 'To'}" VerticalAlignment="Center" Margin="8,0,4,0" />
+                                        <ui:NumberBox Width="62" Value="{Binding MaxX, UpdateSourceTrigger=PropertyChanged}" ToolTip="X" />
+                                        <ui:NumberBox Width="62" Value="{Binding MaxY, UpdateSourceTrigger=PropertyChanged}" ToolTip="Y" />
+                                        <ui:NumberBox Width="62" Value="{Binding MaxZ, UpdateSourceTrigger=PropertyChanged}" ToolTip="Z" />
+                                        <CheckBox Content="{l:Tr 'Subtract'}" Margin="8,0" MinWidth="0" IsChecked="{Binding Subtract}" />
+                                        <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" Command="{Binding RemoveCommand}"
+                                                ToolTip="{l:Tr 'Remove this box'}" />
+                                    </WrapPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'States'}">
+                    <StackPanel Style="{StaticResource TabContent}" DataContext="{Binding Options}">
+                        <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                   Text="{l:Tr 'Properties of the block state (lit, age, color...): the graphs read and change them with the State property nodes, by name. Every combination of values is a state of the block: keep their number small.'}" />
+                        <WrapPanel>
+                            <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Add a property'}" Command="{Binding AddPropertyCommand}" />
+                            <TextBlock x:Name="Combinations" Text="{Binding CombinationsLabel}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                        </WrapPanel>
+                        <ItemsControl ItemsSource="{Binding Properties}" Focusable="False" Margin="0,6,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type assets:BlockPropertyViewModel}">
+                                    <WrapPanel Margin="0,2">
+                                        <TextBox Width="130" Text="{Binding Name}" FontFamily="Consolas" ToolTip="{l:Tr 'Name (lowercase letters, digits and _)'}" />
+                                        <ComboBox Width="150" Margin="6,0" ItemsSource="{Binding KindChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                                  SelectedValue="{Binding Kind}" />
+                                        <StackPanel Orientation="Horizontal" Visibility="{Binding IsInteger, Converter={StaticResource BoolToVisibility}}">
+                                            <ui:NumberBox Width="70" Minimum="0" Maximum="255" Value="{Binding Min, UpdateSourceTrigger=PropertyChanged}" ToolTip="{l:Tr 'Minimum'}" />
+                                            <ui:NumberBox Width="70" Margin="4,0" Minimum="1" Maximum="256" Value="{Binding Max, UpdateSourceTrigger=PropertyChanged}" ToolTip="{l:Tr 'Maximum'}" />
+                                        </StackPanel>
+                                        <TextBox Width="200" Text="{Binding Values}" FontFamily="Consolas" ToolTip="{l:Tr 'Values, separated by commas (red, green, blue)'}"
+                                                 Visibility="{Binding IsChoice, Converter={StaticResource BoolToVisibility}}" />
+                                        <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" Command="{Binding RemoveCommand}"
+                                                ToolTip="{l:Tr 'Remove this property'}" />
+                                    </WrapPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Ore'}">
+                    <StackPanel Style="{StaticResource TabContent}" DataContext="{Binding Options}">
+                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Content="{l:Tr 'Generate the block as an ore in the world'}"
+                                  IsChecked="{Binding OreEnabled}" Margin="0,0,0,8" />
+                        <StackPanel IsEnabled="{Binding OreEnabled}">
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Blocks it replaces'}" />
+                                <TextBox Width="320" Text="{Binding OreReplace}" FontFamily="Consolas" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Blocks or tags, separated by commas: #minecraft:stone_ore_replaceables, #minecraft:deepslate_ore_replaceables, minecraft:netherrack...'}" />
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Biomes'}" />
+                                <TextBox Width="320" Text="{Binding OreBiomes}" FontFamily="Consolas" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Empty: every biome of the overworld. A tag (#minecraft:is_nether) or biomes separated by commas (minecraft:desert, minecraft:badlands).'}" />
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Shape of the heights'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Source={x:Static assets:BlockOptionsViewModel.OreShapes}}"
+                                          DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding OreShape}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Groups per chunk'}" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="64" SmallChange="1"
+                                              Value="{Binding OreGroups, UpdateSourceTrigger=PropertyChanged}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Ores per group'}" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="64" SmallChange="1"
+                                              Value="{Binding OreSize, UpdateSourceTrigger=PropertyChanged}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'More than 32 may make the generation of the world crash.'}" />
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Heights (min - max)'}" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Width="130" Minimum="-64" Maximum="320" SmallChange="1"
+                                              Value="{Binding OreMinHeight, UpdateSourceTrigger=PropertyChanged}" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Width="130" Minimum="-64" Maximum="320" SmallChange="1"
+                                              Value="{Binding OreMaxHeight, UpdateSourceTrigger=PropertyChanged}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Diamonds: -64 to 16 (triangle); iron: -24 to 56; coal: 0 to 192.'}" />
+                        </StackPanel>
                     </StackPanel>
                 </TabItem>
             </TabControl>
@@ -682,7 +935,23 @@
             <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
             <StackPanel Style="{StaticResource TabContent}">
                 <TextBlock Style="{StaticResource StackedLabel}" Text="{l:Tr 'Typed in the chat'}" />
-                <TextBox IsReadOnly="True" FontFamily="Consolas" Text="{Binding Usage, Mode=OneWay}" Margin="0,2,0,8" />
+                <!-- The name of the command is its identifier: it is typed here (validated when the field is left). -->
+                <DockPanel Margin="0,2,0,2">
+                    <TextBlock DockPanel.Dock="Left" Text="/" FontFamily="Consolas" FontSize="15" VerticalAlignment="Center" Margin="0,0,4,0" />
+                    <TextBox FontFamily="Consolas" Text="{Binding CommandName, UpdateSourceTrigger=LostFocus, ValidatesOnNotifyDataErrors=True}"
+                             ToolTip="{Binding ResourceIdRule}" />
+                </DockPanel>
+                <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,8" Text="{Binding Usage, StringFormat={l:Tr 'The player types: {0}'}}" />
+                <WrapPanel Style="{StaticResource Row}">
+                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Graph'}" />
+                    <TextBlock VerticalAlignment="Center" Margin="0,0,10,0" MaxWidth="260" TextWrapping="Wrap" Text="{Binding GraphsLabel}" />
+                    <Button Command="{Binding OpenGraphCommand}" Padding="10,4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" />
+                            <TextBlock x:Name="GraphButton" Text="{l:Tr 'Create its graph'}" />
+                        </StackPanel>
+                    </Button>
+                </WrapPanel>
                 <WrapPanel Style="{StaticResource Row}">
                     <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Who can run it'}" />
                     <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding PermissionChoices}" SelectedValue="{Binding PermissionLevel}" />
@@ -713,6 +982,11 @@
                            Text="{l:Tr 'What the command does is written in an event graph, with the event &quot;On command&quot; and the identifier of the command. It gives the player, the number or text typed, and the target player.'}" />
             </StackPanel>
         </StackPanel>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding HasGraph}" Value="True">
+                <Setter TargetName="GraphButton" Property="Text" Value="{l:Tr 'Open its graph'}" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
     </DataTemplate>
 
     <!-- ===================== Onglet créatif (V0.6.2) ===================== -->
@@ -1211,6 +1485,7 @@
                                         Visibility="{Binding ShowsModelPicker, Converter={StaticResource BoolToVisibility}}" />
                         <ContentControl Content="{Binding MainTexture}" Focusable="False" />
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,8" Text="{Binding TextureHint}" />
+                        <ContentControl Content="{Binding AppearanceList}" Focusable="False" />
 
                         <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Size'}" Margin="0,8,0,4" />
                         <TextBlock Style="{StaticResource RowHint}" Text="{Binding HitboxHint}" />

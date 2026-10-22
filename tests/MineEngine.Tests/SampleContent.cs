@@ -110,6 +110,11 @@ internal static class SampleContent
         BlockbenchSample.AddTo(project, [swordTexture, goblinTexture]);
         GameplaySample.AddTo(project, ruby, swordTexture);
         LibrarySample.AddTo(project);
+        AppearanceSample.AddTo(project);
+        GlobalsSample.AddTo(project);
+        TypesSample.AddTo(project);
+        ScopesSample.AddTo(project);
+        BlockOptionsSample.AddTo(project);
     }
 
     /// <summary>V0.4.1 : outils, armures, nourriture à effets, combustible, tags et événements d'items.</summary>

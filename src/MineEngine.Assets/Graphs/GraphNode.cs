@@ -24,7 +24,9 @@ public sealed record GraphNode(Guid Id, GraphNodeKind Kind, double X, double Y, 
         ArgumentNullException.ThrowIfNull(info);
         ImmutableDictionary<string, string> values = info.Inputs
             .Where(p => p.DefaultValue is not null)
-            .ToImmutableDictionary(p => p.Name, p => p.DefaultValue!);
+            .ToImmutableDictionary(p => p.Name, p => p.DefaultValue!)
+            .SetItems(FlowNodes.DefaultValues(info.Kind))
+            .SetItems(GenericNodes.DefaultValues(info.Kind));
         return new GraphNode(Guid.NewGuid(), info.Kind, x, y, values) { Target = target, Member = member };
     }
 

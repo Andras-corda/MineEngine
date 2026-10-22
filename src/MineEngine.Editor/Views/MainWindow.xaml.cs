@@ -47,7 +47,7 @@ public partial class MainWindow : Window
         // de la fenêtre principale : chaque panneau le reçoit donc explicitement.
         foreach (FrameworkElement panel in new FrameworkElement[]
                  {
-                     ExplorerPanel, DashboardPanel, ResourcesPanel, LanguagesPanel, OutputPanel, DiagnosticsPanel, InspectorPanel,
+                     ExplorerPanel, DashboardPanel, ResourcesPanel, GlobalsPanel, LanguagesPanel, OutputPanel, DiagnosticsPanel, InspectorPanel,
                  })
         {
             panel.DataContext = viewModel;
@@ -310,12 +310,13 @@ public partial class MainWindow : Window
                 _viewModel.ActiveDocument = document;
                 _viewModel.ActiveWorkspaceView = null;
                 break;
-            case Panels.DashboardPanel or Panels.ResourcesPanel or Panels.LanguagesPanel:
+            case Panels.DashboardPanel or Panels.ResourcesPanel or Panels.GlobalsPanel or Panels.LanguagesPanel:
                 _viewModel.ActiveDocument = null;
                 _viewModel.ActiveWorkspaceView = DockManager.ActiveContent switch
                 {
                     Panels.ResourcesPanel => MainViewModel.ResourcesTabId,
                     Panels.LanguagesPanel => MainViewModel.LanguagesTabId,
+                    Panels.GlobalsPanel => MainViewModel.GlobalsTabId,
                     _ => MainViewModel.DashboardTabId,
                 };
                 break;

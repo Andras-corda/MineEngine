@@ -46,6 +46,20 @@ public sealed class TextureSlotViewModel : ObservableObject
         ImportCommand = new RelayCommand(Import);
         ClearCommand = new RelayCommand(() => Set(Tr.T("Remove a texture"), null), () => _getter() is not null);
         OpenCommand = new RelayCommand(() => _context.SelectAsset(_getter()!.Value), () => Texture is not null);
+        BrowseCommand = new RelayCommand(Browse);
+    }
+
+    /// <summary>Opens the texture browser (double-click on the preview): every texture as a grid.</summary>
+    public ICommand BrowseCommand { get; }
+
+    private void Browse()
+    {
+        var browser = new AssetBrowserViewModel(_context, AssetBrowserKind.Texture, _getter(), _label, _emptyLabel);
+        if (_context.Dialogs.ShowAssetBrowser(browser))
+        {
+            SelectedTextureId = browser.Result ?? Guid.Empty;
+            Refresh();
+        }
     }
 
     /// <summary>Nom de la propriété de l'asset modifiée par cet emplacement.</summary>

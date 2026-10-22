@@ -4,6 +4,7 @@
              xmlns:l="clr-namespace:MineEngine.Editor.Localization"
              xmlns:bt="clr-namespace:MineEngine.Editor.ViewModels.Puppeteer"
              xmlns:local="clr-namespace:MineEngine.Editor.Views.Puppeteer"
+             xmlns:graphviews="clr-namespace:MineEngine.Editor.Views.Graphs"
              Focusable="True" FocusVisualStyle="{x:Null}">
 
     <!--
@@ -20,6 +21,7 @@
             </ResourceDictionary.MergedDictionaries>
 
             <local:BtCategoryBrushConverter x:Key="CategoryBrush" />
+            <graphviews:CommentBrushConverter x:Key="CommentBrush" />
 
             <!-- Pin: a dot on the edge of the node, from which a link is dragged. -->
             <Style x:Key="Pin" TargetType="Border">
@@ -60,7 +62,7 @@
 
             <!-- A node: parent pin, card (decorators, header, services), children pin. -->
             <DataTemplate x:Key="NodeTemplate" DataType="{x:Type bt:BtNodeViewModel}">
-                <Grid x:Name="NodeRoot" Tag="node" Width="230" SizeChanged="OnNodeSizeChanged" Loaded="OnNodeLoaded">
+                <Grid x:Name="NodeRoot" Tag="node" Width="230" SizeChanged="OnNodeSizeChanged" Loaded="OnNodeLoaded" ToolTip="{Binding HoverText}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="14" />
                         <RowDefinition Height="Auto" />
@@ -82,11 +84,10 @@
                                     Background="{Binding Category, Converter={StaticResource CategoryBrush}}" ToolTip="{Binding Description}">
                                 <StackPanel>
                                     <DockPanel>
-                                        <Border DockPanel.Dock="Right" CornerRadius="8" Padding="6,0" MinWidth="18" Background="#40000000"
-                                                Visibility="{Binding HasOrder, Converter={StaticResource BoolToVisibility}}"
-                                                ToolTip="{l:Tr 'Execution order (children run from left to right)'}">
-                                            <TextBlock Text="{Binding Order}" Foreground="White" FontSize="11" HorizontalAlignment="Center" />
-                                        </Border>
+                                        <!-- The node is described by a tooltip (T): its message shows over the node. -->
+                                        <TextBlock DockPanel.Dock="Right" FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Info}" FontSize="11"
+                                                   Foreground="White" Opacity="0.85" VerticalAlignment="Center" Margin="4,0,0,0" ToolTip="{Binding AttachedTooltip}"
+                                                   Visibility="{Binding AttachedTooltip, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}" />
                                         <TextBlock DockPanel.Dock="Right" Text="{Binding CategoryLabel}" Foreground="White" Opacity="0.7" FontSize="10"
                                                    VerticalAlignment="Center" Margin="6,0" />
                                         <TextBlock Text="{Binding Title}" Foreground="White" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
@@ -103,6 +104,13 @@
                             </Border>
                             <ItemsControl ItemsSource="{Binding Services}" ItemTemplate="{StaticResource AttachmentTemplate}" Focusable="False" />
                         </StackPanel>
+                    </Border>
+                    <!-- Execution order, like Unreal's numbers: a badge on the top right corner of the card. -->
+                    <Border Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-9,-9,0" MinWidth="22" Height="22" CornerRadius="11"
+                            Padding="5,0" Background="{DynamicResource AccentLineBrush}" BorderBrush="{DynamicResource HubBackgroundBrush}" BorderThickness="2"
+                            Visibility="{Binding HasOrder, Converter={StaticResource BoolToVisibility}}"
+                            ToolTip="{l:Tr 'Execution order (children run from left to right)'}">
+                        <TextBlock Text="{Binding Order}" Foreground="White" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <Border Grid.Row="2" Style="{StaticResource Pin}" Tag="pin-out" Visibility="{Binding HasChildrenPin, Converter={StaticResource BoolToVisibility}}"
                             ToolTip="{l:Tr 'Drag to a node to make it a child; Alt+click: detach the children'}">
@@ -128,6 +136,81 @@
                     </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>
+
+
+            <!-- Comment (C on a selection), like in Blueprints: its box is drawn behind the links (CommentBackTemplate);
+                 here only its title, its edges and its corners catch the mouse. -->
+            <DataTemplate x:Key="CommentTemplate" DataType="{x:Type bt:BtNodeViewModel}">
+                <Grid x:Name="NodeRoot" Tag="node" Width="{Binding CommentWidth}" Height="{Binding CommentHeight}">
+                    <Border x:Name="Header" Tag="header" VerticalAlignment="Top" Height="34" CornerRadius="6,6,0,0" Cursor="SizeAll"
+                            BorderThickness="2" BorderBrush="Transparent" ToolTip="{Binding HoverText}" ToolTipService.InitialShowDelay="200"
+                            Background="{Binding CommentColor, Converter={StaticResource CommentBrush}, ConverterParameter=header}">
+                        <DockPanel Margin="10,0">
+                            <TextBlock DockPanel.Dock="Right" FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Info}" FontSize="12"
+                                       Foreground="White" Opacity="0.8" VerticalAlignment="Center"
+                                       Visibility="{Binding HoverText, Converter={StaticResource EmptyToVisible}, ConverterParameter=Invert}" />
+                            <Grid VerticalAlignment="Center">
+                                <TextBlock Text="{Binding AnnotationText}" FontSize="16" FontWeight="SemiBold" Foreground="White" TextTrimming="CharacterEllipsis"
+                                           Visibility="{Binding IsEditingTitle, Converter={StaticResource InverseBoolToVisibility}}" />
+                                <TextBox Tag="comment-edit" Text="{Binding AnnotationText, UpdateSourceTrigger=PropertyChanged}" FontSize="15" MinHeight="0" Padding="4,1"
+                                         Visibility="{Binding IsEditingTitle, Converter={StaticResource BoolToVisibility}}"
+                                         LostKeyboardFocus="OnCommentEditLostFocus" PreviewKeyDown="OnCommentEditKeyDown" />
+                            </Grid>
+                        </DockPanel>
+                    </Border>
+                    <Border Tag="resize:l" Width="6" HorizontalAlignment="Left" Margin="-3,34,0,8" Background="Transparent" Cursor="SizeWE" />
+                    <Border Tag="resize:r" Width="6" HorizontalAlignment="Right" Margin="0,8,-3,8" Background="Transparent" Cursor="SizeWE" />
+                    <Border Tag="resize:t" Height="5" VerticalAlignment="Top" Margin="8,-3,8,0" Background="Transparent" Cursor="SizeNS" />
+                    <Border Tag="resize:b" Height="6" VerticalAlignment="Bottom" Margin="8,0,8,-3" Background="Transparent" Cursor="SizeNS" />
+                    <Border Tag="resize:tl" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-4,-4,0,0" Background="Transparent" Cursor="SizeNWSE" />
+                    <Border Tag="resize:tr" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0" Background="Transparent" Cursor="SizeNESW" />
+                    <Border Tag="resize:bl" Width="10" Height="10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-4,0,0,-4" Background="Transparent" Cursor="SizeNESW" />
+                    <Border Tag="resize:br" Width="18" Height="18" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-3,-3" Background="Transparent"
+                            Cursor="SizeNWSE" ToolTip="{l:Tr 'Resize the comment'}">
+                        <Path Data="M 15,5 L 5,15 M 15,10 L 10,15" Stroke="{DynamicResource HintBrush}" StrokeThickness="1.4" />
+                    </Border>
+                </Grid>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                        <Setter TargetName="Header" Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <DataTemplate x:Key="CommentBackTemplate" DataType="{x:Type bt:BtNodeViewModel}">
+                <Border Width="{Binding CommentWidth}" Height="{Binding CommentHeight}" CornerRadius="6" BorderThickness="1.5"
+                        Background="{Binding CommentColor, Converter={StaticResource CommentBrush}, ConverterParameter=fill}"
+                        BorderBrush="{Binding CommentColor, Converter={StaticResource CommentBrush}, ConverterParameter=header}" />
+            </DataTemplate>
+
+            <DataTemplate x:Key="NothingTemplate">
+                <Grid />
+            </DataTemplate>
+
+            <!-- Tooltip (T on a selection): a small bubble; its message shows over it or over the nodes it describes. -->
+            <DataTemplate x:Key="TooltipTemplate" DataType="{x:Type bt:BtNodeViewModel}">
+                <Border x:Name="NodeRoot" Tag="node" Background="Transparent" ToolTip="{Binding HoverText}" ToolTipService.InitialShowDelay="100">
+                    <Border x:Name="Bubble" Tag="header" Cursor="SizeAll" CornerRadius="11,11,11,2" Padding="7,3" BorderThickness="1.5"
+                            Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource CardBorderBrush}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Info}" FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource AccentLineBrush}" />
+                            <TextBlock Text="{l:Tr 'Tooltip'}" FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource HintBrush}" />
+                        </StackPanel>
+                    </Border>
+                </Border>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                        <Setter TargetName="Bubble" Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
+                        <Setter TargetName="Bubble" Property="BorderThickness" Value="2" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <local:BtNodeTemplateSelector x:Key="NodeTemplates" NodeTemplate="{StaticResource NodeTemplate}"
+                                          CommentTemplate="{StaticResource CommentTemplate}" TooltipTemplate="{StaticResource TooltipTemplate}" />
+            <local:BtNodeTemplateSelector x:Key="BackTemplates" NodeTemplate="{StaticResource NothingTemplate}"
+                                          CommentTemplate="{StaticResource CommentBackTemplate}" TooltipTemplate="{StaticResource NothingTemplate}" />
 
             <!-- Entry of the add menu. -->
             <DataTemplate x:Key="ChoiceTemplate" DataType="{x:Type bt:BtChoiceViewModel}">
@@ -163,6 +246,20 @@
                         <TranslateTransform x:Name="Pan" />
                     </TransformGroup>
                 </Canvas.RenderTransform>
+                <!-- Boxes of the comments, behind everything else. -->
+                <ItemsControl ItemsSource="{Binding Nodes}" ItemTemplateSelector="{StaticResource BackTemplates}" Focusable="False" IsHitTestVisible="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Canvas.Left" Value="{Binding X}" />
+                            <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                </ItemsControl>
                 <ItemsControl ItemsSource="{Binding Links}" Focusable="False">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -178,7 +275,7 @@
                 </ItemsControl>
                 <Path x:Name="PendingLink" StrokeThickness="2.4" StrokeDashArray="4 2" IsHitTestVisible="False" Visibility="Collapsed"
                       Stroke="{DynamicResource AccentLineBrush}" />
-                <ItemsControl x:Name="NodesHost" ItemsSource="{Binding Nodes}" ItemTemplate="{StaticResource NodeTemplate}" Focusable="False">
+                <ItemsControl x:Name="NodesHost" ItemsSource="{Binding Nodes}" ItemTemplateSelector="{StaticResource NodeTemplates}" Focusable="False">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <Canvas />
@@ -188,6 +285,11 @@
                         <Style TargetType="ContentPresenter">
                             <Setter Property="Canvas.Left" Value="{Binding X}" />
                             <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsComment}" Value="True">
+                                    <Setter Property="Panel.ZIndex" Value="-1" />
+                                </DataTrigger>
+                            </Style.Triggers>
                         </Style>
                     </ItemsControl.ItemContainerStyle>
                 </ItemsControl>
@@ -244,7 +346,7 @@
                     <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" FontSize="12" MaxWidth="480" />
                 </Border>
                 <TextBlock FontSize="11" Foreground="{DynamicResource HintBrush}" TextWrapping="Wrap"
-                           Text="{l:Tr 'Right-click: add a node, or the menu of a node (decorators, services) · Double-click: settings in Properties · Drag a pin: connect · Alt+click on a pin: detach · Children run from left to right · Wheel: zoom · Del: delete · Ctrl+D: duplicate'}" />
+                           Text="{l:Tr 'Right-click: add a node, or the menu of a node (decorators, services) · Double-click: settings in Properties · Drag a pin: connect · Alt+click on a pin: detach · Children run from left to right (number on the corner) · Wheel: zoom · Del: delete · Ctrl+D: duplicate · C: comment · T: tooltip'}" />
             </StackPanel>
 
             <!-- Add-node menu (placed where the click happened) -->

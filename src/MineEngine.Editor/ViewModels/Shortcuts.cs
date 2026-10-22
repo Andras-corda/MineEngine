@@ -57,6 +57,7 @@ public static class ShortcutCatalog
         new("window.dashboard", Tr.T("Window"), Tr.T("Dashboard"), "Ctrl+1", m => m.ShowDashboardCommand),
         new("window.resources", Tr.T("Window"), Tr.T("Resources"), "Ctrl+2", m => m.ShowResourcesCommand),
         new("window.languages", Tr.T("Window"), Tr.T("Mod languages"), "Ctrl+3", m => m.ShowLanguagesCommand),
+        new("window.globals", Tr.T("Window"), Tr.T("Global variables"), "Ctrl+4", m => m.ShowGlobalsCommand),
 
         new("tools.settings", Tr.T("Tools"), Tr.T("Settings"), "Ctrl+OemComma", m => m.OpenSettingsCommand),
         new("tools.mdk", Tr.T("Tools"), Tr.T("MDK Manager"), string.Empty, m => m.OpenMdkManagerCommand),

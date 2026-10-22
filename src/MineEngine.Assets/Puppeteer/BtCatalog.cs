@@ -65,6 +65,7 @@ public static class BtCatalog
         BtCategory.Composite => Tr.T("Composite"),
         BtCategory.Task => Tr.T("Task"),
         BtCategory.Decorator => Tr.T("Decorator"),
+        BtCategory.Annotation => Tr.T("Annotation"),
         _ => Tr.T("Service"),
     };
 
@@ -245,6 +246,18 @@ public static class BtCatalog
             Tr.T("While the node runs, stores the distance between the mob and a creature or a position in a key."),
             KeyParameter(Target, Tr.T("To"), EntityOrPosition),
             KeyParameter(Result, Tr.T("Store in"), BlackboardKeyType.Number));
+
+        // ----- Annotations -----
+        yield return new BtNodeInfo
+        {
+            Kind = BtNodeKind.Comment, Category = BtCategory.Annotation, Title = Tr.T("Comment"),
+            Description = Tr.T("Frames nodes with a title, like the comments of Blueprints: moving it moves the nodes inside. It does not change the AI."),
+        };
+        yield return new BtNodeInfo
+        {
+            Kind = BtNodeKind.Tooltip, Category = BtCategory.Annotation, Title = Tr.T("Tooltip"),
+            Description = Tr.T("Message shown when the mouse is over the bubble or over the nodes it describes. It does not change the AI."),
+        };
     }
 
     private static BtNodeInfo Task(BtNodeKind kind, string title, string description, params BtParameterInfo[] parameters) =>

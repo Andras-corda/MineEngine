@@ -69,6 +69,7 @@ public sealed class BlockAssetDefinition : InventoryAssetDefinition<BlockAsset>
         }
 
         asset.HasItemFormEnabled = reader.GetBoolean("hasItem", true);
+        asset.Options = BlockOptions.FromJson(reader.GetNode("options"));
     }
 
     /// <summary>
@@ -116,5 +117,9 @@ public sealed class BlockAssetDefinition : InventoryAssetDefinition<BlockAsset>
         };
 
         properties["hasItem"] = asset.HasItemFormEnabled;
+        if (asset.Options != BlockOptions.Default)
+        {
+            properties["options"] = asset.Options.ToJson();
+        }
     }
 }

@@ -35,6 +35,8 @@ public sealed class CatalogGraphContext : IGraphContext
     public NodeInfo Describe(GraphNode node) =>
         Reroutes.IsReroute(node) ? Reroutes.Describe(node, TypeLabel)
         : GraphAnnotations.IsAnnotation(node) ? GraphAnnotations.Describe(node)
+        : FlowNodes.IsDynamic(node.Kind) ? FlowNodes.Describe(node)
+        : GenericNodes.IsGeneric(node.Kind) ? GenericNodes.Describe(node, TypeLabel)
         : NodeCatalog.Find(node.Kind) ?? NodeCatalog.Missing(node.Kind, Tr.T("Definition not found"));
 
     public bool CanFeed(DataType from, DataType to) => TypeRules.CanFeedBuiltIn(from, to);
@@ -45,7 +47,15 @@ public sealed class CatalogGraphContext : IGraphContext
 /// <summary>Règles de compatibilité communes à tous les contextes.</summary>
 public static class TypeRules
 {
-    /// <summary>Même type, ou nombre vers texte (converti).</summary>
+    /// <summary>
+    /// Même type ; nombre vers texte (converti) ; nombre vers décimal ; joueur vers entité ;
+    /// position vers vecteur 3D entier ; une collection reçoit une collection de même sorte et de mêmes types.
+    /// </summary>
     public static bool CanFeedBuiltIn(DataType from, DataType to) =>
-        from == to || (from.Kind == PinType.Number && to.Kind == PinType.Text);
+        from == to
+        || (from.Kind is PinType.Number or PinType.Decimal && to.Kind == PinType.Text)
+        || (from.Kind == PinType.Number && to.Kind == PinType.Decimal)
+        || (from.Kind is PinType.Player or PinType.LivingEntity && to.Kind == PinType.Entity)
+        || (from.Kind == PinType.Player && to.Kind == PinType.LivingEntity)
+        || (from.Kind == PinType.Position && to.Kind == PinType.Vector3i);
 }

@@ -41,6 +41,7 @@ public sealed class ItemLowering : AssetLowering<ItemAsset>
             AttackSpeed = asset.AttackSpeed,
             Handheld = asset.Handheld,
             CustomModel = context.ResolveCustomModel(asset),
+            Appearances = context.ResolveAppearances(asset),
             CraftRemainder = context.ResolveItem(asset, asset.CraftRemainder, Tr.T("Item returned after crafting")),
             NoRepair = asset.NoRepair,
             BurnTime = asset.BurnTime,

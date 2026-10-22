@@ -100,7 +100,7 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
     public Asset? Find(Guid id) => _byId.GetValueOrDefault(id);
 
     /// <summary>Program definitions of the graphs (functions, classes...), shared and kept until a graph is added or removed.</summary>
-    public ProgramModel Program => _program ??= new ProgramModel(_assets.OfType<GraphAsset>());
+    public ProgramModel Program => _program ??= new ProgramModel(_assets.OfType<GraphAsset>(), _assets.OfType<GlobalVariableAsset>());
 
     /// <summary>Asset du même espace d'identifiants que <paramref name="type"/> qui porte cet identifiant.</summary>
     public Asset? FindByResourceId(ResourceId resourceId, AssetType type) =>
@@ -198,7 +198,7 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
     private void OnStructureChanged(Asset asset)
     {
         _referencesTo = null;
-        if (asset is GraphAsset)
+        if (asset is GraphAsset or GlobalVariableAsset)
         {
             _program = null;
             _definitionsVersion++;
@@ -238,6 +238,8 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
                 Tr.F("{0}: block {1} has no item form.", Capitalize(reference.Role), target.ResourceId),
             AssetReferenceKind.Definition when target is not GraphAsset =>
                 Tr.F("{0}: {1} is not a definition.", Capitalize(reference.Role), target),
+            AssetReferenceKind.GlobalVariable when target is not GlobalVariableAsset =>
+                Tr.F("{0}: {1} is not a global variable.", Capitalize(reference.Role), target),
             AssetReferenceKind.BehaviorTree when target is not BehaviorTreeAsset =>
                 Tr.F("{0}: {1} is not a behavior tree.", Capitalize(reference.Role), target),
             AssetReferenceKind.Model or AssetReferenceKind.EntityModel when target is not ModelAsset =>
@@ -319,6 +321,11 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
             {
                 // The body of a graph only matters to itself; its signature, variables or name matter to the other graphs.
                 case GraphAsset when e.PropertyName != nameof(GraphAsset.Graph):
+                    _definitionsVersion++;
+                    break;
+
+                // The type, the scope or the name of a global variable change the nodes that use it.
+                case GlobalVariableAsset:
                     _definitionsVersion++;
                     break;
                 case BehaviorTreeAsset:

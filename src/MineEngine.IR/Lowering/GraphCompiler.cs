@@ -106,6 +106,12 @@ public sealed class GraphCompiler
                 break;
             }
 
+            if (info.Flow == NodeFlow.Multi)
+            {
+                AddFlow(statements, node, info, start, path);
+                break;
+            }
+
             if (info.Flow == NodeFlow.Loop)
             {
                 // The body is compiled on its own; the chain goes on with "Completed".
@@ -131,6 +137,45 @@ public sealed class GraphCompiler
         return statements;
     }
 
+    /// <summary>Switch, Sequence or Flip Flop: each output follows its own chain, like the two sides of a condition.</summary>
+    private void AddFlow(List<IRStatement> statements, GraphNode node, NodeInfo info, GraphNode start, HashSet<Guid> path)
+    {
+        List<IRStatement> Chain(string pin) => CompileChain(_graph.NextNode(node.Id, pin), start, [.. path]);
+        switch (node.Kind)
+        {
+            case GraphNodeKind.Sequence:
+                foreach (PinInfo output in info.ExecOutputs)
+                {
+                    List<IRStatement> chain = Chain(output.Name);
+                    statements.AddRange(chain);
+
+                    // After a return, Java refuses any other instruction (and they would never run).
+                    if (chain.Count > 0 && chain[^1] is IRReturnStatement)
+                    {
+                        break;
+                    }
+                }
+
+                break;
+
+            case GraphNodeKind.FlipFlop:
+                statements.Add(new IRFlipFlopStatement(node.Id, Local(node, info.Outputs[0]).Name, Chain(FlowNodes.FlipFlopA), Chain(FlowNodes.FlipFlopB)));
+                break;
+
+            default:
+                PinInfo value = info.Inputs[0];
+                List<PinInfo> cases = [.. info.ExecOutputs.Where(o => o.Name != FlowNodes.DefaultPin)];
+                statements.Add(new IRSwitchStatement(
+                    node.Id,
+                    value.Type,
+                    Input(node, value, start),
+                    [.. cases.Select(c => Literal(value, c.Label))],
+                    [.. cases.Select(c => (IReadOnlyList<IRStatement>)Chain(c.Name))],
+                    Chain(FlowNodes.DefaultPin)));
+                break;
+        }
+    }
+
     private IRStatement Statement(GraphNode node, NodeInfo info, GraphNode start) => node.Kind switch
     {
         GraphNodeKind.CallFunction => new IRCallStatement(node.Id, Callee(node), Target(node, info, start),
@@ -138,6 +183,7 @@ public sealed class GraphCompiler
         GraphNodeKind.NewObject => new IRNewStatement(node.Id, node.Target!.Value, Arguments(node, info, start, skipTarget: false),
             Local(node, info.Outputs[0]).Name),
         GraphNodeKind.SetVariable => new IRSetVariableStatement(node.Id, node.Member!.Value, Input(node, info.Inputs[0], start)),
+        GraphNodeKind.SetGlobal => new IRSetGlobalStatement(node.Id, node.Target!.Value, GlobalKey(node, info, start), Input(node, info.Inputs[^1], start)),
         GraphNodeKind.SetField => new IRSetFieldStatement(node.Id, Target(node, info, start), node.Target!.Value, node.Member!.Value,
             Input(node, info.FindInput("value")!, start)),
         GraphNodeKind.FunctionReturn => new IRReturnStatement(node.Id, Arguments(node, info, start, skipTarget: false)),
@@ -182,8 +228,12 @@ public sealed class GraphCompiler
             { IsPure: true } => Value(source, sourceInfo, output, start),
             _ => new IRLocalValue(output.Type, Local(source, output).Name),
         };
-        return output.Type.Kind == PinType.Number && pin.Type.Kind == PinType.Text ? new IRToText(value) : value;
+        return output.Type.Kind is PinType.Number or PinType.Decimal && pin.Type.Kind == PinType.Text ? new IRToText(value) : value;
     }
+
+    /// <summary>Player of a global variable kept per player, or null.</summary>
+    private IRExpression? GlobalKey(GraphNode node, NodeInfo info, GraphNode start) =>
+        (info.FindInput("player") ?? info.FindInput("entity") ?? info.FindInput("position")) is { } pin ? Input(node, pin, start) : null;
 
     /// <summary>Résultat d'un nœud de valeur.</summary>
     private IRExpression Value(GraphNode node, NodeInfo info, PinInfo output, GraphNode start) => node.Kind switch
@@ -191,6 +241,7 @@ public sealed class GraphCompiler
         GraphNodeKind.NumberValue or GraphNodeKind.TextValue or GraphNodeKind.BooleanValue =>
             Literal(info.Inputs[0], node.GetValue("value")),
         GraphNodeKind.GetVariable => new IRVariableValue(output.Type, node.Member!.Value),
+        GraphNodeKind.GetGlobal => new IRGlobalValue(output.Type, node.Target!.Value, GlobalKey(node, info, start)),
         GraphNodeKind.GetField => new IRFieldValue(output.Type, Target(node, info, start), node.Target!.Value, node.Member!.Value),
         GraphNodeKind.EnumLiteral => Literal(info.Inputs[0], node.Values.GetValueOrDefault("value") ?? info.Inputs[0].DefaultValue),
         GraphNodeKind.Self => new IRSelfValue(output.Type),
@@ -216,6 +267,10 @@ public sealed class GraphCompiler
         PinType.Number => new IRNumberLiteral(GraphValidator.TryParseNumber(text, out int number) ? number : 0),
         PinType.Text => new IRTextLiteral(text ?? string.Empty),
         PinType.Boolean => new IRBooleanLiteral(bool.TryParse(text, out bool flag) && flag),
+        PinType.Decimal => new IRDecimalLiteral(GraphValidator.TryParseDecimal(text, out double number) ? number : 0),
+        PinType.Char or PinType.Long or PinType.Float or PinType.Byte or PinType.Identifier or PinType.Fluid
+            or PinType.EquipmentSlot or PinType.Hand or PinType.Rarity => new IRValueLiteral(pin.Type, text ?? pin.DefaultValue ?? string.Empty),
+        PinType.Direction => new IRDirectionLiteral(GraphValidator.Directions.Contains(text?.Trim().ToLowerInvariant()) ? text!.Trim().ToLowerInvariant() : "north"),
         PinType.Enum => Guid.TryParse(text, out Guid constant)
             ? new IREnumValue(pin.Type, constant)
             : throw new InvalidOperationException(Tr.F("\"{0}\": choose a value.", pin.Label)),

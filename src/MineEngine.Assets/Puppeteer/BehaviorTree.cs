@@ -94,7 +94,8 @@ public sealed class BehaviorTree
         foreach (BtLink link in links)
         {
             if (byId.TryGetValue(link.Parent, out BtNode? parent) && parent.Info.HasChildren
-                && byId.TryGetValue(link.Child, out BtNode? child) && child.Kind != BtNodeKind.Root && link.Parent != link.Child)
+                && byId.TryGetValue(link.Child, out BtNode? child) && child.Kind != BtNodeKind.Root && !child.Info.IsAnnotation
+                && link.Parent != link.Child)
             {
                 parents[link.Child] = link.Parent;
             }
@@ -212,6 +213,11 @@ public sealed class BehaviorTree
             return Tr.T("The root cannot have a parent.");
         }
 
+        if (to.Info.IsAnnotation)
+        {
+            return Tr.T("A comment or a tooltip is not part of the tree.");
+        }
+
         for (BtNode? ancestor = from; ancestor is not null; ancestor = ParentOf(ancestor.Id))
         {
             if (ancestor.Id == child)
@@ -262,7 +268,7 @@ public sealed class BehaviorTree
         double column = 0;
         Place(Root, 0);
         double stray = 0;
-        foreach (BtNode node in Nodes.Where(n => !positions.ContainsKey(n.Id)))
+        foreach (BtNode node in Nodes.Where(n => !positions.ContainsKey(n.Id) && !n.Info.IsAnnotation))
         {
             positions[node.Id] = ((column + 1) * LayoutColumn, stray);
             stray += LayoutRow / 2 + 40 * node.Decorators.Count;
