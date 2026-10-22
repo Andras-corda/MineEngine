@@ -145,7 +145,7 @@ public sealed partial class MainViewModel
             {
                 DocumentActivationRequested?.Invoke(this, Documents.First(d => d.Id == id));
             }
-            else if (page.View is ResourcesTabId or LanguagesTabId or GlobalsTabId)
+            else if (page.View is ResourcesTabId or LanguagesTabId or GlobalsTabId or TagsTabId)
             {
                 ProjectTabRequested?.Invoke(this, page.View);
             }

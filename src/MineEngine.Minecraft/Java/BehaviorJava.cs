@@ -525,6 +525,10 @@ public sealed class BehaviorJava
             GraphNodeKind.GameTime => "level.getGameTime()",
             GraphNodeKind.PlayerGuild => $"{a[0]}.getPersistentData().getString(\"mineengine_guild\")",
             GraphNodeKind.EntityGroup => Helper("entityGroup", $"entityGroup({a[0]})"),
+            GraphNodeKind.IsBlockInTag => Helper("blockInTag", $"blockInTag(level, {a[0]}, {a[1]})"),
+            GraphNodeKind.IsItemInTag => Helper("itemInTag", $"itemInTag({a[0]}, {a[1]})"),
+            GraphNodeKind.IsEntityInTag => Helper("entityInTag", $"entityInTag({a[0]}, {a[1]})"),
+            GraphNodeKind.IsBiomeInTag => Helper("biomeInTag", $"biomeInTag(level, {a[0]}, {a[1]})"),
             _ => throw new NotSupportedException($"Nœud {call.Kind} non traduit en Java."),
         };
     }

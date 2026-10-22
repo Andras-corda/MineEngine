@@ -33,8 +33,8 @@
 | V0.6.9 | Creer une interaction click droit dans l'onglet dashboard pour (sortir du dossier/revenir à la racine/undo/redo/validate/execute/compile) | F |
 | V0.6.10 | Fils et types : survol d'un fil + Retour arrière pour le couper, clic droit Rafraîchir les nœuds / Casser toutes les connexions, références de reroute, nœuds de cast + cast automatique (int vers float...), nouveaux types (char, long, float, byte, UUID, texte riche, identifiant, emplacement d'équipement, main, rareté, fluide, boîte AABB, source de dégâts, instance d'effet, NBT, monde, entité vivante) | F |
 | V0.6.11 | Pins aimantées, message de statut de 3 s, navigateur d'assets (textures et modèles 3D, ceux de Minecraft compris), portées des variables globales (scopeGlobalVariable.md), blocs façon MCreator (rotation, eau, gravité, rendu, forme en boîtes, états personnalisés, redstone, feu, balise, échelle, génération de minerai) | F |
-| V0.7.0 | Creation de plante/biome | |
-| V0.7.1 | Ajout de l'onglet tags | |
+| V0.7.0 | Creation de plante/biome (fleur, plante haute, plante qui pousse, culture, parcelles dans le monde ; biomes de l'Overworld avec climat, couleurs et surface) + textures des blocs en croix | F |
+| V0.7.1 | Ajout de l'onglet tags (tags.md : blocs, items, fonctions, peintures, dégâts, enchantements, entités, biomes, événements, structures, variantes, bannières, préréglages, potions, dialogues, fluides ; espaces de noms minecraft, mod, c, forge, neoforge, fabric) + nœuds « est dans le tag » | F |
 | V0.7.2 | Integration de structure simple (arbre) | |
 | V0.7.3 | Ajout de l'onglet global variable (fait en V0.6.7) | F |
 | V0.7.4 | Node de gestion de la caméra du joueur | |

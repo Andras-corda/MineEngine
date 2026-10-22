@@ -180,6 +180,9 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Global tab of the open project (global variables).</summary>
     public GlobalsViewModel? Globals { get; private set; }
 
+    /// <summary>Tags tab of the open project.</summary>
+    public TagsViewModel? Tags { get; private set; }
+
     public ProjectViewModel? Project
     {
         get => _project;
@@ -187,6 +190,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             Languages?.Dispose();
             Globals?.Dispose();
+            Tags?.Dispose();
             if (_project is not null)
             {
                 _project.PropertyChanged -= OnProjectPropertyChanged;
@@ -206,6 +210,8 @@ public sealed partial class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(Languages));
             Globals = value is null ? null : new GlobalsViewModel(value, () => CanEdit);
             OnPropertyChanged(nameof(Globals));
+            Tags = value is null ? null : new TagsViewModel(value, () => CanEdit);
+            OnPropertyChanged(nameof(Tags));
             if (_project is not null)
             {
                 _project.PropertyChanged += OnProjectPropertyChanged;

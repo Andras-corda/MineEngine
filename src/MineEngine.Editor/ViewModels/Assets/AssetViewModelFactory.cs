@@ -58,6 +58,9 @@ public sealed class AssetViewModelFactory
             GameRuleAsset rule => new GameRuleAssetViewModel(rule, context, label),
             EffectAsset effect => new EffectAssetViewModel(effect, context, label),
             GlobalVariableAsset global => new GlobalVariableAssetViewModel(global, context, label),
+            TagAsset tag => new TagAssetViewModel(tag, context, label),
+            PlantAsset plant => new PlantAssetViewModel(plant, context, label),
+            BiomeAsset biome => new BiomeAssetViewModel(biome, context, label),
             _ => throw new NotSupportedException(Tr.F("The editor cannot display assets of type {0} yet.", asset.Type)),
         };
     }

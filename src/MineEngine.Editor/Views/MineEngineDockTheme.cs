@@ -27,7 +27,7 @@ public sealed class MineEngineDockTheme : DictionaryTheme
     }
 
     /// <summary>Documents opened from the toolbar, whose tab is hidden in the work area.</summary>
-    public static IReadOnlySet<string> ToolbarDocuments { get; } = new HashSet<string>(StringComparer.Ordinal) { "home", "resources", "globals", "languages" };
+    public static IReadOnlySet<string> ToolbarDocuments { get; } = new HashSet<string>(StringComparer.Ordinal) { "home", "resources", "globals", "tags", "languages" };
 
     private static void OnTabLoaded(object sender, RoutedEventArgs e)
     {

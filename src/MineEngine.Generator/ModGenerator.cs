@@ -40,6 +40,7 @@ public sealed class ModGenerator
             new ModIconEmitter(),
             new ModelsEmitter(placeholder),
             new GameplayResourcesEmitter(placeholder),
+            new BiomesEmitter(),
         ]);
     }
 

@@ -147,6 +147,9 @@ public sealed class ProjectLayout
         AssetType.GameRule => "gamerules",
         AssetType.Effect => "effects",
         AssetType.GlobalVariable => "globals",
+        AssetType.Tag => "tags",
+        AssetType.Plant => "plants",
+        AssetType.Biome => "biomes",
         _ => type.ToString().ToLowerInvariant(),
     };
 

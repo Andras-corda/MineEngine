@@ -27,7 +27,7 @@ public sealed class ModIRBuilder
         new ItemLowering(), new BlockLowering(), new MobLowering(), new RecipeLowering(), new TextureLowering(), new SoundLowering(),
         new GraphLowering(), new BehaviorTreeLowering(), new ModelLowering(),
         new CommandLowering(), new CreativeTabLowering(), new KeybindLowering(), new EnchantmentLowering(), new FluidLowering(),
-        new GameRuleLowering(), new EffectLowering(), new GlobalVariableLowering(),
+        new GameRuleLowering(), new EffectLowering(), new GlobalVariableLowering(), new TagLowering(), new PlantLowering(), new BiomeLowering(),
     ]);
 
     /// <summary>

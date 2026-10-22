@@ -145,6 +145,36 @@
         </DockPanel>
     </DataTemplate>
 
+    <!--
+        A texture slot as a square tile (faces of a block laid out as an unfolded cube): double-click to
+        choose among all the textures, right-click to import or remove.
+    -->
+    <DataTemplate x:Key="TextureTile" DataType="{x:Type assets:TextureSlotViewModel}">
+        <Grid Width="92" Height="96" Margin="2">
+            <Border BorderThickness="1" BorderBrush="{DynamicResource PreviewBorderBrush}" Margin="0,0,0,8" Cursor="Hand" Background="Transparent"
+                    ToolTip="{Binding PathLabel}" AutomationProperties.Name="{Binding Label}">
+                <Border.InputBindings>
+                    <MouseBinding Gesture="LeftDoubleClick" Command="{Binding BrowseCommand}" />
+                </Border.InputBindings>
+                <Border.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{l:Tr 'Browse...'}" Command="{Binding BrowseCommand}" />
+                        <MenuItem Header="{l:Tr 'Import...'}" Command="{Binding ImportCommand}" />
+                        <MenuItem Header="{l:Tr 'Remove'}" Command="{Binding ClearCommand}" />
+                        <MenuItem Header="{l:Tr 'Open'}" Command="{Binding OpenCommand}" />
+                    </ContextMenu>
+                </Border.ContextMenu>
+                <Border Margin="10,10,10,14" Background="{DynamicResource PreviewBackgroundBrush}" BorderThickness="1"
+                        BorderBrush="{DynamicResource PreviewBorderBrush}">
+                    <Image Source="{Binding FullPath, Converter={StaticResource FilePathToImage}}" RenderOptions.BitmapScalingMode="NearestNeighbor"
+                           Stretch="Uniform" />
+                </Border>
+            </Border>
+            <TextBlock Text="{Binding Label}" FontSize="11" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="4,0,0,0" Padding="2,0"
+                       Background="{DynamicResource HubBackgroundBrush}" TextTrimming="CharacterEllipsis" MaxWidth="86" />
+        </Grid>
+    </DataTemplate>
+
     <!-- 3D model of an item, a block or a mob: choice among the models of the project, or import. -->
     <DataTemplate DataType="{x:Type assets:ModelPickerViewModel}">
         <StackPanel Margin="0,4,0,8">
@@ -492,8 +522,36 @@
 
                         <StackPanel Visibility="{Binding ShowsModelPicker, Converter={StaticResource InverseBoolToVisibility}}">
                             <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Textures'}" Margin="0,12,0,4" />
-                            <ContentControl Content="{Binding MainTexture}" Focusable="False" />
-                            <ItemsControl ItemsSource="{Binding ExtraTextures}" Focusable="False" />
+                            <!-- One texture per face: the faces of the cube unfolded, like MCreator. -->
+                            <StackPanel Visibility="{Binding ShowsFaceCross, Converter={StaticResource BoolToVisibility}}">
+                                <Grid HorizontalAlignment="Left">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <ContentControl Grid.Column="1" Content="{Binding TopSlot}" ContentTemplate="{StaticResource TextureTile}" Focusable="False" />
+                                    <ContentControl Grid.Row="1" Content="{Binding LeftSlot}" ContentTemplate="{StaticResource TextureTile}" Focusable="False" />
+                                    <ContentControl Grid.Row="1" Grid.Column="1" Content="{Binding FrontSlot}" ContentTemplate="{StaticResource TextureTile}" Focusable="False" />
+                                    <ContentControl Grid.Row="1" Grid.Column="2" Content="{Binding RightSlot}" ContentTemplate="{StaticResource TextureTile}" Focusable="False" />
+                                    <ContentControl Grid.Row="1" Grid.Column="3" Content="{Binding BackSlot}" ContentTemplate="{StaticResource TextureTile}" Focusable="False" />
+                                    <ContentControl Grid.Row="2" Grid.Column="1" Content="{Binding BottomSlot}" ContentTemplate="{StaticResource TextureTile}" Focusable="False" />
+                                    <ContentControl Grid.Row="2" Grid.Column="3" Content="{Binding MainTexture}" ContentTemplate="{StaticResource TextureTile}" Focusable="False"
+                                                    ToolTip="{l:Tr 'Default texture: particles, and the faces left empty'}" />
+                                </Grid>
+                                <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                           Text="{l:Tr 'Double-click a face to choose its texture; right-click to import or remove it.'}" />
+                            </StackPanel>
+                            <ContentControl Content="{Binding MainTexture}" Focusable="False"
+                                            Visibility="{Binding ShowsFaceCross, Converter={StaticResource InverseBoolToVisibility}}" />
+                            <ItemsControl ItemsSource="{Binding ExtraTextures}" Focusable="False"
+                                          Visibility="{Binding ShowsFaceCross, Converter={StaticResource InverseBoolToVisibility}}" />
                             <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
                                        Text="{l:Tr 'Faces without a texture use the default texture.'}" />
                         </StackPanel>
@@ -793,6 +851,215 @@
                             </WrapPanel>
                             <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Diamonds: -64 to 16 (triangle); iron: -24 to 56; coal: 0 to 192.'}" />
                         </StackPanel>
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ===================== Plant (V0.7.0) ===================== -->
+    <DataTemplate DataType="{x:Type assets:PlantAssetViewModel}">
+        <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+            <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
+            <TabControl Style="{StaticResource UnderlineTabControl}" HorizontalContentAlignment="{DynamicResource AssetTabsAlignment}">
+                <TabItem Header="{l:Tr 'Plant'}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Kind'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Source={x:Static assets:PlantAssetViewModel.Kinds}}"
+                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Kind}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}" Visibility="{Binding HasSoilChoice, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Placed on'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Source={x:Static assets:PlantAssetViewModel.Soils}}"
+                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Soil}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}" Visibility="{Binding IsGrowing, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Maximum height'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="16" SmallChange="1"
+                                          Value="{Binding MaxHeight, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Light level'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="15" SmallChange="1"
+                                          Value="{Binding LightLevel, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Sounds'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding SoundChoices}" SelectedValue="{Binding Sound}" />
+                        </WrapPanel>
+
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Textures'}" Margin="0,12,0,4" />
+                        <TextBlock Style="{StaticResource FieldHint}" Text="{Binding MainTextureHint}" TextWrapping="Wrap" />
+                        <WrapPanel>
+                            <ContentControl Content="{Binding MainTexture}" ContentTemplate="{StaticResource TextureTile}" Focusable="False" />
+                            <ContentControl Content="{Binding TopTexture}" ContentTemplate="{StaticResource TextureTile}" Focusable="False"
+                                            Visibility="{Binding IsTall, Converter={StaticResource BoolToVisibility}}" />
+                        </WrapPanel>
+                        <StackPanel Visibility="{Binding IsCrop, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Growth stages'}" Margin="0,8,0,4" />
+                            <ItemsControl ItemsSource="{Binding Stages}" ItemTemplate="{StaticResource TextureTile}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                            <WrapPanel>
+                                <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Add a stage'}" Command="{Binding AddStageCommand}" />
+                                <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Remove the last stage'}" Command="{Binding RemoveStageCommand}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap"
+                                       Text="{l:Tr 'From the seed to the ripe plant (up to 8, like wheat); the last one is the ripe crop.'}" />
+                        </StackPanel>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Crop'}" Visibility="{Binding IsCrop, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Produce'}" />
+                            <ContentControl Style="{StaticResource RowPicker}" Content="{Binding ProducePicker}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Quantity (min - max)'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Width="130" Minimum="1" Maximum="64" SmallChange="1"
+                                          Value="{Binding ProduceMin, UpdateSourceTrigger=PropertyChanged}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Width="130" Minimum="1" Maximum="64" SmallChange="1"
+                                          Value="{Binding ProduceMax, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource RowHint}" TextWrapping="Wrap"
+                                   Text="{l:Tr 'A ripe crop drops its produce (wheat) and 1 to 3 seeds; a young one only its seed. The item of the crop is its seeds.'}" />
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Generation'}" Visibility="{Binding CanGenerate, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Content="{l:Tr 'Generate patches of the plant in the world'}"
+                                  IsChecked="{Binding GenerationEnabled}" Margin="0,0,0,8" />
+                        <StackPanel IsEnabled="{Binding GenerationEnabled}">
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Biomes'}" />
+                                <TextBox Width="320" FontFamily="Consolas" Text="{Binding GenerationBiomes}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" TextWrapping="Wrap"
+                                       Text="{l:Tr 'Empty: every biome of the overworld. A tag (#minecraft:is_forest) or biomes separated by commas (minecraft:plains, mymod:my_biome).'}" />
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'One patch every (chunks)'}" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="256" SmallChange="1"
+                                              Value="{Binding GenerationRarity, UpdateSourceTrigger=PropertyChanged}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Plants tried per patch'}" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="256" SmallChange="4"
+                                              Value="{Binding GenerationPatchSize, UpdateSourceTrigger=PropertyChanged}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Flowers of the plains: one patch every 32 chunks, 64 tries; sugar cane: every 6 chunks, 20 tries.'}" />
+                        </StackPanel>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Item'}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryFields}" Focusable="False" />
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ===================== Biome (V0.7.0) ===================== -->
+    <DataTemplate DataType="{x:Type assets:BiomeAssetViewModel}">
+        <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+            <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
+            <TabControl Style="{StaticResource UnderlineTabControl}" HorizontalContentAlignment="{DynamicResource AssetTabsAlignment}">
+                <TabItem Header="{l:Tr 'Biome'}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Based on'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" IsEditable="True" ItemsSource="{Binding BaseBiomes}"
+                                      Text="{Binding BaseBiome, UpdateSourceTrigger=LostFocus}" FontFamily="Consolas" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource RowHint}" TextWrapping="Wrap"
+                                   Text="{l:Tr 'The biome keeps the trees, flowers, ores, caves and mobs of this biome of Minecraft.'}" />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Temperature'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="-2" Maximum="2" SmallChange="0.05"
+                                          Value="{Binding Temperature, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Snow below 0.15; plains: 0.8; desert: 2.'}" />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Downfall'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="1" SmallChange="0.05"
+                                          Value="{Binding Downfall, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Rain or snow falls in the biome'}" IsChecked="{Binding HasPrecipitation}" />
+
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Surface'}" Margin="0,12,0,4" />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Surface block'}" />
+                            <TextBox Width="240" FontFamily="Consolas" Text="{Binding TopBlock}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Under the surface'}" />
+                            <TextBox Width="240" FontFamily="Consolas" Text="{Binding UnderBlock}" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource RowHint}" TextWrapping="Wrap"
+                                   Text="{l:Tr 'Blocks of the mod or of Minecraft (minecraft:podzol, mymod:moss); empty: those of the overworld (grass, dirt).'}" />
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Colors'}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Sky'}" />
+                            <TextBox Width="120" FontFamily="Consolas" Text="{Binding SkyColor}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Fog'}" />
+                            <TextBox Width="120" FontFamily="Consolas" Text="{Binding FogColor}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Water'}" />
+                            <TextBox Width="120" FontFamily="Consolas" Text="{Binding WaterColor}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Fog under water'}" />
+                            <TextBox Width="120" FontFamily="Consolas" Text="{Binding WaterFogColor}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Grass'}" />
+                            <TextBox Width="120" FontFamily="Consolas" Text="{Binding GrassColor}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Leaves'}" />
+                            <TextBox Width="120" FontFamily="Consolas" Text="{Binding FoliageColor}" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource RowHint}" TextWrapping="Wrap"
+                                   Text="{l:Tr 'Colors #RRGGBB. Grass and leaves: empty to compute them from the temperature and the downfall.'}" />
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Placement'}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Content="{l:Tr 'Appears in the overworld'}"
+                                  IsChecked="{Binding GeneratesInOverworld}" Margin="0,0,0,8" />
+                        <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                   Text="{l:Tr 'The biome appears where the climate of the world is close to these values (center and spread, from -1 to 1), next to the biomes of Minecraft.'}" />
+                        <ItemsControl ItemsSource="{Binding Climate}" Focusable="False" IsEnabled="{Binding GeneratesInOverworld}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type assets:ClimateRangeViewModel}">
+                                    <WrapPanel Style="{StaticResource Row}" ToolTip="{Binding Hint}">
+                                        <TextBlock Style="{StaticResource RowLabel}" Text="{Binding Label}" />
+                                        <ui:NumberBox Style="{StaticResource RowNumber}" Width="130" Minimum="-1" Maximum="1" SmallChange="0.05"
+                                                      Value="{Binding Center, UpdateSourceTrigger=PropertyChanged}" />
+                                        <ui:NumberBox Style="{StaticResource RowNumber}" Width="130" Minimum="0" Maximum="1" SmallChange="0.05"
+                                                      Value="{Binding Spread, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Text="{Binding Hint}" VerticalAlignment="Center" Margin="8,0,0,0" FontSize="11" Foreground="{DynamicResource HintBrush}" />
+                                    </WrapPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </TabItem>
             </TabControl>

@@ -24,6 +24,12 @@ public sealed class BlockResourcesEmitter : ResourceEmitter
         ResourcePaths paths = context.Paths;
         foreach (IRBlock block in context.Ir.Content.Blocks)
         {
+            if (block.Plant is { } plant)
+            {
+                EmitPlant(context, block, plant);
+                continue;
+            }
+
             string blockModel = paths.Reference($"block/{block.Id}");
             // A block shown with a 3D model takes the textures of the model (see ModelsEmitter).
             IReadOnlyList<BlockTextureSlot> slots = block.CustomModel is null ? UsedSlots(block.Settings.Model) : [];
@@ -75,6 +81,177 @@ public sealed class BlockResourcesEmitter : ResourceEmitter
                 WriteJson(context, paths.BlockLootTable(block.Id), lootTable);
             }
         }
+    }
+
+    /// <summary>
+    /// Plant (V0.7.0): a cross (flower, growing plant), two crosses (bottom and top of a tall plant)
+    /// or one model per stage of a crop; its item is a flat texture (the seeds of a crop, the top of a
+    /// tall plant); a tall plant drops itself from its bottom half, a ripe crop its produce and seeds.
+    /// </summary>
+    private void EmitPlant(GenerationContext context, IRBlock block, MineEngine.IR.Model.IRPlant plant)
+    {
+        ResourcePaths paths = context.Paths;
+        string id = block.Id.Value;
+        JsonObject Cross(string texture)
+        {
+            var model = new JsonObject { ["parent"] = "minecraft:block/cross", ["textures"] = new JsonObject { ["cross"] = texture } };
+            AddRenderType(block, model);
+            return model;
+        }
+
+        WriteTexture(context, block.Texture, paths.BlockTexture(block.Id));
+        string itemTexture = paths.Reference($"block/{id}");
+        JsonObject blockState;
+        JsonObject? lootTable = CreateLootTable(block, paths);
+        switch (plant.Kind)
+        {
+            case MineEngine.Assets.PlantKind.Tall:
+            {
+                WriteTexture(context, plant.TopTexture ?? block.Texture, paths.BlockTexture(block.Id, "_top"));
+                WriteJson(context, paths.BlockModel(block.Id), Cross(paths.Reference($"block/{id}")));
+                WriteJson(context, paths.BlockModel(MineEngine.Core.Identifiers.ResourceId.Parse(id + "_top")), Cross(paths.Reference($"block/{id}_top")));
+                blockState = new JsonObject
+                {
+                    ["variants"] = new JsonObject
+                    {
+                        ["half=lower"] = new JsonObject { ["model"] = paths.Reference($"block/{id}") },
+                        ["half=upper"] = new JsonObject { ["model"] = paths.Reference($"block/{id}_top") },
+                    },
+                };
+                itemTexture = paths.Reference($"block/{id}_top");
+                lootTable = new JsonObject
+                {
+                    ["type"] = "minecraft:block",
+                    ["pools"] = new JsonArray
+                    {
+                        new JsonObject
+                        {
+                            ["rolls"] = 1,
+                            ["entries"] = new JsonArray { new JsonObject { ["type"] = "minecraft:item", ["name"] = paths.Reference(id) } },
+                            ["conditions"] = new JsonArray
+                            {
+                                new JsonObject
+                                {
+                                    ["condition"] = "minecraft:block_state_property",
+                                    ["block"] = paths.Reference(id),
+                                    ["properties"] = new JsonObject { ["half"] = "lower" },
+                                },
+                                new JsonObject { ["condition"] = "minecraft:survives_explosion" },
+                            },
+                        },
+                    },
+                };
+                break;
+            }
+
+            case MineEngine.Assets.PlantKind.Crop:
+            {
+                IReadOnlyList<IRTexture> stages = plant.Stages.Count > 0 ? plant.Stages : [block.Texture];
+                for (int i = 0; i < stages.Count; i++)
+                {
+                    string stage = $"{id}_stage{i}";
+                    WriteTexture(context, stages[i], paths.BlockTexture(MineEngine.Core.Identifiers.ResourceId.Parse(stage)));
+                    var model = new JsonObject { ["parent"] = "minecraft:block/crop", ["textures"] = new JsonObject { ["crop"] = paths.Reference($"block/{stage}") } };
+                    AddRenderType(block, model);
+                    WriteJson(context, paths.BlockModel(MineEngine.Core.Identifiers.ResourceId.Parse(stage)), model);
+                }
+
+                // The 8 ages of a crop share the stages: age 7 is always the last (ripe) one.
+                var variants = new JsonObject();
+                for (int age = 0; age <= 7; age++)
+                {
+                    int stage = age == 7 ? stages.Count - 1 : Math.Min(stages.Count - 1, age * stages.Count / 8);
+                    variants[$"age={age}"] = new JsonObject { ["model"] = paths.Reference($"block/{id}_stage{stage}") };
+                }
+
+                blockState = new JsonObject { ["variants"] = variants };
+                lootTable = CropLootTable(block, plant, paths);
+                break;
+            }
+
+            default:
+                WriteJson(context, paths.BlockModel(block.Id), Cross(paths.Reference($"block/{id}")));
+                blockState = new JsonObject { ["variants"] = new JsonObject { [string.Empty] = new JsonObject { ["model"] = paths.Reference($"block/{id}") } } };
+                break;
+        }
+
+        WriteJson(context, paths.BlockState(block.Id), blockState);
+        if (block.ItemForm is not null)
+        {
+            WriteJson(context, paths.ItemModel(block.Id), new JsonObject
+            {
+                ["parent"] = "minecraft:item/generated",
+                ["textures"] = new JsonObject { ["layer0"] = itemTexture },
+            });
+        }
+
+        if (lootTable is not null)
+        {
+            WriteJson(context, paths.BlockLootTable(block.Id), lootTable);
+        }
+    }
+
+    /// <summary>A ripe crop (age 7) drops its produce and seeds; a young one its seeds only.</summary>
+    private static JsonObject CropLootTable(IRBlock block, MineEngine.IR.Model.IRPlant plant, ResourcePaths paths)
+    {
+        JsonObject Ripe() => new()
+        {
+            ["condition"] = "minecraft:block_state_property",
+            ["block"] = paths.Reference(block.Id.Value),
+            ["properties"] = new JsonObject { ["age"] = "7" },
+        };
+
+        var pools = new JsonArray
+        {
+            new JsonObject
+            {
+                ["rolls"] = 1,
+                ["entries"] = new JsonArray { new JsonObject { ["type"] = "minecraft:item", ["name"] = paths.Reference(block.Id.Value) } },
+            },
+            new JsonObject
+            {
+                ["rolls"] = 1,
+                ["entries"] = new JsonArray
+                {
+                    new JsonObject
+                    {
+                        ["type"] = "minecraft:item",
+                        ["name"] = paths.Reference(block.Id.Value),
+                        ["functions"] = new JsonArray
+                        {
+                            new JsonObject
+                            {
+                                ["function"] = "minecraft:set_count",
+                                ["count"] = new JsonObject { ["type"] = "minecraft:uniform", ["min"] = 0, ["max"] = 2 },
+                            },
+                        },
+                    },
+                },
+                ["conditions"] = new JsonArray { Ripe() },
+            },
+        };
+        if (plant.Produce is { } produce)
+        {
+            JsonNode count = plant.ProduceMin == plant.ProduceMax
+                ? JsonValue.Create(plant.ProduceMin)
+                : new JsonObject { ["type"] = "minecraft:uniform", ["min"] = plant.ProduceMin, ["max"] = plant.ProduceMax };
+            pools.Add(new JsonObject
+            {
+                ["rolls"] = 1,
+                ["entries"] = new JsonArray
+                {
+                    new JsonObject
+                    {
+                        ["type"] = "minecraft:item",
+                        ["name"] = produce.ToString(),
+                        ["functions"] = new JsonArray { new JsonObject { ["function"] = "minecraft:set_count", ["count"] = count } },
+                    },
+                },
+                ["conditions"] = new JsonArray { Ripe() },
+            });
+        }
+
+        return new JsonObject { ["type"] = "minecraft:block", ["pools"] = pools };
     }
 
     /// <summary>Emplacements de texture utilisés par chaque forme.</summary>

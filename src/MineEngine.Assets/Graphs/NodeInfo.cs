@@ -425,6 +425,12 @@ public enum GraphNodeKind
     PlayerGuild,
     SetEntityGroup,
     EntityGroup,
+
+    // ----- Tags (V0.7.1) -----
+    IsBlockInTag,
+    IsItemInTag,
+    IsEntityInTag,
+    IsBiomeInTag,
 }
 
 /// <summary>Domain of a node, used to sort the Nodes window like MCreator's procedure blocks.</summary>

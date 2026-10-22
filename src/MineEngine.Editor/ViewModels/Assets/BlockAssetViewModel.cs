@@ -90,6 +90,23 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
             v => Math.Clamp((int)Math.Round(v), 0, BlockAsset.MaxLightLevel));
     }
 
+    /// <summary>Faces of a block with one texture per face, laid out as an unfolded cube (like MCreator).</summary>
+    public bool ShowsFaceCross => _block.Model == BlockModelKind.CubeFaces;
+
+    public TextureSlotViewModel TopSlot => Slot(BlockTextureSlot.Top);
+
+    public TextureSlotViewModel BottomSlot => Slot(BlockTextureSlot.Bottom);
+
+    public TextureSlotViewModel FrontSlot => Slot(BlockTextureSlot.North);
+
+    public TextureSlotViewModel BackSlot => Slot(BlockTextureSlot.South);
+
+    public TextureSlotViewModel LeftSlot => Slot(BlockTextureSlot.West);
+
+    public TextureSlotViewModel RightSlot => Slot(BlockTextureSlot.East);
+
+    private TextureSlotViewModel Slot(BlockTextureSlot slot) => _extraSlots.First(s => s.PropertyName == BlockAsset.TexturePropertyName(slot));
+
     /// <summary>Emplacements de texture secondaires utiles pour la forme choisie.</summary>
     public IReadOnlyList<TextureSlotViewModel> ExtraTextures => _block.Model switch
     {
@@ -232,6 +249,7 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
             case nameof(BlockAsset.Model):
                 OnPropertyChanged(nameof(BlockModel));
                 OnPropertyChanged(nameof(ExtraTextures));
+                OnPropertyChanged(nameof(ShowsFaceCross));
                 UpdateMainTextureLabel();
                 break;
 

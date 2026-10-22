@@ -298,10 +298,10 @@ public static class GameDataChoices
     {
         BlockTextureSlot.Top => Tr.T("Top"),
         BlockTextureSlot.Bottom => Tr.T("Bottom"),
-        BlockTextureSlot.North => Tr.T("North"),
-        BlockTextureSlot.South => Tr.T("South"),
-        BlockTextureSlot.East => Tr.T("East"),
-        BlockTextureSlot.West => Tr.T("West"),
+        BlockTextureSlot.North => Tr.T("Front (north)"),
+        BlockTextureSlot.South => Tr.T("Back (south)"),
+        BlockTextureSlot.East => Tr.T("Right (east)"),
+        BlockTextureSlot.West => Tr.T("Left (west)"),
         _ => Tr.T("Texture"),
     };
 }

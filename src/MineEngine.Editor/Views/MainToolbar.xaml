@@ -201,6 +201,14 @@
                                           ToolTip="{l:Tr 'Fluid with its block and its bucket'}">
                                     <MenuItem.Icon><views:IconView Icon="FluidGeometry" IconSize="14" /></MenuItem.Icon>
                                 </MenuItem>
+                                <MenuItem Header="{l:Tr 'Plant'}" Command="{Binding AddOfTypeCommand}" CommandParameter="{x:Static core:AssetType.Plant}"
+                                          ToolTip="{l:Tr 'Flower, tall plant, growing plant or crop, with its patches in the world'}">
+                                    <MenuItem.Icon><views:IconView Icon="Glyph.Star" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{l:Tr 'Biome'}" Command="{Binding AddOfTypeCommand}" CommandParameter="{x:Static core:AssetType.Biome}"
+                                          ToolTip="{l:Tr 'Biome of the overworld, with its climate and its colors'}">
+                                    <MenuItem.Icon><views:IconView Icon="Glyph.Explorer" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
                                 <MenuItem Header="{l:Tr 'Game rule'}" Command="{Binding AddOfTypeCommand}" CommandParameter="{x:Static core:AssetType.GameRule}"
                                           ToolTip="{l:Tr 'Rule changed with /gamerule'}">
                                     <MenuItem.Icon><views:IconView Icon="Glyph.Settings" IconSize="14" /></MenuItem.Icon>
@@ -274,6 +282,13 @@
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Field}" Margin="6,0,6,0" />
                         <TextBlock Text="{l:Tr 'Global'}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource ViewButton}" Command="{Binding ShowTagsCommand}" Tag="{Binding IsTagsShown}"
+                        ToolTip="{l:Tr 'Show the tags: groups of blocks, items, entities, biomes... (Ctrl+5)'}" AutomationProperties.Name="{l:Tr 'Tags'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Link}" Margin="6,0,6,0" />
+                        <TextBlock Text="{l:Tr 'Tags'}" VerticalAlignment="Center" Margin="0,0,6,0" />
                     </StackPanel>
                 </Button>
                 <Button Style="{StaticResource ViewButton}" Command="{Binding ShowLanguagesCommand}" Tag="{Binding IsLanguagesShown}"

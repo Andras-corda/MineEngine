@@ -79,7 +79,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         TypeFilters =
         [
             new AssetTypeFilter(Tr.T("All"), null),
-            .. factory.Catalog.Definitions.Where(d => d.Type != AssetType.GlobalVariable).Select(d => new AssetTypeFilter(PluralLabel(d), d.Type)),
+            .. factory.Catalog.Definitions.Where(d => d.Type is not (AssetType.GlobalVariable or AssetType.Tag)).Select(d => new AssetTypeFilter(PluralLabel(d), d.Type)),
         ];
         _typeFilter = TypeFilters[0];
         _typeFilter.IsActive = true;
@@ -612,8 +612,8 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
             return false;
         }
 
-        // Global variables have their own tab (Global).
-        if (asset.Model.Type == AssetType.GlobalVariable)
+        // Global variables and tags have their own tabs (Global, Tags).
+        if (asset.Model.Type is AssetType.GlobalVariable or AssetType.Tag)
         {
             return false;
         }
@@ -699,6 +699,9 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         AssetType.GameRule => Tr.T("Game rules"),
         AssetType.Effect => Tr.T("Effects"),
         AssetType.GlobalVariable => Tr.T("Global variables"),
+        AssetType.Tag => Tr.T("Tags"),
+        AssetType.Plant => Tr.T("Plants"),
+        AssetType.Biome => Tr.T("Biomes"),
         _ => definition.Label,
     };
 

@@ -47,6 +47,9 @@ public sealed class AssetCatalog
             new GameRuleAssetDefinition(),
             new EffectAssetDefinition(),
             new GlobalVariableAssetDefinition(),
+            new TagAssetDefinition(),
+            new PlantAssetDefinition(),
+            new BiomeAssetDefinition(),
         ]);
 
     /// <summary>

@@ -77,6 +77,22 @@ public sealed class VanillaAssetLibrary
 
     public IEnumerable<VanillaAsset> Models => Assets.Where(a => a.Kind == VanillaAssetKind.Model);
 
+    /// <summary>Text of a file of the jar ("data/minecraft/worldgen/biome/plains.json"), or null if it is not in it.</summary>
+    public string? ReadEntry(string entry)
+    {
+        lock (_lock)
+        {
+            using ZipArchive zip = ZipFile.OpenRead(_jar);
+            if (zip.GetEntry(entry) is not { } found)
+            {
+                return null;
+            }
+
+            using var reader = new StreamReader(found.Open());
+            return reader.ReadToEnd();
+        }
+    }
+
     /// <summary>Copies every texture to the cache (once), so that the browser can show them all.</summary>
     public void ExtractTextures()
     {

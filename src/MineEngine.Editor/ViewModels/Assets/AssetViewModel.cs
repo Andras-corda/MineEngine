@@ -104,6 +104,9 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
         AssetType.GameRule => "Glyph.Settings",
         AssetType.Effect => "PotionGeometry",
         AssetType.GlobalVariable => "Glyph.Field",
+        AssetType.Tag => "Glyph.Link",
+        AssetType.Plant => "Glyph.Star",
+        AssetType.Biome => "Glyph.Explorer",
         _ => "Glyph.File",
     };
 

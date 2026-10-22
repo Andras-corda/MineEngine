@@ -21,6 +21,7 @@ public static class GraphHelpersJava
         "lookedAtCreature" or "entityLookedAt" => ["raycastEntity"],
         "stateProperty" or "stateWithProperty" => ["propertyValue"],
         "makeEffect" => ["effect"],
+        "blockInTag" or "itemInTag" or "entityInTag" or "biomeInTag" => ["tagId"],
         "playMusic" => ["stopSounds"],
         "setCreatureAppearance" or "creatureAppearance" => ["appearanceHolders"],
         _ => [],
@@ -72,6 +73,10 @@ public static class GraphHelpersJava
             "applyEffect" => ["net.minecraft.world.entity.LivingEntity", "net.minecraft.world.effect.MobEffectInstance"],
             "worldOf" => ["net.minecraft.world.entity.Entity"],
             "setEntityGroup" or "entityGroup" => ["net.minecraft.world.entity.Entity"],
+            "tagId" => ["net.minecraft.resources.ResourceLocation"],
+            "blockInTag" or "biomeInTag" => ["net.minecraft.tags.TagKey", "net.minecraft.core.registries.Registries"],
+            "itemInTag" => ["net.minecraft.tags.TagKey", "net.minecraft.core.registries.Registries", "net.minecraft.world.item.ItemStack"],
+            "entityInTag" => ["net.minecraft.tags.TagKey", "net.minecraft.core.registries.Registries", "net.minecraft.world.entity.Entity"],
             "listGet" or "listSet" or "listRemoveAt" or "arrayResize" => ["java.util.List"],
             "stateProperty" or "stateWithProperty" => [BlockState, Property],
             "entityPosition" or "isEntityAlive" or "removeEntity" or "teleportEntity" or "damageEntity" => ["net.minecraft.world.entity.Entity"],
@@ -768,6 +773,38 @@ public static class GraphHelpersJava
                 "    if (entity != null && effect != null) {",
                 "        entity.addEffect(new MobEffectInstance(effect));",
                 "    }",
+                "}",
+            ],
+            "tagId" =>
+            [
+                "/** \"#minecraft:logs\" or \"minecraft:logs\" as an identifier (minecraft:air if it is not one). */",
+                "private static ResourceLocation tagId(String tag) {",
+                "    ResourceLocation id = ResourceLocation.tryParse(tag.trim().startsWith(\"#\") ? tag.trim().substring(1) : tag.trim());",
+                $"    return id != null ? id : {api.ParseResourceLocation("\"minecraft:air\"")};",
+                "}",
+            ],
+            "blockInTag" =>
+            [
+                "private static boolean blockInTag(Level level, BlockPos position, String tag) {",
+                "    return level.getBlockState(position).is(TagKey.create(Registries.BLOCK, tagId(tag)));",
+                "}",
+            ],
+            "itemInTag" =>
+            [
+                "private static boolean itemInTag(ItemStack stack, String tag) {",
+                "    return stack != null && stack.is(TagKey.create(Registries.ITEM, tagId(tag)));",
+                "}",
+            ],
+            "entityInTag" =>
+            [
+                "private static boolean entityInTag(Entity entity, String tag) {",
+                "    return entity != null && entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, tagId(tag)));",
+                "}",
+            ],
+            "biomeInTag" =>
+            [
+                "private static boolean biomeInTag(Level level, BlockPos position, String tag) {",
+                "    return level.getBiome(position).is(TagKey.create(Registries.BIOME, tagId(tag)));",
                 "}",
             ],
             "setEntityGroup" =>

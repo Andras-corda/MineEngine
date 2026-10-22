@@ -653,3 +653,14 @@ public sealed class GlobalVariableAssetViewModel : AssetViewModel
     /// <summary>The variable does not exist in game under its identifier: it gives the name of its Java accessors.</summary>
     public override bool HasGameId => false;
 }
+
+/// <summary>A tag (V0.7.1): it is edited in the Tags tab, not in the Dashboard.</summary>
+public sealed class TagAssetViewModel : AssetViewModel
+{
+    public TagAssetViewModel(TagAsset model, AssetEditingContext context, string typeLabel)
+        : base(model, context, typeLabel)
+    {
+    }
+
+    public override bool HasGameId => false;
+}

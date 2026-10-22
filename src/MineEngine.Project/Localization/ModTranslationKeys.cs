@@ -25,6 +25,8 @@ public enum TranslationSource
     SplashPotion,
     LingeringPotion,
     TippedArrow,
+    Plant,
+    Biome,
 }
 
 /// <summary>Un texte du mod écrit dans les fichiers de langue : sa clé, le texte saisi et l'élément qui le porte.</summary>
@@ -130,6 +132,16 @@ public static class ModTranslationKeys
         foreach (EnchantmentAsset enchantment in Sorted<EnchantmentAsset>(project))
         {
             entries.Add(new TranslationEntry($"enchantment.{ns}.{enchantment.ResourceId}", enchantment.DisplayName, TranslationSource.Enchantment, enchantment.Id));
+        }
+
+        foreach (PlantAsset plant in Sorted<PlantAsset>(project))
+        {
+            entries.Add(new TranslationEntry($"block.{ns}.{plant.ResourceId}", plant.DisplayName, TranslationSource.Plant, plant.Id));
+        }
+
+        foreach (BiomeAsset biome in Sorted<BiomeAsset>(project))
+        {
+            entries.Add(new TranslationEntry($"biome.{ns}.{biome.ResourceId}", biome.DisplayName, TranslationSource.Biome, biome.Id));
         }
 
         foreach (FluidAsset fluid in Sorted<FluidAsset>(project))

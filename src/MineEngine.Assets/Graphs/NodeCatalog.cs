@@ -681,6 +681,20 @@ public static class NodeCatalog
         new(GraphNodeKind.EntityGroup, NodeCategory.Variable, Tr.T("Group of the entity"), Tr.T("Name of the group of the entity (empty without group)."),
             inputs: [Entity], outputs: [TextOut]),
 
+        // ----- Tags (V0.7.1) -----
+        new(GraphNodeKind.IsBlockInTag, NodeCategory.Condition, Tr.T("Block is in tag"),
+            Tr.T("True if the block at the position is in the tag (#minecraft:logs, #mymod:ores...)."),
+            inputs: [Position, TextIn("tag", Tr.T("Tag"), "#minecraft:logs")]),
+        new(GraphNodeKind.IsItemInTag, NodeCategory.Condition, Tr.T("Item is in tag"),
+            Tr.T("True if the item of the stack is in the tag (#minecraft:planks...)."),
+            inputs: [Stack, TextIn("tag", Tr.T("Tag"), "#minecraft:planks")]),
+        new(GraphNodeKind.IsEntityInTag, NodeCategory.Condition, Tr.T("Entity is in tag"),
+            Tr.T("True if the type of the entity is in the tag (#minecraft:skeletons...)."),
+            inputs: [Entity, TextIn("tag", Tr.T("Tag"), "#minecraft:skeletons")]),
+        new(GraphNodeKind.IsBiomeInTag, NodeCategory.Condition, Tr.T("Biome is in tag"),
+            Tr.T("True if the biome at the position is in the tag (#minecraft:is_forest...)."),
+            inputs: [Position, TextIn("tag", Tr.T("Tag"), "#minecraft:is_forest")]),
+
         // ----- Game rules (V0.6.3) -----
         new(GraphNodeKind.GetGameRuleBoolean, NodeCategory.Variable, Tr.T("Game rule (true/false)"),
             Tr.T("Value of a true/false game rule of Minecraft or of the mod (keepInventory, doDaylightCycle...)."),
@@ -799,6 +813,10 @@ public static class NodeCatalog
         >= GraphNodeKind.CurrentWorld and <= GraphNodeKind.GameTime => NodeGroup.World,
         GraphNodeKind.SetPlayerGuild or GraphNodeKind.PlayerGuild => NodeGroup.Player,
         GraphNodeKind.SetEntityGroup or GraphNodeKind.EntityGroup => NodeGroup.Entities,
+        GraphNodeKind.IsBlockInTag => NodeGroup.Block,
+        GraphNodeKind.IsItemInTag => NodeGroup.Item,
+        GraphNodeKind.IsEntityInTag => NodeGroup.Entities,
+        GraphNodeKind.IsBiomeInTag => NodeGroup.World,
         GraphNodeKind.NumberValue or GraphNodeKind.RandomNumber or GraphNodeKind.GreaterThan or GraphNodeKind.LessThan or GraphNodeKind.NumbersEqual
             or GraphNodeKind.Add or GraphNodeKind.Subtract or GraphNodeKind.Multiply => NodeGroup.Math,
         GraphNodeKind.TextValue or GraphNodeKind.JoinText => NodeGroup.Text,

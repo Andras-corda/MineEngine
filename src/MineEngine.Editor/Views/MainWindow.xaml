@@ -216,6 +216,14 @@
                                   ToolTip="{l:Tr 'Fluid with its block and its bucket'}">
                             <MenuItem.Icon><views:IconView Icon="FluidGeometry" IconSize="14" /></MenuItem.Icon>
                         </MenuItem>
+                        <MenuItem Header="{l:Tr 'Plant'}" Command="{Binding AddOfTypeCommand}" CommandParameter="{x:Static core:AssetType.Plant}"
+                                  ToolTip="{l:Tr 'Flower, tall plant, growing plant or crop, with its patches in the world'}">
+                            <MenuItem.Icon><views:IconView Icon="Glyph.Star" IconSize="14" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="{l:Tr 'Biome'}" Command="{Binding AddOfTypeCommand}" CommandParameter="{x:Static core:AssetType.Biome}"
+                                  ToolTip="{l:Tr 'Biome of the overworld, with its climate and its colors'}">
+                            <MenuItem.Icon><views:IconView Icon="Glyph.Explorer" IconSize="14" /></MenuItem.Icon>
+                        </MenuItem>
                         <MenuItem Header="{l:Tr 'Game rule'}" Command="{Binding AddOfTypeCommand}" CommandParameter="{x:Static core:AssetType.GameRule}"
                                   ToolTip="{l:Tr 'Rule changed with /gamerule'}">
                             <MenuItem.Icon><views:IconView Icon="Glyph.Settings" IconSize="14" /></MenuItem.Icon>
@@ -277,6 +285,7 @@
                 <MenuItem Header="{l:Tr '_Dashboard'}" Command="{Binding ShowDashboardCommand}" InputGestureText="{Binding Shortcuts[window.dashboard]}" />
                 <MenuItem Header="{l:Tr 'R_esources'}" Command="{Binding ShowResourcesCommand}" InputGestureText="{Binding Shortcuts[window.resources]}" />
                 <MenuItem Header="{l:Tr '_Global variables'}" Command="{Binding ShowGlobalsCommand}" InputGestureText="{Binding Shortcuts[window.globals]}" />
+                <MenuItem Header="{l:Tr '_Tags'}" Command="{Binding ShowTagsCommand}" InputGestureText="{Binding Shortcuts[window.tags]}" />
                 <MenuItem Header="{l:Tr 'Mod _languages'}" Command="{Binding ShowLanguagesCommand}" InputGestureText="{Binding Shortcuts[window.languages]}" />
                 <Separator />
                 <MenuItem Header="{l:Tr '_Explorer'}" Tag="explorer" Click="OnShowPanelClick" InputGestureText="Ctrl+B" />
@@ -388,6 +397,9 @@
                             </dock:LayoutDocument>
                             <dock:LayoutDocument Title="{l:Tr 'Global'}" ContentId="globals" CanClose="False" CanFloat="False">
                                 <panels:GlobalsPanel x:Name="GlobalsPanel" />
+                            </dock:LayoutDocument>
+                            <dock:LayoutDocument Title="{l:Tr 'Tags'}" ContentId="tags" CanClose="False" CanFloat="False">
+                                <panels:TagsPanel x:Name="TagsPanel" />
                             </dock:LayoutDocument>
                             <dock:LayoutDocument Title="{l:Tr 'Languages'}" ContentId="languages" CanClose="False" CanFloat="False">
                                 <panels:LanguagesPanel x:Name="LanguagesPanel" />

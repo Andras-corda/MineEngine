@@ -93,6 +93,11 @@ public sealed class LanguageEmitter : IFileEmitter
             entries[paths.EffectTranslationKey(effect.Id)] = effect.Name;
         }
 
+        foreach (IRBiome biome in content.Biomes)
+        {
+            entries[$"biome.{paths.Namespace}.{biome.Id}"] = biome.DisplayName;
+        }
+
         ModLocalization localization = context.Ir.Localization;
         foreach (string locale in localization.Locales)
         {

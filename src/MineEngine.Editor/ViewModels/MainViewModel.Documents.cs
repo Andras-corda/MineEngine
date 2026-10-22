@@ -48,6 +48,8 @@ public sealed partial class MainViewModel
 
     public const string GlobalsTabId = "globals";
 
+    public const string TagsTabId = "tags";
+
     /// <summary>Demande à la vue d'afficher un onglet permanent (Ressources, Langues).</summary>
     public event EventHandler<string>? ProjectTabRequested;
 
@@ -56,6 +58,8 @@ public sealed partial class MainViewModel
     public ICommand ShowLanguagesCommand { get; private set; } = null!;
 
     public ICommand ShowGlobalsCommand { get; private set; } = null!;
+
+    public ICommand ShowTagsCommand { get; private set; } = null!;
 
     /// <summary>Onglets ouverts (fichiers et graphes, sans le Dashboard).</summary>
     public ObservableCollection<DocumentViewModel> Documents { get; } = [];
@@ -95,6 +99,7 @@ public sealed partial class MainViewModel
                 OnPropertyChanged(nameof(IsResourcesShown));
                 OnPropertyChanged(nameof(IsLanguagesShown));
                 OnPropertyChanged(nameof(IsGlobalsShown));
+                OnPropertyChanged(nameof(IsTagsShown));
                 OnPropertyChanged(nameof(ShowsViewModeButtons));
                 OnPropertyChanged(nameof(SearchText));
                 OnPropertyChanged(nameof(SearchHint));
@@ -111,8 +116,10 @@ public sealed partial class MainViewModel
 
     public bool IsGlobalsShown => _activeWorkspaceView == GlobalsTabId;
 
+    public bool IsTagsShown => _activeWorkspaceView == TagsTabId;
+
     /// <summary>List and grid buttons: they only change the Dashboard, hidden over Resources and Languages.</summary>
-    public bool ShowsViewModeButtons => !IsResourcesShown && !IsLanguagesShown && !IsGlobalsShown;
+    public bool ShowsViewModeButtons => !IsResourcesShown && !IsLanguagesShown && !IsGlobalsShown && !IsTagsShown;
 
     /// <summary>Search of the toolbar: it filters the view shown (Resources, Languages), otherwise the Dashboard.</summary>
     public string SearchText
@@ -120,6 +127,7 @@ public sealed partial class MainViewModel
         get => (IsResourcesShown ? _project?.Resources.SearchText
             : IsLanguagesShown ? Languages?.SearchText
             : IsGlobalsShown ? Globals?.SearchText
+            : IsTagsShown ? Tags?.SearchText
             : _project?.SearchText) ?? string.Empty;
         set
         {
@@ -135,6 +143,10 @@ public sealed partial class MainViewModel
             {
                 Globals.SearchText = value;
             }
+            else if (IsTagsShown && Tags is not null)
+            {
+                Tags.SearchText = value;
+            }
             else if (_project is not null)
             {
                 _project.SearchText = value;
@@ -145,7 +157,8 @@ public sealed partial class MainViewModel
     }
 
     public string SearchHint => IsResourcesShown ? Tr.T("Search the resources...") : IsLanguagesShown ? Tr.T("Search for a key or a text...")
-        : IsGlobalsShown ? Tr.T("Search for a variable...") : Tr.T("Search...");
+        : IsGlobalsShown ? Tr.T("Search for a variable...")
+        : IsTagsShown ? Tr.T("Search for a tag or an entry...") : Tr.T("Search...");
 
     private string? _activeWorkspaceView = DashboardTabId;
 
@@ -289,6 +302,7 @@ public sealed partial class MainViewModel
         ShowResourcesCommand = new RelayCommand(() => ProjectTabRequested?.Invoke(this, ResourcesTabId), () => HasProject);
         ShowLanguagesCommand = new RelayCommand(() => ProjectTabRequested?.Invoke(this, LanguagesTabId), () => HasProject);
         ShowGlobalsCommand = new RelayCommand(() => ProjectTabRequested?.Invoke(this, GlobalsTabId), () => HasProject);
+        ShowTagsCommand = new RelayCommand(() => ProjectTabRequested?.Invoke(this, TagsTabId), () => HasProject);
         OpenAssetSourceCommand = new RelayCommand(
             () => OpenAssetDocument(_project!.SelectedAsset!.Model), () => _project?.SelectedAsset is not null);
         ShowAssetDetailsCommand = new RelayCommand<AssetViewModel>(asset =>

@@ -82,6 +82,8 @@ public sealed class NeoForgeJavaEmitter : ModJavaEmitter
 
     protected override string ServerStoppingEvent => "net.neoforged.neoforge.event.server.ServerStoppingEvent";
 
+    protected override string ServerAboutToStartEvent => "net.neoforged.neoforge.event.server.ServerAboutToStartEvent";
+
     protected override string FmlPaths => "net.neoforged.fml.loading.FMLPaths";
 
     protected override (string Import, string TypeName) GameEventType(GraphNodeKind eventKind) => eventKind switch

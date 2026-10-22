@@ -49,6 +49,9 @@ public abstract partial class ModJavaEmitter : IFileEmitter
     /// <summary>Event sent when the server starts (the session variables start again).</summary>
     protected abstract string ServerStartingEvent { get; }
 
+    /// <summary>Event sent before the worlds of the server are created (the biomes of the mod join the overworld).</summary>
+    protected abstract string ServerAboutToStartEvent { get; }
+
     /// <summary>Event sent when the server stops (the global_server variables are written).</summary>
     protected abstract string ServerStoppingEvent { get; }
 
@@ -73,6 +76,12 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         Write(context, naming, naming.EntityPackage, AppearanceInterface, WriteAppearanceInterface(naming));
 
         IRContent content = context.Ir.Content;
+        if (content.Biomes.Any(b => b.GeneratesInOverworld))
+        {
+            Write(context, naming, BiomesJava.Package(naming), BiomesJava.ClassName,
+                new BiomesJava(naming, api, context.Mod.ModId.Value).Write(content.Biomes, GameEventBus, ServerAboutToStartEvent));
+        }
+
         if (content.Sounds.Count > 0)
         {
             Write(context, naming, naming.RegistryPackage, naming.SoundsClass, WriteSoundsClass(context, naming, api));
@@ -234,6 +243,12 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             w.Line($"{naming.RootPackage}.code.{JavaProgramNames.GlobalsClass}.register();");
         }
 
+        // Biomes of the mod added to the overworld when the server starts.
+        if (content.Biomes.Any(b => b.GeneratesInOverworld))
+        {
+            w.Line($"{BiomesJava.Package(naming)}.{BiomesJava.ClassName}.register();");
+        }
+
         // Graphes nodaux : leurs réactions s'inscrivent sur le bus des événements du jeu.
         foreach (IRBehavior behavior in content.Behaviors)
         {
@@ -318,7 +333,8 @@ public abstract partial class ModJavaEmitter : IFileEmitter
                 ];
             WriteRegistration(
                 w, BlockHolderType, naming.ConstantFor(block.Id), "BLOCKS", block.Id.Value,
-                head, "BlockBehaviour.Properties.of()", [.. BlockPropertyCalls(block.Settings), .. BlockOptionCalls(block.Options)], tail, overrides);
+                head, "BlockBehaviour.Properties.of()",
+                [.. BlockPropertyCalls(block.Settings), .. BlockOptionCalls(block.Options), .. PlantCalls(block.Plant)], tail, overrides);
             context.SourceMap.Add(file, firstLine, w.NextLineNumber - 1, block.SourceAssetId, $"Bloc '{block.Id}'");
         }
 
@@ -385,6 +401,10 @@ public abstract partial class ModJavaEmitter : IFileEmitter
 
         return calls;
     }
+
+    /// <summary>A growing plant and a crop grow with the random ticks.</summary>
+    private static IEnumerable<string> PlantCalls(IRPlant? plant) =>
+        plant is { Kind: PlantKind.Growing or PlantKind.Crop } ? [".randomTicks()"] : [];
 
     private static IEnumerable<string> BlockPropertyImports(BlockOptions options)
     {

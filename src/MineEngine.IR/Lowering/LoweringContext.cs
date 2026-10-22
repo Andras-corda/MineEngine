@@ -76,6 +76,13 @@ public sealed class LoweringContext
 
     public void AddGlobal(IRGlobalVariable global) => _globals.Add(global);
 
+    private readonly List<IRTag> _tags = [];
+    private readonly List<IRBiome> _biomes = [];
+
+    public void AddTag(IRTag tag) => _tags.Add(tag);
+
+    public void AddBiome(IRBiome biome) => _biomes.Add(biome);
+
     /// <summary>Identifier of the 3D model an element is shown with, or null (missing models are reported by the validation).</summary>
     public ResourceId? ResolveCustomModel(TexturedAsset owner) =>
         owner.UsesCustomModel && owner.CustomModelId is { } id && Project.Assets.Find(id) is ModelAsset { IsUsedByTheGame: true } model
@@ -162,6 +169,8 @@ public sealed class LoweringContext
         GameRules = [.. _gameRules.OrderBy(r => r.Id)],
         Effects = [.. _effects.OrderBy(e => e.Id)],
         Globals = [.. _globals.OrderBy(g => g.Name, StringComparer.Ordinal)],
+        Tags = [.. _tags.OrderBy(t => t.Namespace, StringComparer.Ordinal).ThenBy(t => t.Path, StringComparer.Ordinal)],
+        Biomes = [.. _biomes.OrderBy(b => b.Id)],
     };
 
     private NamespacedId? ResolveAsset(Asset owner, Guid assetId, string role)

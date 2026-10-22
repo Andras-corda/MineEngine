@@ -88,6 +88,8 @@ public sealed class ForgeJavaEmitter : ModJavaEmitter
 
     protected override string ServerStoppingEvent => "net.minecraftforge.event.server.ServerStoppingEvent";
 
+    protected override string ServerAboutToStartEvent => "net.minecraftforge.event.server.ServerAboutToStartEvent";
+
     protected override string FmlPaths => "net.minecraftforge.fml.loading.FMLPaths";
 
     protected override (string Import, string TypeName) GameEventType(GraphNodeKind eventKind) => eventKind switch

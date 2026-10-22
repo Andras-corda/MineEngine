@@ -28,7 +28,7 @@ public sealed class BlockJava
     }
 
     /// <summary>True when the block needs this class (otherwise it is a plain Block of the registry).</summary>
-    public static bool IsNeeded(IRBlock block) => block.Options.NeedsOwnClass;
+    public static bool IsNeeded(IRBlock block) => block.Plant is not null || block.Options.NeedsOwnClass;
 
     public static string Package(JavaModNaming naming) => naming.RootPackage + ".block";
 
@@ -42,6 +42,11 @@ public sealed class BlockJava
     public JavaSourceWriter Write()
     {
         string className = ClassName(_block);
+        if (_block.Plant is { } plant)
+        {
+            return WritePlant(plant, className);
+        }
+
         Use("net.minecraft.world.level.block.Block", "net.minecraft.world.level.block.state.BlockBehaviour",
             "net.minecraft.world.level.block.state.BlockState", "net.minecraft.world.level.block.state.StateDefinition");
         (string baseClass, string superCall) = BaseClass();
@@ -120,6 +125,145 @@ public sealed class BlockJava
         }
 
         return ("Block", "super(properties);");
+    }
+
+    // ----- Plants (V0.7.0) -----
+
+    /// <summary>
+    /// Class of a plant: a bush (flower, growing plant), a double plant or a crop, with the soil it
+    /// can be placed on, the growth of a growing plant, and the seeds of a crop.
+    /// </summary>
+    private JavaSourceWriter WritePlant(IRPlant plant, string className)
+    {
+        Use("net.minecraft.world.level.block.Block", "net.minecraft.world.level.block.state.BlockBehaviour",
+            "net.minecraft.world.level.block.state.BlockState", "net.minecraft.world.level.BlockGetter", "net.minecraft.core.BlockPos");
+        string baseClass = plant.Kind switch
+        {
+            PlantKind.Tall => "DoublePlantBlock",
+            PlantKind.Crop => "CropBlock",
+            _ => "BushBlock",
+        };
+        Use("net.minecraft.world.level.block." + baseClass);
+        var body = new JavaSourceWriter();
+        body.Indent();
+        if (plant.Kind == PlantKind.Growing)
+        {
+            Use("net.minecraft.world.level.block.state.properties.BlockStateProperties", "net.minecraft.world.level.block.state.properties.IntegerProperty",
+                "net.minecraft.world.level.block.state.StateDefinition", "net.minecraft.server.level.ServerLevel", "net.minecraft.util.RandomSource");
+            body.Line("public static final IntegerProperty AGE = BlockStateProperties.AGE_15;")
+                .Line($"public static final int MAX_HEIGHT = {Math.Max(1, plant.MaxHeight)};")
+                .Line();
+        }
+
+        body.OpenBlock($"public {className}(BlockBehaviour.Properties properties)")
+            .Line("super(properties);");
+        if (plant.Kind == PlantKind.Growing)
+        {
+            body.Line("this.registerDefaultState(this.stateDefinition.any().setValue(AGE, 0));");
+        }
+
+        body.CloseBlock();
+        if (plant.Kind != PlantKind.Crop)
+        {
+            body.Line()
+                .Line("@Override")
+                .OpenBlock("protected boolean mayPlaceOn(BlockState state, BlockGetter level, BlockPos position)")
+                .Line($"return {(plant.Kind == PlantKind.Growing ? "state.is(this) || " : string.Empty)}{Soil(plant.Soil)};")
+                .CloseBlock();
+        }
+
+        if (plant.Kind == PlantKind.Growing)
+        {
+            body.Line()
+                .Line("@Override")
+                .OpenBlock("protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder)")
+                .Line("super.createBlockStateDefinition(builder);")
+                .Line("builder.add(AGE);")
+                .CloseBlock()
+                .Line()
+                .Line("/** Grows by one block when its age reaches 15, up to MAX_HEIGHT blocks, like sugar cane. */")
+                .Line("@Override")
+                .OpenBlock("public void randomTick(BlockState state, ServerLevel level, BlockPos position, RandomSource random)")
+                .OpenBlock("if (!level.isEmptyBlock(position.above()))")
+                .Line("return;")
+                .CloseBlock()
+                .Line("int height = 1;")
+                .OpenBlock("while (level.getBlockState(position.below(height)).is(this))")
+                .Line("height++;")
+                .CloseBlock()
+                .OpenBlock("if (height >= MAX_HEIGHT)")
+                .Line("return;")
+                .CloseBlock()
+                .Line("int age = state.getValue(AGE);")
+                .OpenBlock("if (age == 15)")
+                .Line("level.setBlockAndUpdate(position.above(), this.defaultBlockState());")
+                .Line("level.setBlock(position, state.setValue(AGE, 0), 4);")
+                .CloseBlock()
+                .OpenBlock("else")
+                .Line("level.setBlock(position, state.setValue(AGE, age + 1), 4);")
+                .CloseBlock()
+                .CloseBlock();
+        }
+
+        if (plant.Kind == PlantKind.Crop)
+        {
+            Use("net.minecraft.world.level.ItemLike", $"{_naming.RegistryPackage}.{_naming.ItemsClass}");
+            body.Line()
+                .Line("/** The item of the crop is its seeds. */")
+                .Line("@Override")
+                .OpenBlock("protected ItemLike getBaseSeedId()")
+                .Line($"return {_naming.ItemsClass}.{_naming.ConstantFor(_block.Id)}.get();")
+                .CloseBlock();
+        }
+
+        if (Modern)
+        {
+            // Since 1.20.5 a block of these kinds gives its codec.
+            Use("com.mojang.serialization.MapCodec");
+            body.Line()
+                .Line("@Override")
+                .OpenBlock($"public MapCodec<? extends {baseClass}> codec()")
+                .Line($"return simpleCodec({className}::new);")
+                .CloseBlock();
+        }
+
+        var w = new JavaSourceWriter();
+        w.Line($"package {Package(_naming)};").Line();
+        foreach (string import in _imports)
+        {
+            w.Line($"import {import};");
+        }
+
+        w.Line()
+            .Line($"/** Plant '{_block.Id}'. Generated by Mine Engine. */")
+            .Line($"public class {className} extends {baseClass} {{");
+        foreach (string line in body.ToString().TrimEnd().Split('\n'))
+        {
+            w.Line(line.TrimEnd('\r'));
+        }
+
+        w.Line("}");
+        return w;
+    }
+
+    /// <summary>Java test of the block under the plant.</summary>
+    private string Soil(PlantSoil soil)
+    {
+        switch (soil)
+        {
+            case PlantSoil.Sand:
+                Use("net.minecraft.tags.BlockTags");
+                return "state.is(BlockTags.SAND)";
+            case PlantSoil.Farmland:
+                Use("net.minecraft.world.level.block.Blocks");
+                return "state.is(Blocks.FARMLAND)";
+            case PlantSoil.AnySolid:
+                Use("net.minecraft.core.Direction");
+                return "state.isFaceSturdy(level, position, Direction.UP)";
+            default:
+                Use("net.minecraft.tags.BlockTags", "net.minecraft.world.level.block.Blocks");
+                return "state.is(BlockTags.DIRT) || state.is(Blocks.FARMLAND)";
+        }
     }
 
     // ----- Properties of the block state -----

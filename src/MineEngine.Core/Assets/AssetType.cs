@@ -41,6 +41,15 @@ public enum AssetType
 
     /// <summary>Global variable, readable and changeable from every graph (V0.6.7, Global tab).</summary>
     GlobalVariable,
+
+    /// <summary>Tag grouping blocks, items, entities, biomes... (V0.7.1, Tags tab).</summary>
+    Tag,
+
+    /// <summary>Plant: flower, tall plant, growing plant or crop, with its generation (V0.7.0).</summary>
+    Plant,
+
+    /// <summary>Biome of the overworld (V0.7.0).</summary>
+    Biome,
 }
 
 /// <summary>
@@ -64,6 +73,8 @@ public enum AssetIdScope
     GameRule,
     Effect,
     GlobalVariable,
+    Tag,
+    Biome,
 }
 
 public static class AssetTypeExtensions
@@ -83,6 +94,8 @@ public static class AssetTypeExtensions
         AssetType.GameRule => AssetIdScope.GameRule,
         AssetType.Effect => AssetIdScope.Effect,
         AssetType.GlobalVariable => AssetIdScope.GlobalVariable,
+        AssetType.Tag => AssetIdScope.Tag,
+        AssetType.Biome => AssetIdScope.Biome,
         _ => AssetIdScope.GameContent,
     };
 }
