@@ -6,8 +6,9 @@
              x:Name="Root">
 
     <!--
-        Tags tab (V0.7.1, like the Elements Tag of MCreator): the tags of the mod on the left, the
-        selected tag on the right (kind, namespace, name, entries). DataContext: MainViewModel.
+        Tags tab (V0.7.1, like the Elements Tag of MCreator), shown as a table like the Global tab:
+        each row is a tag, with the kind of what it groups, its namespace, its name, its entries and
+        "replace". DataContext: MainViewModel.
     -->
 
     <UserControl.Resources>
@@ -16,21 +17,30 @@
                 <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Rows of the editor, like the Properties of the elements. -->
-            <Style x:Key="RowLabel" TargetType="TextBlock">
-                <Setter Property="Width" Value="150" />
+            <Style x:Key="ToolText" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="Padding" Value="10,4" />
+                <Setter Property="MinHeight" Value="28" />
+            </Style>
+
+            <Style x:Key="RowItem" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                <Setter Property="Padding" Value="8,3" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="AutomationProperties.Name" Value="{Binding Reference}" />
+            </Style>
+
+            <Style x:Key="Cell" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
                 <Setter Property="Margin" Value="0,0,8,0" />
-                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="IsEnabled" Value="{Binding DataContext.Tags.CanEdit, ElementName=Root}" />
             </Style>
-            <Style x:Key="Row" TargetType="WrapPanel">
-                <Setter Property="Margin" Value="0,4" />
-                <Setter Property="Orientation" Value="Horizontal" />
-            </Style>
-            <Style x:Key="RowHint" TargetType="TextBlock" BasedOn="{StaticResource FieldHint}">
-                <Setter Property="Margin" Value="0,0,0,6" />
-            </Style>
-            <Style x:Key="WrapCheck" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
-                <Setter Property="Margin" Value="0,4" />
+
+            <Style x:Key="CellText" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <Setter Property="Margin" Value="0,0,8,0" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="Padding" Value="6,3" />
+                <Setter Property="FontFamily" Value="Consolas" />
+                <Setter Property="IsEnabled" Value="{Binding DataContext.Tags.CanEdit, ElementName=Root}" />
             </Style>
         </ResourceDictionary>
     </UserControl.Resources>
@@ -39,88 +49,100 @@
         <DockPanel Margin="16,12,16,8" DataContext="{Binding Tags}"
                    Visibility="{Binding DataContext.HasProject, ElementName=Root, Converter={StaticResource BoolToVisibility}}">
 
-            <!-- Tags of the mod -->
-            <DockPanel DockPanel.Dock="Left" Width="300" Margin="0,0,16,0">
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                    <Button DockPanel.Dock="Right" Padding="10,4" Command="{Binding AddCommand}" AutomationProperties.Name="{l:Tr 'New tag'}"
-                            ToolTip="{l:Tr 'Adds a tag: a name for a group of blocks, items, entities, biomes...'}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" Margin="0,0,6,0" />
-                            <TextBlock Text="{l:Tr 'New tag'}" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'TAGS'}" />
-                        <TextBlock Style="{StaticResource FieldHint}" Text="{Binding Summary}" Margin="0,2,0,0" />
+            <!-- Actions -->
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Style="{StaticResource ToolText}" Command="{Binding AddCommand}"
+                        AutomationProperties.AutomationId="AddTag" AutomationProperties.Name="{l:Tr 'New tag'}"
+                        ToolTip="{l:Tr 'Adds a tag: a name for a group of blocks, items, entities, biomes...'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" Margin="0,0,6,0" />
+                        <TextBlock Text="{l:Tr 'New tag'}" VerticalAlignment="Center" />
                     </StackPanel>
-                </DockPanel>
-                <Grid>
-                    <TextBlock Foreground="{DynamicResource HintBrush}" TextWrapping="Wrap" VerticalAlignment="Top" Margin="2,8"
-                               Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}"
-                               Text="{l:Tr 'No tag yet. A tag groups elements under one name (#mymod:ores), used by recipes, graphs and other tags; a tag of Minecraft (#minecraft:logs) receives the entries of the mod.'}" />
-                    <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" Background="Transparent" BorderThickness="0"
-                             AutomationProperties.AutomationId="TagRows">
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                                <Setter Property="AutomationProperties.Name" Value="{Binding Reference}" />
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:TagRowViewModel}">
-                                <StackPanel Margin="0,2">
-                                    <TextBlock Text="{Binding Reference}" FontFamily="Consolas" Foreground="{DynamicResource StrongTextBrush}" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock FontSize="11" Foreground="{DynamicResource HintBrush}">
-                                        <Run Text="{Binding RegistryLabel, Mode=OneWay}" /> · <Run Text="{Binding Summary, Mode=OneWay}" />
-                                    </TextBlock>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </Grid>
+                </Button>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'TAGS'}" />
+                    <TextBlock Style="{StaticResource FieldHint}" Text="{Binding Summary}" Margin="0,2,0,0" />
+                </StackPanel>
             </DockPanel>
 
-            <!-- Selected tag -->
+            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource FieldHint}" Margin="2,8,0,0" TextWrapping="Wrap"
+                       Text="{l:Tr 'Namespace: your id for the tags of the mod; minecraft to add entries to a tag of the game (logs, mineable/pickaxe...); c for the common tags shared by the mods (c:ores, c:ingots/ruby). Entries, separated by commas: an element (minecraft:oak_log, or ruby for the mod), a tag (#minecraft:logs), or an optional entry of another mod ending with ? (othermod:ruby?).'}" />
+
+            <!-- Headers -->
+            <Grid DockPanel.Dock="Top" Margin="8,0,8,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.6*" MinWidth="170" />
+                    <ColumnDefinition Width="1.1*" MinWidth="125" />
+                    <ColumnDefinition Width="1.4*" MinWidth="110" />
+                    <ColumnDefinition Width="2.6*" MinWidth="160" />
+                    <ColumnDefinition Width="1.2*" MinWidth="130" />
+                    <ColumnDefinition Width="80" />
+                    <ColumnDefinition Width="40" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'KIND'}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource PanelCaption}" Text="{l:Tr 'NAMESPACE'}" />
+                <TextBlock Grid.Column="2" Style="{StaticResource PanelCaption}" Text="{l:Tr 'NAME'}" />
+                <TextBlock Grid.Column="3" Style="{StaticResource PanelCaption}" Text="{l:Tr 'ENTRIES'}" />
+                <TextBlock Grid.Column="4" Style="{StaticResource PanelCaption}" Text="{l:Tr 'ADD AN ELEMENT'}" />
+                <TextBlock Grid.Column="5" Style="{StaticResource PanelCaption}" Text="{l:Tr 'REPLACE'}"
+                           ToolTip="{l:Tr 'Replace the entries of the other mods and of Minecraft'}" />
+            </Grid>
+
             <Grid>
-                <TextBlock Foreground="{DynamicResource HintBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                           Visibility="{Binding HasSelection, Converter={StaticResource InverseBoolToVisibility}}"
-                           Text="{l:Tr 'Select a tag, or create one.'}" />
-                <DockPanel DataContext="{Binding SelectedRow}" Visibility="{Binding DataContext.Tags.HasSelection, ElementName=Root, Converter={StaticResource BoolToVisibility}}"
-                           IsEnabled="{Binding DataContext.Tags.CanEdit, ElementName=Root}">
-                    <StackPanel DockPanel.Dock="Top">
-                        <DockPanel Margin="0,0,0,8">
-                            <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" Command="{Binding RemoveCommand}"
-                                    AutomationProperties.Name="{l:Tr 'Delete the tag'}" ToolTip="{l:Tr 'Delete the tag'}" />
-                            <TextBlock Text="{Binding Reference}" FontFamily="Consolas" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        </DockPanel>
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Kind'}" />
-                            <ComboBox Width="320" ItemsSource="{Binding Source={x:Static vm:TagsViewModel.Registries}}" SelectedItem="{Binding Registry}"
-                                      DisplayMemberPath="Label" AutomationProperties.Name="{l:Tr 'Kind'}" />
-                        </WrapPanel>
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Namespace'}" />
-                            <ComboBox Width="200" IsEditable="True" FontFamily="Consolas" ItemsSource="{Binding DataContext.Tags.Namespaces, ElementName=Root}"
-                                      Text="{Binding Namespace, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="{l:Tr 'Namespace'}" />
-                        </WrapPanel>
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Name'}" />
-                            <TextBox Width="320" FontFamily="Consolas" Text="{Binding TagPath}" AutomationProperties.Name="{l:Tr 'Name'}" />
-                        </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" TextWrapping="Wrap"
-                                   Text="{l:Tr 'Your id for the tags of the mod; minecraft to add entries to a tag of the game (logs, mineable/pickaxe...); c for the common tags shared by the mods (c:ores, c:ingots/ruby).'}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Replace the entries of the other mods and of Minecraft'}" IsChecked="{Binding Replace}" />
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Entries'}" Margin="0,12,0,4" />
-                        <WrapPanel Margin="0,0,0,6">
-                            <ComboBox Width="320" ItemsSource="{Binding Suggestions}" SelectedItem="{Binding Suggestion}" FontFamily="Consolas"
-                                      AutomationProperties.Name="{l:Tr 'Element to add'}" />
-                            <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Add'}" Command="{Binding AddSuggestionCommand}" Margin="6,0,0,0" />
-                        </WrapPanel>
-                    </StackPanel>
-                    <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource FieldHint}" TextWrapping="Wrap" Margin="0,6,0,0"
-                               Text="{l:Tr 'One entry per line: an element (minecraft:oak_log, or ruby for the mod), a tag (#minecraft:logs), or an optional entry of another mod ending with ? (othermod:ruby?).'}" />
-                    <TextBox Text="{Binding Values}" AcceptsReturn="True" FontFamily="Consolas" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Auto" VerticalContentAlignment="Top" MinHeight="160" AutomationProperties.Name="{l:Tr 'Entries'}" />
-                </DockPanel>
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="420"
+                           Foreground="{DynamicResource HintBrush}"
+                           Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}"
+                           Text="{l:Tr 'No tag yet. A tag groups elements under one name (#mymod:ores), used by recipes, graphs and other tags; a tag of Minecraft (#minecraft:logs) receives the entries of the mod.'}" />
+
+                <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" Background="Transparent" BorderThickness="0"
+                         ItemContainerStyle="{StaticResource RowItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         KeyboardNavigation.TabNavigation="Continue" AutomationProperties.AutomationId="TagRows">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:TagRowViewModel}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.6*" MinWidth="170" />
+                                    <ColumnDefinition Width="1.1*" MinWidth="125" />
+                                    <ColumnDefinition Width="1.4*" MinWidth="110" />
+                                    <ColumnDefinition Width="2.6*" MinWidth="160" />
+                                    <ColumnDefinition Width="1.2*" MinWidth="130" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="40" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox Style="{StaticResource Cell}" AutomationProperties.Name="{l:Tr 'Kind'}"
+                                          ItemsSource="{Binding Source={x:Static vm:TagsViewModel.Registries}}" SelectedItem="{Binding Registry}"
+                                          ToolTip="{Binding Registry.Label}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <ComboBox Grid.Column="1" Style="{StaticResource Cell}" IsEditable="True" FontFamily="Consolas"
+                                          ItemsSource="{Binding DataContext.Tags.Namespaces, ElementName=Root}"
+                                          Text="{Binding Namespace, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="{l:Tr 'Namespace'}" />
+                                <TextBox Grid.Column="2" Style="{StaticResource CellText}" Text="{Binding TagPath}"
+                                         AutomationProperties.Name="{l:Tr 'Name'}" ToolTip="{Binding Reference}" />
+                                <TextBox Grid.Column="3" Style="{StaticResource CellText}" Text="{Binding EntriesLine}"
+                                         AutomationProperties.Name="{l:Tr 'Entries'}" ToolTip="{Binding Values}" />
+                                <DockPanel Grid.Column="4" Margin="0,0,8,0">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.NewItem}"
+                                            Command="{Binding AddSuggestionCommand}" Margin="4,0,0,0"
+                                            AutomationProperties.Name="{l:Tr 'Add'}" ToolTip="{l:Tr 'Add the element to the entries'}" />
+                                    <ComboBox Style="{StaticResource Cell}" Margin="0" FontFamily="Consolas"
+                                              ItemsSource="{Binding Suggestions}" SelectedItem="{Binding Suggestion}"
+                                              AutomationProperties.Name="{l:Tr 'Element to add'}" />
+                                </DockPanel>
+                                <CheckBox Grid.Column="5" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="0" IsChecked="{Binding Replace}"
+                                          IsEnabled="{Binding DataContext.Tags.CanEdit, ElementName=Root}"
+                                          AutomationProperties.Name="{l:Tr 'Replace'}" ToolTip="{l:Tr 'Replace the entries of the other mods and of Minecraft'}" />
+                                <Button Grid.Column="6" HorizontalAlignment="Right" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}"
+                                        Command="{Binding RemoveCommand}"
+                                        AutomationProperties.Name="{l:Tr 'Delete the tag'}" ToolTip="{l:Tr 'Delete the tag'}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </Grid>
         </DockPanel>
     </Grid>

@@ -216,6 +216,25 @@ public sealed class SettingsViewModel : ObservableObject
         }
     }
 
+    /// <summary>The Dashboard opens as tiles (grid).</summary>
+    public bool DashboardTileView
+    {
+        get => _draft.DashboardTileView;
+        set
+        {
+            _draft.DashboardTileView = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(DashboardListView));
+        }
+    }
+
+    /// <summary>The Dashboard opens as a list (radio button opposite to <see cref="DashboardTileView"/>).</summary>
+    public bool DashboardListView
+    {
+        get => !_draft.DashboardTileView;
+        set => DashboardTileView = !value;
+    }
+
     /// <summary>Debug mode (V0.6.4).</summary>
     public bool DebugMode
     {

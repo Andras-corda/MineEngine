@@ -73,18 +73,9 @@
         <DockPanel>
             <!-- Droite : recherche, affichage, validation, compilation, lancement -->
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                <Grid Width="260" VerticalAlignment="Center">
-                    <TextBox x:Name="SearchBox" Padding="28,4,8,4" MinHeight="28" TextChanged="OnSearchTextChanged"
-                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="{l:Tr 'Search the mod (Ctrl+F)'}" />
-                    <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Search}" FontSize="12" Margin="10,0,0,0"
-                               VerticalAlignment="Center" IsHitTestVisible="False" Foreground="{DynamicResource HintBrush}" />
-                    <TextBlock Text="{Binding SearchHint}" Margin="29,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
-                               Foreground="{DynamicResource HintBrush}"
-                               Visibility="{Binding Text, ElementName=SearchBox, Converter={StaticResource EmptyToVisible}}" />
-                </Grid>
 
                 <!-- Back and Forward between the pages of the work area, like a web browser. -->
-                <Button Style="{StaticResource ToolButton}" Margin="6,0,0,0" Content="{StaticResource Glyph.Back}" Command="{Binding GoBackCommand}"
+                <Button Style="{StaticResource ToolButton}" Margin="0,0,0,0" Content="{StaticResource Glyph.Back}" Command="{Binding GoBackCommand}"
                         ToolTip="{l:Tr 'Back to the previous page (Alt+Left)'}" AutomationProperties.Name="{l:Tr 'Back'}" />
                 <Button Style="{StaticResource ToolButton}" Content="{StaticResource Glyph.Forward}" Command="{Binding GoForwardCommand}"
                         ToolTip="{l:Tr 'Forward to the next page (Alt+Right)'}" AutomationProperties.Name="{l:Tr 'Forward'}" />
@@ -126,7 +117,7 @@
             </StackPanel>
 
             <!-- Gauche : ajout, puis actions sur l'élément sélectionné, puis dossier -->
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
                 <Button x:Name="AddButton" Style="{DynamicResource AccentButtonStyle}" Padding="8,4" MinHeight="28" Margin="0,0,4,0"
                         Click="OnAddClick" IsEnabled="{Binding CanEdit}" ToolTip="{l:Tr 'Add to the mod'}">
                     <Button.ContextMenu>
@@ -299,6 +290,21 @@
                     </StackPanel>
                 </Button>
             </StackPanel>
+
+            <!-- Middle: the search takes the space left (up to 320 pixels) and shrinks with the window. -->
+            <Grid Margin="8,0,6,0" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20*" MaxWidth="320" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="SearchBox" Grid.Column="1" Padding="28,4,8,4" MinHeight="28" TextChanged="OnSearchTextChanged"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="{l:Tr 'Search the mod (Ctrl+F)'}" />
+                <TextBlock Grid.Column="1" FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Search}" FontSize="12" Margin="10,0,0,0"
+                           VerticalAlignment="Center" IsHitTestVisible="False" Foreground="{DynamicResource HintBrush}" />
+                <TextBlock Grid.Column="1" Text="{Binding SearchHint}" TextTrimming="CharacterEllipsis" Margin="29,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                           Foreground="{DynamicResource HintBrush}"
+                           Visibility="{Binding Text, ElementName=SearchBox, Converter={StaticResource EmptyToVisible}}" />
+            </Grid>
         </DockPanel>
     </Border>
 </UserControl>

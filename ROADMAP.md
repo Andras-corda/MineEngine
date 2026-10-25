@@ -37,12 +37,16 @@
 | V0.7.1 | Ajout de l'onglet tags (tags.md : blocs, items, fonctions, peintures, dégâts, enchantements, entités, biomes, événements, structures, variantes, bannières, préréglages, potions, dialogues, fluides ; espaces de noms minecraft, mod, c, forge, neoforge, fabric) + nœuds « est dans le tag » | F |
 | V0.7.2 | Integration de structure simple (arbre) | |
 | V0.7.3 | Ajout de l'onglet global variable (fait en V0.6.7) | F |
-| V0.7.4 | Node de gestion de la caméra du joueur | |
+| V0.7.4 | Node de gestion de la caméra du joueur (domaine Caméra : orienter, tourner, regarder une position, voir depuis une entité, perspective F5, zoom, tremblement, inclinaison, interface F1, réinitialiser ; lacet, tangage, direction et position de la caméra) | F |
 | V0.7.5 | Ajout du sous programme sparkle (particule) | |
-| V0.7.6 | Ajouter des templace pour les sparkle (comme niagara system) | |
+| V0.7.6 | Ajouter des template pour les sparkle (comme niagara system) | |
 | V0.7.7 | Ajouter des events pour les sparkle (comme niagara system) | |
 | V0.7.8 | Creation de pack (pouvoir creer directement un pack d'armure/tools, minerai etc avec le meme nom au départ par exemple) | |
-| V0.8.0 | Creation de Gui/overlay | |
+| V0.7.9 | Refonte de l'onglet mob | |
+| V0.7.10 | Implémentation des damage type et drop table | |
+| V0.7.11 | Refonte de l'onglet block | |
+| V0.7.12 | Refonte de l'onglet item | |
+| V0.8.0 | Creation de Gui/overlay viz systeme de widget en xaml | |
 | V0.8.1 | Overlay dynamique + bind code | |
 | V0.8.2 | GUI dynamique + bind code | |
 | V0.8.3 | GUI branch sur mob/item/Bock | |

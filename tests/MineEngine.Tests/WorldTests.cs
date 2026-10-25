@@ -24,7 +24,7 @@ public sealed class WorldTests
 {
     private static readonly AssetSerializer Serializer = new(AssetCatalog.CreateDefault());
 
-    /// <summary>The sample content of the tests, which ends with <see cref="WorldSample"/>.</summary>
+    /// <summary>The sample content of the tests, with <see cref="WorldSample"/>.</summary>
     private static ModProject CreateProject(TemporaryDirectory temp, string loader = "neoforge", string version = "1.21.1")
     {
         var repository = new ProjectRepository(Serializer, new ProjectSettingsSerializer());

@@ -132,6 +132,52 @@ public sealed class NeoForgeJavaEmitter : ModJavaEmitter
 
     protected override string? RegisterClientExtensionsEventType => "net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent";
 
+    // ----- V0.7.4: camera -----
+
+    protected override string ClientEventPackage => "net.neoforged.neoforge.client.event";
+
+    /// <summary>A payload registered on the mod bus and sent with PacketDistributor; its handler runs on the main thread.</summary>
+    protected override (IReadOnlyList<string> Imports, IReadOnlyList<string> Members) CameraNetwork(JavaModNaming naming, JavaGameApi api)
+    {
+        string location = api.ParseResourceLocation($"{naming.MainClass}.MOD_ID + \":camera\"");
+        IReadOnlyList<string> imports =
+        [
+            $"{naming.RootPackage}.{naming.MainClass}",
+            "io.netty.buffer.ByteBuf",
+            "net.minecraft.network.codec.ByteBufCodecs",
+            "net.minecraft.network.codec.StreamCodec",
+            "net.minecraft.network.protocol.common.custom.CustomPacketPayload",
+            "net.minecraft.resources.ResourceLocation",
+            "net.neoforged.bus.api.IEventBus",
+            "net.neoforged.neoforge.network.PacketDistributor",
+            "net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent",
+        ];
+        IReadOnlyList<string> members =
+        [
+            "/** Effect sent to the client: an action and its two values. */",
+            "public record Message(int action, float a, float b) implements CustomPacketPayload {",
+            $"    public static final CustomPacketPayload.Type<Message> TYPE = new CustomPacketPayload.Type<>({location});",
+            "    public static final StreamCodec<ByteBuf, Message> STREAM_CODEC = StreamCodec.composite(",
+            "            ByteBufCodecs.VAR_INT, Message::action, ByteBufCodecs.FLOAT, Message::a, ByteBufCodecs.FLOAT, Message::b, Message::new);",
+            "",
+            "    @Override",
+            "    public CustomPacketPayload.Type<Message> type() {",
+            "        return TYPE;",
+            "    }",
+            "}",
+            "",
+            "public static void register(IEventBus modEventBus) {",
+            "    modEventBus.addListener(RegisterPayloadHandlersEvent.class, event -> event.registrar(\"1\").playToClient(Message.TYPE, Message.STREAM_CODEC,",
+            $"            (message, context) -> {CameraClientClass}.apply(message.action(), message.a(), message.b())));",
+            "}",
+            "",
+            "private static void sendTo(ServerPlayer player, int action, float a, float b) {",
+            "    PacketDistributor.sendToPlayer(player, new Message(action, a, b));",
+            "}",
+        ];
+        return (imports, members);
+    }
+
     protected override string EntityTypeHolderType(string entityClass) => $"DeferredHolder<EntityType<?>, EntityType<{entityClass}>>";
 
     protected override string EntityTypesRegisterDeclaration(JavaModNaming naming) =>

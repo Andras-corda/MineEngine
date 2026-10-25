@@ -34,6 +34,9 @@ public partial class MainWindow : Window
     /// <summary>Onglets en cours de fermeture par l'utilisateur (pour ne pas les refermer une seconde fois).</summary>
     private readonly HashSet<DocumentViewModel> _closing = [];
 
+    /// <summary>Tabs of the document pane in the order they were shown (most recent last).</summary>
+    private readonly List<string> _recentTabs = [];
+
     public MainWindow(MainViewModel viewModel, IThemeService themes, DockLayoutService layout)
     {
         _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
@@ -80,6 +83,7 @@ public partial class MainWindow : Window
             }
         };
         DockManager.DocumentClosing += OnDocumentClosing;
+        DockManager.DocumentClosed += (_, e) => ReturnAfterClose(e.Document.ContentId);
         InitializeTabMenu();
         Loaded += (_, _) =>
         {
@@ -212,7 +216,9 @@ public partial class MainWindow : Window
         {
             if (!_closing.Contains(document) && FindLayoutDocument(document.Id) is { } layoutDocument)
             {
+                PrepareReturn(layoutDocument);
                 layoutDocument.Close();
+                ReturnAfterClose(document.Id);
             }
         }
 
@@ -242,6 +248,34 @@ public partial class MainWindow : Window
         finally
         {
             _closing.Remove(document);
+        }
+
+        if (!e.Cancel)
+        {
+            PrepareReturn(e.Document);
+        }
+    }
+
+    private string? _returnTab;
+
+    /// <summary>
+    /// Before a tab closes: the tab shown before it, to show again once it is closed (AvalonDock
+    /// would select its neighbor, often Tags or Languages, rather than the Dashboard it came from).
+    /// </summary>
+    private void PrepareReturn(LayoutDocument closing)
+    {
+        _returnTab = closing.IsSelected
+            ? _recentTabs.LastOrDefault(id => id != closing.ContentId && FindLayoutDocument(id) is not null) ?? DashboardContentId
+            : null;
+    }
+
+    private void ReturnAfterClose(string closedId)
+    {
+        _recentTabs.Remove(closedId);
+        if (_returnTab is { } target)
+        {
+            _returnTab = null;
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, () => ActivateTab(target));
         }
     }
 
@@ -304,6 +338,12 @@ public partial class MainWindow : Window
     /// <summary>L'onglet actif détermine le fichier affiché dans Détails et la barre de statut.</summary>
     private void OnActiveContentChanged(object? sender, EventArgs e)
     {
+        if (DockManager.Layout.Descendents().OfType<LayoutDocument>().FirstOrDefault(d => d.Content == DockManager.ActiveContent) is { } shown)
+        {
+            _recentTabs.Remove(shown.ContentId);
+            _recentTabs.Add(shown.ContentId);
+        }
+
         switch (DockManager.ActiveContent)
         {
             case FrameworkElement { DataContext: DocumentViewModel document }:

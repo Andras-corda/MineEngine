@@ -168,6 +168,60 @@ public sealed class ForgeJavaEmitter : ModJavaEmitter
 
     protected override string? RegisterClientExtensionsEventType => null;
 
+    // ----- V0.7.4: camera -----
+
+    protected override string ClientEventPackage => "net.minecraftforge.client.event";
+
+    /// <summary>
+    /// A SimpleChannel: NetworkRegistry and a supplied target in 1.20.1, ChannelBuilder and the
+    /// message first in 1.21.1. The message builder is the same for both.
+    /// </summary>
+    protected override (IReadOnlyList<string> Imports, IReadOnlyList<string> Members) CameraNetwork(JavaModNaming naming, JavaGameApi api)
+    {
+        bool modern = api.UsesDataComponents;
+        string location = api.ParseResourceLocation($"{naming.MainClass}.MOD_ID + \":camera\"");
+        IReadOnlyList<string> imports =
+        [
+            $"{naming.RootPackage}.{naming.MainClass}",
+            "net.minecraft.resources.ResourceLocation",
+            "net.minecraftforge.eventbus.api.IEventBus",
+            "net.minecraftforge.network.NetworkDirection",
+            "net.minecraftforge.network.PacketDistributor",
+            .. modern
+                ? (string[])["net.minecraftforge.network.ChannelBuilder", "net.minecraftforge.network.SimpleChannel"]
+                : ["net.minecraftforge.network.NetworkRegistry", "net.minecraftforge.network.simple.SimpleChannel"],
+        ];
+        IReadOnlyList<string> members =
+        [
+            "/** Effect sent to the client: an action and its two values. */",
+            "public record Message(int action, float a, float b) {",
+            "}",
+            "",
+            modern
+                ? $"private static final SimpleChannel CHANNEL = ChannelBuilder.named({location}).networkProtocolVersion(1).simpleChannel();"
+                : $"private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel({location}, () -> \"1\", \"1\"::equals, \"1\"::equals);",
+            "",
+            "public static void register(IEventBus modEventBus) {",
+            "    CHANNEL.messageBuilder(Message.class, 0, NetworkDirection.PLAY_TO_CLIENT)",
+            "            .encoder((message, buffer) -> {",
+            "                buffer.writeVarInt(message.action());",
+            "                buffer.writeFloat(message.a());",
+            "                buffer.writeFloat(message.b());",
+            "            })",
+            "            .decoder(buffer -> new Message(buffer.readVarInt(), buffer.readFloat(), buffer.readFloat()))",
+            $"            .consumerMainThread((message, context) -> {CameraClientClass}.apply(message.action(), message.a(), message.b()))",
+            "            .add();",
+            "}",
+            "",
+            "private static void sendTo(ServerPlayer player, int action, float a, float b) {",
+            modern
+                ? "    CHANNEL.send(new Message(action, a, b), PacketDistributor.PLAYER.with(player));"
+                : "    CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new Message(action, a, b));",
+            "}",
+        ];
+        return (imports, members);
+    }
+
     protected override string EntityTypeHolderType(string entityClass) => $"RegistryObject<EntityType<{entityClass}>>";
 
     protected override string EntityTypesRegisterDeclaration(JavaModNaming naming) =>

@@ -69,6 +69,14 @@
                         <TextBlock Style="{StaticResource FieldHint}" Margin="28,0,0,0"
                                    Text="{l:Tr 'Otherwise, Mine Engine opens on the home page.'}" />
 
+                        <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Dashboard'}" />
+                        <RadioButton GroupName="DashboardView" IsChecked="{Binding DashboardListView}" Margin="0,4"
+                                     Content="{l:Tr 'List'}" AutomationProperties.Name="{l:Tr 'Dashboard as a list'}" />
+                        <RadioButton GroupName="DashboardView" IsChecked="{Binding DashboardTileView}" Margin="0,4"
+                                     Content="{l:Tr 'Grid (tiles)'}" AutomationProperties.Name="{l:Tr 'Dashboard as a grid'}" />
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
+                                   Text="{l:Tr 'Display of the elements when a project opens; the buttons of the toolbar still switch it.'}" />
+
                         <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Autosave'}" />
                         <ui:NumberBox Header="{l:Tr 'Interval (minutes)'}" Width="300" HorizontalAlignment="Left"
                                       Minimum="0" Maximum="{Binding MaxAutoSaveMinutes}" SmallChange="1" LargeChange="5"

@@ -31,6 +31,37 @@ public sealed record AssetBrowserItem(Guid Id, string Name, string? PreviewPath,
 
     public bool IsVanilla => Vanilla is not null;
 
+    /// <summary>Preview decoded in advance (in the background for the files of Minecraft), or null.</summary>
+    public System.Windows.Media.ImageSource? Image { get; init; }
+
+    /// <summary>A frozen image of a PNG file (usable from any thread), or null; decoded at its own size so the pixels stay sharp.</summary>
+    public static System.Windows.Media.ImageSource? LoadImage(string? path)
+    {
+        if (path is null || !File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            var image = new System.Windows.Media.Imaging.BitmapImage();
+            using (FileStream stream = File.OpenRead(path))
+            {
+                image.BeginInit();
+                image.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                image.StreamSource = stream;
+                image.EndInit();
+            }
+
+            image.Freeze();
+            return image;
+        }
+        catch (Exception exception) when (exception is IOException or NotSupportedException or InvalidOperationException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>Files of Minecraft the asset comes from (a model is read from it when it is chosen).</summary>
     public VanillaAssetLibrary? Library { get; init; }
 }
@@ -192,7 +223,7 @@ public sealed class AssetBrowserViewModel : ObservableObject
             {
                 string? file = AssetFileImporter.GetExistingFile(_context.Project, texture);
                 _projectItems.Add(new AssetBrowserItem(texture.Id, texture.ResourceId.Value, file,
-                    Details(file is null ? Tr.T("file missing") : PngSize(file), texture.Id), texture.Folder));
+                    Details(file is null ? Tr.T("file missing") : PngSize(file), texture.Id), texture.Folder) { Image = AssetBrowserItem.LoadImage(file) });
             }
         }
         else
@@ -203,7 +234,10 @@ public sealed class AssetBrowserViewModel : ObservableObject
                 string? preview = model.Slots.Select(s => s.TextureId).OfType<Guid>()
                     .Select(id => _context.Project.Assets.Find(id) as TextureAsset).OfType<TextureAsset>()
                     .Select(t => AssetFileImporter.GetExistingFile(_context.Project, t)).FirstOrDefault(f => f is not null);
-                _projectItems.Add(new AssetBrowserItem(model.Id, model.ResourceId.Value, preview, Details(ModelFormats.Label(model.Format), model.Id), model.Folder));
+                _projectItems.Add(new AssetBrowserItem(model.Id, model.ResourceId.Value, preview, Details(ModelFormats.Label(model.Format), model.Id), model.Folder)
+                {
+                    Image = AssetBrowserItem.LoadImage(preview),
+                });
             }
         }
 
@@ -273,10 +307,17 @@ public sealed class AssetBrowserViewModel : ObservableObject
             : Tr.F("Minecraft {0} (the files of {1} were not found)", library.Version, version);
         Application.Current?.Dispatcher.Invoke(() => VanillaMessage = source);
         return Kind == AssetBrowserKind.Texture
-            ? [.. library.Textures.Select(t => new AssetBrowserItem(Guid.Empty, t.Name, library.FileOf(t), t.Reference, "minecraft/" + t.Folder, t))]
-            : [.. library.Models.Select(m => new AssetBrowserItem(Guid.Empty, m.Name,
-                library.PreviewTexture(m) is { } texture ? library.FileOf(texture) : null, m.Reference, "minecraft/" + m.Folder, m) { Library = library })];
+            ? [.. library.Textures.Select(t => Vanilla(t, library.FileOf(t), library))]
+            : [.. library.Models.Select(m => Vanilla(m, library.PreviewTexture(m) is { } texture ? library.FileOf(texture) : null, library))];
     }
+
+    /// <summary>A tile of a texture or a model of Minecraft, its preview decoded here (in the background).</summary>
+    private static AssetBrowserItem Vanilla(VanillaAsset asset, string? preview, VanillaAssetLibrary library) =>
+        new(Guid.Empty, asset.Name, preview, asset.Reference, "minecraft/" + asset.Folder, asset)
+        {
+            Library = library,
+            Image = AssetBrowserItem.LoadImage(preview),
+        };
 
     private bool Matches(object item)
     {

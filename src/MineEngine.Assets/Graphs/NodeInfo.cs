@@ -431,6 +431,22 @@ public enum GraphNodeKind
     IsItemInTag,
     IsEntityInTag,
     IsBiomeInTag,
+
+    // ----- Camera of the player (V0.7.4): keep the actions together, from SetCameraRotation to ResetCamera -----
+    SetCameraRotation,
+    TurnCamera,
+    CameraLookAt,
+    ViewFromEntity,
+    SetCameraPerspective,
+    SetCameraZoom,
+    ShakeCamera,
+    TiltCamera,
+    SetHudVisible,
+    ResetCamera,
+    CameraYaw,
+    CameraPitch,
+    CameraDirection,
+    CameraPosition,
 }
 
 /// <summary>Domain of a node, used to sort the Nodes window like MCreator's procedure blocks.</summary>
@@ -441,6 +457,7 @@ public enum NodeGroup
     Math,
     Text,
     Player,
+    Camera,
     Item,
     Block,
     World,

@@ -4,6 +4,7 @@
         xmlns:l="clr-namespace:MineEngine.Editor.Localization"
         xmlns:ui="http://schemas.modernwpf.com/2019"
         xmlns:assets="clr-namespace:MineEngine.Editor.ViewModels.Assets"
+        xmlns:views="clr-namespace:MineEngine.Editor.Views"
         ui:WindowHelper.UseModernWindowStyle="True"
         Background="{DynamicResource HubBackgroundBrush}"
         Title="{Binding Title}"
@@ -74,11 +75,11 @@
         </DockPanel>
 
         <ListBox ItemsSource="{Binding View}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" MouseDoubleClick="OnTileDoubleClick"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" MouseDoubleClick="OnTileDoubleClick"
                  AutomationProperties.Name="{Binding Title}">
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <WrapPanel />
+                    <views:VirtualizingTilePanel />
                 </ItemsPanelTemplate>
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
@@ -87,7 +88,7 @@
                         <Border Height="{Binding DataContext.TileSize, RelativeSource={RelativeSource AncestorType=ListBox}}" BorderThickness="1"
                                 BorderBrush="{DynamicResource PreviewBorderBrush}" Background="{DynamicResource PreviewBackgroundBrush}">
                             <Grid>
-                                <Image Source="{Binding FullPath, Converter={StaticResource FilePathToImage}}" Margin="6"
+                                <Image Source="{Binding Image}" Margin="6"
                                        RenderOptions.BitmapScalingMode="NearestNeighbor" Stretch="Uniform" />
                                 <TextBlock x:Name="None" Text="∅" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"
                                            Foreground="{DynamicResource HintBrush}" Visibility="Collapsed" />

@@ -77,6 +77,7 @@ public static class GraphBrushes
         [NodeGroup.Math] = Create("#4E9A5B"),
         [NodeGroup.Text] = Create("#B0569E"),
         [NodeGroup.Player] = Create("#3E8FB0"),
+        [NodeGroup.Camera] = Create("#5B6FC4"),
         [NodeGroup.Item] = Create("#3AA58C"),
         [NodeGroup.Block] = Create("#9A6B3F"),
         [NodeGroup.World] = Create("#7A8B2E"),

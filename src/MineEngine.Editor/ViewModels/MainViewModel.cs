@@ -205,6 +205,11 @@ public sealed partial class MainViewModel : ObservableObject
             _buildDiagnostics = [];
             _javaCompletions = null;
             _project = value;
+            if (value is not null)
+            {
+                value.IsTileView = _preferences.Current.DashboardTileView;
+            }
+
             ResetNavigation();
             Languages = value is null ? null : new LanguagesViewModel(value, _dialogs, () => CanEdit);
             OnPropertyChanged(nameof(Languages));

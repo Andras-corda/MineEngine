@@ -84,7 +84,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Button Style="{DynamicResource AccentButtonStyle}" HorizontalAlignment="Left" Padding="14,5" Margin="0,0,0,10"
+                    <Button Style="{DynamicResource AccentButtonStyle}" HorizontalAlignment="Left" Padding="14,5" Margin="0,0,0,10" AutomationProperties.Name="{l:Tr 'Edit the element'}"
                             Command="{Binding DataContext.OpenAssetEditorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Rename}" />

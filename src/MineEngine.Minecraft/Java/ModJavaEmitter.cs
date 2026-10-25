@@ -107,6 +107,10 @@ public abstract partial class ModJavaEmitter : IFileEmitter
 
         WriteBehaviorTrees(context, naming, api);
         WriteGameplay(context, naming, api);
+        if (UsesCamera(content))
+        {
+            WriteCamera(context, naming, api);
+        }
 
         if (content.Mobs.Count > 0)
         {
@@ -188,6 +192,11 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         imports.AddRange(content.Behaviors.Select(b => $"{naming.BehaviorPackage}.{naming.BehaviorClassFor(b.Id)}"));
         JavaGameApi api = JavaGameApi.For(context.MinecraftVersion);
         imports.AddRange(GameplayMainImports(context, naming, api));
+        bool usesCamera = UsesCamera(content);
+        if (usesCamera)
+        {
+            imports.AddRange(CameraMainImports(naming));
+        }
 
         JavaSourceWriter w = WriteHeader(naming.RootPackage, imports, $"Classe principale du mod {mod.Name}.")
             .Line($"@Mod({naming.MainClass}.MOD_ID)")
@@ -236,6 +245,12 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         }
 
         WriteGameplayRegistrations(w, context, naming, api);
+
+        // Camera nodes: the message sent to the client and the events of its view.
+        if (usesCamera)
+        {
+            WriteCameraRegistrations(w);
+        }
 
         // Global variables: the events that load and save the data of the players.
         if (content.Globals.Count > 0)

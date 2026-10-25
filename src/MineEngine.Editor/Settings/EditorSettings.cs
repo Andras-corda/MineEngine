@@ -65,6 +65,9 @@ public sealed class EditorSettings
     /// <summary>Rouvre au démarrage le dernier projet ouvert.</summary>
     public bool ReopenLastProject { get; set; }
 
+    /// <summary>Preferred display of the Dashboard when a project opens: tiles (grid) rather than a list.</summary>
+    public bool DashboardTileView { get; set; }
+
     /// <summary>
     /// Raccourcis choisis par l'utilisateur, par identifiant de commande (voir ShortcutCatalog) ;
     /// une valeur vide retire le raccourci. Les commandes absentes gardent leur raccourci par défaut.

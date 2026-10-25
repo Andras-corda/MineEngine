@@ -98,6 +98,13 @@ public sealed class TagRowViewModel : ObservableObject
         }
     }
 
+    /// <summary>Entries on one line, separated by commas (cell of the table).</summary>
+    public string EntriesLine
+    {
+        get => string.Join(", ", Asset.Values);
+        set => Values = value;
+    }
+
     /// <summary>Elements of the project (and other tags) that fit the tag.</summary>
     public IReadOnlyList<string> Suggestions => _owner.SuggestionsFor(this);
 

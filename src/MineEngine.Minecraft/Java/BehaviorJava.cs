@@ -321,6 +321,16 @@ public sealed class BehaviorJava
             GraphNodeKind.NbtPutText => $"{args[0]}.putString({args[1]}, {args[2]});",
             GraphNodeKind.SetPlayerGuild => $"{args[0]}.getPersistentData().putString(\"mineengine_guild\", {args[1]});",
             GraphNodeKind.SetEntityGroup => Helper("setEntityGroup", $"setEntityGroup({args[0]}, {args[1]});"),
+            GraphNodeKind.SetCameraRotation => Camera($"setRotation({args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.TurnCamera => Camera($"turn({args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.CameraLookAt => Camera($"lookAt({args[0]}, {args[1]});"),
+            GraphNodeKind.ViewFromEntity => Camera($"viewFrom({args[0]}, {args[1]});"),
+            GraphNodeKind.SetCameraPerspective => Camera($"setPerspective({args[0]}, {args[1]});"),
+            GraphNodeKind.SetCameraZoom => Camera($"setZoom({args[0]}, {args[1]});"),
+            GraphNodeKind.ShakeCamera => Camera($"shake({args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.TiltCamera => Camera($"tilt({args[0]}, {args[1]});"),
+            GraphNodeKind.SetHudVisible => Camera($"setHudVisible({args[0]}, {args[1]});"),
+            GraphNodeKind.ResetCamera => Camera($"reset({args[0]});"),
             _ => throw new NotSupportedException($"Action {action.Action} non traduite en Java."),
         };
     }
@@ -529,6 +539,10 @@ public sealed class BehaviorJava
             GraphNodeKind.IsItemInTag => Helper("itemInTag", $"itemInTag({a[0]}, {a[1]})"),
             GraphNodeKind.IsEntityInTag => Helper("entityInTag", $"entityInTag({a[0]}, {a[1]})"),
             GraphNodeKind.IsBiomeInTag => Helper("biomeInTag", $"biomeInTag(level, {a[0]}, {a[1]})"),
+            GraphNodeKind.CameraYaw => Uses($"((double) Mth.wrapDegrees({a[0]}.getYRot()))", "net.minecraft.util.Mth"),
+            GraphNodeKind.CameraPitch => $"((double) {a[0]}.getXRot())",
+            GraphNodeKind.CameraDirection => $"{a[0]}.getLookAngle()",
+            GraphNodeKind.CameraPosition => $"{a[0]}.getEyePosition()",
             _ => throw new NotSupportedException($"Nœud {call.Kind} non traduit en Java."),
         };
     }
@@ -691,6 +705,13 @@ public sealed class BehaviorJava
         }
 
         return code;
+    }
+
+    /// <summary>Call of the camera class of the mod (network package), which sends the client effects to the player.</summary>
+    private string Camera(string call)
+    {
+        Use($"{_names.Package[..^".code".Length]}.{ModJavaEmitter.CameraPackage}.{ModJavaEmitter.CameraClass}");
+        return $"{ModJavaEmitter.CameraClass}.{call}";
     }
 
     private string Uses(string code, params string[] imports)

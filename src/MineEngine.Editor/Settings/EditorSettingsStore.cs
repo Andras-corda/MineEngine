@@ -43,6 +43,7 @@ public sealed class EditorSettingsStore
             settings.GraphShowGrid = root["graphShowGrid"]?.GetValue<bool>() ?? settings.GraphShowGrid;
             settings.GraphSnapToGrid = root["graphSnapToGrid"]?.GetValue<bool>() ?? settings.GraphSnapToGrid;
             settings.ReopenLastProject = root["reopenLastProject"]?.GetValue<bool>() ?? settings.ReopenLastProject;
+            settings.DashboardTileView = root["dashboardTileView"]?.GetValue<bool>() ?? settings.DashboardTileView;
             settings.HubSidebarCollapsed = root["hubSidebarCollapsed"]?.GetValue<bool>() ?? settings.HubSidebarCollapsed;
             settings.DebugMode = root["debugMode"]?.GetValue<bool>() ?? settings.DebugMode;
             settings.AutoSaveMinutes = root["autoSaveMinutes"]?.GetValue<int>() ?? settings.AutoSaveMinutes;
@@ -86,6 +87,7 @@ public sealed class EditorSettingsStore
             ["graphShowGrid"] = settings.GraphShowGrid,
             ["graphSnapToGrid"] = settings.GraphSnapToGrid,
             ["reopenLastProject"] = settings.ReopenLastProject,
+            ["dashboardTileView"] = settings.DashboardTileView,
             ["debugMode"] = settings.DebugMode,
             ["hubSidebarCollapsed"] = settings.HubSidebarCollapsed,
             ["autoSaveMinutes"] = settings.AutoSaveMinutes,
