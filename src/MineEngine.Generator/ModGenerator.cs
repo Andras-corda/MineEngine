@@ -41,6 +41,7 @@ public sealed class ModGenerator
             new ModelsEmitter(placeholder),
             new GameplayResourcesEmitter(placeholder),
             new BiomesEmitter(),
+            new SparkleResourcesEmitter(placeholder),
         ]);
     }
 

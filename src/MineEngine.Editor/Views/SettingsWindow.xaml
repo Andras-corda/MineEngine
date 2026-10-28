@@ -234,6 +234,16 @@
                                   Content="{l:Tr 'Snap nodes to the grid'}" />
                         <TextBlock Style="{StaticResource FieldHint}" Margin="28,0,0,0"
                                    Text="{l:Tr 'A moved node lands on the nearest grid point when you release it.'}" />
+
+                        <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Sparkle preview'}" />
+                        <CheckBox Style="{StaticResource SettingsCheck}" IsChecked="{Binding SparkleInvertHorizontal}"
+                                  Content="{l:Tr 'Invert the horizontal rotation'}" />
+                        <CheckBox Style="{StaticResource SettingsCheck}" IsChecked="{Binding SparkleInvertVertical}"
+                                  Content="{l:Tr 'Invert the vertical rotation'}" />
+                        <CheckBox Style="{StaticResource SettingsCheck}" IsChecked="{Binding SparkleInvertZoom}"
+                                  Content="{l:Tr 'Invert the zoom of the wheel'}" />
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="28,0,0,0"
+                                   Text="{l:Tr 'The camera of the particle preview turns and zooms the other way when the mouse is dragged or the wheel turned.'}" />
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

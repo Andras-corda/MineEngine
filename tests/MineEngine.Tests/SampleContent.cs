@@ -117,6 +117,7 @@ internal static class SampleContent
         BlockOptionsSample.AddTo(project);
         WorldSample.AddTo(project);
         CameraSample.AddTo(project);
+        SparkleSample.AddTo(project);
     }
 
     /// <summary>V0.4.1 : outils, armures, nourriture à effets, combustible, tags et événements d'items.</summary>

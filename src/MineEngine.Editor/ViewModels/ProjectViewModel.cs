@@ -702,6 +702,7 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         AssetType.Tag => Tr.T("Tags"),
         AssetType.Plant => Tr.T("Plants"),
         AssetType.Biome => Tr.T("Biomes"),
+        AssetType.Sparkle => Tr.T("Particle systems"),
         _ => definition.Label,
     };
 

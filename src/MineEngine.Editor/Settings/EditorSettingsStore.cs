@@ -42,6 +42,9 @@ public sealed class EditorSettingsStore
             settings.CodeWordWrap = root["codeWordWrap"]?.GetValue<bool>() ?? settings.CodeWordWrap;
             settings.GraphShowGrid = root["graphShowGrid"]?.GetValue<bool>() ?? settings.GraphShowGrid;
             settings.GraphSnapToGrid = root["graphSnapToGrid"]?.GetValue<bool>() ?? settings.GraphSnapToGrid;
+            settings.SparkleInvertHorizontal = root["sparkleInvertHorizontal"]?.GetValue<bool>() ?? settings.SparkleInvertHorizontal;
+            settings.SparkleInvertVertical = root["sparkleInvertVertical"]?.GetValue<bool>() ?? settings.SparkleInvertVertical;
+            settings.SparkleInvertZoom = root["sparkleInvertZoom"]?.GetValue<bool>() ?? settings.SparkleInvertZoom;
             settings.ReopenLastProject = root["reopenLastProject"]?.GetValue<bool>() ?? settings.ReopenLastProject;
             settings.DashboardTileView = root["dashboardTileView"]?.GetValue<bool>() ?? settings.DashboardTileView;
             settings.HubSidebarCollapsed = root["hubSidebarCollapsed"]?.GetValue<bool>() ?? settings.HubSidebarCollapsed;
@@ -86,6 +89,9 @@ public sealed class EditorSettingsStore
             ["codeWordWrap"] = settings.CodeWordWrap,
             ["graphShowGrid"] = settings.GraphShowGrid,
             ["graphSnapToGrid"] = settings.GraphSnapToGrid,
+            ["sparkleInvertHorizontal"] = settings.SparkleInvertHorizontal,
+            ["sparkleInvertVertical"] = settings.SparkleInvertVertical,
+            ["sparkleInvertZoom"] = settings.SparkleInvertZoom,
             ["reopenLastProject"] = settings.ReopenLastProject,
             ["dashboardTileView"] = settings.DashboardTileView,
             ["debugMode"] = settings.DebugMode,

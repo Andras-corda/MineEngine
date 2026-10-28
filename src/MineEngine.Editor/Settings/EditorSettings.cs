@@ -62,6 +62,15 @@ public sealed class EditorSettings
     /// <summary>Les nœuds déplacés se calent sur la grille.</summary>
     public bool GraphSnapToGrid { get; set; }
 
+    /// <summary>Sparkle preview: dragging to the right turns the camera the other way.</summary>
+    public bool SparkleInvertHorizontal { get; set; }
+
+    /// <summary>Sparkle preview: dragging up turns the camera the other way.</summary>
+    public bool SparkleInvertVertical { get; set; }
+
+    /// <summary>Sparkle preview: the wheel zooms the other way.</summary>
+    public bool SparkleInvertZoom { get; set; }
+
     /// <summary>Rouvre au démarrage le dernier projet ouvert.</summary>
     public bool ReopenLastProject { get; set; }
 

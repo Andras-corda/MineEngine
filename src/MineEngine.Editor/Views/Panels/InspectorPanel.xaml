@@ -8,6 +8,7 @@
              xmlns:bt="clr-namespace:MineEngine.Editor.ViewModels.Puppeteer"
              xmlns:puppeteer="clr-namespace:MineEngine.Editor.Views.Puppeteer"
              xmlns:assets="clr-namespace:MineEngine.Editor.ViewModels.Assets"
+             xmlns:sparkle="clr-namespace:MineEngine.Editor.ViewModels.Sparkle"
              xmlns:views="clr-namespace:MineEngine.Editor.Views.Panels">
 
     <!--
@@ -20,13 +21,34 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
                 <ResourceDictionary Source="../InspectorTemplates.xaml" />
+                <ResourceDictionary Source="../Sparkle/SparkleTemplates.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <graphviews:NodeCategoryBrushConverter x:Key="CategoryBrush" />
 
-            <!-- Element selected in the Dashboard: information only (it is edited in its tab, opened with Edit). -->
+            <!-- Name and identifier of an element, edited here whatever its editor (undone with Ctrl+Z). -->
+            <DataTemplate x:Key="IdentityFields" DataType="{x:Type assets:AssetViewModel}">
+                <Border Style="{StaticResource DetailsSection}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'ELEMENT'}" Margin="0,0,0,6" />
+                        <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'In-game name'}" Margin="0,0,0,3" />
+                        <TextBox Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:Tr 'In-game name'}" />
+                        <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Identifier'}" Margin="0,8,0,3" />
+                        <TextBox Text="{Binding ResourceIdText, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"
+                                 AutomationProperties.Name="{l:Tr 'Identifier'}" />
+                        <TextBlock Style="{StaticResource FieldHint}" Text="{Binding ResourceIdRule}" TextWrapping="Wrap" Margin="0,3,0,0" />
+                        <DockPanel Margin="0,4,0,0" Visibility="{Binding HasGameId, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding FullResourceId}" FontFamily="Consolas" />
+                            <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'In-game identifier'}" />
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+
+            <!-- Element selected in the Dashboard: its name and identifier, then information (it is edited in its tab, opened with Edit). -->
             <DataTemplate x:Key="AssetSummaryTemplate" DataType="{x:Type assets:AssetViewModel}">
                 <StackPanel>
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource IdentityFields}" Focusable="False" />
                     <Border Style="{StaticResource DetailsSection}">
                         <StackPanel>
                             <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'INFORMATION'}" Margin="0,0,0,6" />
@@ -187,6 +209,8 @@
             <!-- Onglet de graphe : résumé, définition, nœud sélectionné, problèmes (un clic montre le nœud). -->
             <DataTemplate DataType="{x:Type graphs:GraphDocumentViewModel}">
                 <StackPanel>
+                    <ContentControl Content="{Binding DataContext.DetailsAsset, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    ContentTemplate="{StaticResource IdentityFields}" Focusable="False" />
                     <Border Style="{StaticResource DetailsSection}">
                         <StackPanel>
                             <TextBlock Style="{StaticResource PanelCaption}" Text="{Binding DetailsBadge}" Margin="0,0,0,6" />
@@ -300,9 +324,120 @@
                 </StackPanel>
             </DataTemplate>
 
+            <!-- Sparkle tab: name and identifier, the system, then the selected emitter (its whole stack) or module (its settings). -->
+            <DataTemplate DataType="{x:Type sparkle:SparkleDocumentViewModel}">
+                <StackPanel>
+                    <ContentControl Content="{Binding DataContext.DetailsAsset, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    ContentTemplate="{StaticResource IdentityFields}" Focusable="False" />
+                    <Border Style="{StaticResource DetailsSection}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'PARTICLE SYSTEM'}" Margin="0,0,0,6" />
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding Emitters.Count}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Emitters'}" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource DetailsValue}" Text="{Binding IssueSummary}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'State'}" />
+                            </DockPanel>
+                            <TextBlock Text="{Binding PerformanceSummary}" TextWrapping="Wrap" FontSize="12" Margin="0,6,0,0" Foreground="{DynamicResource HintBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" Margin="0,0,0,10"
+                               Text="{l:Tr 'Click an emitter or one of its modules on the canvas to edit it here. Right-click on the canvas to add an emitter.'}"
+                               Visibility="{Binding HasNothingSelected, Converter={StaticResource BoolToVisibility}}" />
+
+                    <!-- Selected comment (title, color, tooltip) or tooltip (message). -->
+                    <Border Style="{StaticResource DetailsSection}" Visibility="{Binding HasSelectedNote, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel DataContext="{Binding SelectedNote}">
+                            <StackPanel Visibility="{Binding IsComment, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'COMMENT'}" Margin="0,0,0,6" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Title'}" Margin="0,0,0,4" />
+                                <TextBox Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:Tr 'Title of the comment'}" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Color'}" Margin="0,10,0,4" />
+                                <ListBox ItemsSource="{Binding CommentColors}" SelectedItem="{Binding Color}" Background="Transparent" BorderThickness="0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Width="22" Height="22" CornerRadius="4" Background="{Binding}" ToolTip="{Binding}" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Tooltip of the comment'}" Margin="0,10,0,4" />
+                                <TextBox Text="{Binding Tooltip, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="54" />
+                                <TextBlock TextWrapping="Wrap" FontSize="11" Margin="0,4,0,0" Foreground="{DynamicResource HintBrush}"
+                                           Text="{l:Tr 'Shown when the mouse is over the title of the comment. Moving the comment moves the emitters inside it.'}" />
+                            </StackPanel>
+                            <StackPanel Visibility="{Binding IsTooltip, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'TOOLTIP'}" Margin="0,0,0,6" />
+                                <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Message'}" Margin="0,0,0,4" />
+                                <TextBox Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70"
+                                         AutomationProperties.Name="{l:Tr 'Message of the tooltip'}" />
+                                <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,6,0,0" Foreground="{DynamicResource StrongTextBrush}"
+                                           Visibility="{Binding HasTargets, Converter={StaticResource BoolToVisibility}}">
+                                    <Run Text="{l:Tr 'Describes:'}" />
+                                    <Run Text="{Binding TargetNames, Mode=OneWay}" />
+                                </TextBlock>
+                                <TextBlock TextWrapping="Wrap" FontSize="11" Margin="0,4,0,0" Foreground="{DynamicResource HintBrush}"
+                                           Text="{l:Tr 'Shown only when the mouse is over the bubble or over the emitters it describes (they show a small i).'}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Selected emitter: its head, then its whole stack, or only the selected module. -->
+                    <Border Style="{StaticResource DetailsSection}" Visibility="{Binding HasSelectedEmitter, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel DataContext="{Binding SelectedEmitter}">
+                            <DockPanel Margin="0,0,0,6">
+                                <Border DockPanel.Dock="Left" Width="4" CornerRadius="2" Margin="0,0,8,0" Background="#FF8A5CD6" />
+                                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'EMITTER'}" />
+                            </DockPanel>
+                            <TextBlock Style="{StaticResource DetailsLabel}" Text="{l:Tr 'Name'}" Margin="0,0,0,3" />
+                            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:Tr 'Name of the emitter'}" />
+                            <CheckBox Content="{l:Tr 'Shown in the preview'}" IsChecked="{Binding Preview}" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding Role}" FontSize="12" Margin="0,6,0,0" Foreground="{DynamicResource HintBrush}" />
+                            <WrapPanel Margin="0,8,0,0">
+                                <Button Content="{l:Tr 'Duplicate'}" Padding="10,3" Margin="0,0,6,0" Command="{Binding DuplicateCommand}" />
+                                <Button Content="{l:Tr 'Delete'}" Padding="10,3" Command="{Binding DeleteCommand}" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                    <ContentControl Content="{Binding SelectedModule}" ContentTemplate="{StaticResource SparkleModuleSettingsTemplate}" Focusable="False"
+                                    Visibility="{Binding HasSelectedModule, Converter={StaticResource BoolToVisibility}}" Margin="0,0,0,6" />
+                    <StackPanel Visibility="{Binding HasSelectedModule, Converter={StaticResource InverseBoolToVisibility}}">
+                        <ItemsControl ItemsSource="{Binding SelectedEmitter.Sections}" ItemTemplate="{StaticResource SparkleSectionSettingsTemplate}"
+                                      Focusable="False" Margin="0,0,0,6" />
+                    </StackPanel>
+                    <Button Style="{StaticResource FlatButton}" HorizontalAlignment="Left" Margin="0,0,0,10" Content="{l:Tr 'Show all the modules of the emitter'}"
+                            Command="{Binding SelectedEmitter.SelectCommand}"
+                            Visibility="{Binding HasSelectedModule, Converter={StaticResource BoolToVisibility}}" />
+
+                    <Border Style="{StaticResource DetailsSection}" Visibility="{Binding HasIssues, Converter={StaticResource BoolToVisibility}}">
+                        <ItemsControl ItemsSource="{Binding Issues}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,1" Foreground="{DynamicResource LogWarningBrush}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+                    <Border Style="{StaticResource InfoBanner}" Margin="0,0,0,10">
+                        <TextBlock TextWrapping="Wrap" FontSize="12"
+                                   Text="{l:Tr 'The graphs play the system with the nodes &quot;Play a particle system&quot; (at a position or on an entity), with its identifier.'}" />
+                    </Border>
+                </StackPanel>
+            </DataTemplate>
+
             <!-- Puppeteer tab: summary, selected node, blackboard and problems. -->
             <DataTemplate DataType="{x:Type bt:BehaviorTreeDocumentViewModel}">
                 <StackPanel>
+                    <ContentControl Content="{Binding DataContext.DetailsAsset, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    ContentTemplate="{StaticResource IdentityFields}" Focusable="False" />
                     <Border Style="{StaticResource DetailsSection}">
                         <StackPanel>
                             <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'BEHAVIOR TREE'}" Margin="0,0,0,6" />

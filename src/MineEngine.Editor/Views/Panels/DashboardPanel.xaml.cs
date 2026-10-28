@@ -131,12 +131,17 @@ public partial class DashboardPanel : UserControl
         }
     }
 
-    /// <summary>Retour arrière (hors d'un champ de saisie) remonte au dossier parent.</summary>
+    /// <summary>Retour arrière (hors d'un champ de saisie) remonte au dossier parent ; F2 renames the selected element.</summary>
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Back && Keyboard.FocusedElement is not TextBoxBase && Main?.Project is { IsInFolder: true } project)
         {
             project.OpenParentFolderCommand.Execute(null);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.F2 && Keyboard.FocusedElement is not TextBoxBase && Main is { } main && main.RenameAssetCommand.CanExecute(null))
+        {
+            main.RenameAssetCommand.Execute(null);
             e.Handled = true;
         }
     }
@@ -229,28 +234,36 @@ public partial class DashboardPanel : UserControl
         }
     }
 
-    /// <summary>The menu of the page opens only in the empty part: elements and folders have their own.</summary>
+    /// <summary>
+    /// The menu of the page needs a project. On an element or a folder, WPF opens their own menu (the
+    /// nearest one); this event bubbles up to the page from them too, so it must not be cancelled then.
+    /// </summary>
     private void OnPageMenuOpening(object sender, ContextMenuEventArgs e)
     {
-        if (e.OriginalSource is DependencyObject source && FindAncestor<ListBoxItem>(source) is not null || Main?.Project is null)
+        if (Main?.Project is null)
         {
             e.Handled = true;
         }
     }
 
-    private static T? FindAncestor<T>(DependencyObject? element)
-        where T : DependencyObject
+    /// <summary>"Open the Java code in": the programs of the settings that open Java files; hidden without any.</summary>
+    private static void FillJavaPrograms(ContextMenu menu, MainViewModel main)
     {
-        for (DependencyObject? current = element; current is not null;
-             current = current is System.Windows.Media.Visual ? System.Windows.Media.VisualTreeHelper.GetParent(current) : LogicalTreeHelper.GetParent(current))
+        if (menu.Items.OfType<MenuItem>().FirstOrDefault(i => Equals(i.Tag, "javaWith")) is not { } javaWith)
         {
-            if (current is T match)
-            {
-                return match;
-            }
+            return;
         }
 
-        return null;
+        javaWith.Items.Clear();
+        foreach (Settings.ExternalProgram program in main.JavaPrograms)
+        {
+            var item = new MenuItem { Header = program.Name, ToolTip = program.Path, IsEnabled = program.Exists && main.CanEdit };
+            item.Click += (_, _) => main.OpenAssetJavaWith(program);
+            javaWith.Items.Add(item);
+        }
+
+        javaWith.Items.Add(new Separator());
+        javaWith.Items.Add(new MenuItem { Header = Tr.T("Configure programs..."), Command = main.OpenSettingsCommand });
     }
 
     /// <summary>"Déplacer vers" : la racine et tous les dossiers, sauf celui de l'élément.</summary>
@@ -262,6 +275,7 @@ public partial class DashboardPanel : UserControl
         }
 
         OpenWithMenu.Fill(menu, main.AssetFile(asset), main);
+        FillJavaPrograms(menu, main);
         MenuItem? move = menu.Items.OfType<MenuItem>().FirstOrDefault(i => Equals(i.Tag, "move"));
         if (move is null)
         {

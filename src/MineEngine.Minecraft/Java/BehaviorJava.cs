@@ -331,6 +331,13 @@ public sealed class BehaviorJava
             GraphNodeKind.TiltCamera => Camera($"tilt({args[0]}, {args[1]});"),
             GraphNodeKind.SetHudVisible => Camera($"setHudVisible({args[0]}, {args[1]});"),
             GraphNodeKind.ResetCamera => Camera($"reset({args[0]});"),
+            GraphNodeKind.PlaySparkle => Sparkle($"play(level, {args[0]}, {args[1]});"),
+            GraphNodeKind.PlaySparkleOnEntity => Sparkle($"playOn({args[1]}, {args[0]});"),
+            GraphNodeKind.SetSparkleNumber => Sparkle($"setNumber({args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.SetSparkleVector => Sparkle($"setVector({args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.PlaySparkleBetween => Sparkle($"playBetween(level, {args[0]}, {args[1]}, {args[2]}, {args[3]});"),
+            GraphNodeKind.StopSparkleOnEntity => Sparkle($"stopOn({args[0]});"),
+            GraphNodeKind.StopSparklesAt => Sparkle($"stopAt(level, {args[0]}, {args[1]});"),
             _ => throw new NotSupportedException($"Action {action.Action} non traduite en Java."),
         };
     }
@@ -712,6 +719,13 @@ public sealed class BehaviorJava
     {
         Use($"{_names.Package[..^".code".Length]}.{ModJavaEmitter.CameraPackage}.{ModJavaEmitter.CameraClass}");
         return $"{ModJavaEmitter.CameraClass}.{call}";
+    }
+
+    /// <summary>Call of the Sparkle class of the mod (particle package), which sends the system to the players nearby.</summary>
+    private string Sparkle(string call)
+    {
+        Use($"{_names.Package[..^".code".Length]}.{ModJavaEmitter.SparklePackage}.{ModJavaEmitter.SparkleClass}");
+        return $"{ModJavaEmitter.SparkleClass}.{call}";
     }
 
     private string Uses(string code, params string[] imports)

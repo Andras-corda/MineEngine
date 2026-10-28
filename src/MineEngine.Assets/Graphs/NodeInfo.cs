@@ -447,6 +447,29 @@ public enum GraphNodeKind
     CameraPitch,
     CameraDirection,
     CameraPosition,
+
+    // ----- Sparkle particle systems (V0.7.5) -----
+    PlaySparkle,
+    PlaySparkleOnEntity,
+
+    // ----- Sparkle in the graphs (V0.7.7) -----
+    SetSparkleNumber,
+    SetSparkleVector,
+    PlaySparkleBetween,
+    StopSparkleOnEntity,
+    StopSparklesAt,
+}
+
+/// <summary>Values offered by a text input of a node, taken from the project (V0.7.7).</summary>
+public enum PinSuggestion
+{
+    None,
+
+    /// <summary>Identifiers of the Sparkle particle systems of the project.</summary>
+    SparkleSystem,
+
+    /// <summary>User parameters of the system chosen on the "system" input of the node.</summary>
+    SparkleParameter,
 }
 
 /// <summary>Domain of a node, used to sort the Nodes window like MCreator's procedure blocks.</summary>
@@ -481,6 +504,9 @@ public sealed record PinInfo(string Name, string Label, DataType Type, string? D
 
     /// <summary>Valeurs proposées pour une entrée d'énumération (identifiant, nom), vide sinon.</summary>
     public IReadOnlyList<EnumConstant> Choices { get; init; } = [];
+
+    /// <summary>Values of the project offered by a text input (it can still be typed).</summary>
+    public PinSuggestion Suggest { get; init; }
 }
 
 /// <summary>Description d'une sorte de nœud : titre, famille, entrées et sorties.</summary>

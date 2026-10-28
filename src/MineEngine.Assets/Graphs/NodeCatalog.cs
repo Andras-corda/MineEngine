@@ -742,6 +742,32 @@ public static class NodeCatalog
             Tr.T("The point the player looks from: the position of the eyes."),
             inputs: [Player], outputs: [new PinInfo("position", Tr.T("Position"), DataType.Vector3f)]),
 
+        // ----- Sparkle particle systems (V0.7.5) -----
+        new(GraphNodeKind.PlaySparkle, NodeCategory.Action, Tr.T("Play a particle system"),
+            Tr.T("Plays a Sparkle particle system of the mod at the center of the block, for the players nearby (identifier of the system: \"fire_burst\")."),
+            inputs: [SparkleSystem, Position]),
+        new(GraphNodeKind.PlaySparkleOnEntity, NodeCategory.Action, Tr.T("Play a particle system on an entity"),
+            Tr.T("Plays a Sparkle particle system of the mod on the entity: the emitters follow it while it lives."),
+            inputs: [SparkleSystem, Entity]),
+
+        // ----- Sparkle in the graphs (V0.7.7) -----
+        new(GraphNodeKind.SetSparkleNumber, NodeCategory.Action, Tr.T("Set a particle parameter (number)"),
+            Tr.T("Gives a value to a user parameter of the system for its next play (a number; 0 or 1 for yes / no, 0xRRGGBB for a color). The settings linked to the parameter take it."),
+            inputs: [SparkleSystem, SparkleParameter, new PinInfo("value", Tr.T("Value"), PinType.Decimal, "1")]),
+        new(GraphNodeKind.SetSparkleVector, NodeCategory.Action, Tr.T("Set a particle parameter (vector)"),
+            Tr.T("Gives a vector to a user parameter of the system for its next play: an offset in blocks from the place where it plays (the end of a beam...)."),
+            inputs: [SparkleSystem, SparkleParameter, new PinInfo("value", Tr.T("Vector"), PinType.Vector3f)]),
+        new(GraphNodeKind.PlaySparkleBetween, NodeCategory.Action, Tr.T("Play a particle system from a position to another"),
+            Tr.T("Plays the system at the first position, with the vector parameter set to the way to the second one: a beam between two blocks."),
+            inputs: [SparkleSystem, SparkleParameter with { DefaultValue = "Target" }, new PinInfo("from", Tr.T("From"), PinType.Position),
+                new PinInfo("to", Tr.T("To"), PinType.Position)]),
+        new(GraphNodeKind.StopSparkleOnEntity, NodeCategory.Action, Tr.T("Stop the particle systems of an entity"),
+            Tr.T("The systems played on the entity stop spawning; their particles end their life."),
+            inputs: [Entity]),
+        new(GraphNodeKind.StopSparklesAt, NodeCategory.Action, Tr.T("Stop the particle systems around a position"),
+            Tr.T("The systems playing near the block (radius in blocks) stop spawning; their particles end their life."),
+            inputs: [Position, new PinInfo("radius", Tr.T("Radius"), PinType.Decimal, "4")]),
+
         // ----- Game rules (V0.6.3) -----
         new(GraphNodeKind.GetGameRuleBoolean, NodeCategory.Variable, Tr.T("Game rule (true/false)"),
             Tr.T("Value of a true/false game rule of Minecraft or of the mod (keepInventory, doDaylightCycle...)."),
@@ -779,6 +805,10 @@ public static class NodeCatalog
     .ToDictionary(n => n.Kind);
 
     private static PinInfo TextIn(string name, string label, string value) => new(name, label, PinType.Text, value);
+
+    private static PinInfo SparkleSystem => new("system", Tr.T("System (identifier)"), PinType.Text, "new_sparkle") { Suggest = PinSuggestion.SparkleSystem };
+
+    private static PinInfo SparkleParameter => new("parameter", Tr.T("Parameter"), PinType.Text, "Parameter 1") { Suggest = PinSuggestion.SparkleParameter };
 
     private static PinInfo TextOut => new("text", Tr.T("Text"), PinType.Text);
 
@@ -865,6 +895,8 @@ public static class NodeCatalog
         GraphNodeKind.IsEntityInTag => NodeGroup.Entities,
         GraphNodeKind.IsBiomeInTag => NodeGroup.World,
         >= GraphNodeKind.SetCameraRotation and <= GraphNodeKind.CameraPosition => NodeGroup.Camera,
+        GraphNodeKind.PlaySparkle or GraphNodeKind.PlaySparkleOnEntity => NodeGroup.World,
+        >= GraphNodeKind.SetSparkleNumber and <= GraphNodeKind.StopSparklesAt => NodeGroup.World,
         GraphNodeKind.NumberValue or GraphNodeKind.RandomNumber or GraphNodeKind.GreaterThan or GraphNodeKind.LessThan or GraphNodeKind.NumbersEqual
             or GraphNodeKind.Add or GraphNodeKind.Subtract or GraphNodeKind.Multiply => NodeGroup.Math,
         GraphNodeKind.TextValue or GraphNodeKind.JoinText => NodeGroup.Text,

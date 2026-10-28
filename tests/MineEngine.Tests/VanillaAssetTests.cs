@@ -50,6 +50,22 @@ public sealed class VanillaAssetTests
         Assert.Equal(3, library.Assets.Count);
     }
 
+    [Theory]
+    [InlineData("1.21.1", "1.21.1")]
+    [InlineData("1.21.1", "1.21")]
+    [InlineData("1.20.1", "1.20")]
+    [InlineData("1.20.5", "1.20.4")]
+    [InlineData("1.19.4", "1.19.2")]
+    [InlineData("1.18", "1.18.2")]
+    public void The_nearest_version_of_the_game_is_chosen_when_the_asked_one_is_missing(string asked, string expected)
+    {
+        string[] versions = ["1.18.2", "1.19.2", "1.20", "1.20.4", "1.20.6", "1.21", "1.21.1", "1.21.2", "1.21.10", "1.21.11"];
+
+        string[] available = asked == expected ? versions : [.. versions.Where(v => v != asked)];
+
+        Assert.Equal(expected, VanillaAssetLibrary.NearestVersion(available, asked));
+    }
+
     [Fact]
     public void The_minecraft_of_this_computer_is_read_when_it_is_installed()
     {

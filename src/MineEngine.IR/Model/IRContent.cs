@@ -67,13 +67,17 @@ public sealed class IRContent
     /// <summary>Biomes of the mod.</summary>
     public IReadOnlyList<IRBiome> Biomes { get; init; } = [];
 
+    /// <summary>Sparkle particle systems of the mod.</summary>
+    public IReadOnlyList<IRSparkle> Sparkles { get; init; } = [];
+
     /// <summary>Mobs qui ont un œuf d'apparition.</summary>
     public IEnumerable<IRMob> MobsWithSpawnEgg => Mobs.Where(m => m.SpawnEgg is not null);
 
     public bool IsEmpty =>
         Items.Count == 0 && Blocks.Count == 0 && Mobs.Count == 0 && Recipes.Count == 0 && Sounds.Count == 0 && Behaviors.Count == 0
         && Definitions.Count == 0 && Commands.Count == 0 && CreativeTabs.Count == 0 && Keybinds.Count == 0 && Enchantments.Count == 0
-        && Fluids.Count == 0 && GameRules.Count == 0 && Effects.Count == 0 && Globals.Count == 0 && Tags.Count == 0 && Biomes.Count == 0;
+        && Fluids.Count == 0 && GameRules.Count == 0 && Effects.Count == 0 && Globals.Count == 0 && Tags.Count == 0 && Biomes.Count == 0
+        && Sparkles.Count == 0;
 
     /// <summary>Tous les éléments qui ont une forme item (items, puis blocs avec item).</summary>
     public IEnumerable<IRElement> ElementsWithItemForm =>

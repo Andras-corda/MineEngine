@@ -1,4 +1,5 @@
 using System.Windows;
+using MineEngine.Assets;
 using MineEngine.Assets.Graphs;
 using MineEngine.Editor.Mvvm;
 using MineEngine.Editor.ViewModels.Assets;
@@ -22,6 +23,9 @@ public enum PinEditorKind
 
     /// <summary>Liste des valeurs d'une énumération.</summary>
     Choice,
+
+    /// <summary>Text typed or chosen among values of the project (particle systems, their parameters).</summary>
+    Suggest,
 }
 
 /// <summary>
@@ -82,6 +86,7 @@ public sealed class GraphPinViewModel : ObservableObject
         : Type.Kind switch
         {
             PinType.Number => PinEditorKind.Number,
+            PinType.Text when Info.Suggest != PinSuggestion.None => PinEditorKind.Suggest,
             PinType.Text or PinType.Decimal or PinType.Direction or PinType.Char or PinType.Long or PinType.Float or PinType.Byte
                 or PinType.Identifier or PinType.Fluid or PinType.EquipmentSlot or PinType.Hand or PinType.Rarity => PinEditorKind.Text,
             PinType.Boolean => PinEditorKind.Boolean,
@@ -129,6 +134,29 @@ public sealed class GraphPinViewModel : ObservableObject
         set => Node.Document.SetValue(Node, Name, value ?? string.Empty);
     }
 
+    /// <summary>
+    /// Values offered by a text input (<see cref="PinInfo.Suggest"/>): the identifiers of the particle
+    /// systems of the project, or the user parameters of the system chosen on the node.
+    /// </summary>
+    public IReadOnlyList<string> Suggestions
+    {
+        get
+        {
+            IEnumerable<SparkleAsset> systems = Node.Document.Assets.OfType<SparkleAsset>();
+            if (Info.Suggest == PinSuggestion.SparkleSystem)
+            {
+                return [.. systems.Select(s => s.ResourceId.Value).Order(StringComparer.Ordinal)];
+            }
+
+            string chosen = (Node.Model.GetValue("system") ?? string.Empty).Trim();
+            chosen = chosen[(chosen.IndexOf(':', StringComparison.Ordinal) + 1)..];
+            // The parameters of the chosen system; of all the systems while none is chosen.
+            SparkleAsset? system = systems.FirstOrDefault(s => s.ResourceId.Value == chosen);
+            IEnumerable<SparkleAsset> source = system is null ? systems : [system];
+            return [.. source.SelectMany(s => s.UserParameters).Select(p => p.Name).Distinct().Order(StringComparer.Ordinal)];
+        }
+    }
+
     public bool BoolValue
     {
         get => bool.TryParse(Node.Model.GetValue(Name), out bool flag) && flag;
@@ -167,6 +195,12 @@ public sealed class GraphPinViewModel : ObservableObject
         OnPropertyChanged(nameof(TextValue));
         OnPropertyChanged(nameof(BoolValue));
         OnPropertyChanged(nameof(ChoiceValue));
+        if (Info.Suggest == PinSuggestion.SparkleParameter)
+        {
+            // The parameters offered follow the system chosen on the node.
+            OnPropertyChanged(nameof(Suggestions));
+        }
+
         Picker?.Refresh();
     }
 

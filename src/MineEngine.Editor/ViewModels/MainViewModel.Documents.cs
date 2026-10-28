@@ -13,6 +13,7 @@ using MineEngine.Editor.ViewModels.Assets;
 using MineEngine.Editor.ViewModels.Documents;
 using MineEngine.Editor.ViewModels.Graphs;
 using MineEngine.Editor.ViewModels.Puppeteer;
+using MineEngine.Editor.ViewModels.Sparkle;
 using MineEngine.Generator;
 using MineEngine.IR.Model;
 using MineEngine.Minecraft.Generation;
@@ -176,11 +177,20 @@ public sealed partial class MainViewModel
             if (SetProperty(ref _details, value))
             {
                 OnPropertyChanged(nameof(HasDetails));
+                OnPropertyChanged(nameof(DetailsAsset));
             }
         }
     }
 
     public bool HasDetails => _details is not null;
+
+    /// <summary>Element whose name and identifier the Details panel edits: the selected one, or the one of the active tab.</summary>
+    public AssetViewModel? DetailsAsset => _details switch
+    {
+        AssetViewModel asset => asset,
+        DocumentViewModel document when DocumentAssetId(document) is { } id => _project?.Assets.FirstOrDefault(a => a.Model.Id == id),
+        _ => null,
+    };
 
     public ICommand CloseDocumentCommand { get; private set; } = null!;
 
@@ -206,6 +216,9 @@ public sealed partial class MainViewModel
     /// <summary>Ouvre un arbre de comportement dans Puppeteer (paramètre : son ViewModel, sinon l'asset sélectionné).</summary>
     public ICommand OpenBehaviorTreeCommand { get; private set; } = null!;
 
+    /// <summary>Opens a particle system in Sparkle (parameter: its ViewModel, otherwise the selected element).</summary>
+    public ICommand OpenSparkleCommand { get; private set; } = null!;
+
     /// <summary>Ouvre l'élément sélectionné dans son onglet d'édition (barre d'outils).</summary>
     public ICommand EditSelectedAssetCommand { get; private set; } = null!;
 
@@ -224,6 +237,15 @@ public sealed partial class MainViewModel
     /// <summary>Génère le code du mod puis ouvre le fichier Java de l'élément sélectionné, à sa première ligne.</summary>
     public ICommand OpenAssetJavaCommand { get; private set; } = null!;
 
+    /// <summary>Asks a new in-game name for an element (parameter: its ViewModel, otherwise the selected element).</summary>
+    public ICommand RenameAssetCommand { get; private set; } = null!;
+
+    /// <summary>Programs of the settings that open Java files (the IDE), for "Open the Java code in".</summary>
+    public IReadOnlyList<ExternalProgram> JavaPrograms => ProgramsFor("Main.java");
+
+    /// <summary>Generates the code of the mod, then opens the Java file of the selected element with a program (the IDE).</summary>
+    public void OpenAssetJavaWith(ExternalProgram program) => _ = OpenAssetJavaAsync(program);
+
     // ----- Tab menu (right-click on a tab of the work area) -----
 
     /// <summary>File shown by a tab: the code file, or the .asset.json file of an element; null without a project.</summary>
@@ -240,6 +262,7 @@ public sealed partial class MainViewModel
         AssetEditorDocumentViewModel editor => editor.AssetId,
         GraphDocumentViewModel graph => graph.AssetId,
         BehaviorTreeDocumentViewModel tree => tree.AssetId,
+        SparkleDocumentViewModel sparkle => sparkle.AssetId,
         _ => null,
     };
 
@@ -331,6 +354,15 @@ public sealed partial class MainViewModel
                 }
             },
             asset => (asset ?? _project?.SelectedAsset)?.Model is BehaviorTreeAsset);
+        OpenSparkleCommand = new RelayCommand<AssetViewModel?>(
+            asset =>
+            {
+                if ((asset ?? _project?.SelectedAsset)?.Model is SparkleAsset sparkle)
+                {
+                    OpenSparkleDocument(sparkle);
+                }
+            },
+            asset => (asset ?? _project?.SelectedAsset)?.Model is SparkleAsset);
         OpenSelectedGraphCommand = new RelayCommand(
             () => OpenGraphDocument((GraphAsset)_project!.SelectedAsset!.Model), () => _project?.SelectedAsset?.Model is GraphAsset);
         ExportAssetCommand = new RelayCommand(ExportSelectedAsset, () => HasProject && _project?.SelectedAsset is not null);
@@ -342,7 +374,17 @@ public sealed partial class MainViewModel
                 StatusText = Tr.F("'{0}' created (Ctrl+Z to undo)", copy.ResourceId);
             }),
             () => CanEdit && ProjectViewModel.CanDuplicate(_project?.SelectedAsset));
-        OpenAssetJavaCommand = new AsyncRelayCommand(OpenAssetJavaAsync, () => CanEdit && _project?.SelectedAsset is not null);
+        OpenAssetJavaCommand = new AsyncRelayCommand(() => OpenAssetJavaAsync(null), () => CanEdit && _project?.SelectedAsset is not null);
+        RenameAssetCommand = new RelayCommand<AssetViewModel?>(
+            asset =>
+            {
+                if ((asset ?? _project?.SelectedAsset) is { } target
+                    && _dialogs.AskText(Tr.T("Rename"), Tr.F("New name for \"{0}\":", target.Header), target.DisplayName)?.Trim() is { Length: > 0 } name)
+                {
+                    target.DisplayName = name;
+                }
+            },
+            asset => CanEdit && (asset ?? _project?.SelectedAsset) is not null);
         OpenAssetEditorCommand = new RelayCommand<AssetViewModel?>(
             asset =>
             {
@@ -483,6 +525,12 @@ public sealed partial class MainViewModel
         }
 
         _project.SelectAsset(asset.Id);
+        if (asset is SparkleAsset sparkle)
+        {
+            OpenSparkleDocument(sparkle);
+            return;
+        }
+
         if (asset is BehaviorTreeAsset tree)
         {
             OpenBehaviorTreeDocument(tree);
@@ -527,7 +575,7 @@ public sealed partial class MainViewModel
 
         foreach (DocumentViewModel document in Documents.Where(d =>
                      d.Id == AssetEditorDocumentViewModel.IdFor(e.Asset.Id) || d.Id == "graph:" + e.Asset.Id.ToString("N")
-                     || d.Id == BehaviorTreeDocumentViewModel.IdFor(e.Asset.Id)).ToList())
+                     || d.Id == BehaviorTreeDocumentViewModel.IdFor(e.Asset.Id) || d.Id == SparkleDocumentViewModel.IdFor(e.Asset.Id)).ToList())
         {
             RemoveDocument(document);
         }
@@ -597,6 +645,22 @@ public sealed partial class MainViewModel
         Activate(document);
     }
 
+    /// <summary>Opens (or activates) the Sparkle tab of a particle system.</summary>
+    private void OpenSparkleDocument(SparkleAsset sparkle)
+    {
+        if (_project is null)
+        {
+            return;
+        }
+
+        DocumentViewModel document = Documents.FirstOrDefault(d => d.Id == SparkleDocumentViewModel.IdFor(sparkle.Id))
+                                     ?? AddDocument(new SparkleDocumentViewModel(
+                                         sparkle,
+                                         _assetViewModels.CreateContext(_project.Model, assetId => _project.SelectAsset(assetId)),
+                                         _project.Model.Layout.ToRelativePath(_project.Model.Layout.GetAssetFilePath(sparkle))));
+        Activate(document);
+    }
+
     /// <summary>Le serializer des assets sert à l'aperçu JSON ; il est créé au premier besoin.</summary>
     private AssetSerializer AssetSerializer => _assetSerializer ??= new AssetSerializer(_assetViewModels.Catalog);
 
@@ -642,7 +706,7 @@ public sealed partial class MainViewModel
     /// Écrit le code du mod (sans compiler), puis ouvre le premier fichier Java produit par
     /// l'élément sélectionné. Un élément sans code Java (recette, texture...) le dit dans la barre d'état.
     /// </summary>
-    private async Task OpenAssetJavaAsync()
+    private async Task OpenAssetJavaAsync(ExternalProgram? program)
     {
         if (_project?.SelectedAsset is not { } selected)
         {
@@ -672,7 +736,16 @@ public sealed partial class MainViewModel
                 return;
             }
 
-            OpenFileAtLine(Path.Combine(result.WorkspaceDirectory, entry.File.Replace('/', Path.DirectorySeparatorChar)), entry.FirstLine);
+            string javaFile = Path.Combine(result.WorkspaceDirectory, entry.File.Replace('/', Path.DirectorySeparatorChar));
+            if (program is not null)
+            {
+                OpenWith(program, javaFile);
+            }
+            else
+            {
+                OpenFileAtLine(javaFile, entry.FirstLine);
+            }
+
             StatusText = Tr.F("Java code of '{0}'", selected.Header);
         }
         catch (OperationCanceledException)

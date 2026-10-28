@@ -35,13 +35,13 @@
 | V0.6.11 | Pins aimantées, message de statut de 3 s, navigateur d'assets (textures et modèles 3D, ceux de Minecraft compris), portées des variables globales (scopeGlobalVariable.md), blocs façon MCreator (rotation, eau, gravité, rendu, forme en boîtes, états personnalisés, redstone, feu, balise, échelle, génération de minerai) | F |
 | V0.7.0 | Creation de plante/biome (fleur, plante haute, plante qui pousse, culture, parcelles dans le monde ; biomes de l'Overworld avec climat, couleurs et surface) + textures des blocs en croix | F |
 | V0.7.1 | Ajout de l'onglet tags (tags.md : blocs, items, fonctions, peintures, dégâts, enchantements, entités, biomes, événements, structures, variantes, bannières, préréglages, potions, dialogues, fluides ; espaces de noms minecraft, mod, c, forge, neoforge, fabric) + nœuds « est dans le tag » | F |
-| V0.7.2 | Integration de structure simple (arbre) | |
+| V0.7.2 | Integration de structure simple (arbre) | P |
 | V0.7.3 | Ajout de l'onglet global variable (fait en V0.6.7) | F |
 | V0.7.4 | Node de gestion de la caméra du joueur (domaine Caméra : orienter, tourner, regarder une position, voir depuis une entité, perspective F5, zoom, tremblement, inclinaison, interface F1, réinitialiser ; lacet, tangage, direction et position de la caméra) | F |
-| V0.7.5 | Ajout du sous programme sparkle (particule) | |
-| V0.7.6 | Ajouter des template pour les sparkle (comme niagara system) | |
-| V0.7.7 | Ajouter des events pour les sparkle (comme niagara system) | |
-| V0.7.8 | Creation de pack (pouvoir creer directement un pack d'armure/tools, minerai etc avec le meme nom au départ par exemple) | |
+| V0.7.5 | Ajout du sous programme sparkle (particule) (Sparkle.md : systèmes à plusieurs émetteurs en nœuds sur un canevas façon Niagara, édition dans Propriétés, aperçu 3D carré et détachable, timeline lecture / pause / arrêt / à l'envers / image par image, événements de mort, nœuds « Jouer un système de particules ») | F |
+| V0.7.6 | Ajouter des template pour les sparkle (émetteurs préconfigurés au clic droit : vide, rayon d'un point à un autre, fontaine, rebond, ruban) + événements de temps (une fois après x s ou à chaque intervalle) et de zone (entrée dans une sphère ou un cube) + paramètres utilisateur liés aux réglages, plusieurs textures par émetteur (au hasard ou animées), commentaires et infobulles, aimantation, copier / coller, aides de l'aperçu (axes, zones, rayons, vélocité, collisions) | F |
+| V0.7.7 | Ajouter des nodes pour les sparkle (choix du système et du paramètre dans une liste, régler un paramètre utilisateur nombre / vecteur avant de jouer, jouer d'une position à une autre, arrêter les systèmes d'une entité ou autour d'une position) + inversion des contrôles de l'aperçu (Paramètres > Éditeurs) | F |
+| V0.7.8 | Creation de pack (pouvoir creer directement un pack d'armure/tools, minerai etc avec le meme nom au départ par exemple) | P |
 | V0.7.9 | Refonte de l'onglet mob | |
 | V0.7.10 | Implémentation des damage type et drop table | |
 | V0.7.11 | Refonte de l'onglet block | |

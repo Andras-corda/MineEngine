@@ -243,14 +243,32 @@ public sealed class VanillaAssetLibrary
     private static (string Jar, string Version)? Locate(string version)
     {
         List<(string Jar, string Version)> found = [.. Candidates()];
-        return found.FirstOrDefault(c => c.Version == version) is { Jar: not null } exact
-            ? exact
-            : found.OrderByDescending(c => SharedPrefix(c.Version, version)).ThenByDescending(c => c.Version, StringComparer.Ordinal).FirstOrDefault() is { Jar: not null } near
-                ? near
-                : null;
+        return NearestVersion(found.Select(c => c.Version), version) is { } nearest
+            ? found.First(c => c.Version == nearest)
+            : null;
     }
 
-    private static int SharedPrefix(string a, string b)
+    /// <summary>
+    /// The version of the list closest to the one asked: the same one, else the one sharing the most
+    /// leading numbers ("1.21" for "1.21.1", not "1.21.10"), the newest older one first (the format of
+    /// the files changes in later versions), then the oldest newer one; null if the list is empty.
+    /// </summary>
+    public static string? NearestVersion(IEnumerable<string> versions, string version)
+    {
+        ArgumentNullException.ThrowIfNull(versions);
+        int[] target = Numbers(version);
+        return versions
+            .OrderByDescending(v => v == version)
+            .ThenByDescending(v => SharedNumbers(Numbers(v), target))
+            .ThenBy(v => Compare(Numbers(v), target) > 0)
+            .ThenBy(v => Numbers(v), Comparer<int[]>.Create((a, b) => Compare(a, target) > 0 ? Compare(a, b) : Compare(b, a)))
+            .FirstOrDefault();
+    }
+
+    private static int[] Numbers(string version) =>
+        [.. version.Split('.').Select(part => int.TryParse(part, out int number) ? number : 0)];
+
+    private static int SharedNumbers(int[] a, int[] b)
     {
         int i = 0;
         while (i < a.Length && i < b.Length && a[i] == b[i])
@@ -259,6 +277,20 @@ public sealed class VanillaAssetLibrary
         }
 
         return i;
+    }
+
+    private static int Compare(int[] a, int[] b)
+    {
+        for (int i = 0; i < Math.Max(a.Length, b.Length); i++)
+        {
+            int difference = (i < a.Length ? a[i] : 0).CompareTo(i < b.Length ? b[i] : 0);
+            if (difference != 0)
+            {
+                return difference;
+            }
+        }
+
+        return 0;
     }
 
     private static IEnumerable<(string Jar, string Version)> Candidates()

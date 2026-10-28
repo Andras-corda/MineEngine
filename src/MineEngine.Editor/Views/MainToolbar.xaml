@@ -200,6 +200,10 @@
                                           ToolTip="{l:Tr 'Biome of the overworld, with its climate and its colors'}">
                                     <MenuItem.Icon><views:IconView Icon="Glyph.Explorer" IconSize="14" /></MenuItem.Icon>
                                 </MenuItem>
+                                <MenuItem Header="{l:Tr 'Particle system'}" Command="{Binding AddOfTypeCommand}" CommandParameter="{x:Static core:AssetType.Sparkle}"
+                                          ToolTip="{l:Tr 'Sparkle particle system: emitters of particles played by the graphs'}">
+                                    <MenuItem.Icon><views:IconView Icon="SparkleGeometry" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
                                 <MenuItem Header="{l:Tr 'Game rule'}" Command="{Binding AddOfTypeCommand}" CommandParameter="{x:Static core:AssetType.GameRule}"
                                           ToolTip="{l:Tr 'Rule changed with /gamerule'}">
                                     <MenuItem.Icon><views:IconView Icon="Glyph.Settings" IconSize="14" /></MenuItem.Icon>

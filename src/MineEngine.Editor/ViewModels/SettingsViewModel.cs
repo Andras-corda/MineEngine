@@ -409,6 +409,36 @@ public sealed class SettingsViewModel : ObservableObject
         }
     }
 
+    public bool SparkleInvertHorizontal
+    {
+        get => _draft.SparkleInvertHorizontal;
+        set
+        {
+            _draft.SparkleInvertHorizontal = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool SparkleInvertVertical
+    {
+        get => _draft.SparkleInvertVertical;
+        set
+        {
+            _draft.SparkleInvertVertical = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool SparkleInvertZoom
+    {
+        get => _draft.SparkleInvertZoom;
+        set
+        {
+            _draft.SparkleInvertZoom = value;
+            OnPropertyChanged();
+        }
+    }
+
     /// <summary>À appeler à la fermeture : annule l'aperçu si rien n'a été enregistré.</summary>
     public void DiscardPreview()
     {

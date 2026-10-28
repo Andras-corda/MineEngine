@@ -213,6 +213,13 @@
         M1.5,10 H5.5 V14 H1.5 Z
         M10.5,10 H14.5 V14 H10.5 Z
     </Geometry>
+    <!-- Sparkle particle system: four-pointed stars, like a sparkle. -->
+    <Geometry x:Key="SparkleGeometry">
+        M10,6.0 Q10,10.5 14.5,10.5 Q10,10.5 10,15.0 Q10,10.5 5.5,10.5 Q10,10.5 10,6.0 Z
+        M5.5,2 Q5.5,5 8.5,5 Q5.5,5 5.5,8 Q5.5,5 2.5,5 Q5.5,5 5.5,2 Z
+        M12.5,1.2 Q12.5,3 14.3,3 Q12.5,3 12.5,4.8 Q12.5,3 10.7,3 Q12.5,3 12.5,1.2 Z
+        M3.5,10.7 Q3.5,12.5 5.3,12.5 Q3.5,12.5 3.5,14.3 Q3.5,12.5 1.7,12.5 Q3.5,12.5 3.5,10.7 Z
+    </Geometry>
     <!-- Function library: books on a shelf -->
     <Geometry x:Key="LibraryGeometry">
         M2.5,3 V13 M5,3 V13 M2.5,3 H5 M2.5,13 H5

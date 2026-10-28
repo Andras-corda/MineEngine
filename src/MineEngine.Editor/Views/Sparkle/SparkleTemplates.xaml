@@ -1,0 +1,156 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:l="clr-namespace:MineEngine.Editor.Localization"
+                    xmlns:sp="clr-namespace:MineEngine.Editor.ViewModels.Sparkle">
+
+    <!--
+        Sparkle: settings of the selected emitter or module, shown in the Properties panel
+        (the canvas of the tab only shows the nodes).
+    -->
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- A setting of a module: label, then a field depending on its type. -->
+    <DataTemplate x:Key="SparkleParameterTemplate" DataType="{x:Type sp:SparkleParameterViewModel}">
+        <StackPanel Margin="0,0,0,6" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}">
+            <DockPanel x:Name="LabelRow">
+                <!-- Link to a user parameter of the system: the field is replaced by its name. -->
+                <ComboBox DockPanel.Dock="Right" MinWidth="0" MaxWidth="130" Padding="4,1" FontSize="11" Margin="6,0,0,2" VerticalAlignment="Bottom"
+                          ItemsSource="{Binding BindingOptions}" SelectedValuePath="Value" SelectedValue="{Binding BindingValue}" DisplayMemberPath="Label"
+                          ToolTip="{l:Tr 'Link the setting to a user parameter of the system'}" AutomationProperties.Name="{l:Tr 'Linked user parameter'}"
+                          Visibility="{Binding HasBindingOptions, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Range}" FontSize="11" Foreground="{DynamicResource HintBrush}" VerticalAlignment="Bottom" />
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding Label}" ToolTip="{Binding Hint}" />
+            </DockPanel>
+            <Border x:Name="Linked" Visibility="Collapsed" Padding="6,3" CornerRadius="4" Background="{DynamicResource CardSelectedBrush}">
+                <TextBlock FontFamily="Consolas" Text="{Binding ShortValue}" Foreground="{DynamicResource StrongTextBrush}" />
+            </Border>
+            <!-- A list of textures: one line each, removed with its button. -->
+            <StackPanel x:Name="Textures" Visibility="Collapsed">
+                <ItemsControl ItemsSource="{Binding Textures}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type sp:SparkleTextureItemViewModel}">
+                            <DockPanel Margin="0,0,0,4">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" Command="{Binding RemoveCommand}"
+                                        Margin="4,0,0,0" ToolTip="{l:Tr 'Remove the texture'}" AutomationProperties.Name="{l:Tr 'Remove the texture'}" />
+                                <ComboBox HorizontalAlignment="Stretch" IsEditable="True" IsTextSearchEnabled="False" FontFamily="Consolas"
+                                          ItemsSource="{Binding Suggestions}" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                                          AutomationProperties.Name="{l:Tr 'Texture'}" />
+                            </DockPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Style="{StaticResource FlatButton}" HorizontalAlignment="Left" Command="{Binding AddTextureCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" />
+                        <TextBlock Text="{l:Tr 'Add a texture'}" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+            <TextBox x:Name="Number" Visibility="Collapsed" Text="{Binding NumberText, UpdateSourceTrigger=PropertyChanged}"
+                     AutomationProperties.Name="{Binding Label}" />
+            <CheckBox x:Name="Flag" Visibility="Collapsed" Content="{Binding Label}" IsChecked="{Binding BoolValue}" />
+            <ComboBox x:Name="Choice" Visibility="Collapsed" HorizontalAlignment="Stretch" AutomationProperties.Name="{Binding Label}"
+                      ItemsSource="{Binding Choices}" SelectedItem="{Binding ChoiceValue}" DisplayMemberPath="Label" />
+            <Grid x:Name="Vector" Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="X" Foreground="#E06C6C" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <TextBox Grid.Column="1" Text="{Binding X, UpdateSourceTrigger=PropertyChanged}" MinWidth="40" />
+                <TextBlock Grid.Column="2" Text="Y" Foreground="#7CC46A" FontWeight="SemiBold" VerticalAlignment="Center" Margin="6,0,4,0" />
+                <TextBox Grid.Column="3" Text="{Binding Y, UpdateSourceTrigger=PropertyChanged}" MinWidth="40" />
+                <TextBlock Grid.Column="4" Text="Z" Foreground="#6C9BE0" FontWeight="SemiBold" VerticalAlignment="Center" Margin="6,0,4,0" />
+                <TextBox Grid.Column="5" Text="{Binding Z, UpdateSourceTrigger=PropertyChanged}" MinWidth="40" />
+            </Grid>
+            <DockPanel x:Name="Color" Visibility="Collapsed">
+                <Border DockPanel.Dock="Left" Width="22" Height="22" CornerRadius="4" Margin="0,0,6,0" BorderThickness="1"
+                        BorderBrush="{DynamicResource CardBorderBrush}" Background="{Binding ColorPreview}" />
+                <TextBox Text="{Binding ColorText, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" />
+            </DockPanel>
+            <ComboBox x:Name="Texture" Visibility="Collapsed" HorizontalAlignment="Stretch" IsEditable="True" IsTextSearchEnabled="False"
+                      FontFamily="Consolas" ItemsSource="{Binding TextureSuggestions}" ToolTip="{Binding TextureText}"
+                      Text="{Binding TextureText, UpdateSourceTrigger=PropertyChanged}" />
+            <ComboBox x:Name="EmitterId" Visibility="Collapsed" HorizontalAlignment="Stretch"
+                      ItemsSource="{Binding EmitterOptions}" SelectedValuePath="Value" SelectedValue="{Binding EmitterValue}" DisplayMemberPath="Label" />
+            <TextBlock Style="{StaticResource FieldHint}" Text="{Binding Hint}" TextWrapping="Wrap" Margin="0,3,0,0"
+                       Visibility="{Binding HasHint, Converter={StaticResource BoolToVisibility}}" />
+        </StackPanel>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Editor}" Value="{x:Static sp:SparkleEditorKind.Number}">
+                <Setter TargetName="Number" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Editor}" Value="{x:Static sp:SparkleEditorKind.Boolean}">
+                <Setter TargetName="Flag" Property="Visibility" Value="Visible" />
+                <Setter TargetName="LabelRow" Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Editor}" Value="{x:Static sp:SparkleEditorKind.Choice}">
+                <Setter TargetName="Choice" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Editor}" Value="{x:Static sp:SparkleEditorKind.Vector}">
+                <Setter TargetName="Vector" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Editor}" Value="{x:Static sp:SparkleEditorKind.Color}">
+                <Setter TargetName="Color" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Editor}" Value="{x:Static sp:SparkleEditorKind.Texture}">
+                <Setter TargetName="Texture" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Editor}" Value="{x:Static sp:SparkleEditorKind.EmitterId}">
+                <Setter TargetName="EmitterId" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Editor}" Value="{x:Static sp:SparkleEditorKind.Textures}">
+                <Setter TargetName="Textures" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <!-- Linked: the name of the parameter replaces the field (the label stays, even for a box). -->
+            <DataTrigger Binding="{Binding IsBound}" Value="True">
+                <Setter TargetName="Linked" Property="Visibility" Value="Visible" />
+                <Setter TargetName="LabelRow" Property="Visibility" Value="Visible" />
+                <Setter TargetName="Number" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="Flag" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="Vector" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="Color" Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- A module: switch (optional modules), title and description, then its settings while it is on. -->
+    <DataTemplate x:Key="SparkleModuleSettingsTemplate" DataType="{x:Type sp:SparkleModuleViewModel}">
+        <Border x:Name="Card" Margin="0,0,0,6" Padding="8,6" CornerRadius="5" Background="{DynamicResource HubBackgroundBrush}"
+                BorderThickness="1" BorderBrush="{DynamicResource CardBorderBrush}">
+            <StackPanel>
+                <DockPanel Margin="0,0,0,4" ToolTip="{Binding Description}">
+                    <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Enabled}" Margin="0,0,2,0" VerticalAlignment="Center"
+                              Visibility="{Binding IsOptional, Converter={StaticResource BoolToVisibility}}"
+                              AutomationProperties.Name="{Binding Title}" />
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="{DynamicResource StrongTextBrush}" VerticalAlignment="Center" />
+                </DockPanel>
+                <StackPanel Visibility="{Binding Enabled, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="{Binding Emitter.PerformanceSummary}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource HintBrush}"
+                               Visibility="{Binding IsPerformance, Converter={StaticResource BoolToVisibility}}" />
+                    <ItemsControl ItemsSource="{Binding Parameters}" ItemTemplate="{StaticResource SparkleParameterTemplate}" Focusable="False" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- A part of the stack: a folder that opens on its modules. -->
+    <DataTemplate x:Key="SparkleSectionSettingsTemplate" DataType="{x:Type sp:SparkleSectionViewModel}">
+        <Expander Header="{Binding Title}" IsExpanded="{Binding IsExpanded}" Margin="0,0,0,4" FontWeight="SemiBold">
+            <ItemsControl ItemsSource="{Binding Modules}" ItemTemplate="{StaticResource SparkleModuleSettingsTemplate}" Focusable="False"
+                          FontWeight="Normal" Margin="0,4,0,0" />
+        </Expander>
+    </DataTemplate>
+</ResourceDictionary>

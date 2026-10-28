@@ -107,6 +107,7 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
         AssetType.Tag => "Glyph.Link",
         AssetType.Plant => "Glyph.Star",
         AssetType.Biome => "Glyph.Explorer",
+        AssetType.Sparkle => "SparkleGeometry",
         _ => "Glyph.File",
     };
 

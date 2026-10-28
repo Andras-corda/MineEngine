@@ -82,7 +82,7 @@
                     </Button.ContextMenu>
                 </Button>
                 <Button x:Name="ExplorerToggle" Style="{StaticResource LayoutButton}" Content="{StaticResource Glyph.PanelLeft}" Click="OnToggleExplorerClick"
-                        ToolTip="{l:Tr 'Show or hide the Explorer (Ctrl+B)'}" WindowChrome.IsHitTestVisibleInChrome="True" />
+                        ToolTip="{l:Tr 'Show or hide the left panels: Explorer and Nodes (Ctrl+B)'}" WindowChrome.IsHitTestVisibleInChrome="True" />
                 <Button x:Name="BottomToggle" Style="{StaticResource LayoutButton}" Content="{StaticResource Glyph.PanelBottom}" Click="OnToggleBottomClick"
                         ToolTip="{l:Tr 'Show or hide Output and Diagnostics (Ctrl+J)'}" WindowChrome.IsHitTestVisibleInChrome="True" />
                 <Button x:Name="InspectorToggle" Style="{StaticResource LayoutButton}" Content="{StaticResource Glyph.PanelRight}" Click="OnToggleInspectorClick"
@@ -223,6 +223,10 @@
                         <MenuItem Header="{l:Tr 'Biome'}" Command="{Binding AddOfTypeCommand}" CommandParameter="{x:Static core:AssetType.Biome}"
                                   ToolTip="{l:Tr 'Biome of the overworld, with its climate and its colors'}">
                             <MenuItem.Icon><views:IconView Icon="Glyph.Explorer" IconSize="14" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="{l:Tr 'Particle system'}" Command="{Binding AddOfTypeCommand}" CommandParameter="{x:Static core:AssetType.Sparkle}"
+                                  ToolTip="{l:Tr 'Sparkle particle system: emitters of particles played by the graphs'}">
+                            <MenuItem.Icon><views:IconView Icon="SparkleGeometry" IconSize="14" /></MenuItem.Icon>
                         </MenuItem>
                         <MenuItem Header="{l:Tr 'Game rule'}" Command="{Binding AddOfTypeCommand}" CommandParameter="{x:Static core:AssetType.GameRule}"
                                   ToolTip="{l:Tr 'Rule changed with /gamerule'}">

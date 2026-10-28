@@ -61,6 +61,7 @@ public sealed class AssetViewModelFactory
             TagAsset tag => new TagAssetViewModel(tag, context, label),
             PlantAsset plant => new PlantAssetViewModel(plant, context, label),
             BiomeAsset biome => new BiomeAssetViewModel(biome, context, label),
+            SparkleAsset sparkle => new SparkleAssetViewModel(sparkle, context, label),
             _ => throw new NotSupportedException(Tr.F("The editor cannot display assets of type {0} yet.", asset.Type)),
         };
     }

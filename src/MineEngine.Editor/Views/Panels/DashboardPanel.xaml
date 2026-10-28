@@ -51,24 +51,39 @@
 
             <!-- Menu contextuel d'un élément ; Tag de l'élément = MainViewModel. -->
             <ContextMenu x:Key="AssetMenu" x:Shared="False">
-                <MenuItem Header="{l:Tr 'Open the node editor'}" CommandParameter="{Binding}" FontWeight="SemiBold"
-                          Command="{Binding PlacementTarget.Tag.OpenGraphEditorCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                          Visibility="{Binding IsEnabled, RelativeSource={RelativeSource Self}, Converter={StaticResource BoolToVisibility}}" />
+                <MenuItem Header="{l:Tr 'Open'}" CommandParameter="{Binding}" FontWeight="SemiBold"
+                          Command="{Binding PlacementTarget.Tag.OpenAssetEditorCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                    <MenuItem.Icon><views:IconView Icon="Glyph.OpenInNew" IconSize="14" /></MenuItem.Icon>
+                </MenuItem>
                 <MenuItem Header="{l:Tr 'Show in Properties'}" CommandParameter="{Binding}"
                           Command="{Binding PlacementTarget.Tag.ShowAssetDetailsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 <MenuItem Header="{l:Tr 'View the asset\'s file'}"
                           Command="{Binding PlacementTarget.Tag.OpenAssetSourceCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                 <!-- Rempli à l'ouverture du menu (voir OpenWithMenu). -->
                 <MenuItem Header="{l:Tr 'Open with'}" Tag="openWith" />
+                <Separator />
                 <MenuItem Header="{l:Tr 'View the Java code'}"
-                          Command="{Binding PlacementTarget.Tag.OpenAssetJavaCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                          Command="{Binding PlacementTarget.Tag.OpenAssetJavaCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                    <MenuItem.Icon><views:IconView Icon="Glyph.Code" IconSize="14" /></MenuItem.Icon>
+                </MenuItem>
+                <!-- Filled when the menu opens: the programs of the settings that open Java files (the IDE). -->
+                <MenuItem Header="{l:Tr 'Open the Java code in'}" Tag="javaWith" />
+                <Separator />
+                <MenuItem Header="{l:Tr 'Rename...'}" InputGestureText="F2" CommandParameter="{Binding}"
+                          Command="{Binding PlacementTarget.Tag.RenameAssetCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                    <MenuItem.Icon><views:IconView Icon="Glyph.Rename" IconSize="14" /></MenuItem.Icon>
+                </MenuItem>
                 <MenuItem Header="{l:Tr 'Duplicate'}" InputGestureText="Ctrl+D"
-                          Command="{Binding PlacementTarget.Tag.DuplicateAssetCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                          Command="{Binding PlacementTarget.Tag.DuplicateAssetCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                    <MenuItem.Icon><views:IconView Icon="Glyph.Copy" IconSize="14" /></MenuItem.Icon>
+                </MenuItem>
                 <Separator />
                 <!-- Rempli à l'ouverture du menu avec la racine et tous les dossiers. -->
                 <MenuItem Header="{l:Tr 'Move to folder'}" Tag="move" />
-                <MenuItem Header="{l:Tr 'Delete'}"
-                          Command="{Binding PlacementTarget.Tag.DeleteAssetCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                <MenuItem Header="{l:Tr 'Delete'}" InputGestureText="Del"
+                          Command="{Binding PlacementTarget.Tag.DeleteAssetCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                    <MenuItem.Icon><views:IconView Icon="Glyph.Delete" IconSize="14" /></MenuItem.Icon>
+                </MenuItem>
             </ContextMenu>
 
             <!-- Menu contextuel d'un dossier ; Tag du dossier = MainViewModel. -->

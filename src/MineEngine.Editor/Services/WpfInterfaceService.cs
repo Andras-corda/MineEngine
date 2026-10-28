@@ -25,6 +25,9 @@ public sealed class WpfInterfaceService : IInterfaceService
     public const string CodeWordWrapKey = "CodeWordWrap";
     public const string GraphGridVisibilityKey = "GraphGridVisibility";
     public const string GraphSnapToGridKey = "GraphSnapToGrid";
+    public const string SparkleInvertHorizontalKey = "SparkleInvertHorizontal";
+    public const string SparkleInvertVerticalKey = "SparkleInvertVertical";
+    public const string SparkleInvertZoomKey = "SparkleInvertZoom";
 
     private static ScaleTransform s_scale = CreateScale(1);
 
@@ -52,6 +55,9 @@ public sealed class WpfInterfaceService : IInterfaceService
         _application.Resources[CodeWordWrapKey] = settings.CodeWordWrap;
         _application.Resources[GraphGridVisibilityKey] = settings.GraphShowGrid ? Visibility.Visible : Visibility.Collapsed;
         _application.Resources[GraphSnapToGridKey] = settings.GraphSnapToGrid;
+        _application.Resources[SparkleInvertHorizontalKey] = settings.SparkleInvertHorizontal;
+        _application.Resources[SparkleInvertVerticalKey] = settings.SparkleInvertVertical;
+        _application.Resources[SparkleInvertZoomKey] = settings.SparkleInvertZoom;
 
         if (Math.Abs(settings.UiScale - s_scale.ScaleX) > 0.001)
         {

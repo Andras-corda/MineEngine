@@ -49,6 +49,9 @@ public sealed class GradleRunner
         }
 
         startInfo.ArgumentList.Add("--console=plain");
+        // The NeoForge MDKs turn the configuration cache on, but their createMinecraftArtifacts task cannot be
+        // stored in it with Gradle 9 (DefaultSetProperty): the build would stop before compiling.
+        startInfo.ArgumentList.Add("--no-configuration-cache");
         if (Core.Diagnostics.EngineDebug.Enabled)
         {
             // Debug mode: Gradle prints the full stack of its errors.

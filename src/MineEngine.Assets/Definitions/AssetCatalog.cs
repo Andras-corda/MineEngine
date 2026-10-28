@@ -50,6 +50,7 @@ public sealed class AssetCatalog
             new TagAssetDefinition(),
             new PlantAssetDefinition(),
             new BiomeAssetDefinition(),
+            new SparkleAssetDefinition(),
         ]);
 
     /// <summary>

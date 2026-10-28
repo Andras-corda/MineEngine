@@ -83,6 +83,10 @@ public sealed class LoweringContext
 
     public void AddBiome(IRBiome biome) => _biomes.Add(biome);
 
+    private readonly List<IRSparkle> _sparkles = [];
+
+    public void AddSparkle(IRSparkle sparkle) => _sparkles.Add(sparkle);
+
     /// <summary>Identifier of the 3D model an element is shown with, or null (missing models are reported by the validation).</summary>
     public ResourceId? ResolveCustomModel(TexturedAsset owner) =>
         owner.UsesCustomModel && owner.CustomModelId is { } id && Project.Assets.Find(id) is ModelAsset { IsUsedByTheGame: true } model
@@ -171,6 +175,7 @@ public sealed class LoweringContext
         Globals = [.. _globals.OrderBy(g => g.Name, StringComparer.Ordinal)],
         Tags = [.. _tags.OrderBy(t => t.Namespace, StringComparer.Ordinal).ThenBy(t => t.Path, StringComparer.Ordinal)],
         Biomes = [.. _biomes.OrderBy(b => b.Id)],
+        Sparkles = [.. _sparkles.OrderBy(s => s.Id)],
     };
 
     private NamespacedId? ResolveAsset(Asset owner, Guid assetId, string role)

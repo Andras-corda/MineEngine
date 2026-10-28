@@ -62,6 +62,11 @@ public sealed class ResourcePaths
     /// <summary>Variant or layer texture of a mob model ("variant_1", "layer_1").</summary>
     public string EntityModelTexture(ResourceId model, string suffix) => $"{AssetsRoot}/textures/entity/model/{model}_{suffix}.png";
 
+    /// <summary>Sprites of a particle type: assets/&lt;mod&gt;/particles/&lt;name&gt;.json.</summary>
+    public string ParticleDefinition(string name) => $"{AssetsRoot}/particles/{name}.json";
+
+    public string ParticleTexture(string name) => $"{AssetsRoot}/textures/particle/{name}.png";
+
     public string SoundFile(ResourceId id) => $"{AssetsRoot}/sounds/{id}.ogg";
 
     public string Language(string locale) => $"{AssetsRoot}/lang/{locale}.json";

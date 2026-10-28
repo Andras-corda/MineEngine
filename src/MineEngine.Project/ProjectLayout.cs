@@ -150,6 +150,7 @@ public sealed class ProjectLayout
         AssetType.Tag => "tags",
         AssetType.Plant => "plants",
         AssetType.Biome => "biomes",
+        AssetType.Sparkle => "sparkles",
         _ => type.ToString().ToLowerInvariant(),
     };
 

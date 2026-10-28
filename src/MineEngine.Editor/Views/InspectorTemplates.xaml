@@ -1615,6 +1615,41 @@
         </StackPanel>
     </DataTemplate>
 
+    <!-- ===================== Système de particules (Sparkle) ===================== -->
+    <DataTemplate DataType="{x:Type assets:SparkleAssetViewModel}">
+        <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+            <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
+            <Button Style="{DynamicResource AccentButtonStyle}" HorizontalAlignment="Left" Padding="14,6" Margin="0,8,0,4"
+                    Command="{Binding DataContext.OpenSparkleCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    CommandParameter="{Binding}">
+                <StackPanel Orientation="Horizontal">
+                    <views:IconView Icon="Glyph.Star" IconSize="14" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{l:Tr 'Open in Sparkle'}" />
+                </StackPanel>
+            </Button>
+            <TextBlock Style="{StaticResource RowHint}"
+                       Text="{l:Tr 'The graphs play the system with the nodes &quot;Play a particle system&quot; (at a position or on an entity), with its identifier.'}" />
+
+            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Summary'}" Margin="0,12,0,4" />
+            <WrapPanel Style="{StaticResource Row}">
+                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Emitters'}" />
+                <TextBlock VerticalAlignment="Center" Text="{Binding EmitterCount}" />
+            </WrapPanel>
+            <TextBlock Style="{StaticResource RowHint}" Text="{Binding PerformanceSummary}" TextWrapping="Wrap" />
+
+            <StackPanel Visibility="{Binding HasProblems, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Style="{StaticResource StackedLabel}" Text="{l:Tr 'Problems'}" Margin="0,8,0,2" />
+                <ItemsControl ItemsSource="{Binding Problems}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,1" Foreground="{DynamicResource LogWarningBrush}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
     <!-- ===================== Recette ===================== -->
     <DataTemplate DataType="{x:Type assets:RecipeAssetViewModel}">
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">

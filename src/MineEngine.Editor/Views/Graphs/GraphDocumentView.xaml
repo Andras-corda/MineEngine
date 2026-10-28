@@ -71,6 +71,9 @@
                               IsChecked="{Binding BoolValue}" />
                     <ComboBox x:Name="Choice" Visibility="Collapsed" Width="130" Margin="2,2,6,2" FontSize="12" MinHeight="0"
                               ItemsSource="{Binding Choices}" SelectedItem="{Binding ChoiceValue}" DisplayMemberPath="Name" />
+                    <ComboBox x:Name="Suggest" Visibility="Collapsed" Width="150" Margin="2,2,6,2" FontSize="12" MinHeight="0"
+                              IsEditable="True" IsTextSearchEnabled="False" FontFamily="Consolas" ItemsSource="{Binding Suggestions}"
+                              Text="{Binding TextValue, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding Label}" />
                     <ComboBox x:Name="Reference" Visibility="Collapsed" Width="170" Margin="2,2,6,2" FontSize="12"
                               IsEditable="True" IsTextSearchEnabled="False" FontFamily="Consolas"
                               ItemsSource="{Binding Picker.Suggestions}" ToolTip="{Binding Picker.Text}"
@@ -91,6 +94,9 @@
                     </DataTrigger>
                     <DataTrigger Binding="{Binding Editor}" Value="{x:Static graphs:PinEditorKind.Choice}">
                         <Setter TargetName="Choice" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Editor}" Value="{x:Static graphs:PinEditorKind.Suggest}">
+                        <Setter TargetName="Suggest" Property="Visibility" Value="Visible" />
                     </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>

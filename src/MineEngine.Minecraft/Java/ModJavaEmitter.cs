@@ -112,6 +112,11 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             WriteCamera(context, naming, api);
         }
 
+        if (UsesSparkle(content))
+        {
+            WriteSparkles(context, naming);
+        }
+
         if (content.Mobs.Count > 0)
         {
             Write(context, naming, naming.RegistryPackage, naming.EntitiesClass, WriteEntitiesClass(context, naming, api));
@@ -198,6 +203,12 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             imports.AddRange(CameraMainImports(naming));
         }
 
+        bool usesSparkle = UsesSparkle(content);
+        if (usesSparkle)
+        {
+            imports.AddRange(SparkleMainImports(naming));
+        }
+
         JavaSourceWriter w = WriteHeader(naming.RootPackage, imports, $"Classe principale du mod {mod.Name}.")
             .Line($"@Mod({naming.MainClass}.MOD_ID)")
             .OpenBlock($"public final class {naming.MainClass}")
@@ -250,6 +261,12 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         if (usesCamera)
         {
             WriteCameraRegistrations(w);
+        }
+
+        // Sparkle particle systems: their particle types, and on the client their providers.
+        if (usesSparkle)
+        {
+            WriteSparkleRegistrations(w);
         }
 
         // Global variables: the events that load and save the data of the players.

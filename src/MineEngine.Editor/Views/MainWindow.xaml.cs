@@ -12,6 +12,7 @@ using MineEngine.Editor.ViewModels;
 using MineEngine.Editor.ViewModels.Documents;
 using MineEngine.Editor.ViewModels.Graphs;
 using MineEngine.Editor.ViewModels.Puppeteer;
+using MineEngine.Editor.ViewModels.Sparkle;
 using MineEngine.Editor.Views.Documents;
 using MineEngine.Editor.Views.Graphs;
 
@@ -137,23 +138,24 @@ public partial class MainWindow : Window
     /// </summary>
     private void FitSidePanels(double windowWidth)
     {
+        // The width comes from the panel found in the pane, not from its first tab (Nodes can share the pane of the Explorer).
         var panes = PreferredSideWidth.Keys
-            .Select(id => DockManager.Layout.Descendents().OfType<LayoutAnchorable>().FirstOrDefault(a => a.ContentId == id && !a.IsHidden && !a.IsFloating))
-            .Select(a => a?.Parent as LayoutAnchorablePane)
-            .Where(p => p is { Parent: LayoutPanel { Orientation: Orientation.Horizontal } })
-            .Distinct()
+            .Select(id => (Id: id, Pane: DockManager.Layout.Descendents().OfType<LayoutAnchorable>()
+                .FirstOrDefault(a => a.ContentId == id && !a.IsHidden && !a.IsFloating)?.Parent as LayoutAnchorablePane))
+            .Where(p => p.Pane is { Parent: LayoutPanel { Orientation: Orientation.Horizontal } })
+            .DistinctBy(p => p.Pane)
             .ToList();
         if (panes.Count == 0)
         {
             return;
         }
 
-        double preferredTotal = panes.Sum(p => PreferredSideWidth[p!.Children[0].ContentId]);
+        double preferredTotal = panes.Sum(p => PreferredSideWidth[p.Id]);
         double scale = Math.Min(1, windowWidth * MaxSideShare / preferredTotal);
-        foreach (LayoutAnchorablePane pane in panes!)
+        foreach ((string id, LayoutAnchorablePane? pane) in panes)
         {
-            double width = Math.Max(160, PreferredSideWidth[pane.Children[0].ContentId] * scale);
-            if (Math.Abs(pane.DockWidth.Value - width) > 1 && (scale < 1 || pane.DockWidth.Value < width))
+            double width = Math.Max(160, PreferredSideWidth[id] * scale);
+            if (Math.Abs(pane!.DockWidth.Value - width) > 1 && (scale < 1 || pane.DockWidth.Value < width))
             {
                 pane.DockWidth = new GridLength(width);
             }
@@ -192,6 +194,7 @@ public partial class MainWindow : Window
             {
                 GraphDocumentViewModel => new GraphDocumentView { DataContext = document },
                 BehaviorTreeDocumentViewModel => new Puppeteer.BehaviorTreeView { DataContext = document },
+                SparkleDocumentViewModel => new Sparkle.SparkleView { DataContext = document },
                 AssetEditorDocumentViewModel => new AssetEditorView { DataContext = document },
                 _ => new CodeDocumentView { DataContext = document },
             };
@@ -225,7 +228,7 @@ public partial class MainWindow : Window
         if (e.Action == NotifyCollectionChangedAction.Reset)
         {
             foreach (LayoutDocument stale in DockManager.Layout.Descendents().OfType<LayoutDocument>()
-                         .Where(d => d.Content is CodeDocumentView or GraphDocumentView or AssetEditorView or Puppeteer.BehaviorTreeView).ToList())
+                         .Where(d => d.Content is CodeDocumentView or GraphDocumentView or AssetEditorView or Puppeteer.BehaviorTreeView or Sparkle.SparkleView).ToList())
             {
                 stale.Close();
             }
@@ -450,7 +453,7 @@ public partial class MainWindow : Window
     {
         MainViewModel.InspectorPanelId => [MainViewModel.InspectorPanelId],
         MainViewModel.OutputPanelId or MainViewModel.DiagnosticsPanelId => [MainViewModel.OutputPanelId, MainViewModel.DiagnosticsPanelId],
-        _ => [MainViewModel.ExplorerPanelId],
+        _ => LeftPanels,
     };
 
     // ----- Thème, clavier, fermeture -----
@@ -477,7 +480,7 @@ public partial class MainWindow : Window
             Key key = e.Key == Key.System ? e.SystemKey : e.Key;
             string[]? panels = (key, alt) switch
             {
-                (Key.B, false) => [MainViewModel.ExplorerPanelId],
+                (Key.B, false) => LeftPanels,
                 (Key.J, false) => BottomPanels,
                 (Key.B, true) => [MainViewModel.InspectorPanelId],
                 _ => null,
@@ -526,6 +529,12 @@ public partial class MainWindow : Window
 
     private static readonly string[] BottomPanels = [MainViewModel.OutputPanelId, MainViewModel.DiagnosticsPanelId];
 
+    /// <summary>Panels of the left side: the Explorer and the node library share it.</summary>
+    private static readonly string[] LeftPanels = [MainViewModel.ExplorerPanelId, MainViewModel.NodesPanelId];
+
+    /// <summary>Panels that were shown when their group was hidden by its button: only they come back.</summary>
+    private readonly Dictionary<string, string[]> _hiddenByToggle = [];
+
     private static readonly string[] AllPanels =
         [MainViewModel.ExplorerPanelId, MainViewModel.NodesPanelId, MainViewModel.OutputPanelId, MainViewModel.DiagnosticsPanelId, MainViewModel.InspectorPanelId];
 
@@ -558,13 +567,16 @@ public partial class MainWindow : Window
     /// <summary>Masque les panneaux s'il y en a un d'affiché, sinon les affiche (à leur dernière place).</summary>
     private void TogglePanels(params string[] contentIds)
     {
+        string group = string.Join('|', contentIds);
         if (contentIds.Any(IsPanelVisible))
         {
+            _hiddenByToggle[group] = [.. contentIds.Where(IsPanelVisible)];
             HidePanels(contentIds);
         }
         else
         {
-            foreach (string id in contentIds.Reverse())
+            string[] shown = _hiddenByToggle.Remove(group, out string[]? previous) ? previous : contentIds;
+            foreach (string id in shown.Reverse())
             {
                 ShowPanel(id);
             }
@@ -586,7 +598,7 @@ public partial class MainWindow : Window
 
     private void UpdateLayoutButtons()
     {
-        bool explorer = IsPanelVisible(MainViewModel.ExplorerPanelId);
+        bool explorer = LeftPanels.Any(IsPanelVisible);
         bool bottom = BottomPanels.Any(IsPanelVisible);
         bool inspector = IsPanelVisible(MainViewModel.InspectorPanelId);
         ExplorerToggle.Tag = explorer;
@@ -597,7 +609,7 @@ public partial class MainWindow : Window
         InspectorMenuItem.IsChecked = inspector;
     }
 
-    private void OnToggleExplorerClick(object sender, RoutedEventArgs e) => TogglePanels(MainViewModel.ExplorerPanelId);
+    private void OnToggleExplorerClick(object sender, RoutedEventArgs e) => TogglePanels(LeftPanels);
 
     private void OnToggleBottomClick(object sender, RoutedEventArgs e) => TogglePanels(BottomPanels);
 

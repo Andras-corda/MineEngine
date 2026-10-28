@@ -50,6 +50,9 @@ public enum AssetType
 
     /// <summary>Biome of the overworld (V0.7.0).</summary>
     Biome,
+
+    /// <summary>Sparkle particle system: emitters of particles played by the graphs (V0.7.5).</summary>
+    Sparkle,
 }
 
 /// <summary>
@@ -75,6 +78,7 @@ public enum AssetIdScope
     GlobalVariable,
     Tag,
     Biome,
+    Sparkle,
 }
 
 public static class AssetTypeExtensions
@@ -96,6 +100,7 @@ public static class AssetTypeExtensions
         AssetType.GlobalVariable => AssetIdScope.GlobalVariable,
         AssetType.Tag => AssetIdScope.Tag,
         AssetType.Biome => AssetIdScope.Biome,
+        AssetType.Sparkle => AssetIdScope.Sparkle,
         _ => AssetIdScope.GameContent,
     };
 }
