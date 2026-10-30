@@ -17,6 +17,7 @@ public sealed class GraphAsset : Asset
     private NodeGraph _graph = NodeGraph.Empty;
     private GraphKind _kind = GraphKind.Events;
     private AccessLevel _access = AccessLevel.Public;
+    private Guid? _elementId;
     private Guid? _ownerId;
     private bool _isStatic;
     private bool _isPure;
@@ -52,6 +53,16 @@ public sealed class GraphAsset : Asset
     {
         get => _access;
         set => SetField(ref _access, value);
+    }
+
+    /// <summary>
+    /// Element (item...) whose method this graph is (V0.7.13), or null: the graph then belongs to the
+    /// project. It is opened from the element and goes away with it.
+    /// </summary>
+    public Guid? ElementId
+    {
+        get => _elementId;
+        set => SetField(ref _elementId, value);
     }
 
     /// <summary>Classe dans laquelle la définition est intégrée (méthode, type imbriqué), ou null.</summary>

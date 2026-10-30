@@ -44,6 +44,27 @@ public enum BlockModelKind
 
     /// <summary>A 3D model of the project (Blockbench or Java JSON).</summary>
     Custom,
+
+    // ----- Block bases (V0.7.11): a block of the game with its own shape, states and behavior -----
+    Stairs,
+    Slab,
+    Fence,
+    FenceGate,
+    Wall,
+    Door,
+    Trapdoor,
+
+    /// <summary>A pane, like glass panes and iron bars.</summary>
+    Pane,
+    Button,
+    PressurePlate,
+}
+
+/// <summary>The block bases (V0.7.11): stairs, slab, fence, door... made by the classes of the game.</summary>
+public static class BlockBases
+{
+    /// <summary>True for a base that brings its own shape, rotation, water and states.</summary>
+    public static bool IsBase(this BlockModelKind model) => model >= BlockModelKind.Stairs;
 }
 
 /// <summary>Emplacement de texture d'un bloc.</summary>
@@ -146,6 +167,9 @@ public enum MobKind
 
     /// <summary>Animal : apparaît sur l'herbe, peut se reproduire et avoir des bébés.</summary>
     Animal,
+
+    /// <summary>Raider (V0.7.9): a hostile mob that can join the raids of the villages, like a pillager.</summary>
+    Raider,
 }
 
 /// <summary>Comportements d'IA ("goals" de Minecraft) qu'un mob peut combiner.</summary>

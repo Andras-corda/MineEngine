@@ -7,9 +7,11 @@ using MineEngine.Core.Identifiers;
 namespace MineEngine.Assets;
 
 /// <summary>
-/// Une créature vivante. Inspiré de l'éditeur "Living entity" de MCreator :
-/// apparence (modèle, texture, taille), attributs (vie, dégâts, vitesse...), IA
-/// (liste ordonnée de comportements), apparition naturelle, œuf, sons et butin.
+/// Une créature vivante. Inspiré de l'éditeur "Living entity" de MCreator, refait en V0.7.9
+/// (Entity.md) : visuel (modèle, texture, échelle, boîte de collision), variantes et calques,
+/// attributs (type, apprivoisement, monture, créature aquatique, immunités et faiblesses), IA,
+/// apparition (dimensions, biomes, structures, groupes, œuf), propriétés spéciales (boss,
+/// golem), sons et butin.
 /// </summary>
 public sealed class MobAsset : TexturedAsset
 {
@@ -27,6 +29,11 @@ public sealed class MobAsset : TexturedAsset
     public const int MaxSpawnWeight = 1000;
     public const int MaxGroupSize = 16;
     public const int SpawnEggSuffixLength = 10;
+    public const double MaxStepHeight = 10;
+    public const int MaxTrackingRange = 32;
+    public const double MaxKnockback = 10;
+    public const double MaxShadowRadius = 8;
+    public const double MaxPassengerOffset = 16;
 
     private MobModel _model = MobModel.Zombie;
     private MobKind _kind = MobKind.Monster;
@@ -41,9 +48,39 @@ public sealed class MobAsset : TexturedAsset
     private double _followRange = 16;
     private double _knockbackResistance;
     private int _experience = 5;
-    private bool _fireImmune;
-    private bool _burnsInDaylight;
     private bool _persistent;
+
+    private MobScale _visualScale = MobScale.Default;
+    private bool _textureTransparent;
+    private double _shadowRadius = 0.5;
+    private double _passengerOffset = 1.8;
+    private bool _noCollision;
+    private MobScale _hitboxScale = MobScale.Default;
+    private IReadOnlyList<Guid> _variations = [];
+    private IReadOnlyList<MobLayer> _layers = [];
+
+    private MobCreatureType _creatureType = MobCreatureType.Undefined;
+    private double _stepHeight = 0.6;
+    private int _trackingRange = 8;
+    private double _knockback;
+    private MobTaming _taming = MobTaming.Disabled;
+    private MobRiding _riding = MobRiding.Disabled;
+    private MobWater _water = MobWater.Disabled;
+    private IReadOnlySet<MobImmunity> _immunities = new HashSet<MobImmunity>();
+    private IReadOnlySet<MobVulnerability> _vulnerabilities = new HashSet<MobVulnerability>();
+
+    private Guid? _despawnFunction;
+    private MobGroupMode _groupMode = MobGroupMode.Range;
+    private Guid? _groupFunction;
+    private IReadOnlySet<MobDimension> _dimensions = new HashSet<MobDimension> { MobDimension.Overworld };
+    private bool _inStructures;
+    private IReadOnlySet<string> _structures = new HashSet<string>();
+    private Guid? _eggCreativeTab;
+    private Guid? _eggTextureId;
+
+    private MobBoss _boss = MobBoss.Disabled;
+    private MobGolem _golem = MobGolem.Disabled;
+    private MobVehicle _vehicle = MobVehicle.None;
 
     private IReadOnlyList<MobGoal> _goals = MobGoalCatalog.DefaultGoals(MobKind.Monster);
     private Guid? _behaviorTreeId;
@@ -103,6 +140,77 @@ public sealed class MobAsset : TexturedAsset
     /// <summary>Taille réellement utilisée en jeu.</summary>
     public (float Width, float Height) Hitbox => UseCustomHitbox ? (Width, Height) : MobModelInfo.DefaultHitbox(Model);
 
+    /// <summary>Size of the model on the screen (the collision box does not change).</summary>
+    public MobScale VisualScale
+    {
+        get => _visualScale;
+        set => SetField(ref _visualScale, value ?? MobScale.Default);
+    }
+
+    /// <summary>The texture has transparent pixels drawn see-through (glass, ghost), not only cut out.</summary>
+    public bool TextureTransparent
+    {
+        get => _textureTransparent;
+        set => SetField(ref _textureTransparent, value);
+    }
+
+    /// <summary>Radius of the shadow on the ground, in blocks.</summary>
+    public double ShadowRadius
+    {
+        get => _shadowRadius;
+        set => SetField(ref _shadowRadius, Clamp(value, 0, MaxShadowRadius, 0.5));
+    }
+
+    /// <summary>Height, in blocks, where an entity riding this one sits.</summary>
+    public double PassengerOffset
+    {
+        get => _passengerOffset;
+        set => SetField(ref _passengerOffset, Clamp(value, 0, MaxPassengerOffset, 1.8));
+    }
+
+    /// <summary>Nothing pushes it and it pushes nothing (the players walk through it).</summary>
+    public bool NoCollision
+    {
+        get => _noCollision;
+        set => SetField(ref _noCollision, value);
+    }
+
+    /// <summary>Factor of the collision box (and of the shadow).</summary>
+    public MobScale HitboxScale
+    {
+        get => _hitboxScale;
+        set => SetField(ref _hitboxScale, value ?? MobScale.Default);
+    }
+
+    /// <summary>Textures one of which each new mob takes at random (kept in its NBT data, like a cat's).</summary>
+    public IReadOnlyList<Guid> Variations
+    {
+        get => _variations;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (!value.SequenceEqual(_variations))
+            {
+                _variations = [.. value];
+                RaiseChanged(nameof(Variations));
+            }
+        }
+    }
+
+    /// <summary>Layers drawn over the mob with the same model (eyes, armor, saddle...).</summary>
+    public IReadOnlyList<MobLayer> Layers
+    {
+        get => _layers;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (!value.SequenceEqual(_layers))
+            {
+                _layers = [.. value];
+                RaiseChanged(nameof(Layers));
+            }
+        }
+    }
     // ----- Attributs -----
 
     public MobKind Kind
@@ -159,17 +267,68 @@ public sealed class MobAsset : TexturedAsset
         set => SetField(ref _experience, Math.Clamp(value, 0, MaxExperience));
     }
 
-    public bool FireImmune
-    {
-        get => _fireImmune;
-        set => SetField(ref _fireImmune, value);
-    }
+    /// <summary>Immune to fire (and to lava, which the game treats like fire for a fire-immune mob).</summary>
+    public bool FireImmune => _immunities.Contains(MobImmunity.Fire);
 
     /// <summary>Prend feu au soleil, comme un zombie.</summary>
-    public bool BurnsInDaylight
+    public bool BurnsInDaylight => _vulnerabilities.Contains(MobVulnerability.Sun);
+
+    /// <summary>Type of creature for the game (Smite, Bane of Arthropods, raids, potions).</summary>
+    public MobCreatureType CreatureType
     {
-        get => _burnsInDaylight;
-        set => SetField(ref _burnsInDaylight, value);
+        get => _creatureType;
+        set => SetField(ref _creatureType, value);
+    }
+
+    /// <summary>Height, in blocks, it climbs without jumping (0.6: a slab).</summary>
+    public double StepHeight
+    {
+        get => _stepHeight;
+        set => SetField(ref _stepHeight, Clamp(value, 0, MaxStepHeight, 0.6));
+    }
+
+    /// <summary>Distance, in chunks, at which the players still see it.</summary>
+    public int TrackingRange
+    {
+        get => _trackingRange;
+        set => SetField(ref _trackingRange, Math.Clamp(value, 1, MaxTrackingRange));
+    }
+
+    /// <summary>Knockback of its attacks.</summary>
+    public double Knockback
+    {
+        get => _knockback;
+        set => SetField(ref _knockback, Clamp(value, 0, MaxKnockback, 0));
+    }
+
+    public MobTaming Taming
+    {
+        get => _taming;
+        set => SetField(ref _taming, value ?? MobTaming.Disabled);
+    }
+
+    public MobRiding Riding
+    {
+        get => _riding;
+        set => SetField(ref _riding, value ?? MobRiding.Disabled);
+    }
+
+    public MobWater Water
+    {
+        get => _water;
+        set => SetField(ref _water, value ?? MobWater.Disabled);
+    }
+
+    public IReadOnlySet<MobImmunity> Immunities
+    {
+        get => _immunities;
+        set => SetField(ref _immunities, new HashSet<MobImmunity>(value ?? new HashSet<MobImmunity>()));
+    }
+
+    public IReadOnlySet<MobVulnerability> Vulnerabilities
+    {
+        get => _vulnerabilities;
+        set => SetField(ref _vulnerabilities, new HashSet<MobVulnerability>(value ?? new HashSet<MobVulnerability>()));
     }
 
     /// <summary>Ne disparaît jamais quand le joueur s'éloigne.</summary>
@@ -251,7 +410,92 @@ public sealed class MobAsset : TexturedAsset
         }
     }
 
+    // ----- Propriétés spéciales -----
+
+    public MobBoss Boss
+    {
+        get => _boss;
+        set => SetField(ref _boss, value ?? MobBoss.Disabled);
+    }
+
+    public MobGolem Golem
+    {
+        get => _golem;
+        set => SetField(ref _golem, value ?? MobGolem.Disabled);
+    }
+
+    /// <summary>Boat or minecart (V0.7.9, step 3): placed by its item, it neither spawns nor has an egg.</summary>
+    public MobVehicle Vehicle
+    {
+        get => _vehicle;
+        set => SetField(ref _vehicle, value ?? MobVehicle.None);
+    }
+
+    /// <summary>Identifier of the item that places the vehicle ("storm_wolf_boat"), or null.</summary>
+    public string? VehicleItemId => Vehicle.Kind switch
+    {
+        MobVehicleKind.Boat => ResourceId.Value + "_boat",
+        MobVehicleKind.Minecart => ResourceId.Value + "_minecart",
+        _ => null,
+    };
+
     // ----- Apparition -----
+
+    /// <summary>Function (the mob → yes / no) that decides whether it despawns far from the players; null: the rule of the game.</summary>
+    public Guid? DespawnFunction
+    {
+        get => _despawnFunction;
+        set => SetField(ref _despawnFunction, value);
+    }
+
+    /// <summary>Fixed: <see cref="SpawnMinGroup"/> mobs; range: between the two sizes; dynamic: up to the result of <see cref="GroupFunction"/>.</summary>
+    public MobGroupMode GroupMode
+    {
+        get => _groupMode;
+        set => SetField(ref _groupMode, value);
+    }
+
+    /// <summary>Function (the mob → number) that gives the largest group.</summary>
+    public Guid? GroupFunction
+    {
+        get => _groupFunction;
+        set => SetField(ref _groupFunction, value);
+    }
+
+    /// <summary>Dimensions where it spawns (never empty: the Overworld by default).</summary>
+    public IReadOnlySet<MobDimension> Dimensions
+    {
+        get => _dimensions;
+        set => SetField(ref _dimensions, value is { Count: > 0 } ? new HashSet<MobDimension>(value) : new HashSet<MobDimension> { MobDimension.Overworld });
+    }
+
+    /// <summary>It spawns only inside the chosen structures.</summary>
+    public bool InStructures
+    {
+        get => _inStructures;
+        set => SetField(ref _inStructures, value);
+    }
+
+    /// <summary>Structures of the game ("minecraft:pillager_outpost").</summary>
+    public IReadOnlySet<string> Structures
+    {
+        get => _structures;
+        set => SetField(ref _structures, new HashSet<string>(value ?? new HashSet<string>(), StringComparer.Ordinal));
+    }
+
+    /// <summary>Creative tab of the project that shows the egg; null: the tab of the mod and the Spawn Eggs tab.</summary>
+    public Guid? EggCreativeTab
+    {
+        get => _eggCreativeTab;
+        set => SetField(ref _eggCreativeTab, value);
+    }
+
+    /// <summary>Texture of the egg instead of the two colors; null: the egg of the game, colored.</summary>
+    public Guid? EggTextureId
+    {
+        get => _eggTextureId;
+        set => SetField(ref _eggTextureId, value);
+    }
 
     public bool HasSpawnEgg
     {
@@ -344,6 +588,84 @@ public sealed class MobAsset : TexturedAsset
         {
             yield return new AssetReference(drop.Item.AssetId, AssetReferenceKind.Item, "butin");
         }
+
+        foreach (Guid texture in Variations)
+        {
+            yield return new AssetReference(texture, AssetReferenceKind.Texture, Tr.T("variation"));
+        }
+
+        foreach (MobLayer layer in Layers)
+        {
+            yield return new AssetReference(layer.TextureId, AssetReferenceKind.Texture, Tr.T("layer"));
+        }
+
+        if (EggTextureId is { } egg && !Vehicle.Enabled)
+        {
+            yield return new AssetReference(egg, AssetReferenceKind.Texture, Tr.T("texture of the spawn egg"));
+        }
+
+        if (Vehicle is { Enabled: true, ItemTextureId: { } vehicleTexture })
+        {
+            yield return new AssetReference(vehicleTexture, AssetReferenceKind.Texture, Tr.T("texture of the vehicle item"));
+        }
+
+        foreach (MobTamingItem item in Taming.Enabled ? Taming.Items : [])
+        {
+            if (item.Item.Kind == ContentReferenceKind.Asset)
+            {
+                yield return new AssetReference(item.Item.AssetId, AssetReferenceKind.Item, Tr.T("taming item"));
+            }
+        }
+    }
+
+    /// <summary>Functions of the project the mob uses (dynamic sizes, layers, water, spawning, golem).</summary>
+    public IEnumerable<(Guid Function, string Role)> FunctionBindings()
+    {
+        if (VisualScale is { Mode: MobValueMode.Dynamic, Function: { } visual })
+        {
+            yield return (visual, Tr.T("visual scale"));
+        }
+
+        if (HitboxScale is { Mode: MobValueMode.Dynamic, Function: { } hitbox })
+        {
+            yield return (hitbox, Tr.T("collision box scale"));
+        }
+
+        foreach (MobLayer layer in Layers)
+        {
+            foreach ((Guid? function, string role) in new[] { (layer.VisibleFunction, Tr.T("display of a layer")), (layer.GlowFunction, Tr.T("glow of a layer")), (layer.HurtFunction, Tr.T("hurt flash of a layer")) })
+            {
+                if (function is { } id)
+                {
+                    yield return (id, role);
+                }
+            }
+        }
+
+        if (Water.Enabled && Water.BreathesFunction is { } breathes)
+        {
+            yield return (breathes, Tr.T("breathing in fluids"));
+        }
+
+        if (Water.Enabled && Water.PushedFunction is { } pushed)
+        {
+            yield return (pushed, Tr.T("push of the fluids"));
+        }
+
+        if (DespawnFunction is { } despawn)
+        {
+            yield return (despawn, Tr.T("despawn condition"));
+        }
+
+        if (GroupMode == MobGroupMode.Dynamic && GroupFunction is { } group)
+        {
+            yield return (group, Tr.T("group size"));
+        }
+
+        if (Golem.Enabled && Golem.Function is { } golem)
+        {
+            yield return (golem, Tr.T("golem detection"));
+        }
     }
 
     public override bool UsesCustomModel => Model == MobModel.Custom && CustomModelId is not null;
@@ -435,7 +757,12 @@ public sealed class MobAsset : TexturedAsset
             diagnostics.Warning(Tr.T("The minimum group size is greater than the maximum: they will be swapped."), source, Id);
         }
 
-        if (HasSpawnEgg && ResourceId.Value.Length + SpawnEggSuffixLength > ResourceId.MaxLength)
+        if (VehicleItemId is { } vehicleItem && vehicleItem.Length > ResourceId.MaxLength)
+        {
+            diagnostics.Error(Tr.F("The identifier is too long to create the item of the vehicle (\"{0}\").", vehicleItem), source, Id);
+        }
+
+        if (!Vehicle.Enabled && HasSpawnEgg && ResourceId.Value.Length + SpawnEggSuffixLength > ResourceId.MaxLength)
         {
             diagnostics.Error(Tr.T("The identifier is too long to create the spawn egg (\"_spawn_egg\" is added)."), source, Id);
         }
@@ -443,6 +770,54 @@ public sealed class MobAsset : TexturedAsset
         if (BurnsInDaylight && FireImmune)
         {
             diagnostics.Info(Tr.T("The mob is fire resistant: it will not burn in sunlight."), source, Id);
+        }
+
+        if (Taming.Enabled && Kind != MobKind.Animal)
+        {
+            diagnostics.Error(Tr.T("Only a mob of the Animal family can be tamed."), source, Id);
+        }
+
+        if (Taming.Enabled && Taming.Items.Count == 0)
+        {
+            diagnostics.Warning(Tr.T("The mob can be tamed but no item tames it."), source, Id);
+        }
+
+        if (Taming.Items.Any(i => i.Item.Kind == ContentReferenceKind.Tag))
+        {
+            diagnostics.Error(Tr.T("The taming items must be specific items, not tags."), source, Id);
+        }
+
+        if (Riding.Enabled && Riding.SaddleLayer >= Layers.Count)
+        {
+            diagnostics.Warning(Tr.T("The layer of the saddle no longer exists."), source, Id);
+        }
+
+        if (Riding.Enabled && !Riding.Forward && !Riding.Strafe)
+        {
+            diagnostics.Info(Tr.T("The mob can be ridden but the rider cannot move it."), source, Id);
+        }
+
+        if (Golem.Enabled && Golem.Activator.Kind == ContentReferenceKind.Tag)
+        {
+            diagnostics.Error(Tr.T("The block that builds the golem must be a specific block, not a tag."), source, Id);
+        }
+
+        if (SpawnsNaturally && InStructures && Structures.Count == 0)
+        {
+            diagnostics.Warning(Tr.T("The mob spawns only in structures but none is chosen."), source, Id);
+        }
+
+        foreach ((MobScale scale, string label) in new[] { (VisualScale, Tr.T("visual scale")), (HitboxScale, Tr.T("collision box scale")) })
+        {
+            if (scale is { Mode: MobValueMode.Dynamic, Function: null })
+            {
+                diagnostics.Warning(Tr.F("The {0} is dynamic but no function gives it: it stays at 1.", label), source, Id);
+            }
+        }
+
+        if (SpawnsNaturally && GroupMode == MobGroupMode.Dynamic && GroupFunction is null)
+        {
+            diagnostics.Warning(Tr.T("The group size is dynamic but no function gives it."), source, Id);
         }
     }
 

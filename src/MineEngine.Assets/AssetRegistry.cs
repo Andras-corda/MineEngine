@@ -278,11 +278,20 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
     /// <summary>L'œuf d'un mob ("goblin_spawn_egg") est un item : il ne doit pas en écraser un autre.</summary>
     private void ValidateSpawnEggIds(DiagnosticBag diagnostics)
     {
-        foreach (MobAsset mob in _assets.OfType<MobAsset>().Where(m => m.HasSpawnEgg))
+        foreach (MobAsset mob in _assets.OfType<MobAsset>().Where(m => m.HasSpawnEgg && !m.Vehicle.Enabled))
         {
             if (_assets.Exists(a => a.Type.IdScope() == AssetIdScope.GameContent && a.ResourceId.Value == mob.SpawnEggId))
             {
                 diagnostics.Error(Tr.F("The spawn egg '{0}' has the same identifier as another asset.", mob.SpawnEggId), mob.ToString(), mob.Id);
+            }
+        }
+
+        // The item of a boat or a minecart ("storm_wolf_boat", V0.7.9) is an item too.
+        foreach (MobAsset mob in _assets.OfType<MobAsset>().Where(m => m.VehicleItemId is not null))
+        {
+            if (_assets.Exists(a => a.Type.IdScope() == AssetIdScope.GameContent && a.ResourceId.Value == mob.VehicleItemId))
+            {
+                diagnostics.Error(Tr.F("The item of the vehicle '{0}' has the same identifier as another asset.", mob.VehicleItemId!), mob.ToString(), mob.Id);
             }
         }
     }

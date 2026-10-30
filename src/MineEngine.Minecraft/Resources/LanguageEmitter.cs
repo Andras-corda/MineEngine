@@ -107,6 +107,12 @@ public sealed class LanguageEmitter : IFileEmitter
                 localized[paths.ItemTranslationKey(mob.SpawnEgg!.ItemId)] = ModTranslationKeys.SpawnEggName(locale, mob.DisplayName);
             }
 
+            // The item of a boat or a minecart has the name of the vehicle.
+            foreach (IRMob mob in context.Ir.Content.Vehicles)
+            {
+                localized[paths.ItemTranslationKey(mob.Vehicle!.ItemId)] = mob.DisplayName;
+            }
+
             foreach (IRFluid fluid in content.Fluids.Where(f => f.BucketId is not null))
             {
                 localized[paths.ItemTranslationKey(fluid.BucketId!)] = ModTranslationKeys.DerivedName(TranslationSource.Bucket, locale, fluid.Name);

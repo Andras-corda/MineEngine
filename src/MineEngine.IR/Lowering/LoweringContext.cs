@@ -110,6 +110,45 @@ public sealed class LoweringContext
     public IRTexture ResolveTexture(Asset owner, Guid? textureId) =>
         FindTextureFile(owner, textureId) is { } file ? IRTexture.FromFile(file) : IRTexture.Placeholder;
 
+    /// <summary>
+    /// A function of the project bound to an asset (a mob, a block): it must be a function graph that
+    /// returns one value (a yes / no or a number) and takes nothing or the argument (an entity, a
+    /// position). Null, with an error, when it does not exist or does not fit.
+    /// </summary>
+    public IRFunctionBinding? ResolveFunction(Asset owner, Guid? id, string role, bool returnsBoolean, PinType argument)
+    {
+        if (id is not { } functionId)
+        {
+            return null;
+        }
+
+        if (Project.Assets.Find(functionId) is not GraphAsset { Kind: GraphKind.Function } graph)
+        {
+            Diagnostics.Error(Tr.F("The function of the {0} no longer exists.", role), owner.ToString(), owner.Id);
+            return null;
+        }
+
+        bool returns = graph.Returns.Count == 1 && (returnsBoolean
+            ? graph.Returns[0].Type.Kind == PinType.Boolean
+            : graph.Returns[0].Type.Kind is PinType.Number or PinType.Decimal or PinType.Float);
+        bool takes = graph.Parameters.Count == 0 || graph.Parameters.Count == 1 && (argument == PinType.Entity
+            ? graph.Parameters[0].Type.Kind is PinType.Entity or PinType.LivingEntity
+            : graph.Parameters[0].Type.Kind == argument);
+        if (!returns || !takes)
+        {
+            string expected = (returnsBoolean, argument) switch
+            {
+                (true, PinType.Position) => Tr.T("take nothing or a position, and return a yes / no"),
+                (true, _) => Tr.T("take nothing or an entity, and return a yes / no"),
+                _ => Tr.T("take nothing or an entity, and return a number"),
+            };
+            Diagnostics.Error(Tr.F("The function \"{0}\" cannot give the {1}: it must {2}.", graph.DisplayName, role, expected), owner.ToString(), owner.Id);
+            return null;
+        }
+
+        return new IRFunctionBinding(functionId, graph.Parameters.Count == 1);
+    }
+
     /// <summary>Comme <see cref="ResolveTexture"/>, mais null quand aucune texture utilisable n'existe.</summary>
     public IRTexture? ResolveOptionalTexture(Asset owner, Guid? textureId) =>
         FindTextureFile(owner, textureId) is { } file ? IRTexture.FromFile(file) : null;
@@ -130,6 +169,9 @@ public sealed class LoweringContext
 
         return reference.Kind == ContentReferenceKind.Id ? reference.Id : ResolveAsset(owner, reference.AssetId, role);
     }
+
+    /// <summary>In-game identifier of a block (a block of the project or of the game); null (and an error) for a tag.</summary>
+    public NamespacedId? ResolveBlock(Asset owner, ContentReference? reference, string role) => ResolveItem(owner, reference, role);
 
     /// <summary>Ingrédient de recette : item précis ou tag.</summary>
     public IRIngredient? ResolveIngredient(Asset owner, ContentReference reference, string role) =>

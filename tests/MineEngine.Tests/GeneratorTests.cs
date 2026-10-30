@@ -63,7 +63,7 @@ public sealed class GeneratorTests
 
         string items = Read("src/main/java/com/mineengine/mods/testmod/registry/ModItems.java");
         Assert.Contains("public static final DeferredItem<Item> MAGIC_SWORD = ITEMS.register(", items);
-        Assert.Contains("\"magic_sword\", () -> new Item(new Item.Properties().stacksTo(1)));", items);
+        Assert.Contains("\"magic_sword\", () -> new MagicSwordItem(new Item.Properties().stacksTo(1)));", items);
         Assert.Contains("\"ruby_block\", () -> new BlockItem(ModBlocks.RUBY_BLOCK.get(), new Item.Properties()));", items);
 
         string blocks = Read("src/main/java/com/mineengine/mods/testmod/registry/ModBlocks.java");
@@ -86,7 +86,7 @@ public sealed class GeneratorTests
         string items = Read("src/main/java/com/mineengine/mods/testmod/registry/ModItems.java");
         Assert.Contains("import net.minecraftforge.registries.ForgeRegistries;", items);
         Assert.Contains("DeferredRegister.create(ForgeRegistries.ITEMS, TestMod.MOD_ID);", items);
-        Assert.Contains("() -> new Item(new Item.Properties().stacksTo(1)));", items);
+        Assert.Contains("() -> new MagicSwordItem(new Item.Properties().stacksTo(1)));", items);
         Assert.Contains("() -> new BlockItem(ModBlocks.RUBY_BLOCK.get(), new Item.Properties()));", items);
 
         string main = Read("src/main/java/com/mineengine/mods/testmod/TestMod.java");
@@ -108,14 +108,14 @@ public sealed class GeneratorTests
         GenerationResult result = await ModGenerator.CreateDefault(new FakeBackend(ModLoaderKind.Forge, "1.20.1", new ForgeJavaEmitter()))
             .GenerateAsync(ir, workspace, NullLog.Instance, CancellationToken.None);
 
-        // 3 assets dans ModItems (2 items + 1 bloc) et 1 dans ModBlocks.
-        Assert.Equal(4, result.SourceMap.Entries.Count);
+        // 3 assets dans ModItems (2 items + 1 bloc), 1 dans ModBlocks, and the class of each item (V0.7.13).
+        Assert.Equal(6, result.SourceMap.Entries.Count);
         foreach (SourceMapEntry entry in result.SourceMap.Entries)
         {
             string[] lines = File.ReadAllLines(Path.Combine(workspace, entry.File));
             string resourceId = project.Assets.Find(entry.AssetId)!.ResourceId.Value;
             string declaration = string.Join('\n', lines[(entry.FirstLine - 1)..entry.LastLine]);
-            Assert.Contains($"\"{resourceId}\"", declaration);
+            Assert.Contains(entry.File.Contains("/item/", StringComparison.Ordinal) ? "public class " : $"\"{resourceId}\"", declaration);
         }
     }
 

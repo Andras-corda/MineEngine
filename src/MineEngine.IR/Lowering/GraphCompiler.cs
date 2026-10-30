@@ -76,7 +76,16 @@ public sealed class GraphCompiler
         {
             Locals = [.. _locals.Values],
             Trigger = Info(eventNode).DirectEvent is null ? null : eventNode.GetValue(Info(eventNode).Inputs[0].Name)?.Trim(),
+            Mob = Info(eventNode).MobEvent is null ? null : MobId(eventNode.GetValue("mob") ?? Info(eventNode).Inputs[0].DefaultValue),
+            Block = Info(eventNode).BlockEvent is null ? null : MobId(eventNode.GetValue("block") ?? Info(eventNode).Inputs[0].DefaultValue),
         };
+    }
+
+    /// <summary>Identifier of the mob or the block of an event, without the namespace of the mod ("testmod:goblin" → "goblin").</summary>
+    private static string? MobId(string? text)
+    {
+        string id = (text ?? string.Empty).Trim();
+        return id.Length == 0 ? null : id[(id.IndexOf(':', StringComparison.Ordinal) + 1)..];
     }
 
     /// <summary>Item du mod visé par un événement d'item, sinon null.</summary>

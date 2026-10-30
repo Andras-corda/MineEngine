@@ -25,6 +25,15 @@ public sealed class EditorNavigation
 {
     public event EventHandler<AssetNavigationEventArgs>? OpenRequested;
 
+    /// <summary>Opening of the Java code of a method of an element (V0.7.13): the element and the place of the method.</summary>
+    public event EventHandler<(Asset Asset, string Slot)>? OpenMethodRequested;
+
+    public void OpenMethod(Asset asset, string slot)
+    {
+        ArgumentNullException.ThrowIfNull(asset);
+        OpenMethodRequested?.Invoke(this, (asset, slot));
+    }
+
     public void Open(Asset asset, Guid? nodeId = null)
     {
         ArgumentNullException.ThrowIfNull(asset);

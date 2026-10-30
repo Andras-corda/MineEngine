@@ -27,7 +27,7 @@ public sealed class ItemResourcesEmitter : ResourceEmitter
             }
 
             WriteAppearances(context, item, model);
-            WriteJson(context, paths.ItemModel(item.Id), model);
+            WriteJson(context, paths.ItemModel(item.Id), GuiTexture(context, item, model));
         }
     }
 
@@ -76,6 +76,42 @@ public sealed class ItemResourcesEmitter : ResourceEmitter
         }
 
         baseModel["overrides"] = overrides;
+    }
+
+    /// <summary>
+    /// A 3D item with a texture for the inventories (V0.7.12): the model of the loader that changes
+    /// with the place the item is shown, flat in the inventories and the 3D model elsewhere.
+    /// </summary>
+    private JsonObject GuiTexture(GenerationContext context, IRItem item, JsonObject model)
+    {
+        if (item.CustomModel is null || item.GuiTexture is not { } texture)
+        {
+            return model;
+        }
+
+        var guiId = MineEngine.Core.Identifiers.ResourceId.Parse(item.Id.Value + "_gui");
+        WriteTexture(context, texture, context.Paths.ItemTexture(guiId));
+        string loader = context.Ir.Mod.LoaderId.Equals("neoforge", StringComparison.OrdinalIgnoreCase) ? "neoforge" : "forge";
+        var separate = new JsonObject
+        {
+            ["parent"] = model["parent"]!.DeepClone(),
+            ["loader"] = $"{loader}:separate_transforms",
+            ["base"] = new JsonObject { ["parent"] = model["parent"]!.DeepClone() },
+            ["perspectives"] = new JsonObject
+            {
+                ["gui"] = new JsonObject
+                {
+                    ["parent"] = "minecraft:item/generated",
+                    ["textures"] = new JsonObject { ["layer0"] = context.Paths.Reference($"item/{guiId}") },
+                },
+            },
+        };
+        if (model["overrides"] is { } overrides)
+        {
+            separate["overrides"] = overrides.DeepClone();
+        }
+
+        return separate;
     }
 
     private static JsonObject WriteThen(JsonObject model, Action write)

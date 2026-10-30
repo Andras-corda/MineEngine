@@ -4,7 +4,7 @@ using MineEngine.Core.GameData;
 namespace MineEngine.Editor.ViewModels.Assets;
 
 /// <summary>Inspector d'un bloc : visuel, propriétés, récolte et forme item, comme dans MCreator.</summary>
-public sealed class BlockAssetViewModel : InventoryAssetViewModel
+public sealed partial class BlockAssetViewModel : InventoryAssetViewModel
 {
     private readonly BlockAsset _block;
     private readonly IReadOnlyList<TextureSlotViewModel> _extraSlots;
@@ -30,6 +30,9 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
             Tr.T("The block itself"), () => model.Options.ItemTextureId, v => model.Options = model.Options with { ItemTextureId = v });
         ParticleTextureSlot = new TextureSlotViewModel(model, context, nameof(BlockAsset.Options), Tr.T("Particle texture"),
             Tr.T("Uses the main texture"), () => model.Options.ParticleTextureId, v => model.Options = model.Options with { ParticleTextureId = v });
+        RequiredToolPicker = new ReferencePickerViewModel(
+            context, ReferenceDomain.Item, () => _block.RequiredTool,
+            v => Change(Tr.T("Change the tool that harvests it"), nameof(BlockAsset.RequiredTool), () => _block.RequiredTool, r => _block.RequiredTool = r, v));
         UpdateMainTextureLabel();
     }
 
@@ -111,9 +114,13 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
     public IReadOnlyList<TextureSlotViewModel> ExtraTextures => _block.Model switch
     {
         BlockModelKind.CubeFaces => _extraSlots,
-        BlockModelKind.Column => [_extraSlots[0]],
+        BlockModelKind.Column or BlockModelKind.Pane => [_extraSlots[0]],
+        BlockModelKind.Stairs or BlockModelKind.Slab or BlockModelKind.Door => [_extraSlots[0], _extraSlots[1]],
         _ => [],
     };
+
+    /// <summary>A block base (stairs, slab, door...) brings its own shape, rotation, water and states (V0.7.11).</summary>
+    public bool IsBase => _block.Model.IsBase();
 
     // ----- Propriétés -----
 
@@ -239,17 +246,23 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
 
         ItemTextureSlot.Refresh();
         ParticleTextureSlot.Refresh();
+        RequiredToolPicker.Refresh();
+        OnPropertyChanged(nameof(FunctionChoices));
+        RefreshBlockEvents();
     }
 
     protected override void OnModelPropertyChanged(string propertyName)
     {
         base.OnModelPropertyChanged(propertyName);
+        OnSectionPropertyChanged(propertyName);
         switch (propertyName)
         {
             case nameof(BlockAsset.Model):
                 OnPropertyChanged(nameof(BlockModel));
                 OnPropertyChanged(nameof(ExtraTextures));
                 OnPropertyChanged(nameof(ShowsFaceCross));
+                OnPropertyChanged(nameof(IsBase));
+                Options.Refresh();
                 UpdateMainTextureLabel();
                 break;
 
@@ -280,7 +293,9 @@ public sealed class BlockAssetViewModel : InventoryAssetViewModel
     private void UpdateMainTextureLabel() => MainTexture.Label = _block.Model switch
     {
         BlockModelKind.CubeFaces => Tr.T("Default"),
-        BlockModelKind.Column => Tr.T("Sides"),
+        BlockModelKind.Column or BlockModelKind.Stairs or BlockModelKind.Slab => Tr.T("Sides"),
+        BlockModelKind.Pane => Tr.T("Pane (the top texture is its edge)"),
+        BlockModelKind.Door => Tr.T("Texture (the top and bottom textures are the halves)"),
         _ => Tr.T("Texture"),
     };
 }

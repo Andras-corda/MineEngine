@@ -71,6 +71,178 @@
     <!-- Alignment of the tab headers of an element (Appearance, Attributes...): left in the Inspector, centered in the editing tab. -->
     <HorizontalAlignment x:Key="AssetTabsAlignment">Left</HorizontalAlignment>
 
+    <DataTemplate x:Key="EventLinkCard" DataType="{x:Type assets:EventLinkViewModel}">
+        <Border x:Name="EventCard" Style="{StaticResource Card}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Open'}" Command="{Binding OpenCommand}"
+                            Visibility="{Binding IsLinked, Converter={StaticResource BoolToVisibility}}" />
+                    <Button Style="{StaticResource ToolButton}" Command="{Binding AddCommand}" ToolTip="{Binding AddTooltip}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.NewItem}" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{l:Tr 'Connect'}" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="Bolt" FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Event}" Margin="0,2,8,0"
+                                   Foreground="{DynamicResource HintBrush}" />
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Description}" TextWrapping="Wrap" FontSize="12" Margin="0,2,0,0" Foreground="{DynamicResource HintBrush}" />
+                    <TextBlock x:Name="StatusText" Text="{Binding Status}" TextWrapping="Wrap" FontSize="12" Margin="0,4,0,0"
+                               Foreground="{DynamicResource HintBrush}" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsLinked}" Value="True">
+                <Setter TargetName="Bolt" Property="Foreground" Value="{DynamicResource AccentLineBrush}" />
+                <Setter TargetName="StatusText" Property="Foreground" Value="{DynamicResource LinkBrush}" />
+                <Setter TargetName="EventCard" Property="BorderBrush" Value="{DynamicResource CardSelectedBorderBrush}" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!--
+        A line of an element tab (V0.7.13, like MCreator): label and "?" help on the left, a note under
+        the label, the field on the right. In a narrow Inspector the label column gets smaller.
+    -->
+    <Style TargetType="views:PropertyRow">
+        <Setter Property="Margin" Value="0,3" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="views:PropertyRow">
+                    <Grid MinHeight="30">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" MinWidth="120" MaxWidth="260" />
+                            <ColumnDefinition Width="3*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="{TemplateBinding Label}" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="220" />
+                                <Border x:Name="HelpMark" Margin="6,0,0,0" Padding="4,0" CornerRadius="2" BorderThickness="1" VerticalAlignment="Center"
+                                        BorderBrush="{DynamicResource HintBrush}" Background="Transparent" Cursor="Help"
+                                        ToolTip="{TemplateBinding Help}" ToolTipService.InitialShowDelay="150" ToolTipService.ShowDuration="30000">
+                                    <TextBlock Text="?" FontSize="10" Foreground="{DynamicResource HintBrush}" />
+                                </Border>
+                            </DockPanel>
+                            <TextBlock x:Name="NoteText" Text="{TemplateBinding Note}" FontSize="11" TextWrapping="Wrap" Margin="0,1,0,0"
+                                       Foreground="{DynamicResource HintBrush}" />
+                        </StackPanel>
+                        <ContentPresenter Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Help" Value="{x:Null}">
+                            <Setter TargetName="HelpMark" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                        <Trigger Property="Note" Value="{x:Null}">
+                            <Setter TargetName="NoteText" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A framed section of an element tab ("Item 3D model", "Inventory"). -->
+    <Style x:Key="Section" TargetType="GroupBox" BasedOn="{StaticResource {x:Type GroupBox}}">
+        <Setter Property="Padding" Value="10,4,10,8" />
+        <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+
+    <!--
+        The "+" and pencil of a method of an element (V0.7.13): "+" offers a Java method or a graph of
+        the element, the pencil opens it, the bin removes it. The name of the method shows once created.
+    -->
+    <DataTemplate x:Key="MethodButtons" DataType="{x:Type assets:ElementMethodViewModel}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock FontFamily="Consolas" FontSize="11" VerticalAlignment="Center" Margin="8,0,6,0" Text="{Binding State}"
+                       Foreground="{DynamicResource LinkBrush}" Visibility="{Binding Exists, Converter={StaticResource BoolToVisibility}}" />
+            <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.NewItem}" views:MenuOnClick.IsEnabled="True"
+                    ToolTip="{l:Tr 'Create a method of the class instead of the fixed value'}"
+                    Visibility="{Binding IsMissing, Converter={StaticResource BoolToVisibility}}">
+                <Button.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{l:Tr 'Java method'}" Command="{Binding CreateJavaCommand}" />
+                        <MenuItem Header="{l:Tr 'Node graph'}" Command="{Binding CreateNodalCommand}" />
+                    </ContextMenu>
+                </Button.ContextMenu>
+            </Button>
+            <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Rename}" Command="{Binding OpenCommand}" Margin="2,0,0,0"
+                    ToolTip="{l:Tr 'Edit the method'}" />
+            <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" Command="{Binding RemoveCommand}" Margin="2,0,0,0"
+                    ToolTip="{l:Tr 'Remove the method (and its graph)'}" Visibility="{Binding Exists, Converter={StaticResource BoolToVisibility}}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- A short word in a frame: the values an event gives to its method (player, level, position...). -->
+    <Style x:Key="Chip" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{DynamicResource PreviewBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="2" />
+        <Setter Property="Padding" Value="4,0" />
+        <Setter Property="Margin" Value="0,2,4,0" />
+    </Style>
+
+    <!--
+        An event of an item in the grid of the tab (V0.7.13, like MCreator): what the event gives, then
+        "do:" with its method in the class; the graphs that react to it stay under it.
+    -->
+    <DataTemplate x:Key="ItemEventCard" DataType="{x:Type assets:ItemEventViewModel}">
+        <Border x:Name="EventCard" Style="{StaticResource Card}" Width="310" Margin="0,0,8,8" ToolTip="{Binding Description}">
+            <StackPanel>
+                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <ItemsControl ItemsSource="{Binding Parameters}" Focusable="False" Margin="0,2,0,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource Chip}">
+                                <TextBlock Text="{Binding}" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource HintBrush}" />
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <DockPanel Margin="0,6,0,0">
+                    <ContentControl DockPanel.Dock="Right" Content="{Binding Method}" ContentTemplate="{StaticResource MethodButtons}" Focusable="False" />
+                    <TextBlock Text="{l:Tr 'do:'}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <TextBlock x:Name="NoMethod" Text="{l:Tr '(no method)'}" VerticalAlignment="Center" Foreground="{DynamicResource HintBrush}" />
+                </DockPanel>
+                <DockPanel Margin="0,4,0,0">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.OpenInNew}" Command="{Binding OpenCommand}"
+                                ToolTip="{l:Tr 'Open the graph'}" Visibility="{Binding IsLinked, Converter={StaticResource BoolToVisibility}}" />
+                        <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Link}" Command="{Binding AddCommand}" Margin="2,0,0,0"
+                                ToolTip="{Binding AddTooltip}" />
+                    </StackPanel>
+                    <TextBlock x:Name="StatusText" Text="{Binding Status}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center"
+                               Foreground="{DynamicResource HintBrush}" />
+                </DockPanel>
+            </StackPanel>
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Method.Exists}" Value="True">
+                <Setter TargetName="NoMethod" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="EventCard" Property="BorderBrush" Value="{DynamicResource CardSelectedBorderBrush}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsLinked}" Value="True">
+                <Setter TargetName="StatusText" Property="Foreground" Value="{DynamicResource LinkBrush}" />
+                <Setter TargetName="EventCard" Property="BorderBrush" Value="{DynamicResource CardSelectedBorderBrush}" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- Events of an item laid out as a grid of cards. -->
+    <ItemsPanelTemplate x:Key="CardGrid">
+        <WrapPanel />
+    </ItemsPanelTemplate>
+
     <DataTemplate x:Key="CommonAssetFields" DataType="{x:Type assets:AssetViewModel}">
         <GroupBox Header="{l:Tr 'General'}" Padding="8,4" Margin="0,0,0,8">
             <StackPanel>
@@ -303,194 +475,393 @@
 
     <!-- ===================== Item ===================== -->
     <DataTemplate DataType="{x:Type assets:ItemAssetViewModel}">
-        <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+        <StackPanel MaxWidth="900" HorizontalAlignment="Left">
             <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
+            <!-- Tabs of item.md, laid out like MCreator (V0.7.13): framed sections, a label and its "?" help on each line. -->
             <TabControl Style="{StaticResource UnderlineTabControl}" HorizontalContentAlignment="{DynamicResource AssetTabsAlignment}">
                 <TabItem Header="{l:Tr 'Visual'}">
                     <StackPanel Style="{StaticResource TabContent}">
-                        <ContentControl Content="{Binding CustomModel}" Focusable="False" />
-                        <StackPanel Visibility="{Binding UsesCustomModel, Converter={StaticResource InverseBoolToVisibility}}">
-                            <ContentControl Content="{Binding MainTexture}" Focusable="False" />
-                            <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,8"
-                                       Text="{l:Tr 'PNG image, ideally 16 x 16 pixels. An imported image becomes a reusable Texture asset.'}" />
-                        </StackPanel>
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Glint effect (like an enchanted book)'}" Margin="0,4" IsChecked="{Binding HasGlint}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Held like a tool (diagonally in the hand)'}" Margin="0,4" IsChecked="{Binding Handheld}" />
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Item 3D model'}">
+                            <StackPanel>
+                                <ContentControl Content="{Binding CustomModel}" Focusable="False" />
+                                <StackPanel Visibility="{Binding UsesCustomModel, Converter={StaticResource InverseBoolToVisibility}}">
+                                    <ContentControl Content="{Binding MainTexture}" Focusable="False" />
+                                    <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,4"
+                                               Text="{l:Tr 'PNG image, ideally 16 x 16 pixels. An imported image becomes a reusable Texture asset.'}" />
+                                </StackPanel>
+                                <StackPanel Visibility="{Binding UsesCustomModel, Converter={StaticResource BoolToVisibility}}">
+                                    <ContentControl Content="{Binding GuiTextureSlot}" Focusable="False" Margin="0,8,0,0" />
+                                    <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,4"
+                                               Text="{l:Tr 'Flat image shown in the inventories instead of the 3D model. Empty: the 3D model there too.'}" />
+                                </StackPanel>
+                                <views:PropertyRow Label="{l:Tr 'Held like a tool?'}" Help="{l:Tr 'Held diagonally in the hand, like a sword, instead of flat.'}">
+                                    <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding Handheld}" />
+                                </views:PropertyRow>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Glint'}">
+                            <views:PropertyRow Label="{l:Tr 'Has item glowing effect?'}" HorizontalContentAlignment="Stretch"
+                                               Help="{l:Tr 'The glint of an enchanted book. Fixed: on or off, or decided by a function of the project; a method of the class decides it instead (the entity that holds the item → yes / no), each tick while the item is in an inventory.'}">
+                                <DockPanel>
+                                    <ContentControl DockPanel.Dock="Right" Content="{Binding GlintMethod}" ContentTemplate="{StaticResource MethodButtons}" Focusable="False" />
+                                    <StackPanel Orientation="Horizontal" IsEnabled="{Binding GlintMethod.IsMissing}">
+                                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding HasGlint}" VerticalAlignment="Center" />
+                                        <ComboBox Style="{StaticResource RowCombo}" Margin="8,0,0,0" ItemsSource="{Binding FunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                                  SelectedValue="{Binding GlintCondition}" IsEnabled="{Binding HasGlint}" ToolTip="{l:Tr 'Glint condition'}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </views:PropertyRow>
+                        </GroupBox>
+
                         <ContentControl Content="{Binding AppearanceList}" Focusable="False" />
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="{l:Tr 'Type'}">
+                <TabItem Header="{l:Tr 'Item properties'}">
                     <StackPanel Style="{StaticResource TabContent}">
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Item type'}" />
-                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding KindChoices}" SelectedValue="{Binding Kind}" />
-                        </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}"
-                                   Text="{l:Tr 'A tool, weapon or armor uses Minecraft\'s behavior (mining, damage, defense); its durability comes from its material.'}" />
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Item properties'}">
+                            <StackPanel>
+                                <views:PropertyRow Label="{l:Tr 'Rarity'}" Help="{l:Tr 'Changes the color of the name only.'}">
+                                    <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding RarityChoices}" SelectedValue="{Binding Rarity}" />
+                                </views:PropertyRow>
+                                <views:PropertyRow Label="{l:Tr 'Max stack size'}" Help="{Binding StackSizeHint}">
+                                    <ui:NumberBox Style="{StaticResource RowNumber}" IsEnabled="{Binding CanEditStackSize}"
+                                                  Minimum="{Binding MinStackSize}" Maximum="{Binding MaxStackSizeLimit}" SmallChange="1" LargeChange="16"
+                                                  Value="{Binding MaxStackSize, UpdateSourceTrigger=PropertyChanged}" />
+                                </views:PropertyRow>
+                                <views:PropertyRow Label="{l:Tr 'Is item immune to fire?'}" Help="{l:Tr 'Resists fire and lava (like netherite)'}">
+                                    <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding FireResistant}" />
+                                </views:PropertyRow>
+                                <views:PropertyRow Label="{l:Tr 'Has durability?'}" Note="{l:Tr 'A tool or an armor: see its material.'}"
+                                                   Help="{l:Tr 'Number of uses before breaking. Iron: 250, diamond: 1561. An item with durability does not stack.'}">
+                                    <StackPanel Orientation="Horizontal" IsEnabled="{Binding CanEditDurability}">
+                                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding HasDurability}" VerticalAlignment="Center" />
+                                        <ui:NumberBox Style="{StaticResource RowNumber}" Margin="8,0,0,0" Minimum="0" Maximum="{Binding MaxDurability}" SmallChange="1" LargeChange="50"
+                                                      IsEnabled="{Binding HasDurability}" Value="{Binding Durability, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                </views:PropertyRow>
+                                <views:PropertyRow Label="{l:Tr 'Repair item'}" Help="{l:Tr 'Item or tag that repairs it on an anvil. Empty: the material of a tool, nothing otherwise.'}">
+                                    <StackPanel>
+                                        <ContentControl Style="{StaticResource RowPicker}" HorizontalAlignment="Left" Content="{Binding RepairItemPicker}" IsEnabled="{Binding CanChooseRepairItem}" />
+                                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Cannot be repaired on an anvil with a material'}" IsChecked="{Binding NoRepair}" />
+                                    </StackPanel>
+                                </views:PropertyRow>
+                                <views:PropertyRow Label="{l:Tr 'Can destroy any block?'}" Help="{l:Tr 'Can harvest any block (every block mined with it drops)'}">
+                                    <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding HarvestsAnyBlock}" />
+                                </views:PropertyRow>
+                                <views:PropertyRow Label="{l:Tr 'Stays in the crafting grid'}"
+                                                   Help="{l:Tr 'What is left once the item is used in a recipe, like the empty bucket after a cake. It is also left in the fuel slot of a furnace.'}">
+                                    <StackPanel>
+                                        <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding RemainderChoices}" SelectedValue="{Binding Remainder}" />
+                                        <ContentControl Style="{StaticResource RowPicker}" HorizontalAlignment="Left" Content="{Binding CraftRemainder}" IsEnabled="{Binding UsesOtherRemainder}"
+                                                        Visibility="{Binding UsesOtherRemainder, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
+                                </views:PropertyRow>
+                            </StackPanel>
+                        </GroupBox>
 
-                        <StackPanel Visibility="{Binding IsTool, Converter={StaticResource BoolToVisibility}}">
-                            <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Material'}" />
-                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding TierChoices}" SelectedValue="{Binding Tier}" />
-                            </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Sets the durability, mining speed, enchantability and repair material.'}" />
-                            <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Added damage'}" />
-                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="-100" Maximum="{Binding MaxAttack}" SmallChange="0.5"
-                                              Value="{Binding AttackDamage, UpdateSourceTrigger=PropertyChanged}" />
-                            </WrapPanel>
-                            <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Attack speed'}" />
-                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="-4" Maximum="{Binding MaxAttack}" SmallChange="0.1"
-                                              Value="{Binding AttackSpeed, UpdateSourceTrigger=PropertyChanged}" />
-                            </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}"
-                                       Text="{l:Tr 'Iron sword: 3 and -2.4; axe: 6 and -3.1. The damage is added to the material\'s; a lower speed hits less often.'}" />
-                        </StackPanel>
-
-                        <StackPanel Visibility="{Binding IsArmor, Converter={StaticResource BoolToVisibility}}">
-                            <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Material'}" />
-                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ArmorMaterialChoices}" SelectedValue="{Binding ArmorMaterial}" />
-                            </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}"
-                                       Text="{l:Tr 'Sets the defense, durability and look of the worn armor (Minecraft\'s for this material).'}" />
-                        </StackPanel>
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Tooltip and creative tabs'}">
+                            <StackPanel>
+                                <views:PropertyRow Label="{l:Tr 'Special information'}" HorizontalContentAlignment="Stretch"
+                                                   Help="{l:Tr 'Text shown under the name, one line per line. Minecraft color codes are accepted (for example §6 for gold).'}">
+                                    <TextBox Style="{StaticResource FieldBox}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="48" VerticalScrollBarVisibility="Auto"
+                                             Text="{Binding TooltipText, UpdateSourceTrigger=PropertyChanged}" />
+                                </views:PropertyRow>
+                                <views:PropertyRow Label="{l:Tr 'Creative inventory tabs'}" Help="{l:Tr 'The tab of the mod, and the tabs of the game where the item also shows.'}">
+                                    <StackPanel>
+                                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Mod tab'}" Margin="0,2,0,4" IsChecked="{Binding InModCreativeTab}" />
+                                        <ItemsControl ItemsSource="{Binding CreativeTabOptions}" Focusable="False">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Columns="2" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type assets:CreativeTabOptionViewModel}">
+                                                    <CheckBox Style="{StaticResource WrapCheck}" Content="{Binding Label}" IsChecked="{Binding IsChecked}" Margin="0,1" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </views:PropertyRow>
+                            </StackPanel>
+                        </GroupBox>
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="{l:Tr 'Properties'}">
+                <TabItem Header="{l:Tr 'Food properties'}">
                     <StackPanel Style="{StaticResource TabContent}">
-                        <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding CanEditDurability}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Durability'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxDurability}"
-                                          SmallChange="1" LargeChange="50"
-                                          Value="{Binding Durability, UpdateSourceTrigger=PropertyChanged}" />
-                        </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}"
-                                   Text="{l:Tr 'Number of uses before breaking; 0 = none. Iron: 250, diamond: 1561. An item with durability does not stack.'}" />
-                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryFields}" Focusable="False" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Cannot be repaired on an anvil with a material'}" Margin="0,8,0,4" IsChecked="{Binding NoRepair}" />
-                    </StackPanel>
-                </TabItem>
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Food properties'}">
+                            <StackPanel>
+                                <views:PropertyRow Label="{l:Tr 'Is this item a food?'}" Help="{l:Tr 'Checked, the item can be eaten and the other fields are used.'}">
+                                    <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding IsFood}" />
+                                </views:PropertyRow>
+                                <StackPanel IsEnabled="{Binding IsFood}">
+                                    <views:PropertyRow Label="{l:Tr 'Nutrition'}" Help="{l:Tr 'In half drumsticks: 4 = two drumsticks (apple), 8 = steak.'}">
+                                        <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxNutrition}" SmallChange="1"
+                                                      Value="{Binding Nutrition, UpdateSourceTrigger=PropertyChanged}" />
+                                    </views:PropertyRow>
+                                    <views:PropertyRow Label="{l:Tr 'Saturation'}" Help="{l:Tr 'Delays hunger. Apple: 0.3; steak: 0.8.'}">
+                                        <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxSaturation}" SmallChange="0.1"
+                                                      Value="{Binding Saturation, UpdateSourceTrigger=PropertyChanged}" />
+                                    </views:PropertyRow>
+                                    <views:PropertyRow Label="{l:Tr 'Eating time (s)'}" Help="{l:Tr 'Most foods: 1.6 s; berries and dried kelp: 0.8 s.'}">
+                                        <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0.05" Maximum="{Binding MaxEatSeconds}" SmallChange="0.1"
+                                                      Value="{Binding EatSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                                    </views:PropertyRow>
+                                    <views:PropertyRow Label="{l:Tr 'Eating animation'}" Help="{l:Tr 'What the player does while eating.'}">
+                                        <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding UseAnimationChoices}" SelectedValue="{Binding UseAnimation}" />
+                                    </views:PropertyRow>
+                                    <views:PropertyRow Label="{l:Tr 'Item left once eaten'}" Help="{l:Tr 'Given back to the player, like the bowl of a stew. Empty: nothing.'}">
+                                        <ContentControl Style="{StaticResource RowPicker}" Content="{Binding EatResultPicker}" />
+                                    </views:PropertyRow>
+                                    <views:PropertyRow Label="{l:Tr 'Is always edible?'}" Help="{l:Tr 'Always edible, even when not hungry'}">
+                                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding AlwaysEdible}" />
+                                    </views:PropertyRow>
+                                    <views:PropertyRow Label="{l:Tr 'Is meat?'}" Help="{l:Tr 'Meat (wolves can eat it)'}">
+                                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding IsMeat}" />
+                                    </views:PropertyRow>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
 
-                <TabItem Header="{l:Tr 'Food'}">
-                    <StackPanel Style="{StaticResource TabContent}">
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'This item is edible'}" FontWeight="SemiBold" Margin="0,0,0,8" IsChecked="{Binding IsFood}" />
-                        <StackPanel IsEnabled="{Binding IsFood}">
-                            <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Nutrition'}" />
-                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxNutrition}" SmallChange="1"
-                                              Value="{Binding Nutrition, UpdateSourceTrigger=PropertyChanged}" />
-                            </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'In half drumsticks: 4 = two drumsticks (apple), 8 = steak.'}" />
-                            <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Saturation'}" />
-                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxSaturation}" SmallChange="0.1"
-                                              Value="{Binding Saturation, UpdateSourceTrigger=PropertyChanged}" />
-                            </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Delays hunger. Apple: 0.3; steak: 0.8.'}" />
-                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Always edible, even when not hungry'}" Margin="0,4" IsChecked="{Binding AlwaysEdible}" />
-                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Meat (wolves can eat it)'}" Margin="0,4" IsChecked="{Binding IsMeat}" />
-                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Eaten twice as fast (like berries)'}" Margin="0,4" IsChecked="{Binding FastFood}" />
-
-                            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Effects when eaten'}" Margin="0,12,0,4" />
-                            <ItemsControl ItemsSource="{Binding FoodEffects}" Focusable="False">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type assets:FoodEffectViewModel}">
-                                        <Border Style="{StaticResource Card}">
-                                            <DockPanel>
-                                                <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" ToolTip="{l:Tr 'Remove'}"
-                                                        VerticalAlignment="Top" Command="{Binding RemoveCommand}" />
-                                                <StackPanel>
-                                                    <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding EffectChoices}" SelectedValue="{Binding Kind}" />
-                                                    <WrapPanel>
-                                                        <ui:NumberBox Header="{l:Tr 'Duration (s)'}" Width="120" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
-                                                                      Minimum="1" Maximum="{Binding MaxSeconds}" Value="{Binding Seconds, UpdateSourceTrigger=PropertyChanged}" />
-                                                        <ui:NumberBox Header="{l:Tr 'Level'}" Width="90" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
-                                                                      Minimum="1" Maximum="{Binding MaxLevel}" Value="{Binding Level, UpdateSourceTrigger=PropertyChanged}" />
-                                                        <ui:NumberBox Header="{l:Tr 'Chance (%)'}" Width="110" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
-                                                                      Minimum="0" Maximum="100" Value="{Binding Percent, UpdateSourceTrigger=PropertyChanged}" />
-                                                    </WrapPanel>
-                                                </StackPanel>
-                                            </DockPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Add an effect'}" Command="{Binding AddFoodEffectCommand}" />
-                            <TextBlock Style="{StaticResource RowHint}" Margin="0,6,0,0"
-                                       Text="{l:Tr 'Golden apple: Regeneration II for 5 s and Absorption I for 2 min, chance 100%.'}" />
-                        </StackPanel>
-                    </StackPanel>
-                </TabItem>
-
-                <TabItem Header="{l:Tr 'Data'}">
-                    <StackPanel Style="{StaticResource TabContent}">
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Item returned after crafting'}" />
-                            <ContentControl Style="{StaticResource RowPicker}" Content="{Binding CraftRemainder}" />
-                        </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Left in the crafting grid (like the empty bucket after a cake). Empty: nothing.'}" />
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Fuel (seconds)'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxBurnSeconds}" SmallChange="5"
-                                          Value="{Binding BurnSeconds, UpdateSourceTrigger=PropertyChanged}" />
-                        </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Burn time in a furnace; 0 = not a fuel. Coal: 80 s, stick: 5 s.'}" />
-
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Tags'}" Margin="0,12,0,4" />
-                        <TextBox Style="{StaticResource FieldBox}" AcceptsReturn="True" FontFamily="Consolas" MinHeight="56"
-                                 VerticalScrollBarVisibility="Auto"
-                                 Text="{Binding TagsText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
-                        <TextBlock Style="{StaticResource FieldHint}"
-                                   Text="{l:Tr 'One tag per line. They are used by recipes and for compatibility with other mods: c:gems/ruby, minecraft:piglin_loved, minecraft:beacon_payment_items...'}" />
-                    </StackPanel>
-                </TabItem>
-
-                <TabItem Header="{l:Tr 'Events'}">
-                    <StackPanel Style="{StaticResource TabContent}">
-                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,8"
-                                   Text="{l:Tr 'Connect an item event to a node graph: what happens there (message, sound, item given...) runs when the event occurs.'}" />
-                        <ItemsControl ItemsSource="{Binding Events}" Focusable="False">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type assets:ItemEventViewModel}">
-                                    <Border x:Name="EventCard" Style="{StaticResource Card}">
-                                        <DockPanel>
-                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
-                                                <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Open'}" Command="{Binding OpenCommand}"
-                                                        Visibility="{Binding IsLinked, Converter={StaticResource BoolToVisibility}}" />
-                                                <Button Style="{StaticResource ToolButton}" Command="{Binding AddCommand}" ToolTip="{l:Tr 'Add this event to the item\'s event graph'}">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.NewItem}" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                                        <TextBlock Text="{l:Tr 'Connect'}" />
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Effects when eaten'}" IsEnabled="{Binding IsFood}">
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{Binding FoodEffects}" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type assets:FoodEffectViewModel}">
+                                            <Border Style="{StaticResource Card}">
+                                                <DockPanel>
+                                                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" ToolTip="{l:Tr 'Remove'}"
+                                                            VerticalAlignment="Top" Command="{Binding RemoveCommand}" />
+                                                    <StackPanel>
+                                                        <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding EffectChoices}" SelectedValue="{Binding Kind}" />
+                                                        <WrapPanel>
+                                                            <ui:NumberBox Header="{l:Tr 'Duration (s)'}" Width="120" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
+                                                                          Minimum="1" Maximum="{Binding MaxSeconds}" Value="{Binding Seconds, UpdateSourceTrigger=PropertyChanged}" />
+                                                            <ui:NumberBox Header="{l:Tr 'Level'}" Width="90" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
+                                                                          Minimum="1" Maximum="{Binding MaxLevel}" Value="{Binding Level, UpdateSourceTrigger=PropertyChanged}" />
+                                                            <ui:NumberBox Header="{l:Tr 'Chance (%)'}" Width="110" Margin="0,4,8,0" SpinButtonPlacementMode="Compact"
+                                                                          Minimum="0" Maximum="100" Value="{Binding Percent, UpdateSourceTrigger=PropertyChanged}" />
+                                                        </WrapPanel>
                                                     </StackPanel>
-                                                </Button>
-                                            </StackPanel>
-                                            <StackPanel>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock x:Name="Bolt" FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Event}" Margin="0,2,8,0"
-                                                               Foreground="{DynamicResource HintBrush}" />
-                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                                                </StackPanel>
-                                                <TextBlock Text="{Binding Description}" TextWrapping="Wrap" FontSize="12" Margin="0,2,0,0" Foreground="{DynamicResource HintBrush}" />
-                                                <TextBlock x:Name="StatusText" Text="{Binding Status}" TextWrapping="Wrap" FontSize="12" Margin="0,4,0,0"
-                                                           Foreground="{DynamicResource HintBrush}" />
+                                                </DockPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Add an effect'}" Command="{Binding AddFoodEffectCommand}" />
+                                <TextBlock Style="{StaticResource RowHint}" Margin="0,6,0,0"
+                                           Text="{l:Tr 'Golden apple: Regeneration II for 5 s and Absorption I for 2 min, chance 100%.'}" />
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Tool properties'}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Tool properties'}">
+                            <StackPanel>
+                                <views:PropertyRow Label="{l:Tr 'Is this item a tool?'}" Help="{l:Tr 'A tool or a weapon of the game (mining, damage); checked, the item is a pickaxe at first.'}">
+                                    <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding IsToolItem}" />
+                                </views:PropertyRow>
+                                <StackPanel IsEnabled="{Binding IsToolItem}">
+                                    <views:PropertyRow Label="{l:Tr 'Type'}" Help="{l:Tr 'Sword, pickaxe, axe, shovel or hoe.'}">
+                                        <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ToolKindChoices}" SelectedValue="{Binding Kind}" />
+                                    </views:PropertyRow>
+                                    <views:PropertyRow Label="{l:Tr 'Tier'}" Help="{l:Tr 'The material sets the durability, efficiency, enchantability and the blocks the tool harvests.'}">
+                                        <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding TierChoices}" SelectedValue="{Binding Tier}" />
+                                    </views:PropertyRow>
+                                    <StackPanel IsEnabled="{Binding UsesCustomTier}">
+                                        <views:PropertyRow Label="{l:Tr 'Durability'}" Note="{l:Tr 'Custom tier only'}"
+                                                           Help="{l:Tr 'Custom tier only. Iron: 250 uses, efficiency 6, enchantability 14; diamond: 1561, 8 and 10; gold: 32, 12 and 22.'}">
+                                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="{Binding MaxCustomUses}" SmallChange="1" LargeChange="50"
+                                                          Value="{Binding CustomUses, UpdateSourceTrigger=PropertyChanged}" />
+                                        </views:PropertyRow>
+                                        <views:PropertyRow Label="{l:Tr 'Efficiency'}" Note="{l:Tr 'Custom tier only'}" Help="{l:Tr 'Mining speed. Iron: 6, diamond: 8, gold: 12.'}">
+                                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxCustomSpeed}" SmallChange="0.5"
+                                                          Value="{Binding CustomSpeed, UpdateSourceTrigger=PropertyChanged}" />
+                                        </views:PropertyRow>
+                                        <views:PropertyRow Label="{l:Tr 'Enchantability'}" Note="{l:Tr 'Custom tier only'}" Help="{l:Tr 'Quality of the enchantments of the table. Iron: 14, gold: 22.'}">
+                                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxEnchantability}" SmallChange="1"
+                                                          Value="{Binding CustomEnchantability, UpdateSourceTrigger=PropertyChanged}" />
+                                        </views:PropertyRow>
+                                        <views:PropertyRow Label="{l:Tr 'Harvests like'}" Note="{l:Tr 'Custom tier only'}" Help="{l:Tr 'The material of the game whose blocks the tool can harvest.'}">
+                                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding MiningLevelChoices}" SelectedValue="{Binding CustomMiningLevel}" />
+                                        </views:PropertyRow>
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Melee properties'}" IsEnabled="{Binding IsToolItem}">
+                            <StackPanel>
+                                <views:PropertyRow Label="{l:Tr 'Attack damage'}" Help="{l:Tr 'Iron sword: 3 and -2.4; axe: 6 and -3.1. The damage is added to the material\'s; a lower speed hits less often.'}">
+                                    <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="-100" Maximum="{Binding MaxAttack}" SmallChange="0.5"
+                                                  Value="{Binding AttackDamage, UpdateSourceTrigger=PropertyChanged}" />
+                                </views:PropertyRow>
+                                <views:PropertyRow Label="{l:Tr 'Attack speed'}" Help="{l:Tr 'Iron sword: 3 and -2.4; axe: 6 and -3.1. The damage is added to the material\'s; a lower speed hits less often.'}">
+                                    <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="-4" Maximum="{Binding MaxAttack}" SmallChange="0.1"
+                                                  Value="{Binding AttackSpeed, UpdateSourceTrigger=PropertyChanged}" />
+                                </views:PropertyRow>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Armor'}">
+                            <StackPanel>
+                                <views:PropertyRow Label="{l:Tr 'Is this item a piece of armor?'}" Help="{l:Tr 'Checked, the item is a chestplate at first.'}">
+                                    <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding IsArmorItem}" />
+                                </views:PropertyRow>
+                                <StackPanel IsEnabled="{Binding IsArmorItem}">
+                                    <views:PropertyRow Label="{l:Tr 'Piece'}" Help="{l:Tr 'Helmet, chestplate, leggings or boots.'}">
+                                        <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ArmorKindChoices}" SelectedValue="{Binding Kind}" />
+                                    </views:PropertyRow>
+                                    <views:PropertyRow Label="{l:Tr 'Material'}" Help="{l:Tr 'Sets the defense, durability and look of the worn armor (Minecraft\'s for this material).'}">
+                                        <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ArmorMaterialChoices}" SelectedValue="{Binding ArmorMaterial}" />
+                                    </views:PropertyRow>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Ranged item'}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Ranged item properties'}">
+                            <StackPanel>
+                                <views:PropertyRow Label="{l:Tr 'Is this item a ranged item?'}" Help="{l:Tr 'A fishing rod works like the one of the game. Only a simple item that is not a food can shoot.'}">
+                                    <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding IsRanged}" />
+                                </views:PropertyRow>
+                                <StackPanel IsEnabled="{Binding IsRanged}">
+                                    <views:PropertyRow Label="{l:Tr 'Kind'}" Help="{l:Tr 'Bow, crossbow, thrown item or fishing rod.'}">
+                                        <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding RangedKindChoices}" SelectedValue="{Binding RangedKind}" />
+                                    </views:PropertyRow>
+                                    <StackPanel IsEnabled="{Binding IsShooter}">
+                                        <views:PropertyRow Label="{l:Tr 'Projectile'}" Help="{l:Tr 'What the item shoots.'}">
+                                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ProjectileChoices}" SelectedValue="{Binding Projectile}" />
+                                        </views:PropertyRow>
+                                        <views:PropertyRow Label="{l:Tr 'Needs ammunition?'}" Help="{l:Tr 'Needs ammunition (unchecked: shoots without any, like Infinity)'}">
+                                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding NeedsAmmo}" />
+                                        </views:PropertyRow>
+                                        <views:PropertyRow Label="{l:Tr 'Ammunition'}" Help="{l:Tr 'Item used up by each shot. Empty: the one of the projectile (arrow, snowball...).'}">
+                                            <ContentControl Style="{StaticResource RowPicker}" Content="{Binding AmmoPicker}" IsEnabled="{Binding NeedsAmmo}" />
+                                        </views:PropertyRow>
+                                        <views:PropertyRow Label="{l:Tr 'Shoots'}" Help="{l:Tr 'On release, stronger when held longer (bow)'}">
+                                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding FireModeChoices}" SelectedValue="{Binding FireMode}" />
+                                        </views:PropertyRow>
+                                        <views:PropertyRow Label="{l:Tr 'Time between shots (ticks)'}" Help="{l:Tr '20 ticks = one second.'}">
+                                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="{Binding MaxFireRate}" SmallChange="1" IsEnabled="{Binding UsesFireRate}"
+                                                          Value="{Binding FireRate, UpdateSourceTrigger=PropertyChanged}" />
+                                        </views:PropertyRow>
+                                        <views:PropertyRow Label="{l:Tr 'Projectile speed'}" Help="{l:Tr 'Bow: speed 3 and damage 2 (the damage grows with the speed); snowball: speed 1.5.'}">
+                                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0.1" Maximum="{Binding MaxProjectileSpeed}" SmallChange="0.5"
+                                                          Value="{Binding ProjectileSpeed, UpdateSourceTrigger=PropertyChanged}" />
+                                        </views:PropertyRow>
+                                        <views:PropertyRow Label="{l:Tr 'Arrow damage'}" Help="{l:Tr 'Bow: speed 3 and damage 2 (the damage grows with the speed); snowball: speed 1.5.'}">
+                                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxProjectileDamage}" SmallChange="0.5"
+                                                          Value="{Binding ProjectileDamage, UpdateSourceTrigger=PropertyChanged}" />
+                                        </views:PropertyRow>
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Advanced properties'}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Fuel properties'}">
+                            <StackPanel>
+                                <views:PropertyRow Label="{l:Tr 'Is this item a fuel?'}" Help="{l:Tr 'Coal: 80 s, stick: 5 s.'}">
+                                    <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding IsFuel}" />
+                                </views:PropertyRow>
+                                <StackPanel IsEnabled="{Binding IsFuel}">
+                                    <views:PropertyRow Label="{l:Tr 'Burn time (s)'}" HorizontalContentAlignment="Stretch"
+                                                       Help="{l:Tr 'Fixed: the time entered, or a function of the project; a method of the class gives it instead. The server asks it each time a furnace needs fuel.'}">
+                                        <DockPanel>
+                                            <ContentControl DockPanel.Dock="Right" Content="{Binding BurnTimeMethod}" ContentTemplate="{StaticResource MethodButtons}" Focusable="False" />
+                                            <StackPanel Orientation="Horizontal" IsEnabled="{Binding BurnTimeMethod.IsMissing}">
+                                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxBurnSeconds}" SmallChange="5"
+                                                              Value="{Binding BurnSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ValueFunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                                          SelectedValue="{Binding BurnTimeFunction}" ToolTip="{l:Tr 'Burn time (function)'}" />
                                             </StackPanel>
                                         </DockPanel>
-                                    </Border>
-                                    <DataTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding IsLinked}" Value="True">
-                                            <Setter TargetName="Bolt" Property="Foreground" Value="{DynamicResource AccentLineBrush}" />
-                                            <Setter TargetName="StatusText" Property="Foreground" Value="{DynamicResource LinkBrush}" />
-                                            <Setter TargetName="EventCard" Property="BorderBrush" Value="{DynamicResource CardSelectedBorderBrush}" />
-                                        </DataTrigger>
-                                    </DataTemplate.Triggers>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock Style="{StaticResource RowHint}" Margin="0,6,0,0" Text="{Binding EventsHint}" />
+                                    </views:PropertyRow>
+                                    <views:PropertyRow Label="{l:Tr 'Success burning condition'}" HorizontalContentAlignment="Stretch"
+                                                       Help="{l:Tr 'Fixed: always, or a function of the project; a method of the class decides it instead (yes / no).'}">
+                                        <DockPanel>
+                                            <ContentControl DockPanel.Dock="Right" Content="{Binding BurnConditionMethod}" ContentTemplate="{StaticResource MethodButtons}" Focusable="False" />
+                                            <ComboBox Style="{StaticResource RowCombo}" HorizontalAlignment="Left" ItemsSource="{Binding FunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                                      SelectedValue="{Binding BurnCondition}" IsEnabled="{Binding BurnConditionMethod.IsMissing}" />
+                                        </DockPanel>
+                                    </views:PropertyRow>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Compost properties'}">
+                            <StackPanel>
+                                <views:PropertyRow Label="{l:Tr 'Is this item compostable?'}" Help="{l:Tr 'Chance to raise the level of the composter. Seeds: 30 %, apple: 65 %, pie: 100 %.'}">
+                                    <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding IsCompostable}" />
+                                </views:PropertyRow>
+                                <StackPanel IsEnabled="{Binding IsCompostable}">
+                                    <views:PropertyRow Label="{l:Tr 'Compost chance (%)'}" Help="{l:Tr 'Chance to raise the level of the composter. Seeds: 30 %, apple: 65 %, pie: 100 %.'}">
+                                        <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="100" SmallChange="5"
+                                                      Value="{Binding CompostChance, UpdateSourceTrigger=PropertyChanged}" />
+                                    </views:PropertyRow>
+                                    <views:PropertyRow Label="{l:Tr 'Success composting condition'}" HorizontalContentAlignment="Stretch"
+                                                       Help="{l:Tr 'A function of the project (the player → yes / no): a player can only put the item in a composter when it says yes.'}">
+                                        <DockPanel>
+                                            <ContentControl DockPanel.Dock="Right" Content="{Binding CompostConditionMethod}" ContentTemplate="{StaticResource MethodButtons}" Focusable="False" />
+                                            <ComboBox Style="{StaticResource RowCombo}" HorizontalAlignment="Left" ItemsSource="{Binding FunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                                      SelectedValue="{Binding CompostCondition}" IsEnabled="{Binding CompostConditionMethod.IsMissing}" />
+                                        </DockPanel>
+                                    </views:PropertyRow>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Piglin currency'}">
+                            <views:PropertyRow Label="{l:Tr 'Is item a piglin currency?'}" Help="{l:Tr 'Piglins barter with it, like gold ingots'}">
+                                <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding PiglinCurrency}" />
+                            </views:PropertyRow>
+                        </GroupBox>
+
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Tags'}">
+                            <StackPanel>
+                                <TextBox Style="{StaticResource FieldBox}" AcceptsReturn="True" FontFamily="Consolas" MinHeight="56" VerticalScrollBarVisibility="Auto"
+                                         Text="{Binding TagsText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
+                                <TextBlock Style="{StaticResource FieldHint}"
+                                           Text="{l:Tr 'One tag per line. They are used by recipes and for compatibility with other mods: c:gems/ruby, minecraft:piglin_loved, minecraft:beacon_payment_items...'}" />
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Events and triggers'}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,8" TextWrapping="Wrap"
+                                   Text="{l:Tr 'Each event can run a method of the class of the item (+), in Java or as a graph of the item, and the event graphs connected to it. No event is used by default.'}" />
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Item'}">
+                            <ItemsControl ItemsSource="{Binding BasicEvents}" Focusable="False" ItemTemplate="{StaticResource ItemEventCard}" ItemsPanel="{StaticResource CardGrid}" />
+                        </GroupBox>
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Food'}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource RowHint}" Text="{Binding FoodEventsHint}" />
+                                <ItemsControl ItemsSource="{Binding FoodEvents}" Focusable="False" ItemTemplate="{StaticResource ItemEventCard}" ItemsPanel="{StaticResource CardGrid}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Tool'}">
+                            <ItemsControl ItemsSource="{Binding ToolEvents}" Focusable="False" ItemTemplate="{StaticResource ItemEventCard}" ItemsPanel="{StaticResource CardGrid}" />
+                        </GroupBox>
+                        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Ranged item'}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource RowHint}" Text="{Binding RangedEventsHint}" />
+                                <ItemsControl ItemsSource="{Binding RangedEvents}" Focusable="False" ItemTemplate="{StaticResource ItemEventCard}" ItemsPanel="{StaticResource CardGrid}" />
+                            </StackPanel>
+                        </GroupBox>
                     </StackPanel>
                 </TabItem>
             </TabControl>
@@ -500,25 +871,16 @@
     <DataTemplate DataType="{x:Type assets:BlockAssetViewModel}">
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
             <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
+            <!-- Tabs of block.md (V0.7.11): visual, block properties, item, redstone, drops, generation, states. -->
             <TabControl Style="{StaticResource UnderlineTabControl}" HorizontalContentAlignment="{DynamicResource AssetTabsAlignment}">
                 <TabItem Header="{l:Tr 'Visual'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Shape'}" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Block base'}" />
                             <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ModelChoices}" SelectedValue="{Binding BlockModel}" />
                         </WrapPanel>
                         <ContentControl Content="{Binding CustomModel}" Focusable="False"
                                         Visibility="{Binding ShowsModelPicker, Converter={StaticResource BoolToVisibility}}" />
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Transparency'}" />
-                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding RenderTypeChoices}" SelectedValue="{Binding RenderType}" />
-                        </WrapPanel>
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Light level'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxLightLevel}" SmallChange="1"
-                                          Value="{Binding LightLevel, UpdateSourceTrigger=PropertyChanged}" />
-                        </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Light emitted from 0 to 15. Torch: 14, glowstone: 15.'}" />
 
                         <StackPanel Visibility="{Binding ShowsModelPicker, Converter={StaticResource InverseBoolToVisibility}}">
                             <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Textures'}" Margin="0,12,0,4" />
@@ -555,14 +917,104 @@
                             <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
                                        Text="{l:Tr 'Faces without a texture use the default texture.'}" />
                         </StackPanel>
+                        <ContentControl Content="{Binding ItemTextureSlot}" Focusable="False" Margin="0,8,0,0" IsEnabled="{Binding HasItemForm}" />
+                        <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap"
+                                   Text="{l:Tr 'Optional: a flat texture for the block in the inventory and in hand (like a door). Empty: the block itself.'}" />
                         <ContentControl Content="{Binding ParticleTextureSlot}" Focusable="False" Margin="0,8,0,0" />
                         <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap"
                                    Text="{l:Tr 'Particle texture: the pieces that fly when the block breaks. Empty: the main texture.'}" />
-                        <ContentControl Content="{Binding AppearanceList}" Focusable="False" />
+                        <ContentControl Content="{Binding AppearanceList}" Focusable="False" IsEnabled="{Binding IsBase, Converter={StaticResource InverseBool}}" />
+
+                        <Border Style="{StaticResource InfoBanner}" Margin="0,12,0,0" Visibility="{Binding IsBase, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock TextWrapping="Wrap" FontSize="12"
+                                       Text="{l:Tr 'A block base brings its own shape, rotation, water and states, like the blocks of the game: the rotation, the bounding box, the states and the appearances do not apply. Wood sounds make a wooden base (opened by hand, burns), metal ones an iron one.'}" />
+                        </Border>
+                        <StackPanel DataContext="{Binding Options}" IsEnabled="{Binding IsNotBase}">
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Rotation'}" Margin="0,12,0,4" />
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Rotation mode'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Source={x:Static assets:BlockOptionsViewModel.Rotations}}"
+                                          DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Rotation}" />
+                            </WrapPanel>
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Can also be placed on the floor and the ceiling (like a button)'}"
+                                      IsChecked="{Binding HasPitchRotation}" IsEnabled="{Binding CanHavePitch}" />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Transparency and light'}" Margin="0,12,0,4" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Has transparency'}" IsChecked="{Binding HasTransparency}" />
+                        <StackPanel IsEnabled="{Binding HasTransparency}">
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Transparency type'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding TransparencyChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding RenderType}" />
+                            </WrapPanel>
+                            <StackPanel DataContext="{Binding Options}">
+                                <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Custom light opacity'}" IsChecked="{Binding CustomLightOpacity}" />
+                                <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding CustomLightOpacity}">
+                                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Light opacity'}" />
+                                    <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="15" SmallChange="1"
+                                                  Value="{Binding LightOpacity, UpdateSourceTrigger=PropertyChanged}" />
+                                </WrapPanel>
+                                <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Light stopped by the block: 0 lets every light through (glass), 15 stops it (stone).'}" />
+                                <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Hides the faces between two blocks of this type (connected sides, like glass)'}"
+                                          IsChecked="{Binding ConnectedSides}" />
+                            </StackPanel>
+                        </StackPanel>
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Is glowing'}" IsChecked="{Binding IsGlowing}" Margin="0,8,0,0" />
+                        <StackPanel IsEnabled="{Binding IsGlowing}">
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Luminescence'}" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxLightLevel}" SmallChange="1"
+                                              Value="{Binding LightLevel, UpdateSourceTrigger=PropertyChanged}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Light emitted from 0 to 15. Torch: 14, glowstone: 15.'}" />
+                            <CheckBox Style="{StaticResource WrapCheck}" DataContext="{Binding Options}" Content="{l:Tr 'Glows in the dark (emissive rendering)'}" IsChecked="{Binding Emissive}" />
+                        </StackPanel>
+                        <WrapPanel Style="{StaticResource Row}" DataContext="{Binding Options}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Random model offset'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Source={x:Static assets:BlockOptionsViewModel.Offsets}}"
+                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding RandomOffset}" />
+                        </WrapPanel>
+
+                        <StackPanel DataContext="{Binding Options}" IsEnabled="{Binding IsNotBase}">
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Bounding box'}" Margin="0,12,0,4" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Use the default bounding box (the full block)'}" IsChecked="{Binding UsesDefaultShape}" />
+                            <StackPanel IsEnabled="{Binding UsesDefaultShape, Converter={StaticResource InverseBool}}">
+                                <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" Margin="0,4,0,8"
+                                           Text="{l:Tr 'Boxes in pixels (0 to 16) for the collisions and the outline of the block; a subtracted box makes a hole. A block that turns uses the boxes drawn for the north.'}" />
+                                <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Add a box'}" Command="{Binding AddBoxCommand}" />
+                            <ItemsControl ItemsSource="{Binding Boxes}" Focusable="False" Margin="0,6,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type assets:BlockBoxViewModel}">
+                                        <WrapPanel Margin="0,2">
+                                            <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronUp}" Command="{Binding UpCommand}" />
+                                            <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronDown}" Command="{Binding DownCommand}" />
+                                            <TextBlock Text="{l:Tr 'From'}" VerticalAlignment="Center" Margin="4,0" />
+                                            <ui:NumberBox Width="62" Value="{Binding MinX, UpdateSourceTrigger=PropertyChanged}" ToolTip="X" />
+                                            <ui:NumberBox Width="62" Value="{Binding MinY, UpdateSourceTrigger=PropertyChanged}" ToolTip="Y" />
+                                            <ui:NumberBox Width="62" Value="{Binding MinZ, UpdateSourceTrigger=PropertyChanged}" ToolTip="Z" />
+                                            <TextBlock Text="{l:Tr 'To'}" VerticalAlignment="Center" Margin="8,0,4,0" />
+                                            <ui:NumberBox Width="62" Value="{Binding MaxX, UpdateSourceTrigger=PropertyChanged}" ToolTip="X" />
+                                            <ui:NumberBox Width="62" Value="{Binding MaxY, UpdateSourceTrigger=PropertyChanged}" ToolTip="Y" />
+                                            <ui:NumberBox Width="62" Value="{Binding MaxZ, UpdateSourceTrigger=PropertyChanged}" ToolTip="Z" />
+                                            <CheckBox Content="{l:Tr 'Subtract'}" Margin="8,0" MinWidth="0" IsChecked="{Binding Subtract}" />
+                                            <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" Command="{Binding RemoveCommand}"
+                                                    ToolTip="{l:Tr 'Remove this box'}" />
+                                        </WrapPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <Border Style="{StaticResource InfoBanner}" Margin="0,14,0,0">
+                            <TextBlock TextWrapping="Wrap" FontSize="12"
+                                       Text="{l:Tr 'The connected textures and the block entity will come later.'}" />
+                        </Border>
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="{l:Tr 'Properties'}">
+                <TabItem Header="{l:Tr 'Block properties'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <WrapPanel Style="{StaticResource Row}">
                             <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Hardness'}" />
@@ -578,45 +1030,127 @@
                                           Value="{Binding Resistance, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
                         <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Blast resistance. Stone: 6; obsidian: 1200.'}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Unbreakable (like bedrock)'}" Margin="0,4,0,8" IsChecked="{Binding Unbreakable}" />
-
-                        <WrapPanel Style="{StaticResource Row}">
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Unbreakable (like bedrock)'}" Margin="0,4,0,0" IsChecked="{Binding Unbreakable}" />
+                        <StackPanel DataContext="{Binding Options}">
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Replaceable (another block can be placed instead, like tall grass)'}"
+                                      IsChecked="{Binding Replaceable}" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Entities can walk through it (no collision)'}" IsChecked="{Binding WalkThrough}" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Can hold water (waterloggable, like a slab)'}" IsChecked="{Binding Waterloggable}" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Falls like sand (gravity)'}" IsChecked="{Binding HasGravity}" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Acts like a ladder (entities climb it)'}" IsChecked="{Binding Ladder}" />
+                        </StackPanel>
+                        <WrapPanel Style="{StaticResource Row}" Margin="0,8,0,0">
                             <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Sounds'}" />
                             <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding SoundChoices}" SelectedValue="{Binding Sound}" />
                         </WrapPanel>
-                        <WrapPanel Style="{StaticResource Row}">
+
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Movement on the block'}" Margin="0,12,0,4" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Has slipperiness'}" IsChecked="{Binding HasSlipperiness}" />
+                        <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding HasSlipperiness}">
                             <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Slipperiness'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0.1" Maximum="1.2" SmallChange="0.05"
                                           Value="{Binding Friction, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
                         <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr '0.6 normal; slime: 0.8; ice: 0.98.'}" />
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Walk speed'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0.1" Maximum="5" SmallChange="0.1"
-                                          Value="{Binding SpeedFactor, UpdateSourceTrigger=PropertyChanged}" />
-                        </WrapPanel>
-                        <WrapPanel Style="{StaticResource Row}">
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Has a specific jump factor'}" IsChecked="{Binding HasJumpFactor}" />
+                        <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding HasJumpFactor}">
                             <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Jump height'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0.1" Maximum="5" SmallChange="0.1"
                                           Value="{Binding JumpFactor, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Has a specific speed factor'}" IsChecked="{Binding HasSpeedFactor}" />
+                        <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding HasSpeedFactor}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Walk speed'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0.1" Maximum="5" SmallChange="0.1"
+                                          Value="{Binding SpeedFactor, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
                         <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Multipliers: 1 normal; soul sand: 0.4; honey block: 0.5.'}" />
+
+                        <StackPanel DataContext="{Binding Options}">
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'World and other blocks'}" Margin="0,12,0,4" />
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Enchanting power bonus'}" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="15" SmallChange="0.5"
+                                              Value="{Binding EnchantPowerBonus, UpdateSourceTrigger=PropertyChanged}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Given to a nearby enchanting table (a bookshelf gives 1).'}" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Plants can grow on it (saplings, flowers)'}" IsChecked="{Binding PlantsCanSustain}" />
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Color on the map'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding MapColors}"
+                                          DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding MapColor}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Note block instrument'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Instruments}"
+                                          DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Instrument}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Beacon beam color'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding BeaconColors}"
+                                          DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding BeaconColor}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Reaction to pistons'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Source={x:Static assets:BlockOptionsViewModel.PushReactions}}"
+                                          DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding PushReaction}" />
+                            </WrapPanel>
+
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Ticks'}" Margin="0,12,0,4" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Enable the ticks (the tick event of its graphs runs)'}" IsChecked="{Binding TickEnabled}" />
+                            <StackPanel IsEnabled="{Binding TickEnabled}">
+                                <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Tick randomly (like crops)'}" IsChecked="{Binding TickRandomly}" />
+                                <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding UsesTickRate}">
+                                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Tick rate'}" />
+                                    <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="72000" SmallChange="1" LargeChange="20"
+                                                  Value="{Binding TickRate, UpdateSourceTrigger=PropertyChanged}" />
+                                </WrapPanel>
+                                <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Ticks between two ticks of the block: 20 is one second.'}" />
+                            </StackPanel>
+
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Fire'}" Margin="0,12,0,4" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Can burn'}" IsChecked="{Binding IsFlammable}" />
+                            <StackPanel IsEnabled="{Binding IsFlammable}">
+                                <WrapPanel Style="{StaticResource Row}">
+                                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Flammability'}" />
+                                    <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="300" SmallChange="5"
+                                                  Value="{Binding Flammability, UpdateSourceTrigger=PropertyChanged}" />
+                                </WrapPanel>
+                                <WrapPanel Style="{StaticResource Row}">
+                                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Fire spreading speed'}" />
+                                    <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="300" SmallChange="5"
+                                                  Value="{Binding FireSpreadSpeed, UpdateSourceTrigger=PropertyChanged}" />
+                                </WrapPanel>
+                                <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Wool: 60 and 30; planks: 20 and 5; 0: does not burn.'}" />
+                            </StackPanel>
+                            <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Can be ignited by lava'}" IsChecked="{Binding IgnitedByLava}" />
+                        </StackPanel>
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="{l:Tr 'Harvesting'}">
+                <TabItem Header="{l:Tr 'Block item'}">
                     <StackPanel Style="{StaticResource TabContent}">
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Effective tool'}" />
-                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding HarvestToolChoices}" SelectedValue="{Binding HarvestTool}" />
-                        </WrapPanel>
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Tool level'}" />
-                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ToolTierChoices}" SelectedValue="{Binding ToolTier}" />
-                        </WrapPanel>
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Drops nothing without the right tool (like stone without a pickaxe)'}" Margin="0,4,0,12"
-                                  IsChecked="{Binding RequiresCorrectTool}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'The block also exists as an item in the inventory'}" FontWeight="SemiBold" Margin="0,0,0,8"
+                                  IsChecked="{Binding HasItemForm}" />
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryFields}" Focusable="False"
+                                        IsEnabled="{Binding HasItemForm}" />
+                    </StackPanel>
+                </TabItem>
 
+                <TabItem Header="{l:Tr 'Redstone'}">
+                    <StackPanel Style="{StaticResource TabContent}" DataContext="{Binding Options}">
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'The redstone dust connects to this block'}" IsChecked="{Binding RedstoneConnects}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Emits redstone power (like a redstone block)'}" IsChecked="{Binding EmitsRedstone}" />
+                        <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding EmitsRedstone}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Redstone power'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="15" SmallChange="1"
+                                          Value="{Binding RedstonePower, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Drops'}">
+                    <StackPanel Style="{StaticResource TabContent}">
                         <WrapPanel Style="{StaticResource Row}">
                             <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Drops'}" />
                             <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding DropKindChoices}" SelectedValue="{Binding DropKind}" />
@@ -637,152 +1171,65 @@
                             </WrapPanel>
                         </StackPanel>
 
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Experience'}" Margin="0,12,0,4" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Drops experience'}" IsChecked="{Binding DropsExperience}" />
+                        <StackPanel IsEnabled="{Binding DropsExperience}">
+                            <WrapPanel Margin="0,2,0,4">
+                                <RadioButton Content="{l:Tr 'Fixed'}" MinWidth="0" Margin="0,0,16,0" IsChecked="{Binding IsExperienceFixed}" />
+                                <RadioButton Content="{l:Tr 'Range (min and max)'}" MinWidth="0" IsChecked="{Binding IsExperienceRange}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}" Visibility="{Binding IsExperienceFixed, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Experience amount'}" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxExperience}" SmallChange="1"
+                                              Value="{Binding ExperienceAmount, UpdateSourceTrigger=PropertyChanged}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}" Visibility="{Binding IsExperienceRange, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Experience (min - max)'}" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Width="130" Minimum="0" Maximum="{Binding MaxExperience}" SmallChange="1"
+                                              Value="{Binding ExperienceMin, UpdateSourceTrigger=PropertyChanged}" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Width="130" Minimum="0" Maximum="{Binding MaxExperience}" SmallChange="1"
+                                              Value="{Binding ExperienceMax, UpdateSourceTrigger=PropertyChanged}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Experience points gained when breaking the block (diamond ore: 3 to 7).'}" />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Tools'}" Margin="0,12,0,4" />
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Experience (min - max)'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" Width="130" Minimum="0" Maximum="{Binding MaxExperience}" SmallChange="1"
-                                          Value="{Binding ExperienceMin, UpdateSourceTrigger=PropertyChanged}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" Width="130" Minimum="0" Maximum="{Binding MaxExperience}" SmallChange="1"
-                                          Value="{Binding ExperienceMax, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Effective tool'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding HarvestToolChoices}" SelectedValue="{Binding HarvestTool}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Experience points gained when breaking the block (diamond ore: 3 to 7).'}" />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Vanilla tool tier'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ToolTierChoices}" SelectedValue="{Binding ToolTier}" />
+                        </WrapPanel>
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Requires the correct tool to drop (like stone without a pickaxe)'}" Margin="0,4,0,4"
+                                  IsChecked="{Binding RequiresCorrectTool}" />
+                        <StackPanel IsEnabled="{Binding RequiresCorrectTool}">
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Specific tool'}" />
+                                <ContentControl Style="{StaticResource RowPicker}" Content="{Binding RequiredToolPicker}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Empty: any tool of the type and the tier above. A tool (minecraft:diamond_pickaxe): only that one.'}" />
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Additional condition'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding FunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding DropCondition}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'A function of the project (the position of the block → yes / no): the block drops nothing when it says no.'}" />
+                        </StackPanel>
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="{l:Tr 'Item'}">
+                <TabItem Header="{l:Tr 'Events and triggers'}">
                     <StackPanel Style="{StaticResource TabContent}">
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'The block also exists as an item in the inventory'}" FontWeight="SemiBold" Margin="0,0,0,8"
-                                  IsChecked="{Binding HasItemForm}" />
-                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryFields}" Focusable="False"
-                                        IsEnabled="{Binding HasItemForm}" />
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Item texture'}" Margin="0,12,0,4" />
-                        <ContentControl Content="{Binding ItemTextureSlot}" Focusable="False" IsEnabled="{Binding HasItemForm}" />
-                        <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap"
-                                   Text="{l:Tr 'Optional: a flat texture for the block in the inventory and in hand (like a door). Empty: the block itself.'}" />
-                    </StackPanel>
-                </TabItem>
-                <TabItem Header="{l:Tr 'Advanced'}">
-                    <StackPanel Style="{StaticResource TabContent}" DataContext="{Binding Options}">
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Rotation and water'}" Margin="0,0,0,4" />
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Rotation'}" />
-                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Source={x:Static assets:BlockOptionsViewModel.Rotations}}"
-                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Rotation}" />
-                        </WrapPanel>
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Can also be placed on the floor and the ceiling (like a button)'}"
-                                  IsChecked="{Binding HasPitchRotation}" IsEnabled="{Binding CanHavePitch}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Can hold water (waterloggable, like a slab)'}" IsChecked="{Binding Waterloggable}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Falls like sand (gravity)'}" IsChecked="{Binding HasGravity}" />
-
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Rendering and physics'}" Margin="0,12,0,4" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Glows in the dark (emissive rendering)'}" IsChecked="{Binding Emissive}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Hides the faces between two blocks of this type (connected sides, like glass)'}"
-                                  IsChecked="{Binding ConnectedSides}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Replaceable (another block can be placed instead, like tall grass)'}"
-                                  IsChecked="{Binding Replaceable}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Entities can walk through it (no collision)'}" IsChecked="{Binding WalkThrough}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Custom light opacity'}" IsChecked="{Binding CustomLightOpacity}" />
-                        <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding CustomLightOpacity}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Light opacity'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="15" SmallChange="1"
-                                          Value="{Binding LightOpacity, UpdateSourceTrigger=PropertyChanged}" />
-                        </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Light stopped by the block: 0 lets every light through (glass), 15 stops it (stone).'}" />
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Random model offset'}" />
-                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Source={x:Static assets:BlockOptionsViewModel.Offsets}}"
-                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding RandomOffset}" />
-                        </WrapPanel>
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Color on the map'}" />
-                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding MapColors}"
-                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding MapColor}" />
-                        </WrapPanel>
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Note block instrument'}" />
-                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Instruments}"
-                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Instrument}" />
-                        </WrapPanel>
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Reaction to pistons'}" />
-                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding Source={x:Static assets:BlockOptionsViewModel.PushReactions}}"
-                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding PushReaction}" />
-                        </WrapPanel>
-
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Special behaviors'}" Margin="0,12,0,4" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Acts like a ladder (entities climb it)'}" IsChecked="{Binding Ladder}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Plants can grow on it (saplings, flowers)'}" IsChecked="{Binding PlantsCanSustain}" />
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Enchanting power bonus'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="15" SmallChange="0.5"
-                                          Value="{Binding EnchantPowerBonus, UpdateSourceTrigger=PropertyChanged}" />
-                        </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Given to a nearby enchanting table (a bookshelf gives 1).'}" />
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Beacon beam color'}" />
-                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding BeaconColors}"
-                                      DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding BeaconColor}" />
-                        </WrapPanel>
-                    </StackPanel>
-                </TabItem>
-
-                <TabItem Header="{l:Tr 'Redstone and fire'}">
-                    <StackPanel Style="{StaticResource TabContent}" DataContext="{Binding Options}">
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Redstone'}" Margin="0,0,0,4" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'The redstone dust connects to this block'}" IsChecked="{Binding RedstoneConnects}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Emits redstone power (like a redstone block)'}" IsChecked="{Binding EmitsRedstone}" />
-                        <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding EmitsRedstone}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Redstone power'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="15" SmallChange="1"
-                                          Value="{Binding RedstonePower, UpdateSourceTrigger=PropertyChanged}" />
-                        </WrapPanel>
-
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Fire'}" Margin="0,12,0,4" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Can be ignited by lava'}" IsChecked="{Binding IgnitedByLava}" />
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Flammability'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="300" SmallChange="5"
-                                          Value="{Binding Flammability, UpdateSourceTrigger=PropertyChanged}" />
-                        </WrapPanel>
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Fire spreading speed'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="300" SmallChange="5"
-                                          Value="{Binding FireSpreadSpeed, UpdateSourceTrigger=PropertyChanged}" />
-                        </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Wool: 60 and 30; planks: 20 and 5; 0: does not burn.'}" />
-                    </StackPanel>
-                </TabItem>
-
-                <TabItem Header="{l:Tr 'Shape'}">
-                    <StackPanel Style="{StaticResource TabContent}" DataContext="{Binding Options}">
-                        <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" Margin="0,0,0,8"
-                                   Text="{l:Tr 'Boxes in pixels (0 to 16) for the collisions and the outline of the block; a subtracted box makes a hole. Without box: the full block. A block that turns uses the boxes drawn for the north.'}" />
-                        <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Add a box'}" Command="{Binding AddBoxCommand}" />
-                        <ItemsControl ItemsSource="{Binding Boxes}" Focusable="False" Margin="0,6,0,0">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type assets:BlockBoxViewModel}">
-                                    <WrapPanel Margin="0,2">
-                                        <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronUp}" Command="{Binding UpCommand}" />
-                                        <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.ChevronDown}" Command="{Binding DownCommand}" />
-                                        <TextBlock Text="{l:Tr 'From'}" VerticalAlignment="Center" Margin="4,0" />
-                                        <ui:NumberBox Width="62" Value="{Binding MinX, UpdateSourceTrigger=PropertyChanged}" ToolTip="X" />
-                                        <ui:NumberBox Width="62" Value="{Binding MinY, UpdateSourceTrigger=PropertyChanged}" ToolTip="Y" />
-                                        <ui:NumberBox Width="62" Value="{Binding MinZ, UpdateSourceTrigger=PropertyChanged}" ToolTip="Z" />
-                                        <TextBlock Text="{l:Tr 'To'}" VerticalAlignment="Center" Margin="8,0,4,0" />
-                                        <ui:NumberBox Width="62" Value="{Binding MaxX, UpdateSourceTrigger=PropertyChanged}" ToolTip="X" />
-                                        <ui:NumberBox Width="62" Value="{Binding MaxY, UpdateSourceTrigger=PropertyChanged}" ToolTip="Y" />
-                                        <ui:NumberBox Width="62" Value="{Binding MaxZ, UpdateSourceTrigger=PropertyChanged}" ToolTip="Z" />
-                                        <CheckBox Content="{l:Tr 'Subtract'}" Margin="8,0" MinWidth="0" IsChecked="{Binding Subtract}" />
-                                        <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" Command="{Binding RemoveCommand}"
-                                                ToolTip="{l:Tr 'Remove this box'}" />
-                                    </WrapPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,8" TextWrapping="Wrap"
+                                   Text="{l:Tr 'Connect an event of the block to a node graph: what happens there runs on the server when the event occurs. No event is used by default.'}" />
+                        <ItemsControl ItemsSource="{Binding Events}" Focusable="False" ItemTemplate="{StaticResource EventLinkCard}" />
                     </StackPanel>
                 </TabItem>
 
                 <TabItem Header="{l:Tr 'States'}">
-                    <StackPanel Style="{StaticResource TabContent}" DataContext="{Binding Options}">
+                    <StackPanel Style="{StaticResource TabContent}" DataContext="{Binding Options}" IsEnabled="{Binding IsNotBase}">
                         <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" Margin="0,0,0,8"
                                    Text="{l:Tr 'Properties of the block state (lit, age, color...): the graphs read and change them with the State property nodes, by name. Every combination of values is a state of the block: keep their number small.'}" />
                         <WrapPanel>
@@ -811,7 +1258,7 @@
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="{l:Tr 'Ore'}">
+                <TabItem Header="{l:Tr 'Generation'}">
                     <StackPanel Style="{StaticResource TabContent}" DataContext="{Binding Options}">
                         <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Content="{l:Tr 'Generate the block as an ore in the world'}"
                                   IsChecked="{Binding OreEnabled}" Margin="0,0,0,8" />
@@ -1773,11 +2220,75 @@
         </Border>
     </DataTemplate>
 
+    <!-- V0.7.9 (Entity.md): a variation, a layer, an item that tames the mob. -->
+    <DataTemplate DataType="{x:Type assets:MobVariationViewModel}">
+        <DockPanel Margin="0,0,0,6">
+            <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" VerticalAlignment="Top" Content="{l:Tr 'Remove'}" Command="{Binding RemoveCommand}" />
+            <ContentControl Content="{Binding Texture}" Focusable="False" />
+        </DockPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type assets:MobLayerViewModel}">
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <DockPanel Margin="0,0,0,4">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Content="{l:Tr 'Remove'}" Command="{Binding RemoveCommand}" />
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+                <ContentControl Content="{Binding Texture}" Focusable="False" />
+                <CheckBox Style="{StaticResource WrapCheck}" Margin="0,4,0,2" Content="{l:Tr 'Glows in the dark (like the eyes of a spider)'}" IsChecked="{Binding Glow}" />
+                <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2" Content="{l:Tr 'Does not turn red when hurt'}" IsChecked="{Binding NoHurtOverlay}" />
+                <WrapPanel Style="{StaticResource Row}">
+                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Shown when (function)'}" />
+                    <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding FunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                              SelectedValue="{Binding VisibleFunction}" />
+                </WrapPanel>
+                <WrapPanel Style="{StaticResource Row}">
+                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Glows when (function)'}" />
+                    <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding FunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                              SelectedValue="{Binding GlowFunction}" />
+                </WrapPanel>
+                <WrapPanel Style="{StaticResource Row}">
+                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Turns red when (function)'}" />
+                    <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding FunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                              SelectedValue="{Binding HurtFunction}" />
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type assets:MobTamingItemViewModel}">
+        <WrapPanel Style="{StaticResource Row}">
+            <ContentControl Style="{StaticResource RowPicker}" Content="{Binding ItemPicker}" />
+            <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="0" Maximum="100" SmallChange="1"
+                          Value="{Binding Chance, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Text="%" VerticalAlignment="Center" Margin="4,0,8,0" />
+            <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Remove'}" Command="{Binding RemoveCommand}" />
+        </WrapPanel>
+    </DataTemplate>
+
+    <!-- A grid of boxes (immunities, weaknesses, dimensions, biomes, structures). -->
+    <DataTemplate x:Key="MobToggleGrid">
+        <ItemsControl ItemsSource="{Binding}" Focusable="False">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Columns="2" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type assets:ToggleOptionViewModel}">
+                    <CheckBox Style="{StaticResource WrapCheck}" Content="{Binding Label}" IsChecked="{Binding IsChecked}" Margin="0,1" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DataTemplate>
+
+    <!-- Mob (V0.7.9, Entity.md): one tab per window of the spec. -->
     <DataTemplate DataType="{x:Type assets:MobAssetViewModel}">
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
             <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
             <TabControl Style="{StaticResource UnderlineTabControl}" HorizontalContentAlignment="{DynamicResource AssetTabsAlignment}">
-                <TabItem Header="{l:Tr 'Appearance'}">
+                <TabItem Header="{l:Tr 'Visual'}">
                     <StackPanel Style="{StaticResource TabContent}">
                         <WrapPanel Style="{StaticResource Row}">
                             <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Model'}" />
@@ -1785,16 +2296,29 @@
                         </WrapPanel>
                         <ContentControl Content="{Binding CustomModel}" Focusable="False"
                                         Visibility="{Binding ShowsModelPicker, Converter={StaticResource BoolToVisibility}}" />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Model visual scale'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" Width="160" ItemsSource="{Binding ValueModeChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                      SelectedValue="{Binding VisualScaleMode}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="{Binding MinScale}" Maximum="{Binding MaxScale}" SmallChange="0.1"
+                                          Value="{Binding VisualScaleValue, UpdateSourceTrigger=PropertyChanged}"
+                                          Visibility="{Binding IsVisualScaleDynamic, Converter={StaticResource InverseBoolToVisibility}}" />
+                            <ComboBox Width="220" Margin="0,2" ItemsSource="{Binding FunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                      SelectedValue="{Binding VisualScaleFunction}" Visibility="{Binding IsVisualScaleDynamic, Converter={StaticResource BoolToVisibility}}" />
+                        </WrapPanel>
+
                         <ContentControl Content="{Binding MainTexture}" Focusable="False" />
-                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,8" Text="{Binding TextureHint}" />
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,4" Text="{Binding TextureHint}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2,0,8" Content="{l:Tr 'The texture has transparency (see-through pixels)'}"
+                                  IsChecked="{Binding TextureTransparent}" />
                         <ContentControl Content="{Binding AppearanceList}" Focusable="False" />
 
-                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Size'}" Margin="0,8,0,4" />
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Bounding box'}" Margin="0,8,0,4" />
                         <TextBlock Style="{StaticResource RowHint}" Text="{Binding HitboxHint}" />
                         <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2,0,4" Content="{l:Tr 'Custom size'}" IsChecked="{Binding UseCustomHitbox}" />
                         <StackPanel IsEnabled="{Binding UseCustomHitbox}">
                             <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Width (blocks)'}" />
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Width and depth (blocks)'}" />
                                 <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0.1" Maximum="{Binding MaxHitbox}" SmallChange="0.1"
                                               Value="{Binding Width, UpdateSourceTrigger=PropertyChanged}" />
                             </WrapPanel>
@@ -1804,64 +2328,312 @@
                                               Value="{Binding Height, UpdateSourceTrigger=PropertyChanged}" />
                             </WrapPanel>
                         </StackPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Shadow radius (blocks)'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxShadowRadius}" SmallChange="0.1"
+                                          Value="{Binding ShadowRadius, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Seat of a rider (Y, blocks)'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxPassengerOffset}" SmallChange="0.1"
+                                          Value="{Binding PassengerOffset, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Height where an entity riding this one sits.'}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,4,0,2" Content="{l:Tr 'Disable collisions (nothing pushes it, it pushes nothing)'}"
+                                  IsChecked="{Binding NoCollision}" />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Bounding box scale'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" Width="160" ItemsSource="{Binding ValueModeChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                      SelectedValue="{Binding HitboxScaleMode}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="{Binding MinScale}" Maximum="{Binding MaxScale}" SmallChange="0.1"
+                                          Value="{Binding HitboxScaleValue, UpdateSourceTrigger=PropertyChanged}"
+                                          Visibility="{Binding IsHitboxScaleDynamic, Converter={StaticResource InverseBoolToVisibility}}" />
+                            <ComboBox Width="220" Margin="0,2" ItemsSource="{Binding FunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                      SelectedValue="{Binding HitboxScaleFunction}" Visibility="{Binding IsHitboxScaleDynamic, Converter={StaticResource BoolToVisibility}}" />
+                        </WrapPanel>
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
-                                   Text="{l:Tr 'The size changes the collision box, not how the model looks.'}" />
+                                   Text="{l:Tr 'A dynamic scale is given by a function of the project that takes the mob (or nothing) and returns a number.'}" />
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Variations and layers'}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Margin="0,0,0,4" Content="{l:Tr 'Has variations'}" IsChecked="{Binding HasVariations}" />
+                        <StackPanel Visibility="{Binding HasVariations, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,6" TextWrapping="Wrap"
+                                       Text="{l:Tr 'Each new mob takes one of these textures at random; it is saved in its NBT data (Variant).'}" />
+                            <ItemsControl ItemsSource="{Binding VariationRows}" Focusable="False" />
+                            <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Add a variation'}" Command="{Binding AddVariationCommand}" />
+                        </StackPanel>
+
+                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Margin="0,14,0,4" Content="{l:Tr 'Has many layers'}" IsChecked="{Binding HasLayers}" />
+                        <StackPanel Visibility="{Binding HasLayers, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,6" TextWrapping="Wrap"
+                                       Text="{l:Tr 'Textures drawn over the mob with the same model (eyes, armor, saddle). Functions of the project (the mob → yes / no) can decide when each one shows, glows and turns red.'}" />
+                            <ItemsControl ItemsSource="{Binding LayerRows}" Focusable="False" />
+                            <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Add a layer'}" Command="{Binding AddLayerCommand}" />
+                        </StackPanel>
                     </StackPanel>
                 </TabItem>
 
                 <TabItem Header="{l:Tr 'Attributes'}">
                     <StackPanel Style="{StaticResource TabContent}">
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Base'}" Margin="0,0,0,4" />
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Family'}" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Characteristic'}" />
                             <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding KindChoices}" SelectedValue="{Binding Kind}" />
                         </WrapPanel>
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Health points'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="{Binding MaxHealth}" SmallChange="1" LargeChange="10"
-                                          Value="{Binding Health, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Type'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding CreatureTypeChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                      SelectedValue="{Binding CreatureType}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr '20 = 10 hearts (zombie). Cow: 10; iron golem: 100.'}" />
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Attack damage'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxAttackDamage}" SmallChange="0.5"
-                                          Value="{Binding AttackDamage, UpdateSourceTrigger=PropertyChanged}" />
-                        </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Zombie: 3 (one and a half hearts).'}" />
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Speed'}" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Movement speed'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxMovementSpeed}" SmallChange="0.01"
                                           Value="{Binding MovementSpeed, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
                         <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Zombie: 0.23; cow: 0.2; spider: 0.3.'}" />
                         <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Armor'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxArmor}" SmallChange="1"
-                                          Value="{Binding Armor, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Step height'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxStepHeight}" SmallChange="0.1"
+                                          Value="{Binding StepHeight, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
                         <WrapPanel Style="{StaticResource Row}">
                             <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Follow range'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="{Binding MaxFollowRange}" SmallChange="1"
                                           Value="{Binding FollowRange, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Distance (in blocks) at which it spots and chases its target.'}" />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Tracking range (chunks)'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="{Binding MaxTrackingRange}" SmallChange="1"
+                                          Value="{Binding TrackingRange, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Health points'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="{Binding MaxHealth}" SmallChange="1" LargeChange="10"
+                                          Value="{Binding Health, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Knockback'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxKnockback}" SmallChange="0.1"
+                                          Value="{Binding Knockback, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
                         <WrapPanel Style="{StaticResource Row}">
                             <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Knockback resistance'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="1" SmallChange="0.1"
                                           Value="{Binding KnockbackResistance, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
                         <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Attack strength'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxAttackDamage}" SmallChange="0.5"
+                                          Value="{Binding AttackDamage, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Armor'}" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxArmor}" SmallChange="1"
+                                          Value="{Binding Armor, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                        <WrapPanel Style="{StaticResource Row}">
                             <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Experience given'}" />
                             <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxExperience}" SmallChange="1"
                                           Value="{Binding Experience, UpdateSourceTrigger=PropertyChanged}" />
                         </WrapPanel>
-                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,6,0,2" Content="{l:Tr 'Resists fire and lava'}" IsChecked="{Binding FireImmune}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2" Content="{l:Tr 'Burns in sunlight (like a zombie)'}" IsChecked="{Binding BurnsInDaylight}" />
-                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2" Content="{l:Tr 'Never despawns when the player moves away'}" IsChecked="{Binding Persistent}" />
+
+                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Margin="0,14,0,4" Content="{l:Tr 'Tamable'}" IsChecked="{Binding Tamable}" />
+                        <StackPanel Visibility="{Binding Tamable, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,6" TextWrapping="Wrap"
+                                       Text="{l:Tr 'Items that tame it, with their chance for each item given (bones: 33 %). A tamed mob follows its owner and sits when its owner clicks it. Only the Animal family can be tamed.'}" />
+                            <ItemsControl ItemsSource="{Binding TamingRows}" Focusable="False" />
+                            <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Add an item'}" Command="{Binding AddTamingItemCommand}" />
+                        </StackPanel>
+
+                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Margin="0,14,0,4" Content="{l:Tr 'Ridable'}" IsChecked="{Binding Ridable}" />
+                        <StackPanel Visibility="{Binding Ridable, Converter={StaticResource BoolToVisibility}}">
+                            <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2" Content="{l:Tr 'Forward movement'}" IsChecked="{Binding RidingForward}" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2" Content="{l:Tr 'Strafe movement'}" IsChecked="{Binding RidingStrafe}" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2" Content="{l:Tr 'Needs a saddle'}" IsChecked="{Binding RidingNeedsSaddle}" />
+                            <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding RidingNeedsSaddle}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Layer of the saddle'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding SaddleLayerChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding RidingSaddleLayer}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'The layer shown once a saddle is put on it (right-click with a saddle).'}" />
+                        </StackPanel>
+
+                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Margin="0,14,0,4" Content="{l:Tr 'Is a water entity'}" IsChecked="{Binding IsWaterEntity}" />
+                        <StackPanel Visibility="{Binding IsWaterEntity, Converter={StaticResource BoolToVisibility}}">
+                            <WrapPanel Style="{StaticResource Row}">
+                                <CheckBox Style="{StaticResource WrapCheck}" Width="250" Content="{l:Tr 'Can breathe in fluids'}" IsChecked="{Binding WaterBreathes}" />
+                                <ComboBox Width="220" Margin="0,2" ItemsSource="{Binding FunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding WaterBreathesFunction}" ToolTip="{l:Tr 'Function (the mob → yes / no) that decides instead of the box'}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}">
+                                <CheckBox Style="{StaticResource WrapCheck}" Width="250" Content="{l:Tr 'Can be pushed by fluids'}" IsChecked="{Binding WaterPushed}" />
+                                <ComboBox Width="220" Margin="0,2" ItemsSource="{Binding FunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding WaterPushedFunction}" ToolTip="{l:Tr 'Function (the mob → yes / no) that decides instead of the box'}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Fluid'}" />
+                                <ContentControl Style="{StaticResource RowPicker}" Content="{Binding WaterFluid}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Fluid it lives in (minecraft:water by default).'}" />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Is immune to'}" Margin="0,14,0,4" />
+                        <ContentControl Content="{Binding ImmunityOptions}" ContentTemplate="{StaticResource MobToggleGrid}" Focusable="False" />
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Is vulnerable to'}" Margin="0,14,0,4" />
+                        <ContentControl Content="{Binding VulnerabilityOptions}" ContentTemplate="{StaticResource MobToggleGrid}" Focusable="False" />
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Spawn'}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <Border Style="{StaticResource InfoBanner}" Margin="0,0,0,10" Visibility="{Binding IsVehicle, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock TextWrapping="Wrap" FontSize="12" Text="{l:Tr 'This mob is a vehicle (Special properties): it is placed by its item, so it neither spawns nor has an egg.'}" />
+                        </Border>
+                        <StackPanel IsEnabled="{Binding IsNotVehicle}">
+                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Margin="0,0,0,6" Content="{l:Tr 'Enable spawning of the entity'}"
+                                  IsChecked="{Binding SpawnsNaturally}" />
+                        <StackPanel IsEnabled="{Binding SpawnsNaturally}">
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Spawn weight'}" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="{Binding MaxSpawnWeight}" SmallChange="1"
+                                              Value="{Binding SpawnWeight, UpdateSourceTrigger=PropertyChanged}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Compared to other creatures: zombie 100, cow 8, creeper 100.'}" />
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Spawn group size'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" Width="170" ItemsSource="{Binding GroupModeChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding GroupMode}" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="1" Maximum="{Binding MaxGroupSize}" SmallChange="1"
+                                              Value="{Binding SpawnMinGroup, UpdateSourceTrigger=PropertyChanged}"
+                                              Visibility="{Binding IsGroupDynamic, Converter={StaticResource InverseBoolToVisibility}}" />
+                                <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="1" Maximum="{Binding MaxGroupSize}" SmallChange="1"
+                                              Value="{Binding SpawnMaxGroup, UpdateSourceTrigger=PropertyChanged}"
+                                              Visibility="{Binding IsGroupRange, Converter={StaticResource BoolToVisibility}}" />
+                                <ComboBox Width="220" Margin="0,2" ItemsSource="{Binding FunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding GroupFunction}" Visibility="{Binding IsGroupDynamic, Converter={StaticResource BoolToVisibility}}" />
+                            </WrapPanel>
+
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Dimensions'}" Margin="0,10,0,4" />
+                            <ContentControl Content="{Binding DimensionOptions}" ContentTemplate="{StaticResource MobToggleGrid}" Focusable="False" />
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Biomes of the Overworld'}" Margin="0,10,0,4" />
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'None checked: the whole Overworld.'}" />
+                            <ContentControl Content="{Binding BiomeOptions}" ContentTemplate="{StaticResource MobToggleGrid}" Focusable="False" />
+
+                            <CheckBox Style="{StaticResource WrapCheck}" Margin="0,10,0,4" Content="{l:Tr 'Is attached to structures (spawns only inside them)'}"
+                                      IsChecked="{Binding InStructures}" />
+                            <ContentControl Content="{Binding StructureOptions}" ContentTemplate="{StaticResource MobToggleGrid}" Focusable="False"
+                                            Visibility="{Binding InStructures, Converter={StaticResource BoolToVisibility}}" />
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'A monster spawns in the dark, an animal on grass, a creature on any ground.'}" />
+                        </StackPanel>
+
+                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,12,0,2" Content="{l:Tr 'Enable despawn (far from the players)'}" IsChecked="{Binding Despawns}" />
+                        <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding Despawns}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Custom despawn condition'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding FunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                      SelectedValue="{Binding DespawnFunction}" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Function (the mob → yes / no); none: the rule of the game.'}" />
+
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Spawn egg'}" Margin="0,14,0,4" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Margin="0,0,0,6" Content="{l:Tr 'Spawn egg'}" IsChecked="{Binding HasSpawnEgg}" />
+                        <StackPanel IsEnabled="{Binding HasSpawnEgg}">
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Background color'}" />
+                                <TextBox Width="110" FontFamily="Consolas"
+                                         Text="{Binding EggPrimaryText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
+                                <Border Width="28" Height="28" Margin="8,0,0,0" CornerRadius="14" BorderThickness="1"
+                                        BorderBrush="{DynamicResource PreviewBorderBrush}" Background="{Binding EggPrimaryPreview}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Spot color'}" />
+                                <TextBox Width="110" FontFamily="Consolas"
+                                         Text="{Binding EggSecondaryText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
+                                <Border Width="28" Height="28" Margin="8,0,0,0" CornerRadius="14" BorderThickness="1"
+                                        BorderBrush="{DynamicResource PreviewBorderBrush}" Background="{Binding EggSecondaryPreview}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Creative tab'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding CreativeTabChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding EggCreativeTab}" />
+                            </WrapPanel>
+                            <ContentControl Content="{Binding EggTexture}" Focusable="False" />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource StackedLabel}" Text="{l:Tr 'Spawn in game'}" Margin="0,12,0,2" />
+                        <TextBox IsReadOnly="True" FontFamily="Consolas" Text="{Binding SummonCommand, Mode=OneWay}" />
+                        </StackPanel>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Special properties'}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Margin="0,0,0,4" Content="{l:Tr 'Is a boss'}" IsChecked="{Binding IsBoss}" />
+                        <StackPanel Visibility="{Binding IsBoss, Converter={StaticResource BoolToVisibility}}">
+                            <CheckBox Style="{StaticResource WrapCheck}" Margin="0,2" Content="{l:Tr 'Show the health bar'}" IsChecked="{Binding BossShowBar}" />
+                            <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding BossShowBar}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Color'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding BossColorChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding BossColor}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}" IsEnabled="{Binding BossShowBar}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Type'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding BossOverlayChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding BossOverlay}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Minecraft has seven colors of bar: the closest one is used. A custom bar (widget) will come later.'}" />
+                        </StackPanel>
+
+                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Margin="0,14,0,4" Content="{l:Tr 'Is a golem'}" IsChecked="{Binding IsGolem}" />
+                        <StackPanel Visibility="{Binding IsGolem, Converter={StaticResource BoolToVisibility}}">
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Block activator'}" />
+                                <ContentControl Style="{StaticResource RowPicker}" Content="{Binding GolemActivator}" />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Detection function'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding FunctionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding GolemFunction}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap"
+                                       Text="{l:Tr 'Without function: placing the block on a column of two identical blocks builds the mob, like a snow golem. With a function (the position of the block → yes / no), the mob appears where it says yes.'}" />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource StackedLabel}" FontWeight="SemiBold" Margin="0,14,0,2" Text="{l:Tr 'Vehicle'}" />
+                        <WrapPanel>
+                            <CheckBox Style="{StaticResource WrapCheck}" Margin="0,0,16,4" Content="{l:Tr 'Is a boat'}" IsChecked="{Binding IsBoat}" IsEnabled="{Binding CanBeBoat}" />
+                            <CheckBox Style="{StaticResource WrapCheck}" Margin="0,0,16,4" Content="{l:Tr 'Is a minecart'}" IsChecked="{Binding IsMinecart}" IsEnabled="{Binding CanBeMinecart}" />
+                        </WrapPanel>
+                        <StackPanel IsEnabled="{Binding IsVehicle}">
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Rarity'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding RarityChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding VehicleRarity}" />
+                            </WrapPanel>
+                            <ContentControl Content="{Binding VehicleTexture}" Focusable="False" />
+                            <TextBlock Style="{StaticResource RowHint}" Text="{Binding VehicleItemHint}" />
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap"
+                                   Text="{l:Tr 'A boat floats on water; a minecart is placed on a rail and runs along it. The player rides it and drives it; broken, it gives back its item. A vehicle neither spawns nor has an egg or AI.'}" />
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="{l:Tr 'Events and triggers'}">
+                    <StackPanel Style="{StaticResource TabContent}">
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,8" TextWrapping="Wrap"
+                                   Text="{l:Tr 'Connect an event of the mob to a node graph: what happens there runs on the server when the event occurs. No event is used by default.'}" />
+                        <ItemsControl ItemsSource="{Binding Events}" Focusable="False" ItemTemplate="{StaticResource EventLinkCard}" />
                     </StackPanel>
                 </TabItem>
 
                 <TabItem Header="{l:Tr 'AI'}">
                     <StackPanel Style="{StaticResource TabContent}">
+                        <Border Style="{StaticResource InfoBanner}" Margin="0,0,0,10" Visibility="{Binding IsVehicle, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock TextWrapping="Wrap" FontSize="12" Text="{l:Tr 'This mob is a vehicle (Special properties): it has no AI, only its rider moves it.'}" />
+                        </Border>
+                        <StackPanel IsEnabled="{Binding IsNotVehicle}">
                         <!-- Ce qui pilote le mob : la liste de comportements ou un arbre Puppeteer (V0.6). -->
                         <WrapPanel Style="{StaticResource Row}">
                             <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Driven by'}" />
@@ -1898,64 +2670,7 @@
                             </WrapPanel>
                             <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Given to two adults, it makes them breed (cow: minecraft:wheat).'}" />
                         </StackPanel>
-                    </StackPanel>
-                </TabItem>
-
-                <TabItem Header="{l:Tr 'Spawning'}">
-                    <StackPanel Style="{StaticResource TabContent}">
-                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Margin="0,0,0,6" Content="{l:Tr 'Spawn egg'}"
-                                  IsChecked="{Binding HasSpawnEgg}" />
-                        <StackPanel IsEnabled="{Binding HasSpawnEgg}">
-                            <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Background color'}" />
-                                <TextBox Width="110" FontFamily="Consolas"
-                                         Text="{Binding EggPrimaryText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
-                                <Border Width="28" Height="28" Margin="8,0,0,0" CornerRadius="14" BorderThickness="1"
-                                        BorderBrush="{DynamicResource PreviewBorderBrush}" Background="{Binding EggPrimaryPreview}" />
-                            </WrapPanel>
-                            <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Spot color'}" />
-                                <TextBox Width="110" FontFamily="Consolas"
-                                         Text="{Binding EggSecondaryText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
-                                <Border Width="28" Height="28" Margin="8,0,0,0" CornerRadius="14" BorderThickness="1"
-                                        BorderBrush="{DynamicResource PreviewBorderBrush}" Background="{Binding EggSecondaryPreview}" />
-                            </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'The egg is added to the mod\'s tab and to the &quot;Spawn Eggs&quot; tab.'}" />
                         </StackPanel>
-
-                        <CheckBox Style="{StaticResource WrapCheck}" FontWeight="SemiBold" Margin="0,12,0,6" Content="{l:Tr 'Spawns naturally in the world'}"
-                                  IsChecked="{Binding SpawnsNaturally}" />
-                        <StackPanel IsEnabled="{Binding SpawnsNaturally}">
-                            <ItemsControl ItemsSource="{Binding BiomeOptions}" Focusable="False">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <UniformGrid Columns="2" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type assets:ToggleOptionViewModel}">
-                                        <CheckBox Style="{StaticResource WrapCheck}" Content="{Binding Label}" IsChecked="{Binding IsChecked}" Margin="0,1" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Frequency'}" />
-                                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="{Binding MaxSpawnWeight}" SmallChange="1"
-                                              Value="{Binding SpawnWeight, UpdateSourceTrigger=PropertyChanged}" />
-                            </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Compared to other creatures: zombie 100, cow 8, creeper 100.'}" />
-                            <WrapPanel Style="{StaticResource Row}">
-                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Group size'}" />
-                                <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="1" Maximum="{Binding MaxGroupSize}" SmallChange="1"
-                                              Value="{Binding SpawnMinGroup, UpdateSourceTrigger=PropertyChanged}" />
-                                <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="1" Maximum="{Binding MaxGroupSize}" SmallChange="1"
-                                              Value="{Binding SpawnMaxGroup, UpdateSourceTrigger=PropertyChanged}" />
-                            </WrapPanel>
-                            <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'A monster spawns in the dark, an animal on grass, a creature on any ground.'}" />
-                        </StackPanel>
-
-                        <TextBlock Style="{StaticResource StackedLabel}" Text="{l:Tr 'Spawn in game'}" Margin="0,12,0,2" />
-                        <TextBox IsReadOnly="True" FontFamily="Consolas" Text="{Binding SummonCommand, Mode=OneWay}" />
                     </StackPanel>
                 </TabItem>
 

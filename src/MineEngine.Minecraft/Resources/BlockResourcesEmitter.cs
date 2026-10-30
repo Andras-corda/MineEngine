@@ -10,7 +10,7 @@ namespace MineEngine.Minecraft.Resources;
 /// Blockstate, modèles (bloc et item), textures et loot table de chaque bloc, selon
 /// sa forme : cube, cube à six textures, colonne orientable ou croix.
 /// </summary>
-public sealed class BlockResourcesEmitter : ResourceEmitter
+public sealed partial class BlockResourcesEmitter : ResourceEmitter
 {
     public BlockResourcesEmitter(PlaceholderTexture placeholder)
         : base(placeholder)
@@ -27,6 +27,12 @@ public sealed class BlockResourcesEmitter : ResourceEmitter
             if (block.Plant is { } plant)
             {
                 EmitPlant(context, block, plant);
+                continue;
+            }
+
+            if (block.Settings.Model.IsBase())
+            {
+                EmitBase(context, block);
                 continue;
             }
 
@@ -444,6 +450,23 @@ public sealed class BlockResourcesEmitter : ResourceEmitter
         return model;
     }
 
+    /// <summary>The block survives the explosion; with a required tool, it is mined with that one (V0.7.11).</summary>
+    private static JsonArray DropConditions(IRBlock block)
+    {
+        var conditions = new JsonArray { new JsonObject { ["condition"] = "minecraft:survives_explosion" } };
+        if (block.RequiredTool is { } tool)
+        {
+            // A list of items is read by 1.20.1 and by the item sets of 1.20.5 and later.
+            conditions.Add(new JsonObject
+            {
+                ["condition"] = "minecraft:match_tool",
+                ["predicate"] = new JsonObject { ["items"] = new JsonArray { tool.ToString() } },
+            });
+        }
+
+        return conditions;
+    }
+
     private static JsonObject? CreateLootTable(IRBlock block, ResourcePaths paths)
     {
         IRBlockDrop drop = block.Drop;
@@ -479,10 +502,7 @@ public sealed class BlockResourcesEmitter : ResourceEmitter
                 {
                     ["rolls"] = 1,
                     ["entries"] = new JsonArray { entry },
-                    ["conditions"] = new JsonArray
-                    {
-                        new JsonObject { ["condition"] = "minecraft:survives_explosion" },
-                    },
+                    ["conditions"] = DropConditions(block),
                 },
             },
         };

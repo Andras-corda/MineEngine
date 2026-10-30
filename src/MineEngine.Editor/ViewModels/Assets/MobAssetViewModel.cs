@@ -14,10 +14,11 @@ using MineEngine.Editor.Mvvm;
 namespace MineEngine.Editor.ViewModels.Assets;
 
 /// <summary>
-/// Inspector d'un mob, sur le modèle de l'éditeur "Living entity" de MCreator : apparence,
-/// attributs, IA (liste ordonnée de comportements), apparition, sons et butin.
+/// Inspector d'un mob, sur le modèle de l'éditeur "Living entity" de MCreator, en fenêtres depuis
+/// V0.7.9 (Entity.md) : visuel, variantes et calques, attributs, apparition, propriétés spéciales,
+/// IA, sons et butin (les sections ajoutées sont dans MobAssetViewModel.Entity.cs).
 /// </summary>
-public sealed class MobAssetViewModel : TexturedAssetViewModel
+public sealed partial class MobAssetViewModel : TexturedAssetViewModel
 {
     private readonly MobAsset _mob;
     private MobGoalKind _newGoalKind = MobGoalKind.RandomStroll;
@@ -38,9 +39,10 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
         HurtSound = SoundPicker(nameof(MobAsset.HurtSound), () => _mob.HurtSound, v => _mob.HurtSound = v);
         DeathSound = SoundPicker(nameof(MobAsset.DeathSound), () => _mob.DeathSound, v => _mob.DeathSound = v);
 
+        // The dimensions are chosen apart (V0.7.9): the list only has the biomes of the Overworld.
         BiomeOptions =
         [
-            .. GameDataChoices.SpawnBiomes.Select(c => new ToggleOptionViewModel(
+            .. GameDataChoices.SpawnBiomes.Where(c => c.Value is not (SpawnBiome.Overworld or SpawnBiome.Nether or SpawnBiome.End)).Select(c => new ToggleOptionViewModel(
                 c.Label, () => _mob.SpawnBiomes.Contains(c.Value), included => SetBiome(c.Value, included))),
         ];
 
@@ -51,6 +53,8 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
         RebuildGoals();
         RebuildDrops();
         UpdateTextureLabel();
+        InitializeEntitySections();
+        InitializeEvents();
     }
 
     // ----- Listes de choix -----
@@ -193,18 +197,6 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
         get => _mob.Experience;
         set => ChangeNumber(Tr.T("Change experience"), nameof(MobAsset.Experience), value, () => _mob.Experience, v => _mob.Experience = v,
             v => Math.Clamp((int)Math.Round(v), 0, MobAsset.MaxExperience));
-    }
-
-    public bool FireImmune
-    {
-        get => _mob.FireImmune;
-        set => ChangeIfDifferent(Tr.T("Change fire resistance"), nameof(MobAsset.FireImmune), () => _mob.FireImmune, v => _mob.FireImmune = v, value);
-    }
-
-    public bool BurnsInDaylight
-    {
-        get => _mob.BurnsInDaylight;
-        set => ChangeIfDifferent(Tr.T("Change \"burns in sunlight\""), nameof(MobAsset.BurnsInDaylight), () => _mob.BurnsInDaylight, v => _mob.BurnsInDaylight = v, value);
     }
 
     public bool Persistent
@@ -381,6 +373,8 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
 
         OnPropertyChanged(nameof(TreeChoices));
         OnPropertyChanged(nameof(TreeId));
+        RefreshEntityChoices();
+        RefreshMobEvents();
 
         // Le registre prévient avant ce ViewModel : si l'IA ou le butin de ce mob vient de
         // changer de taille (annulation), les lignes sont d'abord remises en accord.
@@ -394,6 +388,7 @@ public sealed class MobAssetViewModel : TexturedAssetViewModel
 
         // La plupart des propriétés portent le même nom ici et dans l'asset.
         OnPropertyChanged(propertyName == nameof(MobAsset.Model) ? nameof(MobModel) : propertyName);
+        OnEntityPropertyChanged(propertyName);
         switch (propertyName)
         {
             case nameof(MobAsset.Model):

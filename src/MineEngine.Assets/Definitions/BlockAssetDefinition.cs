@@ -60,6 +60,8 @@ public sealed class BlockAssetDefinition : InventoryAssetDefinition<BlockAsset>
             asset.DropItem = drop.GetReference("item");
             asset.DropMin = drop.GetInt32("min", 1);
             asset.DropMax = drop.GetInt32("max", 1);
+            asset.RequiredTool = drop.GetReference("tool");
+            asset.DropCondition = drop.GetGuid("condition");
         }
 
         if (reader.GetObject("experience") is { } experience)
@@ -109,6 +111,8 @@ public sealed class BlockAssetDefinition : InventoryAssetDefinition<BlockAsset>
             ["item"] = asset.DropItem?.ToStorageText(),
             ["min"] = asset.DropMin,
             ["max"] = asset.DropMax,
+            ["tool"] = asset.RequiredTool?.ToStorageText(),
+            ["condition"] = asset.DropCondition?.ToString("D"),
         };
         properties["experience"] = new JsonObject
         {

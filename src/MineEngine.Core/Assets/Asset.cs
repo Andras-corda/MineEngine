@@ -4,16 +4,11 @@ using MineEngine.Core.Identifiers;
 
 namespace MineEngine.Core.Assets;
 
-/// <summary>
-/// Élément de contenu d'un projet (item, bloc...). Chaque asset possède un
-/// identifiant interne stable (<see cref="Id"/>) et un identifiant Minecraft
-/// renommable (<see cref="ResourceId"/>).
-/// </summary>
 public abstract class Asset
 {
-    private ResourceId _resourceId;
-    private string _displayName;
-    private string _folder = string.Empty;
+    private ResourceId _resourceId; // id
+    private string _displayName; // nom d'affichage
+    private string _folder = string.Empty; // chemin d'acces du dossier
 
     protected Asset(Guid id, ResourceId resourceId, string displayName)
     {
@@ -27,8 +22,7 @@ public abstract class Asset
         _displayName = displayName ?? string.Empty;
     }
 
-    /// <summary>Déclenché après chaque modification d'une propriété.</summary>
-    public event EventHandler<AssetChangedEventArgs>? Changed;
+    public event EventHandler<AssetChangedEventArgs>? Changed; // Declenche apres chaque modification d'une propriete
 
     public Guid Id { get; }
 
@@ -37,39 +31,54 @@ public abstract class Asset
     public ResourceId ResourceId
     {
         get => _resourceId;
-        set => SetField(ref _resourceId, value ?? throw new ArgumentNullException(nameof(value)));
+        set => SetField(ref _resourceId, value ?? throw new ArgumentNullException(nameof(value))); // si value !null on garde sinon exception
     }
 
     public string DisplayName
     {
         get => _displayName;
-        set => SetField(ref _displayName, value ?? string.Empty);
+        set => SetField(ref _displayName, value ?? string.Empty); // si value !null on garde sinon chaine vide
     }
 
-    /// <summary>Dossier du Dashboard où l'asset est rangé ("" : racine). Sans effet sur le jeu.</summary>
     public string Folder
     {
         get => _folder;
-        set => SetField(ref _folder, AssetFolders.Normalize(value) ?? throw new ArgumentException(Tr.F("Invalid folder path: '{0}'.", value), nameof(value)));
+        set => SetField(
+            ref _folder,
+            AssetFolders.Normalize(value)
+                ?? throw new ArgumentException(
+                    Tr.F("Invalid folder path: '{0}'.", value),
+                    nameof(value)
+                )
+        );
     }
 
-    /// <summary>Vérifie la cohérence de l'asset et ajoute les problèmes trouvés.</summary>
+    // Vérifie les asset et ajoute les problemes trouve
     public virtual void Validate(DiagnosticBag diagnostics)
     {
         if (string.IsNullOrWhiteSpace(DisplayName))
         {
-            diagnostics.Warning(Tr.T("The display name is empty; the identifier will be used in game."), ToString(), Id);
+            diagnostics.Warning(Tr.T("The display name is empty. The identifier will be used in game."), ToString(), Id);
         }
     }
 
-    /// <summary>Liens de cet asset vers d'autres assets du projet (textures, items, sons).</summary>
-    public virtual IEnumerable<AssetReference> GetReferences() => [];
+    public virtual IEnumerable<AssetReference> GetReferences() => []; // Liens de cet asset vers d'autres assets du projet (textures, items, sons)
 
     public override string ToString() => $"{Type} '{ResourceId}'";
 
-    /// <summary>Signale la modification d'une propriété qui n'est pas stockée dans un simple champ.</summary>
+    // Signale la modification d'une propriete qui n'est pas stockee dans un simple champ
     protected void RaiseChanged(string propertyName) => Changed?.Invoke(this, new AssetChangedEventArgs(propertyName));
 
+    /// <summary>
+    /// Updates a field if its value has changed and raises the Changed event
+    /// </summary>
+    /// <typeparam name="T">The type of the field.</typeparam>
+    /// <param name="field">A reference to the field to update.</param>
+    /// <param name="value">The new value to assign to the field.</param>
+    /// <param name="propertyName">The name of the calling property, automatically provided by the compile.</param>
+    /// <returns>
+    /// True if the field was updated; otherwise, false.
+    /// </returns>
     protected bool SetField<T>(ref T field, T value, [CallerMemberName] string propertyName = "")
     {
         if (EqualityComparer<T>.Default.Equals(field, value))

@@ -72,6 +72,8 @@ public sealed class ForgeJavaEmitter : ModJavaEmitter
 
     protected override string SpawnPlacementEventType => "net.minecraftforge.event.entity.SpawnPlacementRegisterEvent";
 
+    protected override string BlockEventType => "net.minecraftforge.event.level.BlockEvent";
+
     protected override string EntityRenderersEventType => "net.minecraftforge.client.event.EntityRenderersEvent";
 
     protected override IReadOnlyList<string> ClientEnvironmentImports { get; } =
@@ -156,6 +158,19 @@ public sealed class ForgeJavaEmitter : ModJavaEmitter
     protected override string InputEventType => "net.minecraftforge.client.event.InputEvent";
 
     protected override string ClientSetupEventType => "net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent";
+
+    protected override string CommonSetupEventType => "net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent";
+
+    protected override string FurnaceFuelEventType => "net.minecraftforge.event.furnace.FurnaceFuelBurnTimeEvent";
+
+    protected override string PlayerInteractEventType => "net.minecraftforge.event.entity.player.PlayerInteractEvent";
+
+    protected override string ServerLifecycleHooksType => "net.minecraftforge.server.ServerLifecycleHooks";
+
+    protected override string PlayerDestroyItemEventType => "net.minecraftforge.event.entity.player.PlayerDestroyItemEvent";
+
+    protected override (string Type, string Import, string Player, string Stack, string ItemEntity) ItemPickupEvent =>
+        ("PlayerEvent.ItemPickupEvent", "net.minecraftforge.event.entity.player.PlayerEvent", "event.getEntity()", "event.getStack()", "event.getOriginalEntity()");
 
     protected override (string Expression, string Import) FluidTypesRegistry =>
         ("ForgeRegistries.Keys.FLUID_TYPES", "net.minecraftforge.registries.ForgeRegistries");

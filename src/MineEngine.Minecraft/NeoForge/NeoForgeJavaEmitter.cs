@@ -66,6 +66,8 @@ public sealed class NeoForgeJavaEmitter : ModJavaEmitter
 
     protected override string SpawnPlacementEventType => "net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent";
 
+    protected override string BlockEventType => "net.neoforged.neoforge.event.level.BlockEvent";
+
     protected override string EntityRenderersEventType => "net.neoforged.neoforge.client.event.EntityRenderersEvent";
 
     protected override IReadOnlyList<string> ClientEnvironmentImports { get; } =
@@ -120,6 +122,22 @@ public sealed class NeoForgeJavaEmitter : ModJavaEmitter
     protected override string InputEventType => "net.neoforged.neoforge.client.event.InputEvent";
 
     protected override string ClientSetupEventType => "net.neoforged.fml.event.lifecycle.FMLClientSetupEvent";
+
+    protected override string CommonSetupEventType => "net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent";
+
+    protected override string FurnaceFuelEventType => "net.neoforged.neoforge.event.furnace.FurnaceFuelBurnTimeEvent";
+
+    protected override string PlayerInteractEventType => "net.neoforged.neoforge.event.entity.player.PlayerInteractEvent";
+
+    protected override string ServerLifecycleHooksType => "net.neoforged.neoforge.server.ServerLifecycleHooks";
+
+    protected override string PlayerDestroyItemEventType => "net.neoforged.neoforge.event.entity.player.PlayerDestroyItemEvent";
+
+    protected override (string Type, string Import, string Player, string Stack, string ItemEntity) ItemPickupEvent =>
+        ("ItemEntityPickupEvent.Post", "net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent", "event.getPlayer()", "event.getOriginalStack()", "event.getItemEntity()");
+
+    /// <summary>The compostables are a data map (see FuelDataMapEmitter).</summary>
+    protected override bool CompostablesAreData => true;
 
     protected override (string Expression, string Import) FluidTypesRegistry =>
         ("NeoForgeRegistries.Keys.FLUID_TYPES", "net.neoforged.neoforge.registries.NeoForgeRegistries");

@@ -71,12 +71,36 @@ public abstract class JavaGameApi
     /// <summary>Type de placement "au sol" des règles d'apparition, et son import.</summary>
     public abstract (string Expression, string Import) OnGroundSpawnPlacement { get; }
 
+    // ----- Mobs (V0.7.9) -----
+
+    /// <summary>Height where a rider sits: the method of the mob that gives it, its body and its imports.</summary>
+    public abstract (string Signature, IReadOnlyList<string> Body, IReadOnlyList<string> Imports) PassengerAttachment(double height);
+
+    /// <summary>Method of the mob that gives its collision box, and the call of the one of its parent class.</summary>
+    public abstract (string Signature, string SuperCall) EntityDimensionsOverride { get; }
+
+    /// <summary>The type of creature (undead, arthropod...) is a tag of entity types, not a method of the mob.</summary>
+    public abstract bool CreatureTypeIsTag { get; }
+
+    /// <summary>The step height is an attribute of the mob, not a field set in its constructor.</summary>
+    public abstract bool StepHeightIsAttribute { get; }
+
+    /// <summary>Method a raider must have (the bonus of the raid waves) and its imports.</summary>
+    public abstract (string Signature, IReadOnlyList<string> Imports) RaidBuffs { get; }
+
+    /// <summary>Goal of a tamed animal that follows its owner.</summary>
+    public abstract string FollowOwnerGoal { get; }
+
     /// <summary>
     /// Construction d'un outil, d'une arme ou d'une armure : début de l'appel au constructeur
     /// (avant les propriétés), appels ajoutés aux propriétés, fin de l'appel. 1.20 passe les
     /// dégâts au constructeur ; 1.20.5 et plus les passent par les propriétés (attributes).
     /// </summary>
-    public abstract (string Head, IReadOnlyList<string> PropertyCalls, string Tail) EquipmentConstruction(IRItem item);
+    /// <param name="customTier">Field of the material chosen in the editor (V0.7.12), or null for a material of the game.</param>
+    public abstract (string Head, IReadOnlyList<string> PropertyCalls, string Tail) EquipmentConstruction(IRItem item, string? customTier);
+
+    /// <summary>Method of a custom material that says which blocks it harvests, and its imports (V0.7.12).</summary>
+    public abstract (string Method, IReadOnlyList<string> Imports) TierMiningLevel(ItemTier level);
 
     protected static string Float(float value) => JavaNames.FloatLiteral(value);
 
@@ -97,8 +121,7 @@ public abstract class JavaGameApi
 
     /// <summary>Rapidité et effets de la nourriture : appels identiques dans les deux API.</summary>
     protected static string FoodExtras(IRFood food) =>
-        (food.Fast ? ".fast()" : string.Empty)
-        + string.Concat(food.Effects.Select(e =>
+        string.Concat(food.Effects.Select(e =>
             $".effect(new MobEffectInstance({GameDataJava.Effect(e.Effect)}, {e.DurationTicks}, {e.Amplifier}), {Float(e.Probability)})"));
 
     protected static string Experience(int min, int max) =>
@@ -178,10 +201,24 @@ public sealed class LegacyJavaGameApi : JavaGameApi
     public override (string Arrow, string SmallFireball) ProjectileCreation =>
         ("new Arrow(level, mob)", "new SmallFireball(level, mob, dx, dy, dz)");
 
+    public override (string Signature, IReadOnlyList<string> Body, IReadOnlyList<string> Imports) PassengerAttachment(double height) =>
+        ("public double getPassengersRidingOffset()", [$"return {JavaNames.DoubleLiteral(height)};"], []);
+
+    public override (string Signature, string SuperCall) EntityDimensionsOverride =>
+        ("public EntityDimensions getDimensions(Pose pose)", "super.getDimensions(pose)");
+
+    public override bool CreatureTypeIsTag => false;
+
+    public override bool StepHeightIsAttribute => false;
+
+    public override (string Signature, IReadOnlyList<string> Imports) RaidBuffs => ("public void applyRaidBuffs(int wave, boolean unused)", []);
+
+    public override string FollowOwnerGoal => "new FollowOwnerGoal(this, 1.0, 10.0F, 2.0F, false)";
+
     public override (string Expression, string Import) OnGroundSpawnPlacement =>
         ("SpawnPlacements.Type.ON_GROUND", "net.minecraft.world.entity.SpawnPlacements");
 
-    public override (string Head, IReadOnlyList<string> PropertyCalls, string Tail) EquipmentConstruction(IRItem item)
+    public override (string Head, IReadOnlyList<string> PropertyCalls, string Tail) EquipmentConstruction(IRItem item, string? customTier)
     {
         if (item.Kind.IsArmor())
         {
@@ -190,8 +227,12 @@ public sealed class LegacyJavaGameApi : JavaGameApi
 
         // SwordItem, PickaxeItem et HoeItem prennent des dégâts entiers ; AxeItem et ShovelItem des décimaux.
         string damage = item.Kind is ItemKind.Axe or ItemKind.Shovel ? Float(item.AttackDamage) : Int(item.AttackDamage);
-        return ($"new {ToolClass(item.Kind)}({TierConstant(item.Tier)}, {damage}, {Float(item.AttackSpeed)}, ", [], ")");
+        return ($"new {ToolClass(item.Kind)}({customTier ?? TierConstant(item.Tier)}, {damage}, {Float(item.AttackSpeed)}, ", [], ")");
     }
+
+    /// <summary>Levels of the game: wood and gold 0, stone 1, iron 2, diamond 3, netherite 4.</summary>
+    public override (string Method, IReadOnlyList<string> Imports) TierMiningLevel(ItemTier level) =>
+        ($"public int getLevel() {{ return {level switch { ItemTier.Stone => 1, ItemTier.Iron => 2, ItemTier.Diamond => 3, ItemTier.Netherite => 4, _ => 0 }}; }}", []);
 }
 
 /// <summary>Minecraft 1.20.5 et plus (dont 1.21.1).</summary>
@@ -260,10 +301,27 @@ public sealed class ModernJavaGameApi : JavaGameApi
     public override (string Arrow, string SmallFireball) ProjectileCreation =>
         ("new Arrow(level, mob, new ItemStack(Items.ARROW), null)", "new SmallFireball(level, mob, new Vec3(dx, dy, dz).normalize())");
 
+    public override (string Signature, IReadOnlyList<string> Body, IReadOnlyList<string> Imports) PassengerAttachment(double height) =>
+        ("protected Vec3 getPassengerAttachmentPoint(Entity entity, EntityDimensions dimensions, float scale)",
+            [$"return new Vec3(0.0, {JavaNames.DoubleLiteral(height)} * scale, 0.0);"],
+            ["net.minecraft.world.entity.Entity", "net.minecraft.world.entity.EntityDimensions", "net.minecraft.world.phys.Vec3"]);
+
+    public override (string Signature, string SuperCall) EntityDimensionsOverride =>
+        ("public EntityDimensions getDefaultDimensions(Pose pose)", "super.getDefaultDimensions(pose)");
+
+    public override bool CreatureTypeIsTag => true;
+
+    public override bool StepHeightIsAttribute => true;
+
+    public override (string Signature, IReadOnlyList<string> Imports) RaidBuffs =>
+        ("public void applyRaidBuffs(ServerLevel level, int wave, boolean unused)", ["net.minecraft.server.level.ServerLevel"]);
+
+    public override string FollowOwnerGoal => "new FollowOwnerGoal(this, 1.0, 10.0F, 2.0F)";
+
     public override (string Expression, string Import) OnGroundSpawnPlacement =>
         ("SpawnPlacementTypes.ON_GROUND", "net.minecraft.world.entity.SpawnPlacementTypes");
 
-    public override (string Head, IReadOnlyList<string> PropertyCalls, string Tail) EquipmentConstruction(IRItem item)
+    public override (string Head, IReadOnlyList<string> PropertyCalls, string Tail) EquipmentConstruction(IRItem item, string? customTier)
     {
         if (item.Kind.IsArmor())
         {
@@ -272,11 +330,16 @@ public sealed class ModernJavaGameApi : JavaGameApi
                 [$".durability({type}.getDurability({ArmorDurabilityMultiplier(item.ArmorMaterial)}))"], ")");
         }
 
-        string tier = TierConstant(item.Tier);
+        string tier = customTier ?? TierConstant(item.Tier);
         string toolClass = ToolClass(item.Kind);
         string damage = item.Kind == ItemKind.Sword ? Int(item.AttackDamage) : Float(item.AttackDamage);
         return ($"new {toolClass}({tier}, ", [$".attributes({toolClass}.createAttributes({tier}, {damage}, {Float(item.AttackSpeed)}))"], ")");
     }
+
+    /// <summary>The blocks a material cannot harvest are a tag of the game since 1.20.5.</summary>
+    public override (string Method, IReadOnlyList<string> Imports) TierMiningLevel(ItemTier level) =>
+        ($"public TagKey<Block> getIncorrectBlocksForDrops() {{ return BlockTags.INCORRECT_FOR_{level switch { ItemTier.Wood => "WOODEN", _ => level.ToString().ToUpperInvariant() }}_TOOL; }}",
+            ["net.minecraft.tags.TagKey", "net.minecraft.tags.BlockTags", "net.minecraft.world.level.block.Block"]);
 
     /// <summary>Multiplicateur de durabilité des matériaux d'armure de Minecraft.</summary>
     private static int ArmorDurabilityMultiplier(ArmorMaterialKind material) => material switch

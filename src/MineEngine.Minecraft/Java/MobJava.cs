@@ -32,26 +32,30 @@ public static class MobJava
         _ => new("HumanoidModel", "ZOMBIE", "textures/entity/zombie/zombie.png", 0.5f),
     };
 
-    /// <summary>Classe Java dont hérite le mob.</summary>
-    public static string BaseClass(MobKind kind) => kind switch
+    /// <summary>Classe Java dont hérite le mob (an animal that can be tamed is a TamableAnimal).</summary>
+    public static string BaseClass(MobKind kind, bool tamable = false) => kind switch
     {
+        MobKind.Animal when tamable => "TamableAnimal",
         MobKind.Animal => "Animal",
         MobKind.Creature => "PathfinderMob",
+        MobKind.Raider => "Raider",
         _ => "Monster",
     };
 
-    public static string BaseClassImport(MobKind kind) => kind switch
+    public static string BaseClassImport(MobKind kind, bool tamable = false) => kind switch
     {
+        MobKind.Animal when tamable => "net.minecraft.world.entity.TamableAnimal",
         MobKind.Animal => "net.minecraft.world.entity.animal.Animal",
         MobKind.Creature => "net.minecraft.world.entity.PathfinderMob",
+        MobKind.Raider => "net.minecraft.world.entity.raid.Raider",
         _ => "net.minecraft.world.entity.monster.Monster",
     };
 
     /// <summary>Point de départ des attributs (le monstre a déjà dégâts et portée de suivi).</summary>
     public static string AttributesStart(MobKind kind) =>
-        kind == MobKind.Monster ? "Monster.createMonsterAttributes()" : "Mob.createMobAttributes()";
+        kind is MobKind.Monster or MobKind.Raider ? "Monster.createMonsterAttributes()" : "Mob.createMobAttributes()";
 
-    public static string Category(MobKind kind) => "MobCategory." + (kind == MobKind.Monster ? "MONSTER" : "CREATURE");
+    public static string Category(MobKind kind) => "MobCategory." + (kind is MobKind.Monster or MobKind.Raider ? "MONSTER" : "CREATURE");
 
     /// <summary>Règle d'apparition naturelle de la famille (lumière, sol...).</summary>
     public static string SpawnRule(MobKind kind) => kind switch
@@ -76,26 +80,6 @@ public static class MobJava
         MobTarget.Animal => ("Animal", "net.minecraft.world.entity.animal.Animal"),
         MobTarget.Monster => ("Monster", "net.minecraft.world.entity.monster.Monster"),
         _ => ("Player", "net.minecraft.world.entity.player.Player"),
-    };
-
-    /// <summary>Tag ou biome visé par l'apparition naturelle.</summary>
-    public static string Biomes(SpawnBiome biome) => biome switch
-    {
-        SpawnBiome.Plains => "minecraft:plains",
-        SpawnBiome.Desert => "minecraft:desert",
-        SpawnBiome.Swamp => "minecraft:swamp",
-        SpawnBiome.Forest => "#minecraft:is_forest",
-        SpawnBiome.Taiga => "#minecraft:is_taiga",
-        SpawnBiome.Jungle => "#minecraft:is_jungle",
-        SpawnBiome.Savanna => "#minecraft:is_savanna",
-        SpawnBiome.Mountain => "#minecraft:is_mountain",
-        SpawnBiome.Badlands => "#minecraft:is_badlands",
-        SpawnBiome.Beach => "#minecraft:is_beach",
-        SpawnBiome.Ocean => "#minecraft:is_ocean",
-        SpawnBiome.River => "#minecraft:is_river",
-        SpawnBiome.Nether => "#minecraft:is_nether",
-        SpawnBiome.End => "#minecraft:is_end",
-        _ => "#minecraft:is_overworld",
     };
 
     /// <summary>

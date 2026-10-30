@@ -35,16 +35,19 @@ public sealed class ItemsAndFoldersTests
     {
         using var temp = new TemporaryDirectory();
         string workspace = await GenerateSampleAsync(temp.Path, ModLoaderKind.Forge, "1.20.1");
-        string items = ReadJava(workspace, "registry/ModItems.java");
+        string items = GeneratedItems.Read(Path.Combine(workspace, "src/main/java/com/mineengine/mods/testmod"));
 
-        Assert.Contains("() -> new SwordItem(Tiers.DIAMOND, 3, -2.4f, new Item.Properties()) {", items);
+        Assert.Contains("() -> new RubySwordItem(new Item.Properties()));", items);
+        Assert.Contains("public class RubySwordItem extends SwordItem {", items);
+        Assert.Contains("super(Tiers.DIAMOND, 3, -2.4f, properties);", items);
         Assert.Contains("public boolean isValidRepairItem(ItemStack stack, ItemStack repairCandidate) {", items);
-        Assert.Contains("new AxeItem(Tiers.STONE, 6.0f, -3.1f, new Item.Properties()", items);
-        Assert.Contains("new HoeItem(Tiers.NETHERITE, -2, -1.0f, new Item.Properties()", items);
-        Assert.Contains("new ArmorItem(ArmorMaterials.CHAIN, ArmorItem.Type.CHESTPLATE, new Item.Properties()", items);
+        Assert.Contains("super(Tiers.STONE, 6.0f, -3.1f, properties);", items);
+        Assert.Contains("super(Tiers.NETHERITE, -2, -1.0f, properties);", items);
+        Assert.Contains("super(ArmorMaterials.CHAIN, ArmorItem.Type.CHESTPLATE, properties);", items);
         int sword = items.IndexOf("RUBY_SWORD =", StringComparison.Ordinal);
         Assert.DoesNotContain(".stacksTo(", items[sword..items.IndexOf("public static final", sword, StringComparison.Ordinal)]);
-        Assert.Contains(".fast().effect(new MobEffectInstance(MobEffects.REGENERATION, 100, 1), 1.0f)", items);
+        Assert.Contains(".effect(new MobEffectInstance(MobEffects.REGENERATION, 100, 1), 1.0f)", items);
+        Assert.Contains("return 16;", items);
         Assert.Contains(".effect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 600, 0), 0.5f)", items);
         Assert.Contains("public int getBurnTime(ItemStack stack, RecipeType<?> recipeType) {", items);
         Assert.Contains("return new ItemStack(BuiltInRegistries.ITEM.get(new ResourceLocation(\"minecraft:bowl\")));", items);
@@ -56,13 +59,13 @@ public sealed class ItemsAndFoldersTests
     {
         using var temp = new TemporaryDirectory();
         string workspace = await GenerateSampleAsync(temp.Path, ModLoaderKind.NeoForge, "1.21.1");
-        string items = ReadJava(workspace, "registry/ModItems.java");
+        string items = GeneratedItems.Read(Path.Combine(workspace, "src/main/java/com/mineengine/mods/testmod"));
 
-        Assert.Contains("new SwordItem(Tiers.DIAMOND, new Item.Properties()", items);
+        Assert.Contains("super(Tiers.DIAMOND, properties);", items);
         Assert.Contains(".attributes(SwordItem.createAttributes(Tiers.DIAMOND, 3, -2.4f))", items);
         Assert.Contains(".attributes(AxeItem.createAttributes(Tiers.STONE, 6.0f, -3.1f))", items);
         Assert.Contains(".durability(ArmorItem.Type.BOOTS.getDurability(37))", items);
-        Assert.DoesNotContain("getBurnTime", items);
+        Assert.DoesNotContain("public int getBurnTime(ItemStack stack", items);
 
         string fuels = File.ReadAllText(Path.Combine(workspace, "src/main/resources/data/neoforge/data_maps/item/furnace_fuels.json"));
         Assert.Contains("\"testmod:star_stew\"", fuels);
@@ -78,19 +81,19 @@ public sealed class ItemsAndFoldersTests
     {
         using var temp = new TemporaryDirectory();
         string workspace = await GenerateSampleAsync(temp.Path, ModLoaderKind.NeoForge, "1.21.1");
-        string items = ReadJava(workspace, "registry/ModItems.java");
+        string items = GeneratedItems.Read(Path.Combine(workspace, "src/main/java/com/mineengine/mods/testmod"));
         string behavior = ReadJava(workspace, "behavior/ItemEventsBehavior.java");
 
         Assert.Contains("import com.mineengine.mods.testmod.behavior.ItemEventsBehavior;", items);
         Assert.Contains("public boolean hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {", items);
-        Assert.Contains("ItemEventsBehavior.onItemHitEntity1(player, attacker.level(), target.blockPosition());", items);
+        Assert.Contains("ItemEventsBehavior.onItemHitEntity1(player, attacker.level(), target.blockPosition(), target, 0.0);", items);
         Assert.Contains("public void onCraftedBy(ItemStack stack, Level level, Player player) {", items);
         Assert.Contains("public void inventoryTick(ItemStack stack, Level level, Entity entity, int slot, boolean selected) {", items);
-        Assert.Contains("ItemEventsBehavior.onItemUseOnBlock1(player, context.getLevel(), context.getClickedPos());", items);
+        Assert.Contains("ItemEventsBehavior.onItemUseOnBlock1(player, context.getLevel(), context.getClickedPos(), null, 0.0);", items);
         Assert.Contains("public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {", items);
         Assert.Contains("public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {", items);
 
-        Assert.Contains("public static void onItemHitEntity1(Player player, Level level, BlockPos position) {", behavior);
+        Assert.Contains("public static void onItemHitEntity1(Player player, Level level, BlockPos position, Entity other, double amount) {", behavior);
         Assert.DoesNotContain("addListener", behavior);
     }
 
@@ -120,7 +123,7 @@ public sealed class ItemsAndFoldersTests
         var stew = (ItemAsset)reopened.Assets.FindByResourceId(ResourceId.Parse("star_stew"), AssetType.Item)!;
         var sword = (ItemAsset)reopened.Assets.FindByResourceId(ResourceId.Parse("ruby_sword"), AssetType.Item)!;
 
-        Assert.True(stew.FastFood);
+        Assert.Equal(0.8f, stew.EatSeconds);
         Assert.Equal([new FoodEffect(FoodEffectKind.Regeneration, 5, 1, 1f), new FoodEffect(FoodEffectKind.Speed, 30, 0, 0.5f)], stew.FoodEffects);
         Assert.Equal(400, stew.BurnTime);
         Assert.Equal("minecraft:bowl", stew.CraftRemainder!.ToStorageText());

@@ -458,6 +458,56 @@ public enum GraphNodeKind
     PlaySparkleBetween,
     StopSparkleOnEntity,
     StopSparklesAt,
+
+    // ----- Events of a mob of the mod (V0.7.9) -----
+    OnMobStruckByLightning,
+    OnMobFalls,
+    OnMobSpawns,
+    OnMobDies,
+    OnMobPlayerCollides,
+    OnMobTick,
+    OnMobHurt,
+    OnMobRightClicked,
+    OnMobKillsEntity,
+    OnMobRideStarts,
+    OnMobRideStops,
+    OnMobRiddenTick,
+    OnMobTamed,
+    OnMobEntityCollides,
+
+    // ----- Events of a block of the mod (V0.7.11) -----
+    OnBlockRightClicked,
+    OnBlockAdded,
+    OnBlockNeighborChanged,
+    OnBlockTick,
+    OnBlockDestroyed,
+    OnBlockDestroyedByPlayer,
+    OnBlockDestroyedByExplosion,
+    OnBlockStartDestroy,
+    OnBlockEntityCollides,
+    OnBlockPlayerCollides,
+    OnBlockEntityWalksOn,
+    OnBlockPlayerWalksOn,
+    OnBlockEntityFallsOn,
+    OnBlockHitByProjectile,
+    OnBlockPlaced,
+    OnBlockRedstoneOn,
+    OnBlockRedstoneOff,
+
+    // Events of an item of the mod (V0.7.12, item.md).
+    OnItemUseOnEntity,
+    OnItemBroken,
+    OnItemDropped,
+    OnItemPickedUp,
+    OnItemEatingStarted,
+    OnItemEatingStopped,
+    OnItemEatingTick,
+    OnItemToolSwingTick,
+    OnItemToolSwung,
+    OnItemChargeStarted,
+    OnItemCharged,
+    OnItemChargingTick,
+    OnItemShot,
 }
 
 /// <summary>Values offered by a text input of a node, taken from the project (V0.7.7).</summary>
@@ -470,6 +520,12 @@ public enum PinSuggestion
 
     /// <summary>User parameters of the system chosen on the "system" input of the node.</summary>
     SparkleParameter,
+
+    /// <summary>Identifiers of the mobs of the project (V0.7.9).</summary>
+    Mob,
+
+    /// <summary>Identifiers of the blocks of the project (V0.7.11).</summary>
+    Block,
 }
 
 /// <summary>Domain of a node, used to sort the Nodes window like MCreator's procedure blocks.</summary>
@@ -603,6 +659,12 @@ public sealed class NodeInfo
 
     /// <summary>Événement propre à un item du mod (son entrée "item" désigne l'item), sinon null.</summary>
     public ItemEventKind? ItemEvent { get; init; }
+
+    /// <summary>Event of a mob of the mod (its input "mob" names the mob, V0.7.9), or null.</summary>
+    public MobEventKind? MobEvent { get; init; }
+
+    /// <summary>Event of a block of the mod (its input "block" names the block, V0.7.11), or null.</summary>
+    public BlockEventKind? BlockEvent { get; init; }
 
     /// <summary>
     /// Event run by a command or a keybind of the mod (V0.6.2), called directly by the generated code

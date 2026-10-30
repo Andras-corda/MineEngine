@@ -258,9 +258,10 @@ public sealed class AssetSystemTests
         Assert.Contains("new DeferredSpawnEggItem(ModEntities.GOBLIN, 0x3A6B1F, 0xC8A24B, new Item.Properties())", items);
         Assert.DoesNotContain("SNOW_GUARD_SPAWN_EGG", items);
 
-        string renderers = Read(Java + "client/ModEntityRenderers.java");
-        Assert.Contains("ResourceLocation.parse(\"testmod:textures/entity/goblin.png\")", renderers);
-        Assert.Contains("ResourceLocation.parse(\"minecraft:textures/entity/cow/cow.png\")", renderers);
+        // V0.7.9: each mob has its own renderer class, registered by ModEntityRenderers.
+        Assert.Contains("event.registerEntityRenderer(ModEntities.GOBLIN.get(), GoblinRenderer::new);", Read(Java + "client/ModEntityRenderers.java"));
+        Assert.Contains("ResourceLocation.parse(\"testmod:textures/entity/goblin.png\")", Read(Java + "client/GoblinRenderer.java"));
+        Assert.Contains("ResourceLocation.parse(\"minecraft:textures/entity/cow/cow.png\")", Read(Java + "client/StarCowRenderer.java"));
 
         const string Resources = "src/main/resources/";
         Assert.True(File.Exists(Path.Combine(workspace, Resources + "data/testmod/neoforge/biome_modifier/spawn_goblin_forest.json")));

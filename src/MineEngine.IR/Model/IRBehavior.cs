@@ -41,8 +41,14 @@ public sealed record IREventHandler(GraphNodeKind Event, Guid NodeId, IReadOnlyL
     /// <summary>Command or keybind (its identifier) that runs an "On command" or "On key pressed" event, or null.</summary>
     public string? Trigger { get; init; }
 
-    /// <summary>Called directly by the generated code (item, command, keybind) instead of the event bus.</summary>
-    public bool IsDirectCall => Item is not null || Trigger is not null;
+    /// <summary>Mob of the mod ("goblin") whose class calls a mob event (V0.7.9), or null.</summary>
+    public string? Mob { get; init; }
+
+    /// <summary>Block of the mod ("rune_door") whose class calls a block event (V0.7.11), or null.</summary>
+    public string? Block { get; init; }
+
+    /// <summary>Called directly by the generated code (item, mob, block, command, keybind) instead of the event bus.</summary>
+    public bool IsDirectCall => Item is not null || Trigger is not null || Mob is not null || Block is not null;
 
     /// <summary>Valeurs produites par les nœuds exécutés (appel, création d'objet), déclarées en tête de méthode.</summary>
     public IReadOnlyList<IRLocal> Locals { get; init; } = [];

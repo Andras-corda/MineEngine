@@ -1,56 +1,120 @@
 namespace MineEngine.Core.Assets;
 
-/// <summary>
-/// Chemins des dossiers du Dashboard ("Armes/Épées") : purement logiques, ils servent à
-/// ranger les éléments du mod dans l'éditeur et n'ont aucun effet sur le jeu ni sur
-/// l'emplacement des fichiers. "" désigne la racine.
-/// </summary>
 public static class AssetFolders
 {
-    public const char Separator = '/';
+    public const char Separator = '/'; // pour separer les noms dans le dir
 
-    private static readonly char[] Forbidden = ['\\', ':', '*', '?', '"', '<', '>', '|'];
+    private static readonly char[] Forbidden = ['\\', ':', '*', '?', '"', '<', '>', '|']; // listes les characteres interdit dans un dir
 
-    /// <summary>Chemin nettoyé : segments sans espaces superflus, sans segments vides ; null si un nom est invalide.</summary>
+    // dir nettoyé, null si un nom est invalide
     public static string? Normalize(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
-        {
             return string.Empty;
+
+        string[] segments = path.Split(
+            Separator,
+            (StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        );
+
+        // Si le nom est invalide alors revois null
+        foreach (string segment in segments)
+        {
+            if (!IsValidName(segment))
+            {
+                return null;
+            }
         }
 
-        string[] segments = path.Split(Separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return segments.Any(s => !IsValidName(s)) ? null : string.Join(Separator, segments);
+        return string.Join(Separator, segments);
     }
 
-    /// <summary>Nom de dossier acceptable : non vide, sans '/', sans caractère interdit par Windows.</summary>
-    public static bool IsValidName(string? name) =>
-        !string.IsNullOrWhiteSpace(name) && name.Trim() == name && name.IndexOfAny(Forbidden) < 0
-        && !name.Contains(Separator) && name is not "." and not ".." && name.Length <= 64;
+    // Checks if a folder name is valid
+    public static bool IsValidName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return false;
 
-    public static string Combine(string parent, string name) => parent.Length == 0 ? name : parent + Separator + name;
+        if (name.Trim() != name)
+            return false;
 
-    /// <summary>Dossier parent ("" pour un dossier de premier niveau ou la racine).</summary>
+        if (name.IndexOfAny(Forbidden) >= 0)
+            return false;
+
+        if (name.Contains(Separator))
+            return false;
+
+        if (name == "." || name == "..")
+            return false;
+
+        if (name.Length > 64)
+            return false;
+
+        return true;
+    }
+
+    public static string Combine(string parent, string name) {
+        if(parent.Length == 0){
+            return name
+        } else {
+            return parent + Separator + name;
+        }
+    }
+
+    // Parent du dir
     public static string Parent(string path)
     {
         int index = path.LastIndexOf(Separator);
-        return index < 0 ? string.Empty : path[..index];
+
+        if (index < 0)
+        {
+            return string.Empty;
+        }
+        else
+        {
+            return path.Substring(0, index);
+        }
     }
 
-    /// <summary>Dernier segment du chemin ("Épées" pour "Armes/Épées").</summary>
-    public static string Name(string path) => path[(path.LastIndexOf(Separator) + 1)..];
+    // Dernier segment du dir 
+    public static string Name(string path) 
+    {
+        return path[(path.LastIndexOf(Separator) + 1)..];
+    }
 
-    /// <summary>Vrai si <paramref name="path"/> est <paramref name="folder"/> ou l'un de ses sous-dossiers.</summary>
-    public static bool IsWithin(string path, string folder) =>
-        folder.Length == 0
-        || string.Equals(path, folder, StringComparison.Ordinal)
-        || path.StartsWith(folder + Separator, StringComparison.Ordinal);
+    // verifie si un dir se trouve dans un dossier ou correspond au dossier lui meme
+    public static bool IsWithin(string path, string folder)
+    {
+        // si le dossier est vide, tous les chemins sont consideres comme etant dedans
+        if (folder.Length == 0)
+            return true;
 
-    /// <summary>Remplace le début <paramref name="oldFolder"/> d'un chemin par <paramref name="newFolder"/> (renommage, déplacement).</summary>
-    public static string Rebase(string path, string oldFolder, string newFolder) =>
-        IsWithin(path, oldFolder) ? newFolder + path[oldFolder.Length..] : path;
+        // verifie si le chemin est egal au dossier
+        if (string.Equals(path, folder, StringComparison.Ordinal))
+            return true;
 
-    /// <summary>Un chemin et tous ses dossiers parents ("A/B/C" donne "A", "A/B", "A/B/C").</summary>
+        // verifie si le chemin commence par le nom du dossier + separateur
+        if (path.StartsWith(folder + Separator, StringComparison.Ordinal))
+            return true;
+
+        // le chemin n'est pas dedans
+        return false;
+    }
+
+    // remplace le début d'un dir 
+    public static string Rebase(string path, string oldFolder, string newFolder)
+    {
+        // verifie si le dir se trouve dans l'ancien dossier
+        if (IsWithin(path, oldFolder))
+        {
+            return newFolder + path[oldFolder.Length..];
+        }
+
+        // Si le dir n'est pas dans l'ancien dossier, on le retourne sans modification
+        return path;
+    }
+
+    // un dir et tous ses dossiers parents (A/B/C -> A, A/B, A/B/C)
     public static IEnumerable<string> WithAncestors(string path)
     {
         if (path.Length == 0)

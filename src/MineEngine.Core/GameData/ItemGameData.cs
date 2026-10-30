@@ -26,6 +26,67 @@ public enum ItemTier
     Gold,
     Diamond,
     Netherite,
+
+    /// <summary>Durability, speed, enchantability and mining level chosen in the editor (V0.7.12).</summary>
+    Custom,
+}
+
+/// <summary>Animation of the player while using the item (UseAnim of Minecraft), for a food (V0.7.12).</summary>
+public enum ItemUseAnimation
+{
+    Eat,
+    Drink,
+    None,
+    Block,
+    Bow,
+    Spear,
+    Crossbow,
+    Spyglass,
+    TootHorn,
+    Brush,
+}
+
+/// <summary>What the item leaves in the crafting grid, and in the fuel slot of a furnace (V0.7.12).</summary>
+public enum ItemRemainderKind
+{
+    /// <summary>Nothing: the item is used up.</summary>
+    Consumed,
+
+    /// <summary>Another item, like the empty bucket after a cake.</summary>
+    OtherItem,
+
+    /// <summary>The item itself stays.</summary>
+    Itself,
+
+    /// <summary>The item stays and loses one point of durability; it breaks at the end.</summary>
+    ItselfDamaged,
+}
+
+/// <summary>How a ranged item shoots (V0.7.12): drawn like a bow or a crossbow, thrown, or a fishing rod.</summary>
+public enum RangedItemKind
+{
+    None,
+    Bow,
+    Crossbow,
+    Throw,
+    FishingRod,
+}
+
+/// <summary>What a ranged item shoots.</summary>
+public enum RangedProjectile
+{
+    Arrow,
+    SpectralArrow,
+    Snowball,
+    Egg,
+}
+
+/// <summary>When a ranged item shoots: on release (the longer it is held, the stronger), at once, or while held.</summary>
+public enum RangedFireMode
+{
+    Charge,
+    Instant,
+    Automatic,
 }
 
 /// <summary>Matériau d'une armure (ArmorMaterials de Minecraft) : défense, durabilité, apparence portée.</summary>
@@ -95,6 +156,47 @@ public enum ItemEventKind
 
     /// <summary>À chaque tick tant que l'item est tenu en main (inventoryTick).</summary>
     HeldTick,
+
+    // ----- V0.7.12 (item.md) -----
+
+    /// <summary>The player right-clicks a creature with the item (interactLivingEntity).</summary>
+    UseOnEntity,
+
+    /// <summary>The item runs out of durability and breaks in the hands of a player.</summary>
+    Broken,
+
+    /// <summary>The player drops the item (onDroppedByPlayer).</summary>
+    Dropped,
+
+    /// <summary>The player picks the item up from the ground (event of the loader).</summary>
+    PickedUp,
+
+    /// <summary>The player starts eating the item (first tick of the use).</summary>
+    EatingStarted,
+
+    /// <summary>The player stops eating before the end (releaseUsing).</summary>
+    EatingStopped,
+
+    /// <summary>Each tick while the player eats the item (onUseTick).</summary>
+    EatingTick,
+
+    /// <summary>Each tick while the player swings the item in hand.</summary>
+    ToolSwingTick,
+
+    /// <summary>The player swings the item (once per swing).</summary>
+    ToolSwung,
+
+    /// <summary>A ranged item starts charging (bow drawn).</summary>
+    ChargeStarted,
+
+    /// <summary>A ranged item that charges reaches its full power.</summary>
+    Charged,
+
+    /// <summary>Each tick while a ranged item charges or shoots constantly.</summary>
+    ChargingTick,
+
+    /// <summary>A ranged item shoots a projectile.</summary>
+    Shot,
 }
 
 public static class ItemKindExtensions

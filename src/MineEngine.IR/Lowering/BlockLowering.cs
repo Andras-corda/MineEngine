@@ -1,4 +1,5 @@
 using MineEngine.Assets;
+using MineEngine.Assets.Graphs;
 using MineEngine.Core.Assets;
 using MineEngine.Core.GameData;
 using MineEngine.IR.Model;
@@ -14,7 +15,10 @@ public sealed class BlockLowering : AssetLowering<BlockAsset>
         var settings = new IRBlockSettings
         {
             Model = asset.Model,
-            RenderType = asset.RenderType,
+            // A door, a trapdoor and a pane have holes: they are cut out unless the user chose otherwise.
+            RenderType = asset.RenderType == BlockRenderType.Solid && asset.Model is BlockModelKind.Door or BlockModelKind.Trapdoor or BlockModelKind.Pane
+                ? BlockRenderType.Cutout
+                : asset.RenderType,
             LightLevel = asset.LightLevel,
             Hardness = asset.Hardness,
             Resistance = asset.Resistance,
@@ -26,8 +30,8 @@ public sealed class BlockLowering : AssetLowering<BlockAsset>
             HarvestTool = asset.HarvestTool,
             ToolTier = asset.HarvestTool == HarvestTool.None ? ToolTier.Any : asset.ToolTier,
             RequiresCorrectTool = asset.RequiresCorrectTool,
-            ExperienceMin = asset.Model == BlockModelKind.Column ? 0 : Math.Min(asset.ExperienceMin, asset.ExperienceMax),
-            ExperienceMax = asset.Model == BlockModelKind.Column ? 0 : Math.Max(asset.ExperienceMin, asset.ExperienceMax),
+            ExperienceMin = asset.Model == BlockModelKind.Column || asset.Model.IsBase() ? 0 : Math.Min(asset.ExperienceMin, asset.ExperienceMax),
+            ExperienceMax = asset.Model == BlockModelKind.Column || asset.Model.IsBase() ? 0 : Math.Max(asset.ExperienceMin, asset.ExperienceMax),
         };
 
         var extraTextures = new Dictionary<BlockTextureSlot, IRTexture>();
@@ -48,11 +52,15 @@ public sealed class BlockLowering : AssetLowering<BlockAsset>
             CreateDrop(asset, itemForm is not null, context),
             itemForm)
         {
-            CustomModel = context.ResolveCustomModel(asset),
-            Appearances = context.ResolveAppearances(asset),
+            CustomModel = asset.Model.IsBase() ? null : context.ResolveCustomModel(asset),
+            Appearances = asset.Model.IsBase() ? [] : context.ResolveAppearances(asset),
             Options = Normalize(asset),
             ItemTexture = asset.Options.ItemTextureId is { } item ? context.ResolveTexture(asset, item) : null,
             ParticleTexture = asset.Options.ParticleTextureId is { } particle ? context.ResolveTexture(asset, particle) : null,
+            RequiredTool = asset.RequiresCorrectTool && asset.RequiredTool is not null ? context.ResolveItem(asset, asset.RequiredTool, Tr.T("Tool that harvests it")) : null,
+            DropCondition = asset.RequiresCorrectTool
+                ? context.ResolveFunction(asset, asset.DropCondition, Tr.T("drop condition"), returnsBoolean: true, PinType.Position)
+                : null,
         });
     }
 
@@ -60,6 +68,20 @@ public sealed class BlockLowering : AssetLowering<BlockAsset>
     private static BlockOptions Normalize(BlockAsset asset)
     {
         BlockOptions options = asset.Options;
+        if (asset.Model.IsBase())
+        {
+            // The class of the game gives the shape, the rotation, the water and the states.
+            options = options with
+            {
+                Rotation = BlockRotation.None,
+                Waterloggable = false,
+                HasGravity = false,
+                ConnectedSides = false,
+                Boxes = [],
+                Properties = [],
+            };
+        }
+
         if (asset.Model == BlockModelKind.Column || options.HasGravity)
         {
             options = options with { Rotation = BlockRotation.None };

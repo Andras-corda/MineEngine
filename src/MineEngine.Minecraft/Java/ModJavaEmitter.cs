@@ -72,6 +72,7 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         Write(context, naming, naming.RootPackage, naming.MainClass, WriteMainClass(context, naming));
         Write(context, naming, naming.RegistryPackage, naming.BlocksClass, WriteBlocksClass(context, naming, api));
         Write(context, naming, naming.RegistryPackage, naming.ItemsClass, WriteItemsClass(context, naming, api));
+        WriteItemHooksClass(context, naming);
         Write(context, naming, naming.RegistryPackage, naming.CreativeTabsClass, WriteCreativeTabsClass(context, naming));
         Write(context, naming, naming.EntityPackage, AppearanceInterface, WriteAppearanceInterface(naming));
 
@@ -119,11 +120,12 @@ public abstract partial class ModJavaEmitter : IFileEmitter
 
         if (content.Mobs.Count > 0)
         {
-            Write(context, naming, naming.RegistryPackage, naming.EntitiesClass, WriteEntitiesClass(context, naming, api));
-            Write(context, naming, naming.ClientPackage, naming.EntityRenderersClass, WriteRenderersClass(context, naming, api));
+            Write(context, naming, naming.RegistryPackage, naming.EntitiesClass, WriteEntitiesClass(context, naming, api, names));
+            Write(context, naming, naming.ClientPackage, naming.EntityRenderersClass, WriteRenderersClass(context, naming));
             foreach (IRMob mob in content.Mobs)
             {
-                WriteEntityClass(context, naming, api, mob);
+                WriteEntityClass(context, naming, api, names, mob);
+                WriteMobRenderer(context, naming, api, names, mob);
             }
 
             WriteCustomMobModels(context, naming, api);
@@ -192,6 +194,10 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             imports.Add($"{naming.RegistryPackage}.{naming.EntitiesClass}");
             imports.Add($"{naming.ClientPackage}.{naming.EntityRenderersClass}");
             imports.AddRange(ClientEnvironmentImports);
+            if (content.Mobs.Any(m => m.Golem is not null))
+            {
+                imports.Add(GameEventBus.Import);
+            }
         }
 
         imports.AddRange(content.Behaviors.Select(b => $"{naming.BehaviorPackage}.{naming.BehaviorClassFor(b.Id)}"));
@@ -242,6 +248,12 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             if (content.Mobs.Any(m => m.Spawning is not null))
             {
                 w.Line($"modEventBus.addListener({naming.EntitiesClass}::registerSpawnPlacements);");
+            }
+
+            // Golems are built when a block is placed: an event of the game bus.
+            if (content.Mobs.Any(m => m.Golem is not null))
+            {
+                w.Line($"{GameEventBus.Expression}.addListener({naming.EntitiesClass}::onBlockPlaced);");
             }
 
             // Le rendu n'existe que sur le client : un serveur dédié ne doit pas charger ces classes.
@@ -326,11 +338,19 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             imports.Add("net.minecraft.world.level.block.state.properties.IntegerProperty");
         }
 
+        foreach (IRBlock block in content.Blocks.Where(b => b.Settings.Model.IsBase()))
+        {
+            imports.UnionWith(BlockBaseJava.Imports(block.Settings.Model));
+        }
+
         // Blocks with advanced settings have a class of their own (package "block").
-        foreach (IRBlock block in content.Blocks.Where(BlockJava.IsNeeded))
+        var names = new JavaProgramNames(naming, content.Definitions);
+        foreach (IRBlock block in content.Blocks.Where(b => BlockJava.IsNeeded(b, content)))
         {
             imports.Add($"{BlockJava.Package(naming)}.{BlockJava.ClassName(block)}");
-            Write(context, naming, BlockJava.Package(naming), BlockJava.ClassName(block), new BlockJava(block, naming, api).Write());
+            string? condition = FunctionCall(context, names, block.DropCondition, "level", "position");
+            var java = new BlockJava(block, naming, api, condition, BlockEvents(content, naming, block));
+            Write(context, naming, BlockJava.Package(naming), BlockJava.ClassName(block), java.Write());
         }
 
         foreach (string import in content.Blocks.SelectMany(b => BlockPropertyImports(b.Options)))
@@ -352,8 +372,8 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         {
             w.Line();
             int firstLine = w.NextLineNumber;
-            (string head, string tail) = BlockJava.IsNeeded(block) ? ($"new {BlockJava.ClassName(block)}(", ")") : BlockConstruction(block, api);
-            IReadOnlyList<string> overrides = block.Appearances.Count == 0 || BlockJava.IsNeeded(block)
+            (string head, string tail) = BlockJava.IsNeeded(block, content) ? ($"new {BlockJava.ClassName(block)}(", ")") : BlockConstruction(block, api);
+            IReadOnlyList<string> overrides = block.Appearances.Count == 0 || BlockJava.IsNeeded(block, content)
                 ? []
                 :
                 [
@@ -366,7 +386,7 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             WriteRegistration(
                 w, BlockHolderType, naming.ConstantFor(block.Id), "BLOCKS", block.Id.Value,
                 head, "BlockBehaviour.Properties.of()",
-                [.. BlockPropertyCalls(block.Settings), .. BlockOptionCalls(block.Options), .. PlantCalls(block.Plant)], tail, overrides);
+                [.. BlockPropertyCalls(block.Settings), .. BlockOptionCalls(block.Options), .. PlantCalls(block.Plant), .. BaseCalls(block)], tail, overrides);
             context.SourceMap.Add(file, firstLine, w.NextLineNumber - 1, block.SourceAssetId, $"Bloc '{block.Id}'");
         }
 
@@ -375,10 +395,44 @@ public abstract partial class ModJavaEmitter : IFileEmitter
 
     private static (string Head, string Tail) BlockConstruction(IRBlock block, JavaGameApi api) => block.Settings switch
     {
+        { Model: var model } when model.IsBase() => BaseConstruction(block, api),
         { Model: BlockModelKind.Column } => ("new RotatedPillarBlock(", ")"),
         { DropsExperience: true } settings => api.ExperienceBlockConstruction(settings.ExperienceMin, settings.ExperienceMax),
         _ => ("new Block(", ")"),
     };
+
+    /// <summary>Calls of the graphs that react to the events of a block (V0.7.11), with the imports of their classes.</summary>
+    private static BlockEventCalls BlockEvents(IRContent content, JavaModNaming naming, IRBlock block)
+    {
+        var calls = new Dictionary<BlockEventKind, List<string>>();
+        var imports = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (IRBehavior behavior in content.Behaviors)
+        {
+            foreach ((IREventHandler handler, string method) in HandlerMethods(behavior))
+            {
+                if (handler.Block != block.Id.Value || Assets.Graphs.NodeCatalog.Get(handler.Event).BlockEvent is not { } kind)
+                {
+                    continue;
+                }
+
+                string behaviorClass = naming.BehaviorClassFor(behavior.Id);
+                imports.Add($"{naming.BehaviorPackage}.{behaviorClass}");
+                calls.TryAdd(kind, []);
+                calls[kind].Add($"{behaviorClass}.{method}");
+            }
+        }
+
+        return new BlockEventCalls(calls.ToDictionary(c => c.Key, c => (IReadOnlyList<string>)c.Value), [.. imports]);
+    }
+
+    private static IEnumerable<string> BaseCalls(IRBlock block) =>
+        block.Settings.Model.IsBase() && !block.Options.WalkThrough ? BlockBaseJava.PropertyCalls(block.Settings.Model) : [];
+
+    private static (string Head, string Tail) BaseConstruction(IRBlock block, JavaGameApi api)
+    {
+        (string before, string after) = BlockBaseJava.Arguments(block.Settings.Model, block.Settings.Sound, api.UsesDataComponents);
+        return ($"new {BlockBaseJava.ClassName(block.Settings.Model)}({before}", after + ")");
+    }
 
     /// <summary>Calls of BlockBehaviour.Properties for the advanced settings (glow, replaceable, map color, pistons...).</summary>
     private static List<string> BlockOptionCalls(BlockOptions options)
@@ -393,6 +447,11 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         if (options.Replaceable)
         {
             calls.Add(".replaceable()");
+        }
+
+        if (options.TickEnabled && options.TickRandomly)
+        {
+            calls.Add(".randomTicks()");
         }
 
         if (options.WalkThrough)
@@ -531,6 +590,11 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         if (content.Blocks.Any(b => b.ItemForm is not null))
         {
             imports.Add("net.minecraft.world.item.BlockItem");
+            if (content.Blocks.Any(b => b.ItemForm is not null && b.Settings.Model == BlockModelKind.Door))
+            {
+                // A door is placed with its upper half, like the doors of the game.
+                imports.Add("net.minecraft.world.item.DoubleHighBlockItem");
+            }
         }
 
         if (content.Items.Any(i => i.Food is not null))
@@ -553,17 +617,24 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             imports.Add(SpawnEggItemType);
         }
 
+        if (content.Vehicles.Any())
+        {
+            imports.UnionWith(VehicleItemImports);
+        }
+
         if (content.Items.Any(i => i.Food is { Effects.Count: > 0 }))
         {
             imports.Add("net.minecraft.world.effect.MobEffectInstance");
             imports.Add("net.minecraft.world.effect.MobEffects");
         }
 
-        // Méthodes ajoutées aux items (V0.4.1) : calculées avant l'en-tête, elles fixent des imports.
-        Dictionary<IRItem, List<string>> behaviours = content.Items.ToDictionary(i => i, i => ItemBehaviourOverrides(i, context, naming, api, imports));
+        // Each item of the project is a class of its own (V0.7.13): ModItems only registers it.
+        var programNames = new JavaProgramNames(naming, content.Definitions);
         foreach (IRItem item in content.Items)
         {
-            imports.UnionWith(ItemConstructionImports(item));
+            imports.UnionWith(ItemConstructionImports(item, api));
+            imports.Add($"{ItemPackage(naming)}.{ItemClassName(item)}");
+            WriteItemClass(context, naming, programNames, api, item);
         }
 
         JavaSourceWriter w = WriteHeader(naming.RegistryPackage, imports, "Items du mod, y compris les items qui représentent les blocs.")
@@ -574,20 +645,12 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         {
             w.Line();
             int firstLine = w.NextLineNumber;
-            (string head, IReadOnlyList<string> extraCalls, string tail) = ItemConstruction(item, api);
+            (_, IReadOnlyList<string> extraCalls, _) = ItemConstruction(item, api);
             List<string> calls = ItemPropertyCalls(item.Form, item.Durability, item.Food, api, equipment: item.Kind.IsEquipment());
             calls.AddRange(extraCalls);
-
-            List<string> overrides = ItemOverrides(item, item.Form, item.HasGlint, context, api);
-            if (overrides.Count > 0 && behaviours[item].Count > 0)
-            {
-                overrides.Add(string.Empty);
-            }
-
-            overrides.AddRange(behaviours[item]);
             WriteRegistration(
                 w, ItemHolderType, naming.ConstantFor(item.Id), "ITEMS", item.Id.Value,
-                head, "new Item.Properties()", calls, tail, overrides);
+                $"new {ItemClassName(item)}(", "new Item.Properties()", calls, ")", overrides: []);
             context.SourceMap.Add(file, firstLine, w.NextLineNumber - 1, item.SourceAssetId, $"Item '{item.Id}'");
         }
 
@@ -598,7 +661,7 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             int firstLine = w.NextLineNumber;
             WriteRegistration(
                 w, ItemHolderType, constant, "ITEMS", block.Id.Value,
-                $"new BlockItem({naming.BlocksClass}.{constant}.get(), ", "new Item.Properties()",
+                $"new {(block.Settings.Model == BlockModelKind.Door ? "DoubleHighBlockItem" : "BlockItem")}({naming.BlocksClass}.{constant}.get(), ", "new Item.Properties()",
                 ItemPropertyCalls(block.Form!, durability: 0, food: null, api), ")",
                 ItemOverrides(block, block.Form!, hasGlint: false, context, api));
             context.SourceMap.Add(file, firstLine, w.NextLineNumber - 1, block.SourceAssetId, $"Bloc '{block.Id}'");
@@ -615,6 +678,18 @@ public abstract partial class ModJavaEmitter : IFileEmitter
                 $"new {spawnEggClass}({naming.EntitiesClass}.{naming.ConstantFor(mob.Id)}, {ColorLiteral(egg.PrimaryColor)}, {ColorLiteral(egg.SecondaryColor)}, ",
                 "new Item.Properties()", [], ")", overrides: []);
             context.SourceMap.Add(file, firstLine, w.NextLineNumber - 1, mob.SourceAssetId, $"Œuf du mob '{mob.Id}'");
+        }
+
+        foreach (IRMob mob in content.Vehicles)
+        {
+            IRMobVehicle vehicle = mob.Vehicle!;
+            w.Line();
+            int firstLine = w.NextLineNumber;
+            WriteRegistration(
+                w, ItemHolderType, naming.ConstantFor(vehicle.ItemId), "ITEMS", vehicle.ItemId,
+                "new Item(", "new Item.Properties()", [".stacksTo(1)", $".rarity({GameDataJava.Rarity(vehicle.Rarity)})"], ")",
+                VehicleItemOverrides(vehicle.Kind, $"{naming.EntitiesClass}.{naming.ConstantFor(mob.Id)}"));
+            context.SourceMap.Add(file, firstLine, w.NextLineNumber - 1, mob.SourceAssetId, $"Vehicle item of the mob '{mob.Id}'");
         }
 
         return WritePrivateConstructor(w, naming.ItemsClass);
@@ -719,13 +794,19 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             .Line($"DeferredRegister.create(Registries.CREATIVE_MODE_TAB, {naming.MainClass}.MOD_ID);")
             .Unindent().Unindent();
 
+        // An egg put in a tab of the project is only there (see WriteProjectCreativeTabs).
         List<string> spawnEggs = content.MobsWithSpawnEgg
+            .Where(m => m.SpawnEgg!.CreativeTab is null)
             .Select(m => $"{naming.ItemsClass}.{naming.ConstantFor(m.SpawnEgg!.ItemId)}")
             .ToList();
+
+        // The items of the boats and minecarts: the tab of the mod and Tools & Utilities, like those of the game.
+        List<string> vehicles = [.. content.Vehicles.Select(m => $"{naming.ItemsClass}.{naming.ConstantFor(m.Vehicle!.ItemId)}")];
         List<string> modTabEntries = elements
             .Where(e => e.ItemForm!.InModCreativeTab)
             .Select(e => $"{naming.ItemsClass}.{naming.ConstantFor(e.Id)}")
             .Concat(spawnEggs)
+            .Concat(vehicles)
             .Concat(GameplayTabEntries(context))
             .ToList();
 
@@ -767,6 +848,7 @@ public abstract partial class ModJavaEmitter : IFileEmitter
                 .Where(e => e.ItemForm!.CreativeTabs.Contains(tab))
                 .Select(e => $"{naming.ItemsClass}.{naming.ConstantFor(e.Id)}")
                 .Concat(tab == CreativeTab.SpawnEggs ? spawnEggs : [])
+                .Concat(tab == CreativeTab.ToolsAndUtilities ? vehicles : [])
                 .ToList();
             if (inTab.Count == 0)
             {

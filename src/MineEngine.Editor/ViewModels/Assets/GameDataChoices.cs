@@ -50,6 +50,16 @@ public static class GameDataChoices
         new(BlockModelKind.Column, Tr.T("Rotatable pillar (like a log)")),
         new(BlockModelKind.Cross, Tr.T("Cross (like a flower)")),
         new(BlockModelKind.Custom, Tr.T("Imported 3D model")),
+        new(BlockModelKind.Stairs, Tr.T("Stairs")),
+        new(BlockModelKind.Slab, Tr.T("Slab")),
+        new(BlockModelKind.Fence, Tr.T("Fence")),
+        new(BlockModelKind.FenceGate, Tr.T("Fence gate")),
+        new(BlockModelKind.Wall, Tr.T("Wall")),
+        new(BlockModelKind.Door, Tr.T("Door")),
+        new(BlockModelKind.Trapdoor, Tr.T("Trapdoor")),
+        new(BlockModelKind.Pane, Tr.T("Pane (like glass panes and iron bars)")),
+        new(BlockModelKind.Button, Tr.T("Button")),
+        new(BlockModelKind.PressurePlate, Tr.T("Pressure plate")),
     ];
 
     public static IReadOnlyList<Choice<BlockRenderType>> RenderTypes { get; } =
@@ -198,6 +208,109 @@ public static class GameDataChoices
         new(MobKind.Monster, Tr.T("Monster (hostile, spawns in the dark)")),
         new(MobKind.Creature, Tr.T("Creature (neutral or passive)")),
         new(MobKind.Animal, Tr.T("Animal (breeding, babies)")),
+        new(MobKind.Raider, Tr.T("Raider (joins the raids of the villages)")),
+    ];
+
+    // ----- Mobs (V0.7.9, Entity.md) -----
+
+    public static IReadOnlyList<Choice<MobValueMode>> MobValueModes { get; } =
+    [
+        new(MobValueMode.Fixed, Tr.T("Fixed")),
+        new(MobValueMode.Dynamic, Tr.T("Dynamic (function)")),
+    ];
+
+    public static IReadOnlyList<Choice<MobCreatureType>> MobCreatureTypes { get; } =
+    [
+        new(MobCreatureType.Undefined, Tr.T("Undefined")),
+        new(MobCreatureType.Undead, Tr.T("Undead (Smite, healed by harming)")),
+        new(MobCreatureType.Arthropod, Tr.T("Arthropod (Bane of Arthropods)")),
+        new(MobCreatureType.Illager, Tr.T("Illager")),
+        new(MobCreatureType.Water, Tr.T("Water (Impaling)")),
+    ];
+
+    public static IReadOnlyList<Choice<MobImmunity>> MobImmunities { get; } =
+    [
+        new(MobImmunity.Fire, Tr.T("Fire")),
+        new(MobImmunity.Lava, Tr.T("Lava")),
+        new(MobImmunity.Lightning, Tr.T("Lightning")),
+        new(MobImmunity.Arrows, Tr.T("Arrows")),
+        new(MobImmunity.Fall, Tr.T("Fall damage")),
+        new(MobImmunity.PlayerMelee, Tr.T("Player melee")),
+        new(MobImmunity.Drowning, Tr.T("Drowning")),
+        new(MobImmunity.Trident, Tr.T("Trident")),
+        new(MobImmunity.Potions, Tr.T("Potions")),
+        new(MobImmunity.Cactus, Tr.T("Cactus")),
+        new(MobImmunity.Explosion, Tr.T("Explosions")),
+        new(MobImmunity.Anvil, Tr.T("Anvils")),
+        new(MobImmunity.DragonBreath, Tr.T("Dragon breath")),
+        new(MobImmunity.Wither, Tr.T("Wither")),
+    ];
+
+    public static IReadOnlyList<Choice<MobVulnerability>> MobVulnerabilities { get; } =
+    [
+        new(MobVulnerability.Sun, Tr.T("Sun (burns, like a zombie)")),
+        new(MobVulnerability.Moon, Tr.T("Moon (hurt under the night sky)")),
+        new(MobVulnerability.Water, Tr.T("Water and rain (like an enderman)")),
+        new(MobVulnerability.Potions, Tr.T("Potions (twice the magic damage)")),
+    ];
+
+    public static IReadOnlyList<Choice<MobDimension>> MobDimensions { get; } =
+    [
+        new(MobDimension.Overworld, Tr.T("Overworld")),
+        new(MobDimension.Nether, Tr.T("Nether")),
+        new(MobDimension.End, Tr.T("End")),
+    ];
+
+    public static IReadOnlyList<Choice<MobGroupMode>> MobGroupModes { get; } =
+    [
+        new(MobGroupMode.Fixed, Tr.T("Fixed")),
+        new(MobGroupMode.Range, Tr.T("Range (min and max)")),
+        new(MobGroupMode.Dynamic, Tr.T("Dynamic (function)")),
+    ];
+
+    public static IReadOnlyList<Choice<MobBossColor>> MobBossColors { get; } =
+    [
+        new(MobBossColor.Pink, Tr.T("Pink")),
+        new(MobBossColor.Blue, Tr.T("Blue")),
+        new(MobBossColor.Red, Tr.T("Red")),
+        new(MobBossColor.Green, Tr.T("Green")),
+        new(MobBossColor.Yellow, Tr.T("Yellow")),
+        new(MobBossColor.Purple, Tr.T("Purple")),
+        new(MobBossColor.White, Tr.T("White")),
+    ];
+
+    public static IReadOnlyList<Choice<MobBossOverlay>> MobBossOverlays { get; } =
+    [
+        new(MobBossOverlay.Progress, Tr.T("Plain bar")),
+        new(MobBossOverlay.Notched6, Tr.T("6 notches")),
+        new(MobBossOverlay.Notched10, Tr.T("10 notches")),
+        new(MobBossOverlay.Notched12, Tr.T("12 notches")),
+        new(MobBossOverlay.Notched20, Tr.T("20 notches")),
+    ];
+
+    /// <summary>Structures of the game a mob can be limited to.</summary>
+    public static IReadOnlyList<Choice<string>> Structures { get; } =
+    [
+        new("minecraft:village_plains", Tr.T("Village (plains)")),
+        new("minecraft:village_desert", Tr.T("Village (desert)")),
+        new("minecraft:village_savanna", Tr.T("Village (savanna)")),
+        new("minecraft:village_snowy", Tr.T("Village (snowy)")),
+        new("minecraft:village_taiga", Tr.T("Village (taiga)")),
+        new("minecraft:pillager_outpost", Tr.T("Pillager outpost")),
+        new("minecraft:mansion", Tr.T("Woodland mansion")),
+        new("minecraft:desert_pyramid", Tr.T("Desert pyramid")),
+        new("minecraft:jungle_pyramid", Tr.T("Jungle temple")),
+        new("minecraft:swamp_hut", Tr.T("Witch hut")),
+        new("minecraft:igloo", Tr.T("Igloo")),
+        new("minecraft:monument", Tr.T("Ocean monument")),
+        new("minecraft:shipwreck", Tr.T("Shipwreck")),
+        new("minecraft:ruined_portal", Tr.T("Ruined portal")),
+        new("minecraft:mineshaft", Tr.T("Mineshaft")),
+        new("minecraft:stronghold", Tr.T("Stronghold")),
+        new("minecraft:ancient_city", Tr.T("Ancient city")),
+        new("minecraft:fortress", Tr.T("Nether fortress")),
+        new("minecraft:bastion_remnant", Tr.T("Bastion remnant")),
+        new("minecraft:end_city", Tr.T("End city")),
     ];
 
     public static IReadOnlyList<Choice<MobTarget>> MobTargets { get; } =
@@ -250,6 +363,53 @@ public static class GameDataChoices
         new(ItemTier.Gold, Tr.T("Gold (32, fast)")),
         new(ItemTier.Diamond, Tr.T("Diamond (1561)")),
         new(ItemTier.Netherite, Tr.T("Netherite (2031)")),
+        new(ItemTier.Custom, Tr.T("Custom")),
+    ];
+
+    public static IReadOnlyList<Choice<ItemUseAnimation>> ItemUseAnimations { get; } =
+    [
+        new(ItemUseAnimation.Eat, Tr.T("Eat")),
+        new(ItemUseAnimation.Drink, Tr.T("Drink")),
+        new(ItemUseAnimation.None, Tr.T("None")),
+        new(ItemUseAnimation.Block, Tr.T("Block (like a shield)")),
+        new(ItemUseAnimation.Bow, Tr.T("Draw a bow")),
+        new(ItemUseAnimation.Spear, Tr.T("Raise a trident")),
+        new(ItemUseAnimation.Crossbow, Tr.T("Load a crossbow")),
+        new(ItemUseAnimation.Spyglass, Tr.T("Look through a spyglass")),
+        new(ItemUseAnimation.TootHorn, Tr.T("Blow a horn")),
+        new(ItemUseAnimation.Brush, Tr.T("Brush")),
+    ];
+
+    public static IReadOnlyList<Choice<RangedItemKind>> RangedKinds { get; } =
+    [
+        new(RangedItemKind.None, Tr.T("None")),
+        new(RangedItemKind.Bow, Tr.T("Bow")),
+        new(RangedItemKind.Crossbow, Tr.T("Crossbow")),
+        new(RangedItemKind.Throw, Tr.T("Thrown (like a snowball)")),
+        new(RangedItemKind.FishingRod, Tr.T("Fishing rod")),
+    ];
+
+    public static IReadOnlyList<Choice<RangedProjectile>> RangedProjectiles { get; } =
+    [
+        new(RangedProjectile.Arrow, Tr.T("Arrow")),
+        new(RangedProjectile.SpectralArrow, Tr.T("Spectral arrow")),
+        new(RangedProjectile.Snowball, Tr.T("Snowball")),
+        new(RangedProjectile.Egg, Tr.T("Egg")),
+    ];
+
+    public static IReadOnlyList<Choice<RangedFireMode>> RangedFireModes { get; } =
+    [
+        new(RangedFireMode.Charge, Tr.T("On release, stronger when held longer (bow)")),
+        new(RangedFireMode.Instant, Tr.T("At once, then waits")),
+        new(RangedFireMode.Automatic, Tr.T("Constantly while held")),
+    ];
+
+    public static IReadOnlyList<Choice<ItemRemainderKind>> ItemRemainders { get; } =
+    [
+        new(ItemRemainderKind.Consumed, Tr.T("Nothing (used up)")),
+        new(ItemRemainderKind.Itself, Tr.T("The item itself")),
+        new(ItemRemainderKind.ItselfDamaged, Tr.T("The item itself, which loses durability")),
+        new(ItemRemainderKind.OtherItem, Tr.T("Another item")),
     ];
 
     public static IReadOnlyList<Choice<ArmorMaterialKind>> ArmorMaterials { get; } =

@@ -1,3 +1,4 @@
+using MineEngine.Assets;
 using MineEngine.Core.GameData;
 using MineEngine.Core.Identifiers;
 
@@ -72,6 +73,9 @@ public sealed class IRContent
 
     /// <summary>Mobs qui ont un œuf d'apparition.</summary>
     public IEnumerable<IRMob> MobsWithSpawnEgg => Mobs.Where(m => m.SpawnEgg is not null);
+
+    /// <summary>Mobs that are a boat or a minecart, placed by their item (V0.7.9).</summary>
+    public IEnumerable<IRMob> Vehicles => Mobs.Where(m => m.Vehicle is not null);
 
     public bool IsEmpty =>
         Items.Count == 0 && Blocks.Count == 0 && Mobs.Count == 0 && Recipes.Count == 0 && Sounds.Count == 0 && Behaviors.Count == 0
@@ -171,8 +175,14 @@ public sealed class IRFood
         IsMeat = isMeat;
     }
 
-    /// <summary>Se mange deux fois plus vite.</summary>
-    public bool Fast { get; init; }
+    /// <summary>Time to eat, in ticks (32 by default, 16 for berries).</summary>
+    public int EatTicks { get; init; } = 32;
+
+    /// <summary>Animation of the player while eating.</summary>
+    public ItemUseAnimation Animation { get; init; }
+
+    /// <summary>Item given back once eaten, or null.</summary>
+    public NamespacedId? Result { get; init; }
 
     public IReadOnlyList<IRFoodEffect> Effects { get; init; } = [];
 
@@ -241,7 +251,73 @@ public sealed class IRItem : IRElement
 
     /// <summary>Tags d'items auxquels l'item est ajouté.</summary>
     public IReadOnlyList<NamespacedId> Tags { get; init; } = [];
+
+    /// <summary>What stays in the crafting grid (V0.7.12); <see cref="CraftRemainder"/> for another item.</summary>
+    public ItemRemainderKind Remainder { get; init; }
+
+    /// <summary>Flat texture shown in the inventories instead of the 3D model, or null.</summary>
+    public IRTexture? GuiTexture { get; init; }
+
+    /// <summary>Function (the holder → yes / no) that turns the glint on, or null.</summary>
+    public IRFunctionBinding? GlintCondition { get; init; }
+
+    /// <summary>Item or tag that repairs the item on an anvil, or null.</summary>
+    public IRIngredient? RepairItem { get; init; }
+
+    /// <summary>Every block mined with the item drops.</summary>
+    public bool HarvestsAnyBlock { get; init; }
+
+    /// <summary>Material of a tool chosen in the editor, or null (a material of the game).</summary>
+    public IRToolTier? CustomTier { get; init; }
+
+    /// <summary>Function (→ seconds) that gives the burn time, or null (<see cref="BurnTime"/>).</summary>
+    public IRFunctionBinding? BurnTimeFunction { get; init; }
+
+    /// <summary>Function (→ yes / no) that lets the item burn, or null.</summary>
+    public IRFunctionBinding? BurnCondition { get; init; }
+
+    /// <summary>Chance (0 to 1) to raise the level of a composter; 0 = not compostable.</summary>
+    public float CompostChance { get; init; }
+
+    /// <summary>Function (the player → yes / no) that lets the item go into a composter, or null.</summary>
+    public IRFunctionBinding? CompostCondition { get; init; }
+
+    /// <summary>Piglins barter with the item.</summary>
+    public bool PiglinCurrency { get; init; }
+
+    /// <summary>How the item shoots, or null.</summary>
+    public IRRanged? Ranged { get; init; }
+
+    /// <summary>Methods of the class of the item (V0.7.13): bindings and events, in Java or delegated to a graph of the item.</summary>
+    public IReadOnlyList<IRElementMethod> Methods { get; init; } = [];
+
+    /// <summary>The method of a place of the class, or null.</summary>
+    public IRElementMethod? Method(string slot) => Methods.FirstOrDefault(m => m.Slot == slot);
+
+    /// <summary>The fuel needs code to know its burn time.</summary>
+    public bool HasFuelFunctions => BurnTime > 0
+        && (BurnTimeFunction is not null || BurnCondition is not null || Method(ItemMethodSlots.BurnTime) is not null || Method(ItemMethodSlots.BurnCondition) is not null);
+
+    /// <summary>A function or a method decides whether a player can compost the item.</summary>
+    public bool HasCompostCondition => CompostChance > 0 && (CompostCondition is not null || Method(ItemMethodSlots.CompostCondition) is not null);
 }
+
+/// <summary>
+/// A method of the class of an element: its Java name and what it gives back, and its body, the Java
+/// code of the project or the call of a function of the program (the graph of the element).
+/// </summary>
+public sealed record IRElementMethod(string Slot, string JavaName, MethodReturn Return, string? JavaBody, Guid? FunctionId);
+
+/// <summary>A ranged item: projectile, ammunition (used up unless <see cref="NeedsAmmo"/> is false), mode, rate, speed, damage.</summary>
+public sealed record IRRanged(
+    RangedItemKind Kind, RangedProjectile Projectile, NamespacedId Ammo, bool NeedsAmmo, RangedFireMode Mode, int RateTicks, float Speed, float Damage)
+{
+    /// <summary>A fishing rod is the one of the game; the others are written by the generator.</summary>
+    public bool Shoots => Kind is RangedItemKind.Bow or RangedItemKind.Crossbow or RangedItemKind.Throw;
+}
+
+/// <summary>Material of a tool chosen in the editor: uses, speed, enchantability, mining level of the game.</summary>
+public sealed record IRToolTier(int Uses, float Speed, int Enchantability, ItemTier MiningLevel);
 
 /// <summary>Ce qu'un bloc laisse tomber.</summary>
 public sealed class IRBlockDrop
@@ -294,6 +370,12 @@ public sealed class IRBlock : IRElement
 
     /// <summary>What makes the block a plant (V0.7.0), or null.</summary>
     public IRPlant? Plant { get; init; }
+
+    /// <summary>The one tool that harvests it (V0.7.11), or null: any tool of the type and the level.</summary>
+    public NamespacedId? RequiredTool { get; init; }
+
+    /// <summary>Function (the position → yes / no) that must say yes for the block to drop (V0.7.11), or null.</summary>
+    public IRFunctionBinding? DropCondition { get; init; }
 
     /// <summary>Advanced settings of the block (rotation, water, redstone, shape, properties, ore).</summary>
     public MineEngine.Assets.BlockOptions Options { get; init; } = MineEngine.Assets.BlockOptions.Default;

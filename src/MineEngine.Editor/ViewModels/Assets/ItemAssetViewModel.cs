@@ -15,7 +15,7 @@ namespace MineEngine.Editor.ViewModels.Assets;
 /// Éditeur d'un item : visuel, type (outil, arme, armure), propriétés, nourriture, données
 /// (combustible, tags, item rendu) et événements reliés à des graphes nodaux.
 /// </summary>
-public sealed class ItemAssetViewModel : InventoryAssetViewModel
+public sealed partial class ItemAssetViewModel : InventoryAssetViewModel
 {
     private const int TicksPerSecond = 20;
 
@@ -30,8 +30,28 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
         CraftRemainder = new ReferencePickerViewModel(
             context, ReferenceDomain.Item, () => _item.CraftRemainder,
             v => Change(Tr.T("Change returned item"), nameof(ItemAsset.CraftRemainder), () => _item.CraftRemainder, x => _item.CraftRemainder = x, v));
+        RepairItemPicker = new ReferencePickerViewModel(
+            context, ReferenceDomain.Item, () => _item.RepairItem,
+            v => Change(Tr.T("Change the repair item"), nameof(ItemAsset.RepairItem), () => _item.RepairItem, x => _item.RepairItem = x, v));
+        EatResultPicker = new ReferencePickerViewModel(
+            context, ReferenceDomain.Item, () => _item.EatResult,
+            v => Change(Tr.T("Change the item left once eaten"), nameof(ItemAsset.EatResult), () => _item.EatResult, x => _item.EatResult = x, v));
+        AmmoPicker = new ReferencePickerViewModel(
+            context, ReferenceDomain.Item, () => _item.Ranged.Ammo,
+            v => Change(Tr.T("Change the ammunition"), nameof(ItemAsset.Ranged), () => _item.Ranged, x => _item.Ranged = x, _item.Ranged with { Ammo = v }));
+        GuiTextureSlot = new TextureSlotViewModel(model, context, nameof(ItemAsset.GuiTextureId), Tr.T("Texture in the inventories"),
+            Tr.T("The 3D model"), () => model.GuiTextureId, v => model.GuiTextureId = v);
+        MethodSlots = ItemMethodSlots.All.ToDictionary(s => s.Key, s => new ElementMethodViewModel(
+            model, context, s, () => _item.Methods, v => _item.Methods = v));
         AddFoodEffectCommand = new RelayCommand(AddFoodEffect);
         Events = [.. Enum.GetValues<ItemEventKind>().Select(k => new ItemEventViewModel(this, k))];
+        ItemEventViewModel[] Group(params ItemEventKind[] kinds) => [.. kinds.Select(k => Events.Single(e => e.Kind == k))];
+        BasicEvents = Group(
+            ItemEventKind.RightClick, ItemEventKind.UseOnBlock, ItemEventKind.UseOnEntity, ItemEventKind.HitEntity, ItemEventKind.BlockMined,
+            ItemEventKind.HeldTick, ItemEventKind.Broken, ItemEventKind.Crafted, ItemEventKind.Dropped, ItemEventKind.PickedUp);
+        FoodEvents = Group(ItemEventKind.EatingStarted, ItemEventKind.EatingTick, ItemEventKind.EatingStopped, ItemEventKind.Consumed);
+        ToolEvents = Group(ItemEventKind.ToolSwingTick, ItemEventKind.ToolSwung);
+        RangedEvents = Group(ItemEventKind.ChargeStarted, ItemEventKind.ChargingTick, ItemEventKind.Charged, ItemEventKind.Shot);
         RebuildFoodEffects();
         RefreshEvents();
     }
@@ -225,12 +245,6 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
         set => ChangeIfDifferent(Tr.T("Change \"meat\""), nameof(ItemAsset.IsMeat), () => _item.IsMeat, v => _item.IsMeat = v, value);
     }
 
-    public bool FastFood
-    {
-        get => _item.FastFood;
-        set => ChangeIfDifferent(Tr.T("Change \"eaten quickly\""), nameof(ItemAsset.FastFood), () => _item.FastFood, v => _item.FastFood = v, value);
-    }
-
     public ObservableCollection<FoodEffectViewModel> FoodEffects { get; } = [];
 
     public ICommand AddFoodEffectCommand { get; }
@@ -257,9 +271,22 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
     /// <summary>Événements de l'item (clic droit, frappe, fabrication...), chacun relié ou non à un graphe.</summary>
     public IReadOnlyList<ItemEventViewModel> Events { get; }
 
-    public string EventsHint => _item.IsFood
-        ? Tr.T("Events run on the server. \"Eaten or drunk\" triggers when consumption ends.")
-        : Tr.T("Events run on the server. \"Eaten or drunk\" only triggers for a food item.");
+    /// <summary>The events in the groups of item.md (V0.7.12): basic item, food, tool, ranged item.</summary>
+    public IReadOnlyList<ItemEventViewModel> BasicEvents { get; }
+
+    public IReadOnlyList<ItemEventViewModel> FoodEvents { get; }
+
+    public IReadOnlyList<ItemEventViewModel> ToolEvents { get; }
+
+    public IReadOnlyList<ItemEventViewModel> RangedEvents { get; }
+
+    public string FoodEventsHint => _item.IsFood
+        ? Tr.T("They trigger while the item is eaten or drunk.")
+        : Tr.T("They only trigger for a food item (Food properties tab).");
+
+    public string RangedEventsHint => _item.Ranged.Kind is RangedItemKind.Bow or RangedItemKind.Crossbow or RangedItemKind.Throw
+        ? Tr.T("\"Charged\" only triggers for an item that shoots on release.")
+        : Tr.T("They only trigger for an item that shoots (Ranged item tab, not a fishing rod).");
 
     /// <summary>
     /// Relie un événement : un nœud événement est ajouté au graphe d'événements de l'item
@@ -298,12 +325,21 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
     {
         base.OnProjectContentChanged();
         CraftRemainder.Refresh();
+        RepairItemPicker.Refresh();
+        EatResultPicker.Refresh();
+        GuiTextureSlot.Refresh();
+        AmmoPicker.Refresh();
+        RefreshMethods();
+        OnPropertyChanged(nameof(FunctionChoices));
+        OnPropertyChanged(nameof(ValueFunctionChoices));
         RefreshEvents();
     }
 
     protected override void OnModelPropertyChanged(string propertyName)
     {
         base.OnModelPropertyChanged(propertyName);
+        OnSectionPropertyChanged(propertyName);
+        OnAdvancedPropertyChanged(propertyName);
         switch (propertyName)
         {
             case nameof(ItemAsset.Durability):
@@ -337,7 +373,7 @@ public sealed class ItemAssetViewModel : InventoryAssetViewModel
                 SyncFoodEffects();
                 break;
             case nameof(ItemAsset.IsFood):
-                OnPropertyChanged(nameof(EventsHint));
+                OnPropertyChanged(nameof(FoodEventsHint));
                 break;
         }
     }

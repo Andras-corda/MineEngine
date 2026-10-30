@@ -327,7 +327,17 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         {
             History.Execute(new CompositeCommand(
                 Tr.F("Delete {0} elements", viewModels.Count),
-                [.. viewModels.Select(v => (IUndoableCommand)new RemoveAssetCommand(Model.Assets, v.Model, v.TypeLabel))]));
+                [.. viewModels.SelectMany(v => RemovalCommands(v.Model, v.TypeLabel))]));
+        }
+    }
+
+    /// <summary>Removal of an element, with the graphs of its methods (V0.7.13), which only exist through it.</summary>
+    private IEnumerable<IUndoableCommand> RemovalCommands(Asset asset, string typeLabel)
+    {
+        yield return new RemoveAssetCommand(Model.Assets, asset, typeLabel);
+        foreach (GraphAsset graph in Model.Assets.OfType<GraphAsset>().Where(g => g.ElementId == asset.Id).ToList())
+        {
+            yield return new RemoveAssetCommand(Model.Assets, graph, Tr.T("Graph"));
         }
     }
 
@@ -558,7 +568,8 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
     public void RemoveAsset(AssetViewModel viewModel)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
-        History.Execute(new RemoveAssetCommand(Model.Assets, viewModel.Model, viewModel.TypeLabel));
+        List<IUndoableCommand> commands = [.. RemovalCommands(viewModel.Model, viewModel.TypeLabel)];
+        History.Execute(commands.Count == 1 ? commands[0] : new CompositeCommand(Tr.F("Delete {0}", viewModel.Header), commands));
     }
 
     /// <summary>Sélectionne un asset par son identifiant interne ; faux s'il n'existe plus.</summary>
@@ -612,8 +623,8 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
             return false;
         }
 
-        // Global variables and tags have their own tabs (Global, Tags).
-        if (asset.Model.Type is AssetType.GlobalVariable or AssetType.Tag)
+        // Global variables and tags have their own tabs (Global, Tags); the graph of a method of an element is opened from it (V0.7.13).
+        if (asset.Model.Type is AssetType.GlobalVariable or AssetType.Tag || asset.Model is GraphAsset { ElementId: not null })
         {
             return false;
         }

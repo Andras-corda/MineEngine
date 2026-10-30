@@ -42,12 +42,13 @@
 | V0.7.6 | Ajouter des template pour les sparkle (émetteurs préconfigurés au clic droit : vide, rayon d'un point à un autre, fontaine, rebond, ruban) + événements de temps (une fois après x s ou à chaque intervalle) et de zone (entrée dans une sphère ou un cube) + paramètres utilisateur liés aux réglages, plusieurs textures par émetteur (au hasard ou animées), commentaires et infobulles, aimantation, copier / coller, aides de l'aperçu (axes, zones, rayons, vélocité, collisions) | F |
 | V0.7.7 | Ajouter des nodes pour les sparkle (choix du système et du paramètre dans une liste, régler un paramètre utilisateur nombre / vecteur avant de jouer, jouer d'une position à une autre, arrêter les systèmes d'une entité ou autour d'une position) + inversion des contrôles de l'aperçu (Paramètres > Éditeurs) | F |
 | V0.7.8 | Creation de pack (pouvoir creer directement un pack d'armure/tools, minerai etc avec le meme nom au départ par exemple) | P |
-| V0.7.9 | Refonte de l'onglet mob | |
-| V0.7.10 | Implémentation des damage type et drop table | |
-| V0.7.11 | Refonte de l'onglet block | |
-| V0.7.12 | Refonte de l'onglet item | |
-| V0.8.0 | Creation de Gui/overlay viz systeme de widget en xaml | |
-| V0.8.1 | Overlay dynamique + bind code | |
+| V0.7.9 | Refonte de l'onglet mob (fenetre plus parametres) | F |
+| V0.7.10 | Implémentation des damage type et drop table | P |
+| V0.7.11 | Refonte de l'onglet block (block.md, en 3 étapes — étape 1 faite : onglets Visuel, Propriétés du bloc, Item du bloc, Redstone, Drops, États, Génération, cases qui activent les champs, outil précis et condition de drop, expérience fixe ou intervalle ; étape 2 faite : bases de bloc (escalier, dalle, barrière, portillon, muret, porte, trappe, vitre, bouton, plaque de pression) ; étape 3 faite : onglet Événements et déclencheurs, 17 nœuds d'événements du bloc, ticks réguliers ou au hasard ; plus tard : textures connectées, entité de bloc, table de drop) | F |
+| V0.7.12 | Refonte de l'onglet item (item.md, en 3 étapes — étape 1 faite : onglets Visuel, Propriétés de l'item, Nourriture, Outil, Propriétés avancées ; texture des inventaires pour un modèle 3D, condition de brillance, item de réparation, récolte tous les blocs, reste dans la grille (lui-même, usé ou un autre item), durée, animation et item rendu de la nourriture, matériau d'outil personnalisé ; étape 2 faite : combustible et compost réglés par des fonctions, troc avec les piglins, onglet Item à distance (arc, arbalète, lancer, canne à pêche ; projectile, munitions, au relâchement, d'un coup ou en continu) ; étape 3 faite : onglet Événements et déclencheurs, 20 événements d'item (utilisé sur une créature, se casse, lâché, ramassé, nourriture, coups d'outil, charge et tir), qui donnent aussi l'autre entité et une valeur ; plus tard : poudre d'os, disque de musique, motif d'armure et de bannière, animation de tension de l'arc) | F |
+| V0.7.13 | Méthodes de classe et affichage façon MCreator pour l'item (en 4 étapes — 1 faite : chaque item devient sa propre classe Java (package item), ModItems ne fait que l'enregistrer ; 2 faite : liaisons et événements deviennent des méthodes de cette classe, créées à la demande, en Java ou en nodal avec un graphe propre à l'item ; 3 faite : édition de ces méthodes (boutons + Java / + Graphe / Modifier / Supprimer, onglet de code du corps de la méthode, graphe de l'item créé avec ses paramètres, caché de l'explorateur et supprimé avec l'item) ; 4 faite : onglet item façon MCreator : sections encadrées, libellé et aide « ? » sur chaque ligne, lignes « Fixe / méthode » avec + et crayon, grille de cartes d'événements « faire : » ; ensuite : la même chose pour les blocs et les mobs) | F |
+| V0.8.0 | Creation de Gui systeme de widget en xaml | |
+| V0.8.1 | Quality of life improvement | |
 | V0.8.2 | GUI dynamique + bind code | |
 | V0.8.3 | GUI branch sur mob/item/Bock | |
 | V0.8.5 | PostProcess sur la caméra du joueur | |
@@ -78,6 +79,7 @@
 
 - [ ] ModernWpf est utilisé en version 1.0.0-rc.1 (la branche 0.9 n'est plus maintenue) : passer à la 1.0 stable dès sa sortie.
 - [ ] Passer de .NET 9 à .NET 10 (LTS) : .NET 8 et 9 ne sont plus maintenus à partir du 10 novembre 2026.
+- [ ] Utilisation de Lucide Icons au lieu du pack de base de windows.
 
 ---
 

@@ -88,6 +88,9 @@ public sealed class ResourcePaths
     public string VanillaItemTag(string tag) => $"{ResourcesRoot}/data/minecraft/tags/{_itemTagFolder}/{tag}.json";
 
     /// <summary>Tag d'items de n'importe quel espace de noms ("c:gems/ruby", "minecraft:piglin_loved").</summary>
+    /// <summary>Tag of entity types of the game ("undead"), in the folder of 1.21 (entity_type).</summary>
+    public string VanillaEntityTypeTag(string tag) => $"{ResourcesRoot}/data/minecraft/tags/entity_type/{tag}.json";
+
     public string ItemTag(NamespacedId tag) => $"{ResourcesRoot}/data/{tag.Namespace}/tags/{_itemTagFolder}/{tag.Path}.json";
 
     /// <summary>Data map NeoForge (1.21) : "furnace_fuels" pour les combustibles.</summary>

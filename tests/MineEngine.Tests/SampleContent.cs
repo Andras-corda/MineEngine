@@ -115,9 +115,12 @@ internal static class SampleContent
         TypesSample.AddTo(project);
         ScopesSample.AddTo(project);
         BlockOptionsSample.AddTo(project);
+        BlockBaseSample.AddTo(project);
         WorldSample.AddTo(project);
         CameraSample.AddTo(project);
         SparkleSample.AddTo(project);
+        EntitySample.AddTo(project, goblinTexture);
+        ItemSample.AddTo(project, ruby);
     }
 
     /// <summary>V0.4.1 : outils, armures, nourriture à effets, combustible, tags et événements d'items.</summary>
@@ -157,8 +160,9 @@ internal static class SampleContent
         {
             IsFood = true,
             Nutrition = 6,
-            FastFood = true,
+            EatSeconds = 0.8f,
             FoodEffects = [new FoodEffect(FoodEffectKind.Regeneration, 5, 1, 1f), new FoodEffect(FoodEffectKind.Speed, 30, 0, 0.5f)],
+            Remainder = ItemRemainderKind.OtherItem,
             CraftRemainder = Id("minecraft:bowl"),
             BurnTime = 400,
             ItemTags = [NamespacedId("c:foods")],
@@ -295,7 +299,7 @@ internal static class SampleContent
             AttackDamage = 4,
             MovementSpeed = 0.28,
             Armor = 2,
-            BurnsInDaylight = true,
+            Vulnerabilities = new HashSet<MobVulnerability> { MobVulnerability.Sun },
             Goals =
             [
                 .. MobGoalCatalog.DefaultGoals(MobKind.Monster),
@@ -321,7 +325,7 @@ internal static class SampleContent
             Kind = MobKind.Animal,
             Health = 12,
             MovementSpeed = 0.2,
-            FireImmune = true,
+            Immunities = new HashSet<MobImmunity> { MobImmunity.Fire, MobImmunity.Lava },
             Persistent = true,
             UseCustomHitbox = true,
             Width = 1.1f,
@@ -383,7 +387,7 @@ internal static class SampleContent
         });
     }
 
-    private static TextureAsset AddTexture(ModProject project, string id)
+    internal static TextureAsset AddTexture(ModProject project, string id)
     {
         Directory.CreateDirectory(project.Layout.TexturesDirectory);
         string file = Path.Combine(project.Layout.TexturesDirectory, id + ".png");

@@ -16,6 +16,8 @@ public sealed class ItemAsset : InventoryAsset
     public const float MaxSaturation = 10f;
     public const float MaxAttack = 100f;
     public const int MaxBurnTime = 72_000;
+    public const float DefaultEatSeconds = 1.6f;
+    public const float MaxEatSeconds = 60f;
 
     private ItemKind _kind = ItemKind.Simple;
     private ItemTier _tier = ItemTier.Iron;
@@ -27,7 +29,6 @@ public sealed class ItemAsset : InventoryAsset
     private bool _noRepair;
     private int _burnTime;
     private IReadOnlyList<NamespacedId> _itemTags = [];
-    private bool _fastFood;
     private IReadOnlyList<FoodEffect> _foodEffects = [];
     private int _durability;
     private bool _hasGlint;
@@ -36,6 +37,22 @@ public sealed class ItemAsset : InventoryAsset
     private float _saturation = 0.3f;
     private bool _alwaysEdible;
     private bool _isMeat;
+    private Guid? _guiTextureId;
+    private Guid? _glintCondition;
+    private ContentReference? _repairItem;
+    private bool _harvestsAnyBlock;
+    private ItemRemainderKind _remainder;
+    private ContentReference? _eatResult;
+    private ItemUseAnimation _useAnimation;
+    private float _eatSeconds = DefaultEatSeconds;
+    private ItemCustomTier _customTier = new();
+    private Guid? _burnTimeFunction;
+    private Guid? _burnCondition;
+    private int _compostChance;
+    private Guid? _compostCondition;
+    private bool _piglinCurrency;
+    private ItemRanged _ranged = new();
+    private IReadOnlyList<ElementMethod> _methods = [];
 
     public ItemAsset(Guid id, ResourceId resourceId, string displayName)
         : base(id, resourceId, displayName)
@@ -178,11 +195,133 @@ public sealed class ItemAsset : InventoryAsset
 
     // ----- Nourriture (compléments V0.4.1) -----
 
-    /// <summary>Se mange deux fois plus vite (comme les baies).</summary>
-    public bool FastFood
+    /// <summary>Time to eat the item, in seconds (1.6 by default, 0.8 for berries).</summary>
+    public float EatSeconds
     {
-        get => _fastFood;
-        set => SetField(ref _fastFood, value);
+        get => _eatSeconds;
+        set => SetField(ref _eatSeconds, float.IsFinite(value) ? Math.Clamp(value, 0.05f, MaxEatSeconds) : DefaultEatSeconds);
+    }
+
+    /// <summary>Item given back once eaten (the bowl of a stew), or null.</summary>
+    public ContentReference? EatResult
+    {
+        get => _eatResult;
+        set => SetField(ref _eatResult, value);
+    }
+
+    /// <summary>Animation of the player while eating (eat, drink...).</summary>
+    public ItemUseAnimation UseAnimation
+    {
+        get => _useAnimation;
+        set => SetField(ref _useAnimation, value);
+    }
+
+    // ----- Visual and properties of item.md (V0.7.12) -----
+
+    /// <summary>Texture shown in the inventories when the item has a 3D model; null: the model there too.</summary>
+    public Guid? GuiTextureId
+    {
+        get => _guiTextureId;
+        set => SetField(ref _guiTextureId, value);
+    }
+
+    /// <summary>Function (the holder → yes / no) that turns the glint on; null: always on.</summary>
+    public Guid? GlintCondition
+    {
+        get => _glintCondition;
+        set => SetField(ref _glintCondition, value);
+    }
+
+    /// <summary>Item or tag that repairs this item on an anvil, or null (the material of a tool).</summary>
+    public ContentReference? RepairItem
+    {
+        get => _repairItem;
+        set => SetField(ref _repairItem, value);
+    }
+
+    /// <summary>Every block mined with this item drops (like the right tool for all of them).</summary>
+    public bool HarvestsAnyBlock
+    {
+        get => _harvestsAnyBlock;
+        set => SetField(ref _harvestsAnyBlock, value);
+    }
+
+    /// <summary>What stays in the crafting grid (and in the fuel slot) once the item is used.</summary>
+    public ItemRemainderKind Remainder
+    {
+        get => _remainder;
+        set => SetField(ref _remainder, value);
+    }
+
+    /// <summary>Properties of a tool of the custom material.</summary>
+    public ItemCustomTier CustomTier
+    {
+        get => _customTier;
+        set => SetField(ref _customTier, value ?? new ItemCustomTier());
+    }
+
+    public bool UsesCustomTier => Kind.IsTool() && Tier == ItemTier.Custom;
+
+    // ----- Advanced properties of item.md (V0.7.12) -----
+
+    /// <summary>Function (→ seconds) that gives the burn time in a furnace, or null (<see cref="BurnTime"/>).</summary>
+    public Guid? BurnTimeFunction
+    {
+        get => _burnTimeFunction;
+        set => SetField(ref _burnTimeFunction, value);
+    }
+
+    /// <summary>Function (→ yes / no) that lets the item burn, or null (always).</summary>
+    public Guid? BurnCondition
+    {
+        get => _burnCondition;
+        set => SetField(ref _burnCondition, value);
+    }
+
+    /// <summary>Chance, in percent, that the item raises the level of a composter; 0 = not compostable.</summary>
+    public int CompostChance
+    {
+        get => _compostChance;
+        set => SetField(ref _compostChance, Math.Clamp(value, 0, 100));
+    }
+
+    /// <summary>Function (the player → yes / no) that lets the item go into a composter, or null (always).</summary>
+    public Guid? CompostCondition
+    {
+        get => _compostCondition;
+        set => SetField(ref _compostCondition, value);
+    }
+
+    /// <summary>Piglins take the item to barter, like gold ingots.</summary>
+    public bool PiglinCurrency
+    {
+        get => _piglinCurrency;
+        set => SetField(ref _piglinCurrency, value);
+    }
+
+    /// <summary>Methods of the class of the item (V0.7.13): bindings and events, created on demand.</summary>
+    public IReadOnlyList<ElementMethod> Methods
+    {
+        get => _methods;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (!value.SequenceEqual(_methods))
+            {
+                _methods = [.. value];
+                RaiseChanged(nameof(Methods));
+            }
+        }
+    }
+
+    /// <summary>The method of a place of the class, or null when it is not created.</summary>
+    public ElementMethod? FindMethod(string slot) => Methods.FirstOrDefault(m => m.Slot == slot);
+
+    /// <summary>The item shoots (bow, crossbow, thrown item, fishing rod); None by default.</summary>
+    public ItemRanged Ranged
+    {
+        get => _ranged;
+        set => SetField(ref _ranged, value ?? new ItemRanged());
     }
 
     /// <summary>Effets donnés en mangeant (pomme dorée : régénération et absorption).</summary>
@@ -207,9 +346,34 @@ public sealed class ItemAsset : InventoryAsset
             yield return reference;
         }
 
-        if (CraftRemainder is { Kind: ContentReferenceKind.Asset } remainder)
+        if (Remainder == ItemRemainderKind.OtherItem && CraftRemainder is { Kind: ContentReferenceKind.Asset } remainder)
         {
             yield return new AssetReference(remainder.AssetId, AssetReferenceKind.Item, Tr.T("item returned after crafting"));
+        }
+
+        if (UsesCustomModel && GuiTextureId is { } gui)
+        {
+            yield return new AssetReference(gui, AssetReferenceKind.Texture, Tr.T("texture in the inventories"));
+        }
+
+        if (!NoRepair && RepairItem is { Kind: ContentReferenceKind.Asset } repair)
+        {
+            yield return new AssetReference(repair.AssetId, AssetReferenceKind.Item, Tr.T("repair item"));
+        }
+
+        if (Ranged.Kind is not (RangedItemKind.None or RangedItemKind.FishingRod) && Ranged.Ammo is { Kind: ContentReferenceKind.Asset } ammo)
+        {
+            yield return new AssetReference(ammo.AssetId, AssetReferenceKind.Item, Tr.T("ammunition"));
+        }
+
+        foreach (ElementMethod method in Methods.Where(m => m is { Language: MethodLanguage.Nodal, GraphId: not null }))
+        {
+            yield return new AssetReference(method.GraphId!.Value, AssetReferenceKind.Definition, Tr.F("method {0}", method.Slot));
+        }
+
+        if (IsFood && EatResult is { Kind: ContentReferenceKind.Asset } result)
+        {
+            yield return new AssetReference(result.AssetId, AssetReferenceKind.Item, Tr.T("item left once eaten"));
         }
     }
 
@@ -234,9 +398,59 @@ public sealed class ItemAsset : InventoryAsset
             diagnostics.Warning(Tr.T("An item with durability does not stack: the stack size will be 1."), source, Id);
         }
 
-        if (CraftRemainder is { Kind: ContentReferenceKind.Tag })
+        if (Remainder == ItemRemainderKind.OtherItem && CraftRemainder is { Kind: ContentReferenceKind.Tag })
         {
             diagnostics.Error(Tr.T("The item returned after crafting must be a specific item, not a tag."), source, Id);
+        }
+
+        if (Remainder == ItemRemainderKind.OtherItem && CraftRemainder is null)
+        {
+            diagnostics.Warning(Tr.T("No item is chosen to stay in the crafting grid: the item is used up."), source, Id);
+        }
+
+        if (Remainder == ItemRemainderKind.ItselfDamaged && !HasDurability && !Kind.IsEquipment())
+        {
+            diagnostics.Warning(Tr.T("The item has no durability to lose in the crafting grid: it stays as it is."), source, Id);
+        }
+
+        if (IsFood && EatResult is { Kind: ContentReferenceKind.Tag })
+        {
+            diagnostics.Error(Tr.T("The item left once eaten must be a specific item, not a tag."), source, Id);
+        }
+
+        if (Ranged.Kind != RangedItemKind.None && Kind != ItemKind.Simple)
+        {
+            diagnostics.Error(Tr.T("A tool or an armor cannot also be a ranged item."), source, Id);
+        }
+
+        if (Ranged.Kind != RangedItemKind.None && IsFood)
+        {
+            diagnostics.Error(Tr.T("A food cannot also be a ranged item: both are used by holding the right click."), source, Id);
+        }
+
+        if (Ranged.Ammo is { Kind: ContentReferenceKind.Tag })
+        {
+            diagnostics.Error(Tr.T("The ammunition of a ranged item must be a specific item, not a tag."), source, Id);
+        }
+
+        if (BurnTime == 0 && (BurnTimeFunction is not null || BurnCondition is not null))
+        {
+            diagnostics.Info(Tr.T("The functions of the fuel are not used: the item is not a fuel."), source, Id);
+        }
+
+        foreach (ElementMethod method in Methods.Where(m => ItemMethodSlots.Find(m.Slot) is null))
+        {
+            diagnostics.Warning(Tr.F("The method \"{0}\" is not a method of an item: it is ignored.", method.Slot), source, Id);
+        }
+
+        foreach (IGrouping<string, ElementMethod> twice in Methods.GroupBy(m => m.Slot).Where(g => g.Count() > 1))
+        {
+            diagnostics.Error(Tr.F("The method \"{0}\" is created twice.", twice.Key), source, Id);
+        }
+
+        if (UsesCustomTier && CustomTier.MiningLevel == ItemTier.Custom)
+        {
+            diagnostics.Error(Tr.T("The mining level of the custom material must be one of the game."), source, Id);
         }
 
         if (IsFood && FoodEffects.Count > 0 && FoodEffects.GroupBy(e => e.Effect).Any(g => g.Count() > 1))
@@ -267,4 +481,91 @@ public sealed record FoodEffect
     public int Amplifier { get; init; }
 
     public float Probability { get; init; }
+}
+
+/// <summary>
+/// Material of a tool chosen in the editor (V0.7.12): uses, mining speed, enchantability, and the
+/// material of the game whose blocks it can harvest (iron: diamond ore, not obsidian).
+/// </summary>
+public sealed record ItemCustomTier
+{
+    public const int MaxUses = 100_000;
+    public const float MaxSpeed = 100f;
+    public const int MaxEnchantability = 100;
+
+    private readonly int _uses = 500;
+    private readonly float _speed = 6f;
+    private readonly int _enchantability = 14;
+
+    /// <summary>Uses before breaking (iron: 250, diamond: 1561).</summary>
+    public int Uses
+    {
+        get => _uses;
+        init => _uses = Math.Clamp(value, 1, MaxUses);
+    }
+
+    /// <summary>Mining speed (iron: 6, diamond: 8, gold: 12).</summary>
+    public float Speed
+    {
+        get => _speed;
+        init => _speed = float.IsFinite(value) ? Math.Clamp(value, 0f, MaxSpeed) : 6f;
+    }
+
+    /// <summary>Quality of the enchantments of the table (iron: 14, gold: 22).</summary>
+    public int Enchantability
+    {
+        get => _enchantability;
+        init => _enchantability = Math.Clamp(value, 0, MaxEnchantability);
+    }
+
+    /// <summary>Material of the game whose blocks the tool can harvest.</summary>
+    public ItemTier MiningLevel { get; init; } = ItemTier.Iron;
+}
+
+/// <summary>
+/// A ranged item (V0.7.12): what it shoots and with what ammunition, how it shoots (on release,
+/// at once, while held), the time between two shots, the speed and the damage of the arrows.
+/// </summary>
+public sealed record ItemRanged
+{
+    public const int MaxRateTicks = 1200;
+    public const float MaxSpeed = 10f;
+    public const float MaxDamage = 100f;
+
+    private readonly int _rateTicks = 10;
+    private readonly float _speed = 3f;
+    private readonly float _damage = 2f;
+
+    public RangedItemKind Kind { get; init; }
+
+    public RangedProjectile Projectile { get; init; }
+
+    /// <summary>Item used up by each shot; null: the one of the projectile (arrow, snowball...).</summary>
+    public ContentReference? Ammo { get; init; }
+
+    /// <summary>False: shoots without ammunition, like a bow with Infinity.</summary>
+    public bool NeedsAmmo { get; init; } = true;
+
+    public RangedFireMode Mode { get; init; }
+
+    /// <summary>Ticks between two shots while held, or cooldown after a shot at once.</summary>
+    public int RateTicks
+    {
+        get => _rateTicks;
+        init => _rateTicks = Math.Clamp(value, 1, MaxRateTicks);
+    }
+
+    /// <summary>Speed of the projectile at full power (bow: 3, snowball: 1.5).</summary>
+    public float Speed
+    {
+        get => _speed;
+        init => _speed = float.IsFinite(value) ? Math.Clamp(value, 0.1f, MaxSpeed) : 3f;
+    }
+
+    /// <summary>Base damage of an arrow (2 like the game; multiplied by its speed).</summary>
+    public float Damage
+    {
+        get => _damage;
+        init => _damage = float.IsFinite(value) ? Math.Clamp(value, 0f, MaxDamage) : 2f;
+    }
 }

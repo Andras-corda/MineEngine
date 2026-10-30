@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows.Input;
 using MineEngine.Assets;
+using MineEngine.Core.GameData;
 using MineEngine.Editor.Mvvm;
 
 namespace MineEngine.Editor.ViewModels.Assets;
@@ -250,6 +251,56 @@ public sealed class BlockOptionsViewModel : ObservableObject
     }
 
     public bool IgnitedByLava { get => Options.IgnitedByLava; set => Set(Tr.T("Change \"ignited by lava\""), o => o with { IgnitedByLava = value }); }
+
+    private bool _showFire;
+
+    /// <summary>The rotation, the boxes and the states are those of the block base when there is one (V0.7.11).</summary>
+    public bool IsNotBase => !_block.Model.IsBase();
+
+    /// <summary>The block ticks (V0.7.11): the "tick" event of its graphs runs.</summary>
+    public bool TickEnabled
+    {
+        get => Options.TickEnabled;
+        set => Set(value ? Tr.T("Make the block tick") : Tr.T("Stop the ticks of the block"), o => o with { TickEnabled = value });
+    }
+
+    /// <summary>At random, like crops (the tick rate is then not used).</summary>
+    public bool TickRandomly
+    {
+        get => Options.TickRandomly;
+        set => Set(Tr.T("Change the ticks of the block"), o => o with { TickRandomly = value });
+    }
+
+    public bool UsesTickRate => Options.TickEnabled && !Options.TickRandomly;
+
+    public double TickRate
+    {
+        get => Options.TickRate;
+        set => Set(Tr.T("Change the tick rate"), o => o with { TickRate = Whole(value, 1, 72000) });
+    }
+
+    /// <summary>The block burns (block.md "can block be flammed"): its flammability and fire speed are then chosen.</summary>
+    public bool IsFlammable
+    {
+        get => _showFire || Options.Flammability > 0 || Options.FireSpreadSpeed > 0;
+        set
+        {
+            _showFire = value;
+            if (!value)
+            {
+                Set(Tr.T("Make it not flammable"), o => o with { Flammability = 0, FireSpreadSpeed = 0 });
+            }
+
+            OnPropertyChanged(nameof(IsFlammable));
+        }
+    }
+
+    /// <summary>The shape of the block is the full cube (no box drawn).</summary>
+    public bool UsesDefaultShape
+    {
+        get => Options.Boxes.Count == 0;
+        set => Set(value ? Tr.T("Use the default shape") : Tr.T("Draw the shape with boxes"), o => o with { Boxes = value ? [] : [BlockBox.Full] });
+    }
 
     public double Flammability
     {

@@ -47,15 +47,109 @@ public static class NodeCatalog
         ItemEvent(GraphNodeKind.OnItemUseOnBlock, ItemEventKind.UseOnBlock, Tr.T("Item: used on a block"),
             Tr.T("The player right-clicks a block with the item."), Tr.T("Block position")),
         ItemEvent(GraphNodeKind.OnItemHitEntity, ItemEventKind.HitEntity, Tr.T("Item: hits a creature"),
-            Tr.T("The player hits a creature with the item."), Tr.T("Creature position")),
+            Tr.T("The player hits a creature with the item."), Tr.T("Creature position"), MobOther(Tr.T("Creature hit"))),
         ItemEvent(GraphNodeKind.OnItemBlockMined, ItemEventKind.BlockMined, Tr.T("Item: block broken with"),
             Tr.T("The player breaks a block while holding the item."), Tr.T("Block position")),
         ItemEvent(GraphNodeKind.OnItemConsumed, ItemEventKind.Consumed, Tr.T("Item: eaten or drunk"),
             Tr.T("The player finishes eating or drinking the item (food item)."), Tr.T("Player position")),
-        ItemEvent(GraphNodeKind.OnItemCrafted, ItemEventKind.Crafted, Tr.T("Item: crafted"),
-            Tr.T("The player crafts the item."), Tr.T("Player position")),
+        ItemEvent(GraphNodeKind.OnItemCrafted, ItemEventKind.Crafted, Tr.T("Item: crafted or smelted"),
+            Tr.T("The player crafts the item, or takes it out of a furnace."), Tr.T("Player position")),
         ItemEvent(GraphNodeKind.OnItemHeldTick, ItemEventKind.HeldTick, Tr.T("Item: held in hand"),
             Tr.T("Every tick (20 times per second) while the player holds the item."), Tr.T("Player position")),
+        ItemEvent(GraphNodeKind.OnItemUseOnEntity, ItemEventKind.UseOnEntity, Tr.T("Item: used on a creature"),
+            Tr.T("The player right-clicks a creature with the item."), Tr.T("Creature position"), MobOther(Tr.T("Creature clicked"))),
+        ItemEvent(GraphNodeKind.OnItemBroken, ItemEventKind.Broken, Tr.T("Item: breaks"),
+            Tr.T("The item runs out of durability and breaks in the hands of the player (mining, hitting, using, shooting)."), Tr.T("Player position")),
+        ItemEvent(GraphNodeKind.OnItemDropped, ItemEventKind.Dropped, Tr.T("Item: dropped"),
+            Tr.T("The player drops the item."), Tr.T("Player position")),
+        ItemEvent(GraphNodeKind.OnItemPickedUp, ItemEventKind.PickedUp, Tr.T("Item: picked up"),
+            Tr.T("The player picks the item up from the ground."), Tr.T("Player position"),
+            [.. MobOther(Tr.T("Item on the ground")), .. MobAmount(Tr.T("Number picked up"))]),
+        ItemEvent(GraphNodeKind.OnItemEatingStarted, ItemEventKind.EatingStarted, Tr.T("Item: starts being eaten"),
+            Tr.T("The player starts eating or drinking the item (food item)."), Tr.T("Player position")),
+        ItemEvent(GraphNodeKind.OnItemEatingStopped, ItemEventKind.EatingStopped, Tr.T("Item: stops being eaten"),
+            Tr.T("The player stops eating or drinking before the end (food item)."), Tr.T("Player position"), MobAmount(Tr.T("Ticks left"))),
+        ItemEvent(GraphNodeKind.OnItemEatingTick, ItemEventKind.EatingTick, Tr.T("Item: being eaten"),
+            Tr.T("Every tick while the player eats or drinks the item (food item)."), Tr.T("Player position"), MobAmount(Tr.T("Ticks left"))),
+        ItemEvent(GraphNodeKind.OnItemToolSwingTick, ItemEventKind.ToolSwingTick, Tr.T("Item: swinging"),
+            Tr.T("Every tick while the player swings the item in hand."), Tr.T("Player position")),
+        ItemEvent(GraphNodeKind.OnItemToolSwung, ItemEventKind.ToolSwung, Tr.T("Item: swung"),
+            Tr.T("The player swings the item in hand (once per swing)."), Tr.T("Player position")),
+        ItemEvent(GraphNodeKind.OnItemChargeStarted, ItemEventKind.ChargeStarted, Tr.T("Item: starts charging"),
+            Tr.T("The player starts drawing a ranged item that charges or shoots while held."), Tr.T("Player position")),
+        ItemEvent(GraphNodeKind.OnItemCharged, ItemEventKind.Charged, Tr.T("Item: charged"),
+            Tr.T("A ranged item that charges reaches its full power (after one second)."), Tr.T("Player position")),
+        ItemEvent(GraphNodeKind.OnItemChargingTick, ItemEventKind.ChargingTick, Tr.T("Item: charging"),
+            Tr.T("Every tick while the player draws a ranged item."), Tr.T("Player position"), MobAmount(Tr.T("Power (0 to 1)"))),
+        ItemEvent(GraphNodeKind.OnItemShot, ItemEventKind.Shot, Tr.T("Item: shoots"),
+            Tr.T("A ranged item shoots a projectile."), Tr.T("Player position"),
+            [.. MobOther(Tr.T("Projectile")), .. MobAmount(Tr.T("Power (0 to 1)"))]),
+
+        // ----- Events of a mob of the mod (V0.7.9, Entity.md) -----
+        MobEvent(GraphNodeKind.OnMobStruckByLightning, MobEventKind.StruckByLightning, Tr.T("Mob: struck by lightning"),
+            Tr.T("Lightning strikes the mob."), MobOther(Tr.T("Lightning bolt"))),
+        MobEvent(GraphNodeKind.OnMobFalls, MobEventKind.Falls, Tr.T("Mob: falls"),
+            Tr.T("The mob lands after a fall; the amount is the height of the fall in blocks."), MobAmount(Tr.T("Fall height"))),
+        MobEvent(GraphNodeKind.OnMobSpawns, MobEventKind.Spawns, Tr.T("Mob: spawns"),
+            Tr.T("Once, when the mob appears in the world (not when it is loaded again)."), []),
+        MobEvent(GraphNodeKind.OnMobDies, MobEventKind.Dies, Tr.T("Mob: dies"),
+            Tr.T("Once, when the mob dies; the other entity is the one that killed it, the player if it was a player."), [MobPlayer, .. MobOther(Tr.T("Killer"))]),
+        MobEvent(GraphNodeKind.OnMobPlayerCollides, MobEventKind.PlayerCollides, Tr.T("Mob: a player touches it"),
+            Tr.T("Every tick while a player touches the mob."), [MobPlayer]),
+        MobEvent(GraphNodeKind.OnMobTick, MobEventKind.Tick, Tr.T("Mob: every tick"),
+            Tr.T("20 times per second while the mob lives."), []),
+        MobEvent(GraphNodeKind.OnMobHurt, MobEventKind.Hurt, Tr.T("Mob: hurt"),
+            Tr.T("The mob takes damage; the amount is the damage, the other entity the attacker."), [MobPlayer, .. MobOther(Tr.T("Attacker")), .. MobAmount(Tr.T("Damage"))]),
+        MobEvent(GraphNodeKind.OnMobRightClicked, MobEventKind.RightClicked, Tr.T("Mob: right-clicked"),
+            Tr.T("A player right-clicks the mob."), [MobPlayer]),
+        MobEvent(GraphNodeKind.OnMobKillsEntity, MobEventKind.KillsEntity, Tr.T("Mob: kills an entity"),
+            Tr.T("The mob kills another entity."), MobOther(Tr.T("Victim"))),
+        MobEvent(GraphNodeKind.OnMobRideStarts, MobEventKind.RideStarts, Tr.T("Mob: a ride starts"),
+            Tr.T("Once for each ride: an entity starts riding the mob (the player, if it is a player)."), [MobPlayer, .. MobOther(Tr.T("Rider"))]),
+        MobEvent(GraphNodeKind.OnMobRideStops, MobEventKind.RideStops, Tr.T("Mob: a ride stops"),
+            Tr.T("Once for each ride: the rider gets off the mob."), [MobPlayer, .. MobOther(Tr.T("Rider"))]),
+        MobEvent(GraphNodeKind.OnMobRiddenTick, MobEventKind.RiddenTick, Tr.T("Mob: every tick while ridden"),
+            Tr.T("20 times per second while an entity rides the mob."), [MobPlayer, .. MobOther(Tr.T("Rider"))]),
+        MobEvent(GraphNodeKind.OnMobTamed, MobEventKind.Tamed, Tr.T("Mob: tamed"),
+            Tr.T("Once, when a player tames the mob (Tamable, in Attributes)."), [MobPlayer]),
+        MobEvent(GraphNodeKind.OnMobEntityCollides, MobEventKind.EntityCollides, Tr.T("Mob: an entity pushes it"),
+            Tr.T("Every tick while another entity pushes against the mob."), MobOther(Tr.T("Entity"))),
+
+        // ----- Events of a block of the mod (V0.7.11, block.md) -----
+        BlockEvent(GraphNodeKind.OnBlockRightClicked, BlockEventKind.RightClicked, Tr.T("Block: right-clicked"),
+            Tr.T("A player right-clicks the block."), [MobPlayer]),
+        BlockEvent(GraphNodeKind.OnBlockAdded, BlockEventKind.Added, Tr.T("Block: added"),
+            Tr.T("The block appears in the world, placed by a player, a command or a graph."), []),
+        BlockEvent(GraphNodeKind.OnBlockNeighborChanged, BlockEventKind.NeighborChanged, Tr.T("Block: a neighbor changes"),
+            Tr.T("A block next to it changes (placed, broken, powered)."), []),
+        BlockEvent(GraphNodeKind.OnBlockTick, BlockEventKind.Tick, Tr.T("Block: tick"),
+            Tr.T("At the tick rate of the block, or at random like crops (Ticks, in Block properties)."), []),
+        BlockEvent(GraphNodeKind.OnBlockDestroyed, BlockEventKind.Destroyed, Tr.T("Block: destroyed"),
+            Tr.T("The block is removed from the world, in any way."), []),
+        BlockEvent(GraphNodeKind.OnBlockDestroyedByPlayer, BlockEventKind.DestroyedByPlayer, Tr.T("Block: broken by a player"),
+            Tr.T("A player breaks the block in survival."), [MobPlayer]),
+        BlockEvent(GraphNodeKind.OnBlockDestroyedByExplosion, BlockEventKind.DestroyedByExplosion, Tr.T("Block: destroyed by an explosion"),
+            Tr.T("An explosion destroys the block."), []),
+        BlockEvent(GraphNodeKind.OnBlockStartDestroy, BlockEventKind.StartDestroy, Tr.T("Block: starts to be broken"),
+            Tr.T("A player hits the block (left click)."), [MobPlayer]),
+        BlockEvent(GraphNodeKind.OnBlockEntityCollides, BlockEventKind.EntityCollides, Tr.T("Block: an entity is inside"),
+            Tr.T("Every tick while an entity is inside the block (a block without collision, or smaller than a cube)."), MobOther(Tr.T("Entity"))),
+        BlockEvent(GraphNodeKind.OnBlockPlayerCollides, BlockEventKind.PlayerCollides, Tr.T("Block: a player is inside"),
+            Tr.T("Every tick while a player is inside the block."), [MobPlayer]),
+        BlockEvent(GraphNodeKind.OnBlockEntityWalksOn, BlockEventKind.EntityWalksOn, Tr.T("Block: an entity walks on it"),
+            Tr.T("Every tick while an entity walks on the block."), MobOther(Tr.T("Entity"))),
+        BlockEvent(GraphNodeKind.OnBlockPlayerWalksOn, BlockEventKind.PlayerWalksOn, Tr.T("Block: a player walks on it"),
+            Tr.T("Every tick while a player walks on the block."), [MobPlayer]),
+        BlockEvent(GraphNodeKind.OnBlockEntityFallsOn, BlockEventKind.EntityFallsOn, Tr.T("Block: an entity falls on it"),
+            Tr.T("An entity lands on the block; the amount is the height of the fall in blocks."), [.. MobOther(Tr.T("Entity")), .. MobAmount(Tr.T("Fall height"))]),
+        BlockEvent(GraphNodeKind.OnBlockHitByProjectile, BlockEventKind.HitByProjectile, Tr.T("Block: hit by a projectile"),
+            Tr.T("An arrow, a snowball or a trident hits the block; the player is the one who shot it."), [MobPlayer, .. MobOther(Tr.T("Projectile"))]),
+        BlockEvent(GraphNodeKind.OnBlockPlaced, BlockEventKind.Placed, Tr.T("Block: placed"),
+            Tr.T("A player or a mob places the block."), [MobPlayer, .. MobOther(Tr.T("Placer"))]),
+        BlockEvent(GraphNodeKind.OnBlockRedstoneOn, BlockEventKind.RedstoneOn, Tr.T("Block: redstone on"),
+            Tr.T("The block receives a redstone signal; the amount is its power."), MobAmount(Tr.T("Power"))),
+        BlockEvent(GraphNodeKind.OnBlockRedstoneOff, BlockEventKind.RedstoneOff, Tr.T("Block: redstone off"),
+            Tr.T("The block no longer receives a redstone signal."), []),
 
         // ----- Commands and keybinds (V0.6.2) -----
         new(GraphNodeKind.OnCommand, NodeCategory.Event, Tr.T("On command"),
@@ -852,6 +946,10 @@ public static class NodeCatalog
     /// <summary>Nœud de l'événement d'un item, par sorte d'événement.</summary>
     public static NodeInfo ForItemEvent(ItemEventKind kind) => Nodes.Values.First(n => n.ItemEvent == kind);
 
+    public static NodeInfo ForMobEvent(MobEventKind kind) => Nodes.Values.First(n => n.MobEvent == kind);
+
+    public static NodeInfo ForBlockEvent(BlockEventKind kind) => Nodes.Values.First(n => n.BlockEvent == kind);
+
     private static NodeInfo StackNumber(GraphNodeKind kind, string title, string description) =>
         new(kind, NodeCategory.Variable, title, description, inputs: [Stack], outputs: [NumberOutput]);
 
@@ -946,10 +1044,38 @@ public static class NodeCatalog
             inputs: [new PinInfo("a", "A", PinType.Number, "0"), new PinInfo("b", "B", PinType.Number, "0")],
             outputs: [new PinInfo("result", Tr.T("Result"), PinType.Number)]);
 
-    private static NodeInfo ItemEvent(GraphNodeKind kind, ItemEventKind itemEvent, string title, string description, string positionLabel) =>
+    /// <summary>
+    /// Event of a mob (V0.7.9): its input names the mob; its outputs are the mob, its position and the
+    /// ones of the event (player, other entity, amount), named like the parameters of the Java method.
+    /// </summary>
+    private static NodeInfo MobEvent(GraphNodeKind kind, MobEventKind mobEvent, string title, string description, IReadOnlyList<PinInfo> outputs) =>
+        new(kind, NodeCategory.Event, title, description,
+            inputs: [new PinInfo("mob", Tr.T("Mob of the mod"), PinType.Text, "new_mob", Connectable: false) { Suggest = PinSuggestion.Mob }],
+            outputs: [new PinInfo("mob", Tr.T("Mob"), DataType.LivingEntity), new PinInfo("position", Tr.T("Mob position"), PinType.Position), .. outputs]) { MobEvent = mobEvent };
+
+    private static PinInfo MobPlayer => new("player", Tr.T("Player"), PinType.Player);
+
+    /// <summary>
+    /// Event of a block (V0.7.11): its input names the block; its outputs are the position of the block
+    /// and the ones of the event (player, other entity, amount), named like the parameters of the Java method.
+    /// </summary>
+    private static NodeInfo BlockEvent(GraphNodeKind kind, BlockEventKind blockEvent, string title, string description, IReadOnlyList<PinInfo> outputs) =>
+        new(kind, NodeCategory.Event, title, description,
+            inputs: [new PinInfo("block", Tr.T("Block of the mod"), PinType.Text, "new_block", Connectable: false) { Suggest = PinSuggestion.Block }],
+            outputs: [new PinInfo("position", Tr.T("Block position"), PinType.Position), .. outputs]) { BlockEvent = blockEvent };
+
+    private static PinInfo[] MobOther(string label) => [new PinInfo("other", label, DataType.Entity)];
+
+    private static PinInfo[] MobAmount(string label) => [new PinInfo("amount", label, PinType.Decimal)];
+
+    /// <summary>
+    /// Event of an item: its input names the item; its outputs are the player, a position and, since
+    /// V0.7.12, the ones of the event (other entity, amount), named like the parameters of the Java method.
+    /// </summary>
+    private static NodeInfo ItemEvent(GraphNodeKind kind, ItemEventKind itemEvent, string title, string description, string positionLabel, IReadOnlyList<PinInfo>? outputs = null) =>
         new(kind, NodeCategory.Event, title, description,
             inputs: [new PinInfo("item", Tr.T("Mod item"), PinType.Item, string.Empty, Connectable: false)],
-            outputs: [Player, new PinInfo("position", positionLabel, PinType.Position)]) { ItemEvent = itemEvent };
+            outputs: [Player, new PinInfo("position", positionLabel, PinType.Position), .. outputs ?? []]) { ItemEvent = itemEvent };
 
     public static string CategoryLabel(NodeCategory category) => category switch
     {

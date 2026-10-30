@@ -59,6 +59,16 @@ public sealed class TagsEmitter : IFileEmitter
             Add(TagRegistry.Blocks, "minecraft", $"needs_{group.Key.ToString().ToLowerInvariant()}_tool", Ids(group));
         }
 
+        // Block bases (V0.7.11): the game finds the stairs, fences, doors... of the mod by their tags
+        // (fences join the fences of the same kind, a wooden door opens by hand...).
+        foreach (IRBlock block in content.Blocks.Where(b => b.Settings.Model.IsBase()))
+        {
+            foreach (string tag in BaseTags(block.Settings.Model, block.Settings.Sound))
+            {
+                Add(TagRegistry.Blocks, "minecraft", tag, [paths.Reference(block.Id.Value)]);
+            }
+        }
+
         // Ladders (entities climb them), soils of the plants, small flowers (bees, bone meal, flower pots).
         Add(TagRegistry.Blocks, "minecraft", "climbable", Ids(content.Blocks.Where(b => b.Options.Ladder)));
         Add(TagRegistry.Blocks, "minecraft", "dirt", Ids(content.Blocks.Where(b => b.Options.PlantsCanSustain)));
@@ -100,6 +110,34 @@ public sealed class TagsEmitter : IFileEmitter
             }
 
             context.Files.WriteText(path, JsonFormatting.ToText(new JsonObject { ["replace"] = replace, ["values"] = json }));
+        }
+    }
+
+    /// <summary>Block tags of the game for a block base; a wooden one also joins the wooden tags.</summary>
+    private static IEnumerable<string> BaseTags(BlockModelKind model, BlockSoundType sound)
+    {
+        bool wood = sound == BlockSoundType.Wood;
+        (string tag, string? kind) = model switch
+        {
+            BlockModelKind.Stairs => ("stairs", wood ? "wooden_stairs" : null),
+            BlockModelKind.Slab => ("slabs", wood ? "wooden_slabs" : null),
+            BlockModelKind.Fence => ("fences", wood ? "wooden_fences" : null),
+            BlockModelKind.FenceGate => ("fence_gates", null),
+            BlockModelKind.Wall => ("walls", null),
+            BlockModelKind.Door => ("doors", wood ? "wooden_doors" : null),
+            BlockModelKind.Trapdoor => ("trapdoors", wood ? "wooden_trapdoors" : null),
+            BlockModelKind.Button => ("buttons", wood ? "wooden_buttons" : "stone_buttons"),
+            BlockModelKind.PressurePlate => ("pressure_plates", wood ? "wooden_pressure_plates" : "stone_pressure_plates"),
+            _ => (string.Empty, null),
+        };
+        if (tag.Length > 0)
+        {
+            yield return tag;
+        }
+
+        if (kind is not null)
+        {
+            yield return kind;
         }
     }
 }

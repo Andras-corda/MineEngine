@@ -41,6 +41,8 @@ public sealed class BlockAsset : InventoryAsset
     private int _dropMax = 1;
     private int _experienceMin;
     private int _experienceMax;
+    private ContentReference? _requiredTool;
+    private Guid? _dropCondition;
     private bool _hasItemForm = true;
     private BlockOptions _options = BlockOptions.Default;
 
@@ -221,6 +223,26 @@ public sealed class BlockAsset : InventoryAsset
 
     public bool DropsExperience => ExperienceMax > 0;
 
+    /// <summary>
+    /// The one tool that harvests the block (V0.7.11), like a diamond pickaxe only; null: any tool of
+    /// the type and the level. Used when <see cref="RequiresCorrectTool"/> is on.
+    /// </summary>
+    public ContentReference? RequiredTool
+    {
+        get => _requiredTool;
+        set => SetField(ref _requiredTool, value);
+    }
+
+    /// <summary>
+    /// Function of the project (the position of the block → yes / no) that must say yes for the block
+    /// to drop anything (V0.7.11). Used when <see cref="RequiresCorrectTool"/> is on.
+    /// </summary>
+    public Guid? DropCondition
+    {
+        get => _dropCondition;
+        set => SetField(ref _dropCondition, value);
+    }
+
     // ----- Forme item -----
 
     /// <summary>Le bloc existe aussi comme item (sinon : comme un portail, rien en inventaire).</summary>
@@ -259,6 +281,11 @@ public sealed class BlockAsset : InventoryAsset
         if (DropKind == BlockDropKind.OtherItem && DropItem is { Kind: ContentReferenceKind.Asset } drop)
         {
             yield return new AssetReference(drop.AssetId, AssetReferenceKind.Item, Tr.T("dropped item"));
+        }
+
+        if (RequiresCorrectTool && RequiredTool is { Kind: ContentReferenceKind.Asset } tool)
+        {
+            yield return new AssetReference(tool.AssetId, AssetReferenceKind.Item, Tr.T("tool that harvests it"));
         }
 
         if (Options.ItemTextureId is { } itemTexture)
@@ -337,6 +364,12 @@ public sealed class BlockAsset : InventoryAsset
     private void ValidateOptions(DiagnosticBag diagnostics, string source)
     {
         BlockOptions options = Options;
+        if (Model.IsBase() && (options.Rotation != BlockRotation.None || options.Waterloggable || options.HasGravity || options.Boxes.Count > 0
+                                || options.Properties.Count > 0 || options.ConnectedSides || Appearances.Count > 0 || DropsExperience))
+        {
+            diagnostics.Info(Tr.T("A block base (stairs, slab, door...) brings its own shape, rotation, water and states: the rotation, the gravity, the boxes, the properties, the appearances and the experience are ignored."), source, Id);
+        }
+
         if (options.Rotation != BlockRotation.None && Model == BlockModelKind.Column)
         {
             diagnostics.Warning(Tr.T("A pillar block already turns like a log: its rotation mode is ignored."), source, Id);

@@ -87,50 +87,21 @@ public sealed class FoodEffectViewModel : ObservableObject
 /// Un événement de l'item dans l'onglet Événements : le graphe qui y réagit, ou un bouton
 /// pour en créer un (le nœud événement est ajouté au graphe d'événements de l'item).
 /// </summary>
-public sealed class ItemEventViewModel : ObservableObject
+public sealed class ItemEventViewModel : EventLinkViewModel
 {
-    private readonly ItemAssetViewModel _owner;
-    private IReadOnlyList<(GraphAsset Graph, GraphNode Node)> _links = [];
-
     public ItemEventViewModel(ItemAssetViewModel owner, ItemEventKind kind)
+        : base(NodeCatalog.ForItemEvent(kind), Tr.T("Item: "), Tr.T("Add this event to the item's event graph"), () => owner.AddItemEvent(kind), owner.OpenItemEvent)
     {
-        _owner = owner;
         Kind = kind;
-        NodeInfo info = NodeCatalog.ForItemEvent(kind);
-        Title = info.Title.Replace(Tr.T("Item: "), string.Empty, StringComparison.Ordinal);
-        Description = info.Description;
-        AddCommand = new RelayCommand(() => _owner.AddItemEvent(Kind));
-        OpenCommand = new RelayCommand(() => _owner.OpenItemEvent(_links[0].Graph, _links[0].Node), () => _links.Count > 0);
+        Method = owner.MethodSlots[ItemMethodSlots.EventKey(kind)];
+        Parameters = ["level", .. NodeCatalog.ForItemEvent(kind).Outputs.Select(o => o.Name)];
     }
+
+    /// <summary>The values the event gives to its method and its graphs (level, player, position...).</summary>
+    public IReadOnlyList<string> Parameters { get; }
 
     public ItemEventKind Kind { get; }
 
-    public string Title { get; }
-
-    public string Description { get; }
-
-    public bool IsLinked => _links.Count > 0;
-
-    /// <summary>"Relié au graphe « Événements de l'épée »" ou "Aucun graphe".</summary>
-    public string Status => _links.Count switch
-    {
-        0 => Tr.T("No graph reacts to this event."),
-        1 => Tr.F("Connected to graph \"{0}\".", Header(_links[0].Graph)),
-        _ => Tr.F("Connected to {0} nodes ({1}).", _links.Count, string.Join(", ", _links.Select(l => Header(l.Graph)).Distinct())),
-    };
-
-    public ICommand AddCommand { get; }
-
-    public ICommand OpenCommand { get; }
-
-    internal void SetLinks(IReadOnlyList<(GraphAsset Graph, GraphNode Node)> links)
-    {
-        _links = links;
-        OnPropertyChanged(nameof(IsLinked));
-        OnPropertyChanged(nameof(Status));
-        CommandManager.InvalidateRequerySuggested();
-    }
-
-    private static string Header(GraphAsset graph) =>
-        string.IsNullOrWhiteSpace(graph.DisplayName) ? graph.ResourceId.Value : graph.DisplayName;
+    /// <summary>The method of the event in the class of the item (V0.7.13), next to the graphs that react to it.</summary>
+    public ElementMethodViewModel Method { get; }
 }

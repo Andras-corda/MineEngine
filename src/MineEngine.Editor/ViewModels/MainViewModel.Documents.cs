@@ -854,6 +854,20 @@ public sealed partial class MainViewModel
                 && string.Equals(model.Layout.ToAbsolutePath(file.FilePath), fullPath, StringComparison.OrdinalIgnoreCase)));
     }
 
+    /// <summary>Tab of the Java code of a method of an item (V0.7.13), reused when it is open.</summary>
+    private void OpenMethodDocument(Asset asset, string slot)
+    {
+        if (_project is null || asset is not ItemAsset item || ItemMethodSlots.Find(slot) is not { } methodSlot)
+        {
+            return;
+        }
+
+        string className = JavaNames.ToTypeName(item.ResourceId.Value, "Custom") + "Item";
+        DocumentViewModel document = Documents.FirstOrDefault(d => d.Id == MethodDocumentViewModel.Key(item, slot))
+                                         ?? AddDocument(new MethodDocumentViewModel(item, methodSlot, className, _project.History));
+        Activate(document);
+    }
+
     private void OpenAssetDocument(Asset asset)
     {
         if (_project is null)

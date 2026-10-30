@@ -11,24 +11,31 @@ namespace MineEngine.Minecraft.Java;
 /// beacon beam and properties of the block state added by the user. The methods differ a little
 /// between 1.20.1 and 1.21.1 (protected methods, codecs): they are written public, which both accept.
 /// </summary>
-public sealed class BlockJava
+public sealed partial class BlockJava
 {
     private readonly IRBlock _block;
     private readonly JavaModNaming _naming;
     private readonly JavaGameApi _api;
     private readonly BlockOptions _options;
+    private readonly string? _dropCondition;
+    private readonly BlockEventCalls _events;
     private readonly SortedSet<string> _imports = new(StringComparer.Ordinal);
 
-    public BlockJava(IRBlock block, JavaModNaming naming, JavaGameApi api)
+    /// <param name="dropCondition">Java call of the drop condition, with "level" and "position" (V0.7.11), or null.</param>
+    /// <param name="events">Calls of the graphs that react to the events of the block (V0.7.11), or null.</param>
+    public BlockJava(IRBlock block, JavaModNaming naming, JavaGameApi api, string? dropCondition = null, BlockEventCalls? events = null)
     {
         _block = block ?? throw new ArgumentNullException(nameof(block));
         _naming = naming ?? throw new ArgumentNullException(nameof(naming));
         _api = api ?? throw new ArgumentNullException(nameof(api));
         _options = block.Options;
+        _dropCondition = dropCondition;
+        _events = events ?? BlockEventCalls.None;
     }
 
     /// <summary>True when the block needs this class (otherwise it is a plain Block of the registry).</summary>
-    public static bool IsNeeded(IRBlock block) => block.Plant is not null || block.Options.NeedsOwnClass;
+    public static bool IsNeeded(IRBlock block, IRContent content) =>
+        block.Plant is not null || block.Options.NeedsOwnClass || block.DropCondition is not null || HasEvents(block, content);
 
     public static string Package(JavaModNaming naming) => naming.RootPackage + ".block";
 
@@ -72,7 +79,8 @@ public sealed class BlockJava
         string defaults = DefaultState();
         if (defaults.Length > 0)
         {
-            body.Line($"this.registerDefaultState(this.stateDefinition.any(){defaults});");
+            // A block base keeps the default state of its class of the game (half, hinge...).
+            body.Line($"this.registerDefaultState({(_block.Settings.Model.IsBase() ? "this.defaultBlockState()" : "this.stateDefinition.any()")}{defaults});");
         }
 
         body.CloseBlock();
@@ -105,6 +113,14 @@ public sealed class BlockJava
     /// <summary>Parent class and call of its constructor.</summary>
     private (string Base, string SuperCall) BaseClass()
     {
+        if (_block.Settings.Model.IsBase())
+        {
+            // A block base (V0.7.11) with advanced settings: its class of the game, then the overrides.
+            Use([.. BlockBaseJava.Imports(_block.Settings.Model)]);
+            (string before, string after) = BlockBaseJava.Arguments(_block.Settings.Model, _block.Settings.Sound, Modern);
+            return (BlockBaseJava.ClassName(_block.Settings.Model), $"super({before}properties{after});");
+        }
+
         if (_options.HasGravity)
         {
             Use("net.minecraft.world.level.block.FallingBlock");
@@ -289,6 +305,13 @@ public sealed class BlockJava
             w.Line("public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;");
         }
 
+        if (TracksRedstone)
+        {
+            // Remembers the signal, so that the redstone on and off events run once per change.
+            Use("net.minecraft.world.level.block.state.properties.BooleanProperty");
+            w.Line("public static final BooleanProperty REDSTONE_POWERED = BooleanProperty.create(\"redstone_powered\");");
+        }
+
         foreach (BlockCustomProperty property in _options.Properties)
         {
             string constant = PropertyConstant(property);
@@ -350,6 +373,11 @@ public sealed class BlockJava
             parts.Add(".setValue(WATERLOGGED, false)");
         }
 
+        if (TracksRedstone)
+        {
+            parts.Add(".setValue(REDSTONE_POWERED, false)");
+        }
+
         foreach (BlockCustomProperty property in _options.Properties)
         {
             string value = property.Kind switch
@@ -380,6 +408,11 @@ public sealed class BlockJava
         if (_options.Waterloggable)
         {
             added.Add("WATERLOGGED");
+        }
+
+        if (TracksRedstone)
+        {
+            added.Add("REDSTONE_POWERED");
         }
 
         added.AddRange(_options.Properties.Select(PropertyConstant));
@@ -561,6 +594,22 @@ public sealed class BlockJava
 
     private void WriteOverrides(JavaSourceWriter w, string className)
     {
+        WriteEvents(w);
+
+        if (_dropCondition is not null)
+        {
+            // The loot table gives the drops; the function of the project can take them away.
+            Use("java.util.List", "net.minecraft.core.BlockPos", "net.minecraft.server.level.ServerLevel", "net.minecraft.world.item.ItemStack",
+                "net.minecraft.world.level.storage.loot.LootParams", "net.minecraft.world.level.storage.loot.parameters.LootContextParams");
+            w.Line()
+                .Line("@Override")
+                .OpenBlock("public List<ItemStack> getDrops(BlockState state, LootParams.Builder builder)")
+                .Line("ServerLevel level = builder.getLevel();")
+                .Line("BlockPos position = BlockPos.containing(builder.getParameter(LootContextParams.ORIGIN));")
+                .Line($"return {_dropCondition} ? super.getDrops(state, builder) : List.of();")
+                .CloseBlock();
+        }
+
         if (_options.Boxes.Count > 0)
         {
             Use("net.minecraft.world.level.BlockGetter", "net.minecraft.core.BlockPos", "net.minecraft.world.phys.shapes.CollisionContext");

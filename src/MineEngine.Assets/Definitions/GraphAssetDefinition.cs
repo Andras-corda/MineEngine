@@ -29,6 +29,7 @@ public sealed class GraphAssetDefinition : AssetDefinition<GraphAsset>
         asset.Kind = reader.GetEnum("kind", GraphKind.Events);
         asset.Access = reader.GetEnum("access", AccessLevel.Public);
         asset.OwnerId = reader.GetGuid("owner");
+        asset.ElementId = reader.GetGuid("element");
         asset.IsStatic = reader.GetBoolean("static", false);
         asset.IsPure = reader.GetBoolean("pure", false);
         asset.Parameters = ReadVariables(reader, "parameters");
@@ -78,6 +79,11 @@ public sealed class GraphAssetDefinition : AssetDefinition<GraphAsset>
         {
             properties["kind"] = asset.Kind.ToString();
             properties["access"] = asset.Access.ToString();
+        }
+
+        if (asset.ElementId is { } element)
+        {
+            properties["element"] = element.ToString("D");
         }
 
         if (asset.OwnerId is { } owner)

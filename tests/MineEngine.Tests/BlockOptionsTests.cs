@@ -127,5 +127,28 @@ public sealed class BlockOptionsTests
         Assert.Contains("trapezoid", File.ReadAllText(Path.Combine(data, "worldgen/placed_feature/moon_ore_ore.json")));
         Assert.Contains(Directory.GetFiles(resources, "moon_ore_ore.json", SearchOption.AllDirectories), f => f.Contains("biome_modifier", StringComparison.Ordinal));
         Assert.Contains("testmod:rune_glass", File.ReadAllText(Directory.GetFiles(Path.Combine(resources, "data/minecraft/tags"), "climbable.json", SearchOption.AllDirectories).Single()));
+
+        // V0.7.11: the ore drops only with a diamond pickaxe, and only where its function says yes.
+        string ore = File.ReadAllText(Path.Combine(java, "block/MoonOreBlock.java"));
+        Assert.Contains("public List<ItemStack> getDrops(BlockState state, LootParams.Builder builder)", ore);
+        Assert.Contains("return com.mineengine.mods.testmod.code.OreCanDrop.oreCanDrop(level, position) ? super.getDrops(state, builder) : List.of();", ore);
+        JsonNode loot = JsonNode.Parse(File.ReadAllText(Directory.GetFiles(data, "moon_ore.json", SearchOption.AllDirectories).Single(f => f.Contains("loot", StringComparison.Ordinal))))!;
+        JsonNode tool = loot["pools"]![0]!["conditions"]![1]!;
+        Assert.Equal("minecraft:match_tool", tool["condition"]!.GetValue<string>());
+        Assert.Equal("minecraft:diamond_pickaxe", tool["predicate"]!["items"]![0]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void The_tool_and_the_condition_of_the_drops_are_saved()
+    {
+        using var temp = new TemporaryDirectory();
+        (ModProject project, _) = CreateProject(temp);
+        BlockAsset ore = project.Assets.OfType<BlockAsset>().Single(b => b.ResourceId.Value == "moon_ore");
+
+        var read = (BlockAsset)Serializer.Deserialize(Serializer.Serialize(ore), "moon_ore");
+
+        Assert.Equal("minecraft:diamond_pickaxe", read.RequiredTool!.ToStorageText());
+        Assert.Equal(ore.DropCondition, read.DropCondition);
+        Assert.Equal(Serializer.Serialize(ore), Serializer.Serialize(read));
     }
 }

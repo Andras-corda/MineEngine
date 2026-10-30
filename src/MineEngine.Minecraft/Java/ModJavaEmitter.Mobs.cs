@@ -79,7 +79,7 @@ public abstract partial class ModJavaEmitter
 
     // ----- Registre des entités -----
 
-    private JavaSourceWriter WriteEntitiesClass(GenerationContext context, JavaModNaming naming, JavaGameApi api)
+    private JavaSourceWriter WriteEntitiesClass(GenerationContext context, JavaModNaming naming, JavaGameApi api, JavaProgramNames names)
     {
         IReadOnlyList<IRMob> mobs = context.Ir.Content.Mobs;
         List<IRMob> spawning = mobs.Where(m => m.Spawning is not null).ToList();
@@ -93,6 +93,7 @@ public abstract partial class ModJavaEmitter
             "net.minecraft.world.entity.MobCategory",
         };
         imports.AddRange(mobs.Select(m => $"{naming.EntityPackage}.{naming.EntityClassFor(m.Id)}"));
+        imports.AddRange(GolemImports(mobs));
         if (spawning.Count > 0)
         {
             imports.Add(SpawnPlacementEventType);
@@ -115,7 +116,8 @@ public abstract partial class ModJavaEmitter
                 .Indent().Indent()
                 .Line($"{id}, () -> EntityType.Builder.of({entityClass}::new, {MobJava.Category(mob.Kind)})")
                 .Indent().Indent()
-                .Line($".sized({JavaNames.FloatLiteral(mob.Width)}, {JavaNames.FloatLiteral(mob.Height)})");
+                .Line($".sized({JavaNames.FloatLiteral(mob.Width)}, {JavaNames.FloatLiteral(mob.Height)})")
+                .Line($".clientTrackingRange({mob.TrackingRange})");
             if (mob.FireImmune)
             {
                 w.Line(".fireImmune()");
@@ -134,15 +136,19 @@ public abstract partial class ModJavaEmitter
 
         w.CloseBlock();
 
+        WriteGolems(w, context, naming, api, names, mobs);
+
         if (spawning.Count > 0)
         {
             string eventClass = SimpleName(SpawnPlacementEventType);
             w.Line().OpenBlock($"public static void registerSpawnPlacements({eventClass} event)");
             foreach (IRMob mob in spawning)
             {
+                // A mob limited to structures has its own rule (the one of its family, inside a structure).
+                string rule = mob.Spawning!.Structures.Count > 0 ? $"{naming.EntityClassFor(mob.Id)}::checkSpawnRules" : MobJava.SpawnRule(mob.Kind);
                 w.Line($"event.register({naming.ConstantFor(mob.Id)}.get(), {api.OnGroundSpawnPlacement.Expression},")
                     .Indent().Indent()
-                    .Line($"Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, {MobJava.SpawnRule(mob.Kind)}, {eventClass}.Operation.REPLACE);")
+                    .Line($"Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, {rule}, {eventClass}.Operation.REPLACE);")
                     .Unindent().Unindent();
             }
 
@@ -154,15 +160,17 @@ public abstract partial class ModJavaEmitter
 
     // ----- Classe d'un mob -----
 
-    private static void WriteEntityClass(GenerationContext context, JavaModNaming naming, JavaGameApi api, IRMob mob)
+    private void WriteEntityClass(GenerationContext context, JavaModNaming naming, JavaGameApi api, JavaProgramNames names, IRMob mob)
     {
         string className = naming.EntityClassFor(mob.Id);
-        string baseClass = MobJava.BaseClass(mob.Kind);
+        bool tamable = mob.Taming is not null;
+        string baseClass = MobJava.BaseClass(mob.Kind, tamable);
         bool isAnimal = mob.Kind == MobKind.Animal;
+        bool hasStructures = mob.Spawning is { Structures.Count: > 0 };
         List<(IRMobGoal Goal, string Expression)> goals = [];
         var imports = new SortedSet<string>(StringComparer.Ordinal)
         {
-            MobJava.BaseClassImport(mob.Kind),
+            MobJava.BaseClassImport(mob.Kind, tamable),
             "net.minecraft.world.entity.EntityType",
             "net.minecraft.world.entity.ai.attributes.AttributeSupplier",
             "net.minecraft.world.entity.ai.attributes.Attributes",
@@ -173,6 +181,15 @@ public abstract partial class ModJavaEmitter
         {
             imports.Add("net.minecraft.world.entity.Mob");
         }
+
+        if (mob.Kind == MobKind.Raider)
+        {
+            imports.Add("net.minecraft.world.entity.monster.Monster");
+        }
+
+        imports.UnionWith(EntitySectionImports(mob, api, hasStructures));
+        imports.UnionWith(MobEvents(context, naming, mob).Imports);
+        imports.UnionWith(VehicleImports(mob, naming));
 
         string? treeClass = mob.BehaviorTree is { } tree ? naming.BehaviorTreeClassFor(tree) : null;
         if (treeClass is not null)
@@ -189,11 +206,13 @@ public abstract partial class ModJavaEmitter
             imports.UnionWith(goalImports);
         }
 
-        // Textures: the random variants of the model (chosen at spawn), then the appearances (set by the graphs).
-        int variants = VariantCount(context, mob);
+        // Textures: the random variants of the model and the variations of the mob (chosen at spawn),
+        // then the appearances (set by the graphs).
+        int variants = VariantCount(context, mob) + mob.Variations.Count;
         int appearances = mob.Appearances.Count;
         int textures = variants + appearances;
-        if (textures > 1)
+        IReadOnlyList<MobSynchedValue> synched = SynchedValues(mob, textures);
+        if (synched.Count > 0)
         {
             imports.Add("net.minecraft.nbt.CompoundTag");
             imports.Add("net.minecraft.network.syncher.EntityDataAccessor");
@@ -201,7 +220,7 @@ public abstract partial class ModJavaEmitter
             imports.Add("net.minecraft.network.syncher.SynchedEntityData");
         }
 
-        bool usesItems = mob.Goals.Any(g => g.Item is not null) || (isAnimal && mob.BreedingItem is not null);
+        bool usesItems = mob.Goals.Any(g => g.Item is not null) || (isAnimal && mob.BreedingItem is not null) || mob.Taming is { Count: > 0 };
         bool usesSounds = mob.AmbientSound is not null || mob.HurtSound is not null || mob.DeathSound is not null;
         if (usesItems || usesSounds)
         {
@@ -234,15 +253,23 @@ public abstract partial class ModJavaEmitter
 
         JavaSourceWriter w = WriteHeader(naming.EntityPackage, imports, $"Mob « {mob.DisplayName} » : attributs, IA et sons.")
             .OpenBlock($"public class {className} extends {baseClass}" + (appearances > 0 ? $" implements {AppearanceInterface}" : string.Empty));
-        if (textures > 1)
+        foreach (MobSynchedValue value in synched)
         {
-            w.Line($"private static final EntityDataAccessor<Integer> VARIANT = SynchedEntityData.defineId({className}.class, EntityDataSerializers.INT);")
-                .Line();
+            w.Line($"private static final EntityDataAccessor<{value.JavaType}> {value.Accessor} = SynchedEntityData.defineId({className}.class, EntityDataSerializers.{value.Serializer});");
+        }
+
+        if (synched.Count > 0)
+        {
+            w.Line();
         }
 
         w.OpenBlock($"public {className}(EntityType<? extends {baseClass}> type, Level level)")
             .Line("super(type, level);")
             .Line($"this.xpReward = {mob.Experience};");
+        if (!api.StepHeightIsAttribute && Math.Abs(mob.StepHeight - 0.6) > 1e-9)
+        {
+            w.Line($"this.setMaxUpStep({JavaNames.FloatLiteral((float)mob.StepHeight)});");
+        }
         if (variants > 1)
         {
             // Each new mob takes a texture of its model at random; a saved mob keeps its own (read after the constructor).
@@ -252,10 +279,7 @@ public abstract partial class ModJavaEmitter
         }
 
         w.CloseBlock();
-        if (textures > 1)
-        {
-            WriteVariantMembers(w, api);
-        }
+        WriteSynchedMembers(w, api, synched);
 
         if (appearances > 0)
         {
@@ -281,7 +305,18 @@ public abstract partial class ModJavaEmitter
             .Line($".add(Attributes.MOVEMENT_SPEED, {MobJava.Double(mob.MovementSpeed)})")
             .Line($".add(Attributes.ATTACK_DAMAGE, {MobJava.Double(mob.AttackDamage)})")
             .Line($".add(Attributes.FOLLOW_RANGE, {MobJava.Double(mob.FollowRange)})")
-            .Line($".add(Attributes.KNOCKBACK_RESISTANCE, {MobJava.Double(mob.KnockbackResistance)});")
+            .Line($".add(Attributes.KNOCKBACK_RESISTANCE, {MobJava.Double(mob.KnockbackResistance)})");
+        if (mob.Knockback > 0)
+        {
+            w.Line($".add(Attributes.ATTACK_KNOCKBACK, {MobJava.Double(mob.Knockback)})");
+        }
+
+        if (api.StepHeightIsAttribute)
+        {
+            w.Line($".add(Attributes.STEP_HEIGHT, {MobJava.Double(mob.StepHeight)})");
+        }
+
+        w.Line(";")
             .Unindent().Unindent()
             .CloseBlock();
 
@@ -296,6 +331,11 @@ public abstract partial class ModJavaEmitter
 
         int goalPriority = 0;
         int targetPriority = 0;
+        if (tamable)
+        {
+            w.Line($"this.goalSelector.addGoal({++goalPriority + (treeClass is null ? 0 : 1)}, new SitWhenOrderedToGoal(this));");
+        }
+
         foreach ((IRMobGoal goal, string expression) in goals)
         {
             bool isTarget = goal.Kind is MobGoalKind.HurtByTarget or MobGoalKind.AttackNearest;
@@ -304,30 +344,49 @@ public abstract partial class ModJavaEmitter
             w.Line($"this.{selector}.addGoal({priority}, {expression});");
         }
 
+        if (tamable)
+        {
+            w.Line($"this.goalSelector.addGoal({++goalPriority + (treeClass is null ? 0 : 1)}, {api.FollowOwnerGoal});");
+        }
+
         w.CloseBlock();
 
         WriteSoundOverride(w, "protected SoundEvent getAmbientSound()", mob.AmbientSound);
         WriteSoundOverride(w, "protected SoundEvent getHurtSound(DamageSource source)", mob.HurtSound);
         WriteSoundOverride(w, "protected SoundEvent getDeathSound()", mob.DeathSound);
 
-        if (mob.Persistent)
+        string? despawn = FunctionCall(context, names, mob.DespawnFunction, "this.level()", "this");
+        if (mob.Persistent || despawn is not null)
         {
             w.Line().Line("@Override")
                 .OpenBlock("public boolean removeWhenFarAway(double distance)")
-                .Line("return false;")
+                .Line(mob.Persistent ? "return false;" : $"return {despawn};")
                 .CloseBlock();
         }
 
-        if (mob.BurnsInDaylight)
+        bool burnsAtNight = mob.Vulnerabilities.Contains(MobVulnerability.Moon);
+        if (mob.BurnsInDaylight || burnsAtNight)
         {
-            w.Line().Line("@Override")
-                .OpenBlock("public void aiStep()")
-                .OpenBlock("if (this.isAlive() && this.isSunBurnTick())")
-                .Line(api.IgniteSelf(8))
-                .CloseBlock()
-                .Line("super.aiStep();")
-                .CloseBlock();
+            w.Line().Line("@Override").OpenBlock("public void aiStep()");
+            if (mob.BurnsInDaylight)
+            {
+                w.OpenBlock("if (this.isAlive() && this.isSunBurnTick())")
+                    .Line(api.IgniteSelf(8))
+                    .CloseBlock();
+            }
+
+            if (burnsAtNight)
+            {
+                // Under the sky at night, the moon hurts it every second.
+                w.OpenBlock("if (this.isAlive() && !this.level().isClientSide && this.level().isNight() && this.level().canSeeSky(this.blockPosition()) && this.tickCount % 20 == 0)")
+                    .Line("this.hurt(this.damageSources().magic(), 1.0F);")
+                    .CloseBlock();
+            }
+
+            w.Line("super.aiStep();").CloseBlock();
         }
+
+        WriteEntitySections(w, context, naming, api, names, mob, className);
 
         if (isAnimal)
         {
@@ -384,84 +443,18 @@ public abstract partial class ModJavaEmitter
 
     // ----- Rendu (client) -----
 
-    private JavaSourceWriter WriteRenderersClass(GenerationContext context, JavaModNaming naming, JavaGameApi api)
+    /// <summary>Registration of the renderer of each mob (one class each) and of the Blockbench models.</summary>
+    private JavaSourceWriter WriteRenderersClass(GenerationContext context, JavaModNaming naming)
     {
         IReadOnlyList<IRMob> mobs = context.Ir.Content.Mobs;
-        var imports = new List<string>
-        {
-            EntityRenderersEventType,
-            $"{naming.RegistryPackage}.{naming.EntitiesClass}",
-            "net.minecraft.client.model.geom.ModelLayers",
-            "net.minecraft.client.renderer.entity.MobRenderer",
-            "net.minecraft.resources.ResourceLocation",
-        };
-        foreach (IRMob mob in mobs.Where(m => m.CustomModel is null))
-        {
-            imports.Add($"{naming.EntityPackage}.{naming.EntityClassFor(mob.Id)}");
-            imports.Add("net.minecraft.client.model." + MobJava.Model(mob.Model).ModelClass);
-        }
-
         List<IRMob> custom = [.. CustomModelMobs(context)];
-
+        var imports = new List<string> { EntityRenderersEventType, $"{naming.RegistryPackage}.{naming.EntitiesClass}" };
         JavaSourceWriter w = WriteHeader(naming.ClientPackage, imports, "Affichage des mobs (chargé seulement par le client).")
-            .OpenBlock($"public final class {naming.EntityRenderersClass}");
-
-        foreach (IRMob mob in mobs.Where(m => m.CustomModel is null))
+            .OpenBlock($"public final class {naming.EntityRenderersClass}")
+            .OpenBlock($"public static void registerRenderers({SimpleName(EntityRenderersEventType)}.RegisterRenderers event)");
+        foreach (IRMob mob in mobs)
         {
-            string texture = mob.Texture is null
-                ? "minecraft:" + MobJava.Model(mob.Model).VanillaTexture
-                : context.Paths.Reference($"textures/entity/{mob.Id}.png");
-            w.Line($"private static final ResourceLocation {TextureConstant(naming, mob.Id)} =")
-                .Indent().Indent()
-                .Line(api.ParseResourceLocation(JavaNames.StringLiteral(texture)) + ";")
-                .Unindent().Unindent();
-
-            // Appearances: the texture follows the number the mob keeps (0: its normal texture).
-            if (mob.Appearances.Count > 0)
-            {
-                w.Line($"private static final ResourceLocation[] {TextureConstant(naming, mob.Id)}S = {{")
-                    .Indent().Indent()
-                    .Line(TextureConstant(naming, mob.Id) + ",");
-                foreach (string path in AppearanceTextures(mob, string.Empty))
-                {
-                    w.Line(path.Length == 0
-                        ? TextureConstant(naming, mob.Id) + ","
-                        : api.ParseResourceLocation(JavaNames.StringLiteral(context.Paths.Reference(path))) + ",");
-                }
-
-                w.Unindent().Unindent().Line("};");
-            }
-        }
-
-        w.Line().OpenBlock($"public static void registerRenderers({SimpleName(EntityRenderersEventType)}.RegisterRenderers event)");
-        foreach (IRMob mob in custom)
-        {
-            w.Line($"event.registerEntityRenderer({naming.EntitiesClass}.{naming.ConstantFor(mob.Id)}.get(), {naming.ClientPackage}.{naming.RendererClassFor(mob.Id)}::new);");
-        }
-
-        List<IRMob> vanilla = [.. mobs.Where(m => m.CustomModel is null)];
-        for (int i = 0; i < vanilla.Count; i++)
-        {
-            IRMob mob = vanilla[i];
-            MobModelJava model = MobJava.Model(mob.Model);
-            string entityClass = naming.EntityClassFor(mob.Id);
-            if (i > 0 || custom.Count > 0)
-            {
-                w.Line();
-            }
-
-            w.Line($"event.registerEntityRenderer({naming.EntitiesClass}.{naming.ConstantFor(mob.Id)}.get(), context -> new MobRenderer<{entityClass}, {model.ModelClass}<{entityClass}>>(")
-                .Indent().Indent()
-                .Line($"context, new {model.ModelClass}<>(context.bakeLayer(ModelLayers.{model.Layer})), {JavaNames.FloatLiteral(model.ShadowRadius)}) {{")
-                .Unindent()
-                .Line("@Override")
-                .OpenBlock($"public ResourceLocation getTextureLocation({entityClass} entity)")
-                .Line(mob.Appearances.Count > 0
-                    ? $"return {TextureConstant(naming, mob.Id)}S[Math.floorMod(entity.getVariant(), {TextureConstant(naming, mob.Id)}S.length)];"
-                    : $"return {TextureConstant(naming, mob.Id)};")
-                .CloseBlock()
-                .Unindent()
-                .Line("});");
+            w.Line($"event.registerEntityRenderer({naming.EntitiesClass}.{naming.ConstantFor(mob.Id)}.get(), {naming.RendererClassFor(mob.Id)}::new);");
         }
 
         w.CloseBlock();
@@ -494,41 +487,6 @@ public abstract partial class ModJavaEmitter
     private static int VariantCount(GenerationContext context, IRMob mob) =>
         FindModel(context, mob) is { Blockbench: not null } model ? 1 + model.Variants.Count : 1;
 
-    /// <summary>The variant is synchronized with the clients (for the texture) and saved with the mob.</summary>
-    private static void WriteVariantMembers(JavaSourceWriter w, JavaGameApi api)
-    {
-        (string signature, IReadOnlyList<string> body) = api.DefineSynchedData("VARIANT", "0");
-        w.Line().Line("@Override").OpenBlock(signature);
-        foreach (string line in body)
-        {
-            w.Line(line);
-        }
-
-        w.CloseBlock()
-            .Line()
-            .OpenBlock("public int getVariant()")
-            .Line("return this.entityData.get(VARIANT);")
-            .CloseBlock()
-            .Line()
-            .OpenBlock("public void setVariant(int variant)")
-            .Line("this.entityData.set(VARIANT, variant);")
-            .CloseBlock()
-            .Line()
-            .Line("@Override")
-            .OpenBlock("public void addAdditionalSaveData(CompoundTag tag)")
-            .Line("super.addAdditionalSaveData(tag);")
-            .Line("tag.putInt(\"Variant\", this.getVariant());")
-            .CloseBlock()
-            .Line()
-            .Line("@Override")
-            .OpenBlock("public void readAdditionalSaveData(CompoundTag tag)")
-            .Line("super.readAdditionalSaveData(tag);")
-            .OpenBlock("if (tag.contains(\"Variant\"))")
-            .Line("this.setVariant(tag.getInt(\"Variant\"));")
-            .CloseBlock()
-            .CloseBlock();
-    }
-
     /// <summary>One Java entity model per Blockbench model used by a mob, and one renderer per such mob.</summary>
     private static void WriteCustomMobModels(GenerationContext context, JavaModNaming naming, JavaGameApi api)
     {
@@ -543,113 +501,7 @@ public abstract partial class ModJavaEmitter
             context.Files.WriteText(path, w.ToString());
             context.SourceMap.Add(path, 1, w.NextLineNumber - 1, model.SourceAssetId, $"Modèle '{model.Id}'");
         }
-
-        foreach (IRMob mob in mobs)
-        {
-            WriteCustomRenderer(context, naming, api, mob, FindModel(context, mob)!);
-        }
     }
-
-    /// <summary>
-    /// Renderer of a mob shown with its Blockbench model: the texture of the model (or the texture of the
-    /// mob), its variants chosen by the mob, and its layers drawn over it (an emissive layer glows).
-    /// </summary>
-    private static void WriteCustomRenderer(GenerationContext context, JavaModNaming naming, JavaGameApi api, IRMob mob, IRModel model)
-    {
-        ResourcePaths paths = context.Paths;
-        string className = naming.RendererClassFor(mob.Id);
-        string entityClass = naming.EntityClassFor(mob.Id);
-        string modelClass = naming.EntityModelClassFor(model.Id);
-        string modelType = $"{modelClass}<{entityClass}>";
-        string Location(string path) => api.ParseResourceLocation(JavaNames.StringLiteral(paths.Reference(path)));
-
-        string baseTexture = mob.Texture is not null || model.Textures.Count == 0
-            ? $"textures/entity/{mob.Id}.png"
-            : $"textures/block/model/{model.Id}_{model.Textures[0].Key}.png";
-        List<string> textures =
-        [
-            Location(baseTexture),
-            .. Enumerable.Range(1, model.Variants.Count).Select(i => Location($"textures/entity/model/{model.Id}_variant_{i}.png")),
-            .. AppearanceTextures(mob, baseTexture).Select(Location),
-        ];
-
-        var imports = new List<string>
-        {
-            "com.mojang.blaze3d.vertex.PoseStack",
-            "com.mojang.blaze3d.vertex.VertexConsumer",
-            "net.minecraft.client.renderer.MultiBufferSource",
-            "net.minecraft.client.renderer.RenderType",
-            "net.minecraft.client.renderer.entity.EntityRendererProvider",
-            "net.minecraft.client.renderer.entity.LivingEntityRenderer",
-            "net.minecraft.client.renderer.entity.MobRenderer",
-            "net.minecraft.client.renderer.entity.RenderLayerParent",
-            "net.minecraft.client.renderer.entity.layers.RenderLayer",
-            "net.minecraft.resources.ResourceLocation",
-            $"{naming.EntityModelPackage}.{modelClass}",
-            $"{naming.EntityPackage}.{entityClass}",
-        };
-
-        float shadow = Math.Clamp(mob.Width * 0.5f, 0.2f, 2f);
-        JavaSourceWriter w = WriteHeader(naming.ClientPackage, imports, $"Affichage du mob « {mob.DisplayName} » avec son modèle 3D.")
-            .OpenBlock($"public class {className} extends MobRenderer<{entityClass}, {modelType}>")
-            .Line("private static final ResourceLocation[] TEXTURES = {")
-            .Indent();
-        foreach (string texture in textures)
-        {
-            w.Line(texture + ",");
-        }
-
-        w.Unindent().Line("};");
-        for (int i = 0; i < model.Layers.Count; i++)
-        {
-            w.Line($"private static final ResourceLocation LAYER_{i + 1} = {Location($"textures/entity/model/{model.Id}_layer_{i + 1}.png")};");
-        }
-
-        w.Line()
-            .OpenBlock($"public {className}(EntityRendererProvider.Context context)")
-            .Line($"super(context, new {modelClass}<>(context.bakeLayer({modelClass}.LAYER_LOCATION)), {JavaNames.FloatLiteral(shadow)});");
-        for (int i = 0; i < model.Layers.Count; i++)
-        {
-            w.Line($"this.addLayer(new TextureLayer(this, LAYER_{i + 1}, {(model.Layers[i].Emissive ? "true" : "false")}));");
-        }
-
-        w.CloseBlock()
-            .Line()
-            .Line("@Override")
-            .OpenBlock($"public ResourceLocation getTextureLocation({entityClass} entity)")
-            .Line(textures.Count > 1 ? "return TEXTURES[Math.floorMod(entity.getVariant(), TEXTURES.length)];" : "return TEXTURES[0];")
-            .CloseBlock();
-
-        if (model.Layers.Count > 0)
-        {
-            // Same model, other texture; an emissive layer ignores the light, like the eyes of a spider.
-            string color = api.PackedRenderColor ? "-1" : "1.0f, 1.0f, 1.0f, 1.0f";
-            w.Line()
-                .OpenBlock($"private static final class TextureLayer extends RenderLayer<{entityClass}, {modelType}>")
-                .Line("private final ResourceLocation texture;")
-                .Line("private final boolean emissive;")
-                .Line()
-                .OpenBlock($"TextureLayer(RenderLayerParent<{entityClass}, {modelType}> parent, ResourceLocation texture, boolean emissive)")
-                .Line("super(parent);")
-                .Line("this.texture = texture;")
-                .Line("this.emissive = emissive;")
-                .CloseBlock()
-                .Line()
-                .Line("@Override")
-                .OpenBlock($"public void render(PoseStack poseStack, MultiBufferSource buffers, int packedLight, {entityClass} entity, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch)")
-                .Line("VertexConsumer consumer = buffers.getBuffer(this.emissive ? RenderType.eyes(this.texture) : RenderType.entityCutoutNoCull(this.texture));")
-                .Line($"this.getParentModel().renderToBuffer(poseStack, consumer, this.emissive ? 15728880 : packedLight, LivingEntityRenderer.getOverlayCoords(entity, 0.0f), {color});")
-                .CloseBlock()
-                .CloseBlock();
-        }
-
-        w.CloseBlock();
-        string file = naming.SourcePath(naming.ClientPackage, className);
-        context.Files.WriteText(file, w.ToString());
-        context.SourceMap.Add(file, 1, w.NextLineNumber - 1, mob.SourceAssetId, $"Mob '{mob.Id}'");
-    }
-
-    private static string TextureConstant(JavaModNaming naming, ResourceId id) => naming.ConstantFor(id) + "_TEXTURE";
 
     /// <summary>Texture paths of the appearances of a mob; one without texture takes <paramref name="baseTexture"/>.</summary>
     private static IEnumerable<string> AppearanceTextures(IRMob mob, string baseTexture) =>

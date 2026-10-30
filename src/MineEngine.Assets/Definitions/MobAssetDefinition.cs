@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json.Nodes;
 using MineEngine.Assets.Mobs;
 using MineEngine.Core.Assets;
@@ -44,9 +45,25 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
         }
 
         asset.Experience = reader.GetInt32("experience", 5);
-        asset.FireImmune = reader.GetBoolean("fireImmune", false);
-        asset.BurnsInDaylight = reader.GetBoolean("burnsInDaylight", false);
         asset.Persistent = reader.GetBoolean("persistent", false);
+
+        // Before V0.7.9, fire resistance and burning in the sun were two boxes.
+        HashSet<MobImmunity> immunities = [.. reader.GetEnumSet<MobImmunity>("immunities")];
+        HashSet<MobVulnerability> vulnerabilities = [.. reader.GetEnumSet<MobVulnerability>("vulnerabilities")];
+        if (reader.GetBoolean("fireImmune", false))
+        {
+            immunities.Add(MobImmunity.Fire);
+            immunities.Add(MobImmunity.Lava);
+        }
+
+        if (reader.GetBoolean("burnsInDaylight", false))
+        {
+            vulnerabilities.Add(MobVulnerability.Sun);
+        }
+
+        asset.Immunities = immunities;
+        asset.Vulnerabilities = vulnerabilities;
+        ReadEntity(asset, reader);
 
         asset.Goals = [.. reader.GetObjectList("goals").Select(ReadGoal).OfType<MobGoal>()];
         asset.BehaviorTreeId = reader.GetGuid("behaviorTree");
@@ -66,17 +83,159 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
             asset.HasSpawnEgg = egg.GetBoolean("enabled", true);
             asset.EggPrimaryColor = egg.GetInt32("primaryColor", asset.EggPrimaryColor);
             asset.EggSecondaryColor = egg.GetInt32("secondaryColor", asset.EggSecondaryColor);
+            asset.EggCreativeTab = egg.GetGuid("creativeTab");
+            asset.EggTextureId = egg.GetGuid("texture");
         }
 
         if (reader.GetObject("spawning") is { } spawning)
         {
             asset.SpawnsNaturally = spawning.GetBoolean("enabled", false);
-            asset.SpawnBiomes = spawning.GetEnumSet<SpawnBiome>("biomes");
+            IReadOnlySet<SpawnBiome> biomes = spawning.GetEnumSet<SpawnBiome>("biomes");
             asset.SpawnWeight = spawning.GetInt32("weight", 10);
             asset.SpawnMinGroup = spawning.GetInt32("minGroup", 1);
             asset.SpawnMaxGroup = spawning.GetInt32("maxGroup", 3);
+            asset.GroupMode = spawning.GetEnum("groupMode", MobGroupMode.Range);
+            asset.GroupFunction = spawning.GetGuid("groupFunction");
+            asset.DespawnFunction = spawning.GetGuid("despawnFunction");
+            asset.InStructures = spawning.GetBoolean("inStructures", false);
+            asset.Structures = new HashSet<string>(spawning.GetStringList("structures"));
+
+            // Before V0.7.9 the dimensions were among the biomes (Overworld, Nether, End).
+            IReadOnlySet<MobDimension> dimensions = spawning.GetEnumSet<MobDimension>("dimensions");
+            if (dimensions.Count > 0)
+            {
+                asset.Dimensions = dimensions;
+                asset.SpawnBiomes = biomes;
+            }
+            else
+            {
+                var found = new HashSet<MobDimension>();
+                if (biomes.Any(b => b is not (SpawnBiome.Nether or SpawnBiome.End)))
+                {
+                    found.Add(MobDimension.Overworld);
+                }
+
+                if (biomes.Contains(SpawnBiome.Nether))
+                {
+                    found.Add(MobDimension.Nether);
+                }
+
+                if (biomes.Contains(SpawnBiome.End))
+                {
+                    found.Add(MobDimension.End);
+                }
+
+                asset.Dimensions = found;
+                asset.SpawnBiomes = new HashSet<SpawnBiome>(biomes.Where(b => b is not (SpawnBiome.Overworld or SpawnBiome.Nether or SpawnBiome.End)));
+            }
         }
     }
+
+    /// <summary>The sections of V0.7.9 (Entity.md): visual, variations and layers, attributes, special properties.</summary>
+    private static void ReadEntity(MobAsset asset, JsonPropertyReader reader)
+    {
+        if (reader.GetObject("visual") is { } visual)
+        {
+            asset.VisualScale = ReadScale(visual.GetObject("scale"));
+            asset.TextureTransparent = visual.GetBoolean("transparent", false);
+            asset.ShadowRadius = visual.GetDouble("shadowRadius", 0.5);
+            asset.PassengerOffset = visual.GetDouble("passengerOffset", 1.8);
+            asset.NoCollision = visual.GetBoolean("noCollision", false);
+            asset.HitboxScale = ReadScale(visual.GetObject("hitboxScale"));
+            asset.Variations = [.. visual.GetStringList("variations").Select(t => Guid.TryParse(t, out Guid id) ? id : Guid.Empty).Where(id => id != Guid.Empty)];
+            asset.Layers =
+            [
+                .. visual.GetObjectList("layers").Where(l => l.GetGuid("texture") is not null).Select(l => new MobLayer(l.GetGuid("texture")!.Value)
+                {
+                    Glow = l.GetBoolean("glow", false),
+                    NoHurtOverlay = l.GetBoolean("noHurtOverlay", false),
+                    VisibleFunction = l.GetGuid("visibleFunction"),
+                    GlowFunction = l.GetGuid("glowFunction"),
+                    HurtFunction = l.GetGuid("hurtFunction"),
+                }),
+            ];
+        }
+
+        if (reader.GetObject("entity") is { } entity)
+        {
+            asset.CreatureType = entity.GetEnum("creatureType", MobCreatureType.Undefined);
+            asset.StepHeight = entity.GetDouble("stepHeight", 0.6);
+            asset.TrackingRange = entity.GetInt32("trackingRange", 8);
+            asset.Knockback = entity.GetDouble("knockback", 0);
+        }
+
+        if (reader.GetObject("taming") is { } taming)
+        {
+            asset.Taming = new MobTaming(
+                taming.GetBoolean("enabled", false),
+                [.. taming.GetObjectList("items").Where(i => i.GetReference("item") is not null)
+                    .Select(i => new MobTamingItem(i.GetReference("item")!, Math.Clamp(i.GetDouble("chance", MobTamingItem.DefaultChance), 0, 100)))]);
+        }
+
+        if (reader.GetObject("riding") is { } riding)
+        {
+            asset.Riding = new MobRiding(riding.GetBoolean("enabled", false))
+            {
+                Forward = riding.GetBoolean("forward", true),
+                Strafe = riding.GetBoolean("strafe", true),
+                NeedsSaddle = riding.GetBoolean("needsSaddle", false),
+                SaddleLayer = riding.GetInt32("saddleLayer", -1),
+            };
+        }
+
+        if (reader.GetObject("water") is { } water)
+        {
+            asset.Water = new MobWater(water.GetBoolean("enabled", false))
+            {
+                Breathes = water.GetBoolean("breathes", true),
+                BreathesFunction = water.GetGuid("breathesFunction"),
+                PushedByFluid = water.GetBoolean("pushed", true),
+                PushedFunction = water.GetGuid("pushedFunction"),
+                Fluid = water.GetReference("fluid"),
+            };
+        }
+
+        if (reader.GetObject("boss") is { } boss)
+        {
+            asset.Boss = new MobBoss(boss.GetBoolean("enabled", false))
+            {
+                ShowBar = boss.GetBoolean("showBar", true),
+                Color = boss.GetEnum("color", MobBossColor.Purple),
+                Overlay = boss.GetEnum("overlay", MobBossOverlay.Progress),
+            };
+        }
+
+        if (reader.GetObject("golem") is { } golem)
+        {
+            asset.Golem = new MobGolem(golem.GetBoolean("enabled", false))
+            {
+                Activator = golem.GetReference("activator") ?? MobGolem.DefaultActivator,
+                Function = golem.GetGuid("function"),
+            };
+        }
+
+        if (reader.GetObject("vehicle") is { } vehicle)
+        {
+            asset.Vehicle = new MobVehicle(vehicle.GetEnum("kind", MobVehicleKind.None))
+            {
+                Rarity = vehicle.GetEnum("rarity", ItemRarity.Common),
+                ItemTextureId = vehicle.GetGuid("itemTexture"),
+            };
+        }
+    }
+
+    private static MobScale ReadScale(JsonPropertyReader? reader) => reader is null
+        ? MobScale.Default
+        : new MobScale(reader.GetEnum("mode", MobValueMode.Fixed), Math.Clamp(reader.GetDouble("value", 1), MobScale.Min, MobScale.Max), reader.GetGuid("function"));
+
+    private static JsonObject WriteScale(MobScale scale) => new()
+    {
+        ["mode"] = scale.Mode.ToString(),
+        ["value"] = scale.Value,
+        ["function"] = scale.Function?.ToString("D"),
+    };
+
+    private static JsonArray Names<T>(IEnumerable<T> values) => new([.. values.Select(v => (JsonNode?)JsonValue.Create(v!.ToString()))]);
 
     protected override void WriteProperties(MobAsset asset, JsonObject properties)
     {
@@ -101,9 +260,76 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
             ["knockbackResistance"] = asset.KnockbackResistance,
         };
         properties["experience"] = asset.Experience;
-        properties["fireImmune"] = asset.FireImmune;
-        properties["burnsInDaylight"] = asset.BurnsInDaylight;
         properties["persistent"] = asset.Persistent;
+        properties["immunities"] = Names(asset.Immunities.Order());
+        properties["vulnerabilities"] = Names(asset.Vulnerabilities.Order());
+        properties["visual"] = new JsonObject
+        {
+            ["scale"] = WriteScale(asset.VisualScale),
+            ["transparent"] = asset.TextureTransparent,
+            ["shadowRadius"] = asset.ShadowRadius,
+            ["passengerOffset"] = asset.PassengerOffset,
+            ["noCollision"] = asset.NoCollision,
+            ["hitboxScale"] = WriteScale(asset.HitboxScale),
+            ["variations"] = Names(asset.Variations.Select(v => v.ToString("D"))),
+            ["layers"] = new JsonArray([.. asset.Layers.Select(l => (JsonNode)new JsonObject
+            {
+                ["texture"] = l.TextureId.ToString("D"),
+                ["glow"] = l.Glow,
+                ["noHurtOverlay"] = l.NoHurtOverlay,
+                ["visibleFunction"] = l.VisibleFunction?.ToString("D"),
+                ["glowFunction"] = l.GlowFunction?.ToString("D"),
+                ["hurtFunction"] = l.HurtFunction?.ToString("D"),
+            })]),
+        };
+        properties["entity"] = new JsonObject
+        {
+            ["creatureType"] = asset.CreatureType.ToString(),
+            ["stepHeight"] = asset.StepHeight,
+            ["trackingRange"] = asset.TrackingRange,
+            ["knockback"] = asset.Knockback,
+        };
+        properties["taming"] = new JsonObject
+        {
+            ["enabled"] = asset.Taming.Enabled,
+            ["items"] = new JsonArray([.. asset.Taming.Items.Select(i => (JsonNode)new JsonObject { ["item"] = i.Item.ToStorageText(), ["chance"] = i.Chance })]),
+        };
+        properties["riding"] = new JsonObject
+        {
+            ["enabled"] = asset.Riding.Enabled,
+            ["forward"] = asset.Riding.Forward,
+            ["strafe"] = asset.Riding.Strafe,
+            ["needsSaddle"] = asset.Riding.NeedsSaddle,
+            ["saddleLayer"] = asset.Riding.SaddleLayer,
+        };
+        properties["water"] = new JsonObject
+        {
+            ["enabled"] = asset.Water.Enabled,
+            ["breathes"] = asset.Water.Breathes,
+            ["breathesFunction"] = asset.Water.BreathesFunction?.ToString("D"),
+            ["pushed"] = asset.Water.PushedByFluid,
+            ["pushedFunction"] = asset.Water.PushedFunction?.ToString("D"),
+            ["fluid"] = asset.Water.Fluid?.ToStorageText(),
+        };
+        properties["boss"] = new JsonObject
+        {
+            ["enabled"] = asset.Boss.Enabled,
+            ["showBar"] = asset.Boss.ShowBar,
+            ["color"] = asset.Boss.Color.ToString(),
+            ["overlay"] = asset.Boss.Overlay.ToString(),
+        };
+        properties["golem"] = new JsonObject
+        {
+            ["enabled"] = asset.Golem.Enabled,
+            ["activator"] = asset.Golem.Activator.ToStorageText(),
+            ["function"] = asset.Golem.Function?.ToString("D"),
+        };
+        properties["vehicle"] = new JsonObject
+        {
+            ["kind"] = asset.Vehicle.Kind.ToString(),
+            ["rarity"] = asset.Vehicle.Rarity.ToString(),
+            ["itemTexture"] = asset.Vehicle.ItemTextureId?.ToString("D"),
+        };
 
         properties["goals"] = new JsonArray([.. asset.Goals.Select(WriteGoal)]);
         if (asset.BehaviorTreeId is { } tree)
@@ -124,6 +350,8 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
             ["enabled"] = asset.HasSpawnEgg,
             ["primaryColor"] = asset.EggPrimaryColor,
             ["secondaryColor"] = asset.EggSecondaryColor,
+            ["creativeTab"] = asset.EggCreativeTab?.ToString("D"),
+            ["texture"] = asset.EggTextureId?.ToString("D"),
         };
         properties["spawning"] = new JsonObject
         {
@@ -132,6 +360,12 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
             ["weight"] = asset.SpawnWeight,
             ["minGroup"] = asset.SpawnMinGroup,
             ["maxGroup"] = asset.SpawnMaxGroup,
+            ["groupMode"] = asset.GroupMode.ToString(),
+            ["groupFunction"] = asset.GroupFunction?.ToString("D"),
+            ["despawnFunction"] = asset.DespawnFunction?.ToString("D"),
+            ["dimensions"] = Names(asset.Dimensions.Order()),
+            ["inStructures"] = asset.InStructures,
+            ["structures"] = Names(asset.Structures.Order(StringComparer.Ordinal)),
         };
     }
 

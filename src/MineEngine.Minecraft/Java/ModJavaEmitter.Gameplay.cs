@@ -111,6 +111,11 @@ public abstract partial class ModJavaEmitter
     private IEnumerable<string> GameplayMainImports(GenerationContext context, JavaModNaming naming, JavaGameApi api)
     {
         IRContent content = context.Ir.Content;
+        foreach (string import in ItemHooksMainImports(context, naming))
+        {
+            yield return import;
+        }
+
         if (content.Commands.Count > 0 || content.Keybinds.Count > 0)
         {
             yield return $"{naming.RegistryPackage}.{CommandsClass}";
@@ -184,6 +189,7 @@ public abstract partial class ModJavaEmitter
             }
         }
 
+        WriteItemHooksRegistrations(w, context, naming);
         if (content.Commands.Count > 0 || content.Keybinds.Count > 0)
         {
             w.Line($"{gameBus}.addListener({CommandsClass}::register);");
@@ -852,6 +858,12 @@ public abstract partial class ModJavaEmitter
             foreach (NamespacedId item in tab.Items)
             {
                 w.Line($"output.accept(item({JavaNames.StringLiteral(item.ToString())}));");
+            }
+
+            // V0.7.9: the eggs of the mobs that chose this tab.
+            foreach (IRMob mob in context.Ir.Content.MobsWithSpawnEgg.Where(m => m.SpawnEgg!.CreativeTab == tab.Id))
+            {
+                w.Line($"output.accept(item({JavaNames.StringLiteral(context.Paths.Reference(mob.SpawnEgg!.ItemId))}));");
             }
 
             w.CloseBlock(")")

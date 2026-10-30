@@ -33,12 +33,12 @@ public sealed class SpawnBiomeModifierEmitter : IFileEmitter
                 continue;
             }
 
-            foreach (SpawnBiome biome in spawning.Biomes)
+            foreach (string biome in spawning.Biomes)
             {
                 var modifier = new JsonObject
                 {
                     ["type"] = $"{_loaderNamespace}:add_spawns",
-                    ["biomes"] = MobJava.Biomes(biome),
+                    ["biomes"] = biome,
                     ["spawners"] = new JsonObject
                     {
                         ["type"] = context.Paths.Reference(mob.Id.Value),
@@ -48,7 +48,9 @@ public sealed class SpawnBiomeModifierEmitter : IFileEmitter
                     },
                 };
 
-                string name = $"spawn_{mob.Id}_{biome.ToString().ToLowerInvariant()}";
+                // "#minecraft:is_forest" gives spawn_goblin_forest, "minecraft:plains" spawn_goblin_plains (the names before V0.7.9).
+                string path = biome[(biome.IndexOf(':', StringComparison.Ordinal) + 1)..].Replace('/', '_');
+                string name = $"spawn_{mob.Id}_{(biome.StartsWith('#') && path.StartsWith("is_", StringComparison.Ordinal) ? path[3..] : path)}";
                 context.Files.WriteText(context.Paths.BiomeModifier(_loaderNamespace, name), JsonFormatting.ToText(modifier));
             }
         }

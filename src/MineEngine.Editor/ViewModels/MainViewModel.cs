@@ -89,6 +89,7 @@ public sealed partial class MainViewModel : ObservableObject
         InitializeDocumentCommands();
         InitializeFolderCommands();
         _assetViewModels.Navigation.OpenRequested += (_, e) => OpenAsset(e.Asset, e.NodeId);
+        _assetViewModels.Navigation.OpenMethodRequested += (_, e) => OpenMethodDocument(e.Asset, e.Slot);
 
         _validationTimer = new DispatcherTimer { Interval = ValidationDelay };
         _validationTimer.Tick += (_, _) =>

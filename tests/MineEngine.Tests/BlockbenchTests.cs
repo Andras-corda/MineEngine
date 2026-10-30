@@ -169,7 +169,9 @@ public sealed class BlockbenchTests
         string renderer = File.ReadAllText(Path.Combine(java, "client/AlleyCatRenderer.java"));
         Assert.Contains("return TEXTURES[Math.floorMod(entity.getVariant(), TEXTURES.length)];", renderer);
         Assert.Contains("RenderType.eyes(this.texture)", renderer);
-        Assert.Contains("new TextureLayer(this, LAYER_2, true)", renderer);
+        // Since V0.7.9 the rules of each layer are in switches: the second layer of the model glows.
+        Assert.Contains("new TextureLayer(this, LAYER_2, 1)", renderer);
+        Assert.Contains("case 1 -> true;", renderer);
 
         string entity = File.ReadAllText(Path.Combine(java, "entity/AlleyCatEntity.java"));
         Assert.Contains("this.setVariant(this.random.nextInt(3));", entity);

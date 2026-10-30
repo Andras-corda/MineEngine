@@ -82,6 +82,35 @@ public sealed class GraphLowering : AssetLowering<GraphAsset>
             }
         }
 
+        // A mob event adds code to the class of the mob: it must name a mob of the project (V0.7.9).
+        foreach (GraphNode node in asset.Graph.Nodes.Where(n => NodeCatalog.Find(n.Kind)?.MobEvent is not null))
+        {
+            string name = node.GetValue("mob")?.Trim() ?? NodeCatalog.Get(node.Kind).Inputs[0].DefaultValue ?? string.Empty;
+            name = name[(name.IndexOf(':', StringComparison.Ordinal) + 1)..];
+            if (!context.Project.Assets.Any(a => a.Type == AssetType.Mob && a.ResourceId.Value == name))
+            {
+                context.Diagnostics.Error(Tr.F("\"{0}\": \"{1}\" is not a mob of the project.", NodeCatalog.Get(node.Kind).Title, name), asset.ToString(), asset.Id);
+                return;
+            }
+        }
+
+        // A block event adds code to the class of the block: it must name a block of the project (V0.7.11).
+        foreach (GraphNode node in asset.Graph.Nodes.Where(n => NodeCatalog.Find(n.Kind)?.BlockEvent is not null))
+        {
+            string name = node.GetValue("block")?.Trim() ?? NodeCatalog.Get(node.Kind).Inputs[0].DefaultValue ?? string.Empty;
+            name = name[(name.IndexOf(':', StringComparison.Ordinal) + 1)..];
+            if (context.Project.Assets.FirstOrDefault(a => a.Type == AssetType.Block && a.ResourceId.Value == name) is not BlockAsset block)
+            {
+                context.Diagnostics.Error(Tr.F("\"{0}\": \"{1}\" is not a block of the project.", NodeCatalog.Get(node.Kind).Title, name), asset.ToString(), asset.Id);
+                return;
+            }
+
+            if (node.Kind == GraphNodeKind.OnBlockTick && !block.Options.TickEnabled)
+            {
+                context.Diagnostics.Warning(Tr.F("\"{0}\": the block \"{1}\" does not tick (Ticks, in Block properties): the event never runs.", NodeCatalog.Get(node.Kind).Title, name), asset.ToString(), asset.Id);
+            }
+        }
+
         // An "On command" or "On key pressed" event names a command or a keybind of the mod.
         foreach (GraphNode node in asset.Graph.Nodes.Where(n => NodeCatalog.Find(n.Kind)?.DirectEvent is not null))
         {

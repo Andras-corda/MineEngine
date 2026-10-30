@@ -191,6 +191,15 @@ public sealed record BlockOptions
 
     public BlockOreGeneration Ore { get; init; } = new();
 
+    /// <summary>The block ticks (V0.7.11): the "tick" event of its graphs runs.</summary>
+    public bool TickEnabled { get; init; }
+
+    /// <summary>It ticks at random, like crops, instead of every <see cref="TickRate"/> ticks.</summary>
+    public bool TickRandomly { get; init; }
+
+    /// <summary>Ticks between two ticks of the block (20: one second).</summary>
+    public int TickRate { get; init; } = 20;
+
     /// <summary>Number of combinations of the custom properties (keep it small: every one is a state of the block).</summary>
     public long Combinations => Properties.Aggregate(1L, (total, p) => total * p.Count);
 

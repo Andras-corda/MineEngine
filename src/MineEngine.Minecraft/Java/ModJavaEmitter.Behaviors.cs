@@ -50,9 +50,20 @@ public abstract partial class ModJavaEmitter
             {
                 // Événement d'item, de commande ou de touche : appelé directement, côté serveur, avec le joueur déjà connu.
                 imports.UnionWith(["net.minecraft.core.BlockPos", "net.minecraft.world.entity.player.Player", "net.minecraft.world.level.Level"]);
-                body.OpenBlock(handler.Event == GraphNodeKind.OnCommand
-                    ? $"public static void {method}(Player player, Level level, BlockPos position, int number, String text, Player target)"
-                    : $"public static void {method}(Player player, Level level, BlockPos position)");
+                if (handler.Mob is not null || handler.Block is not null || handler.Item is not null)
+                {
+                    // Mob event (V0.7.9): the same parameters for every event; each node shows those it gives.
+                    imports.UnionWith(["net.minecraft.world.entity.Entity", "net.minecraft.world.entity.LivingEntity"]);
+                }
+
+                body.OpenBlock(handler switch
+                {
+                    { Mob: not null } => $"public static void {method}(LivingEntity mob, Level level, BlockPos position, Player player, Entity other, double amount)",
+                    { Block: not null } => $"public static void {method}(Level level, BlockPos position, Player player, Entity other, double amount)",
+                    { Item: not null } => $"public static void {method}(Player player, Level level, BlockPos position, Entity other, double amount)",
+                    { Event: GraphNodeKind.OnCommand } => $"public static void {method}(Player player, Level level, BlockPos position, int number, String text, Player target)",
+                    _ => $"public static void {method}(Player player, Level level, BlockPos position)",
+                });
             }
             else
             {

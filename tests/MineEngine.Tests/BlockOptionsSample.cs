@@ -1,4 +1,6 @@
 using MineEngine.Assets;
+using MineEngine.Assets.Graphs;
+using MineEngine.Core.Assets;
 using MineEngine.Core.GameData;
 using MineEngine.Core.Identifiers;
 using MineEngine.Project;
@@ -68,11 +70,16 @@ internal static class BlockOptionsSample
                 Boxes = [new BlockBox(0, 0, 0, 16, 16, 4)],
             },
         };
+        // V0.7.11: only a diamond pickaxe harvests the ore, and only where its function says yes.
+        GraphAsset canDrop = EntitySample.Function(project, "ore_can_drop", DataType.Position, DataType.Boolean, "true");
         var ore = new BlockAsset(Guid.NewGuid(), ResourceId.Parse("moon_ore"), "Minerai lunaire")
         {
             ExperienceMin = 1,
             ExperienceMax = 3,
             HarvestTool = HarvestTool.Pickaxe,
+            RequiresCorrectTool = true,
+            RequiredTool = ContentReference.ToId(NamespacedId.TryParse("minecraft:diamond_pickaxe", out NamespacedId? pickaxe) ? pickaxe! : throw new InvalidOperationException()),
+            DropCondition = canDrop.Id,
             Options = new BlockOptions
             {
                 Ore = new BlockOreGeneration

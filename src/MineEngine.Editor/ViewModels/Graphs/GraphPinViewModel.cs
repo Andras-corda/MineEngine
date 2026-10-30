@@ -136,12 +136,22 @@ public sealed class GraphPinViewModel : ObservableObject
 
     /// <summary>
     /// Values offered by a text input (<see cref="PinInfo.Suggest"/>): the identifiers of the particle
-    /// systems of the project, or the user parameters of the system chosen on the node.
+    /// systems or of the mobs of the project, or the user parameters of the system chosen on the node.
     /// </summary>
     public IReadOnlyList<string> Suggestions
     {
         get
         {
+            if (Info.Suggest == PinSuggestion.Mob)
+            {
+                return [.. Node.Document.Assets.OfType<MobAsset>().Select(m => m.ResourceId.Value).Order(StringComparer.Ordinal)];
+            }
+
+            if (Info.Suggest == PinSuggestion.Block)
+            {
+                return [.. Node.Document.Assets.OfType<BlockAsset>().Select(b => b.ResourceId.Value).Order(StringComparer.Ordinal)];
+            }
+
             IEnumerable<SparkleAsset> systems = Node.Document.Assets.OfType<SparkleAsset>();
             if (Info.Suggest == PinSuggestion.SparkleSystem)
             {

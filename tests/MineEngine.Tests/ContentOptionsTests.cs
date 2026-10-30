@@ -73,7 +73,7 @@ public sealed class ContentOptionsTests
         string workspace = await GenerateAsync(temp.Path, ModLoaderKind.NeoForge, "1.21.1", new NeoForgeJavaEmitter());
         string Read(string relative) => File.ReadAllText(Path.Combine(workspace, relative));
 
-        string items = Read("src/main/java/com/mineengine/mods/testmod/registry/ModItems.java");
+        string items = GeneratedItems.Read(Path.Combine(workspace, "src/main/java/com/mineengine/mods/testmod"));
         Assert.Contains(".durability(250)", items);
         Assert.DoesNotContain(".durability(250)\n                .stacksTo", items);
         Assert.Contains(".rarity(Rarity.RARE)", items);
@@ -125,7 +125,7 @@ public sealed class ContentOptionsTests
         string workspace = await GenerateAsync(temp.Path, ModLoaderKind.Forge, "1.20.1", new ForgeJavaEmitter());
         string Read(string relative) => File.ReadAllText(Path.Combine(workspace, relative));
 
-        string items = Read("src/main/java/com/mineengine/mods/testmod/registry/ModItems.java");
+        string items = GeneratedItems.Read(Path.Combine(workspace, "src/main/java/com/mineengine/mods/testmod"));
         Assert.Contains(".saturationMod(0.8f).meat().alwaysEat()", items);
         Assert.Contains("Level level, List<Component> tooltip", items);
 

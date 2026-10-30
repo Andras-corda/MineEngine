@@ -1,5 +1,5 @@
 <Project>
-  <!-- Paramètres communs à tous les projets de la solution. -->
+  <!-- Global parameter -->
   <PropertyGroup>
     <MineEngineTargetFramework>net9.0</MineEngineTargetFramework>
     <LangVersion>latest</LangVersion>
@@ -14,7 +14,7 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 
-  <!-- Traductions de l'interface : Tr.T("...") et Tr.F("...", ...) sont disponibles partout. -->
+  <!-- traduction -->
   <ItemGroup>
     <Using Include="MineEngine.Core.Localization" />
   </ItemGroup>
