@@ -65,7 +65,7 @@ public sealed class WorkspaceTests
         Assert.Equal("Test Mod", summary.Settings.ModName);
         Assert.Equal("Un mod de test", summary.Settings.Description);
         Assert.Equal(22, summary.Count(AssetType.Item)); // With the 8 items of ItemSample (V0.7.12).
-        Assert.Equal(20, summary.Count(AssetType.Block)); // With the 4 blocks of BlockOptionsSample and the 10 of BlockBaseSample.
+        Assert.Equal(21, summary.Count(AssetType.Block)); // With the 4 blocks of BlockOptionsSample, the 10 of BlockBaseSample and the rune vault of LootSample.
         Assert.Equal(9, summary.Count(AssetType.Mob)); // With the 4 mobs of EntitySample (V0.7.9).
         Assert.Equal(3, summary.Count(AssetType.Recipe));
         Assert.Equal(2, summary.PreviewTextures.Count);

@@ -460,6 +460,103 @@ public sealed class FluidAssetViewModel : AssetViewModel
 }
 
 /// <summary>Properties of a game rule (V0.6.3).</summary>
+/// <summary>
+/// Damage type (V0.7.10): its two death messages with a preview, its exhaustion, scaling, sound and kind
+/// of message, and its properties (tags of the game), each a box.
+/// </summary>
+public sealed class DamageTypeAssetViewModel : AssetViewModel
+{
+    private readonly DamageTypeAsset _damage;
+
+    public DamageTypeAssetViewModel(DamageTypeAsset model, AssetEditingContext context, string typeLabel)
+        : base(model, context, typeLabel)
+    {
+        _damage = model;
+        FlagOptions = [.. GameDataChoices.DamageTypeFlags.Select(c => new ToggleOptionViewModel(c.Label,
+            () => _damage.Flags.Contains(c.Value),
+            on => ChangeIfDifferent(Tr.T("Change the properties of the damage"), nameof(DamageTypeAsset.Flags), () => _damage.Flags, v => _damage.Flags = v,
+                on ? new HashSet<DamageTypeFlag>(_damage.Flags) { c.Value } : new HashSet<DamageTypeFlag>(_damage.Flags.Where(f => f != c.Value)))))];
+    }
+
+    public IReadOnlyList<Choice<DamageScaling>> ScalingChoices => GameDataChoices.DamageScalings;
+
+    public IReadOnlyList<Choice<DamageEffects>> EffectsChoices => GameDataChoices.DamageEffectsChoices;
+
+    public IReadOnlyList<Choice<DeathMessageType>> MessageTypeChoices => GameDataChoices.DeathMessageTypes;
+
+    public IReadOnlyList<ToggleOptionViewModel> FlagOptions { get; }
+
+    public string DeathMessage
+    {
+        get => _damage.DeathMessage;
+        set => ChangeIfDifferent(Tr.T("Change the death message"), nameof(DamageTypeAsset.DeathMessage), () => _damage.DeathMessage, v => _damage.DeathMessage = v, (value ?? string.Empty).Trim());
+    }
+
+    public string KillerMessage
+    {
+        get => _damage.KillerMessage;
+        set => ChangeIfDifferent(Tr.T("Change the death message"), nameof(DamageTypeAsset.KillerMessage), () => _damage.KillerMessage, v => _damage.KillerMessage = v, (value ?? string.Empty).Trim());
+    }
+
+    /// <summary>The two messages as the chat shows them, with example names.</summary>
+    public string MessagePreview =>
+        Example(_damage.DeathMessage) + (_damage.KillerMessage.Length > 0 ? Environment.NewLine + Example(_damage.KillerMessage) : string.Empty);
+
+    public double Exhaustion
+    {
+        get => Math.Round(_damage.Exhaustion, 3);
+        set => ChangeNumber(Tr.T("Change the exhaustion"), nameof(DamageTypeAsset.Exhaustion), value, () => _damage.Exhaustion, v => _damage.Exhaustion = v, v => (float)v);
+    }
+
+    public double MaxExhaustion => DamageTypeAsset.MaxExhaustion;
+
+    public DamageScaling Scaling
+    {
+        get => _damage.Scaling;
+        set => ChangeIfDifferent(Tr.T("Change the scaling"), nameof(DamageTypeAsset.Scaling), () => _damage.Scaling, v => _damage.Scaling = v, value);
+    }
+
+    public DamageEffects Effects
+    {
+        get => _damage.Effects;
+        set => ChangeIfDifferent(Tr.T("Change the sound of the damage"), nameof(DamageTypeAsset.Effects), () => _damage.Effects, v => _damage.Effects = v, value);
+    }
+
+    public DeathMessageType MessageType
+    {
+        get => _damage.MessageType;
+        set => ChangeIfDifferent(Tr.T("Change the kind of death message"), nameof(DamageTypeAsset.MessageType), () => _damage.MessageType, v => _damage.MessageType = v, value);
+    }
+
+    /// <summary>How graphs use it: the node and the identifier.</summary>
+    public string Usage => Tr.F("Node \"Damage of a type\" with \"{0}\", then \"Damage with a source\".", _damage.ResourceId.Value);
+
+    protected override void OnModelPropertyChanged(string propertyName)
+    {
+        base.OnModelPropertyChanged(propertyName);
+        switch (propertyName)
+        {
+            case nameof(DamageTypeAsset.DeathMessage):
+            case nameof(DamageTypeAsset.KillerMessage):
+                OnPropertyChanged(nameof(MessagePreview));
+                break;
+            case nameof(DamageTypeAsset.Flags):
+                foreach (ToggleOptionViewModel option in FlagOptions)
+                {
+                    option.Refresh();
+                }
+
+                break;
+            case nameof(Asset.ResourceId):
+                OnPropertyChanged(nameof(Usage));
+                break;
+        }
+    }
+
+    private static string Example(string message) =>
+        message.Replace("{victim}", "Steve", StringComparison.Ordinal).Replace("{killer}", "Zombie", StringComparison.Ordinal);
+}
+
 public sealed class GameRuleAssetViewModel : AssetViewModel
 {
     private readonly GameRuleAsset _rule;

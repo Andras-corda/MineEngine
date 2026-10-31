@@ -29,6 +29,9 @@ public enum AssetReferenceKind
 
     /// <summary>A global variable (Global tab).</summary>
     GlobalVariable,
+
+    /// <summary>A drop table of the project (V0.7.10).</summary>
+    LootTable,
 }
 
 /// <summary>

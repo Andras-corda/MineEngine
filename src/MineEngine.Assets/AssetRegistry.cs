@@ -240,6 +240,8 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
                 Tr.F("{0}: {1} is not a definition.", Capitalize(reference.Role), target),
             AssetReferenceKind.GlobalVariable when target is not GlobalVariableAsset =>
                 Tr.F("{0}: {1} is not a global variable.", Capitalize(reference.Role), target),
+            AssetReferenceKind.LootTable when target is not LootTableAsset =>
+                Tr.F("{0}: {1} is not a drop table.", Capitalize(reference.Role), target),
             AssetReferenceKind.BehaviorTree when target is not BehaviorTreeAsset =>
                 Tr.F("{0}: {1} is not a behavior tree.", Capitalize(reference.Role), target),
             AssetReferenceKind.Model or AssetReferenceKind.EntityModel when target is not ModelAsset =>

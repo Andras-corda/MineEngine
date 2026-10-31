@@ -67,6 +67,7 @@ public sealed class MobAsset : TexturedAsset
     private MobRiding _riding = MobRiding.Disabled;
     private MobWater _water = MobWater.Disabled;
     private IReadOnlySet<MobImmunity> _immunities = new HashSet<MobImmunity>();
+    private IReadOnlySet<Guid> _immuneDamageTypes = new HashSet<Guid>();
     private IReadOnlySet<MobVulnerability> _vulnerabilities = new HashSet<MobVulnerability>();
 
     private Guid? _despawnFunction;
@@ -90,6 +91,7 @@ public sealed class MobAsset : TexturedAsset
     private ContentReference? _hurtSound;
     private ContentReference? _deathSound;
     private IReadOnlyList<MobDrop> _drops = [];
+    private Guid? _dropTable;
 
     private bool _hasSpawnEgg = true;
     private int _eggPrimaryColor = 0x4C7A2A;
@@ -319,6 +321,21 @@ public sealed class MobAsset : TexturedAsset
         set => SetField(ref _water, value ?? MobWater.Disabled);
     }
 
+    /// <summary>Damage types of the project the mob is immune to (V0.7.10, Entity.md "custom damage type").</summary>
+    public IReadOnlySet<Guid> ImmuneDamageTypes
+    {
+        get => _immuneDamageTypes;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (!value.SetEquals(_immuneDamageTypes))
+            {
+                _immuneDamageTypes = new HashSet<Guid>(value);
+                RaiseChanged(nameof(ImmuneDamageTypes));
+            }
+        }
+    }
+
     public IReadOnlySet<MobImmunity> Immunities
     {
         get => _immunities;
@@ -394,6 +411,13 @@ public sealed class MobAsset : TexturedAsset
     {
         get => _deathSound;
         set => SetField(ref _deathSound, value);
+    }
+
+    /// <summary>Drop table of the project the mob drops instead of <see cref="Drops"/> (V0.7.10), or null.</summary>
+    public Guid? DropTable
+    {
+        get => _dropTable;
+        set => SetField(ref _dropTable, value);
     }
 
     public IReadOnlyList<MobDrop> Drops
@@ -553,6 +577,11 @@ public sealed class MobAsset : TexturedAsset
 
     public override IEnumerable<AssetReference> GetReferences()
     {
+        if (DropTable is { } table)
+        {
+            yield return new AssetReference(table, AssetReferenceKind.LootTable, Tr.T("drop table"));
+        }
+
         foreach (AssetReference reference in base.GetReferences())
         {
             yield return reference;
@@ -676,6 +705,10 @@ public sealed class MobAsset : TexturedAsset
     {
         base.Validate(diagnostics);
         string source = ToString();
+        if (DropTable is not null && Drops.Count > 0)
+        {
+            diagnostics.Info(Tr.T("The items of the drop list are not used: the mob drops its drop table."), source, Id);
+        }
 
         if (Model == MobModel.Custom && CustomModelId is null)
         {

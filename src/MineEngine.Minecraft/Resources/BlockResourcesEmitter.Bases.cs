@@ -44,7 +44,7 @@ public sealed partial class BlockResourcesEmitter
 
         JsonObject blockState;
         string? itemParent = Ref(string.Empty);
-        JsonObject? lootTable = CreateLootTable(block, paths);
+        JsonObject? lootTable = CreateLootTable(block, context);
         switch (block.Settings.Model)
         {
             case BlockModelKind.Stairs:

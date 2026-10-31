@@ -151,10 +151,17 @@ public abstract partial class ModJavaEmitter
             }
         }
 
-        if (mob.Immunities.Count > 0 || mob.Vulnerabilities.Contains(MobVulnerability.Potions))
+        if (mob.HasImmunities || mob.Vulnerabilities.Contains(MobVulnerability.Potions))
         {
             yield return "net.minecraft.world.damagesource.DamageSource";
             yield return "net.minecraft.world.damagesource.DamageTypes";
+        }
+
+        if (mob.ImmuneDamageTypes.Count > 0)
+        {
+            yield return "net.minecraft.resources.ResourceKey";
+            yield return "net.minecraft.resources.ResourceLocation";
+            yield return "net.minecraft.core.registries.Registries";
         }
 
         if (mob.Immunities.Contains(MobImmunity.Potions))
@@ -263,10 +270,15 @@ public abstract partial class ModJavaEmitter
                 .CloseBlock();
         }
 
-        if (mob.Immunities.Count > 0 || mob.Vulnerabilities.Contains(MobVulnerability.Potions) || events.Has(MobEventKind.Hurt))
+        if (mob.HasImmunities || mob.Vulnerabilities.Contains(MobVulnerability.Potions) || events.Has(MobEventKind.Hurt))
         {
             w.Line().Line("@Override").OpenBlock("public boolean hurt(DamageSource source, float amount)");
-            List<string> immune = [.. mob.Immunities.Order().SelectMany(DamageTypes).Select(t => $"source.is(DamageTypes.{t})")];
+            List<string> immune =
+            [
+                .. mob.Immunities.Order().SelectMany(DamageTypes).Select(t => $"source.is(DamageTypes.{t})"),
+                .. mob.ImmuneDamageTypes.Select(t =>
+                    $"source.is(ResourceKey.create(Registries.DAMAGE_TYPE, {api.ParseResourceLocation(JavaNames.StringLiteral(t.ToString()))}))"),
+            ];
             if (immune.Count > 0)
             {
                 w.OpenBlock($"if ({string.Join(" || ", immune)})").Line("return false;").CloseBlock().Line();

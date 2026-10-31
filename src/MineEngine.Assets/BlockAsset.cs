@@ -37,6 +37,7 @@ public sealed class BlockAsset : InventoryAsset
     private bool _requiresCorrectTool;
     private BlockDropKind _dropKind = BlockDropKind.Self;
     private ContentReference? _dropItem;
+    private Guid? _dropTable;
     private int _dropMin = 1;
     private int _dropMax = 1;
     private int _experienceMin;
@@ -189,6 +190,13 @@ public sealed class BlockAsset : InventoryAsset
         set => SetField(ref _dropKind, value);
     }
 
+    /// <summary>Drop table of the project used when <see cref="DropKind"/> is Table (V0.7.10, block.md "bind to drop table").</summary>
+    public Guid? DropTable
+    {
+        get => _dropTable;
+        set => SetField(ref _dropTable, value);
+    }
+
     /// <summary>Item laissé quand <see cref="DropKind"/> vaut OtherItem (item du projet ou du jeu).</summary>
     public ContentReference? DropItem
     {
@@ -278,6 +286,11 @@ public sealed class BlockAsset : InventoryAsset
             yield return new AssetReference(texture, AssetReferenceKind.Texture, Tr.F("{0} texture", slot.ToString().ToLowerInvariant()));
         }
 
+        if (DropKind == BlockDropKind.Table && DropTable is { } table)
+        {
+            yield return new AssetReference(table, AssetReferenceKind.LootTable, Tr.T("drop table"));
+        }
+
         if (DropKind == BlockDropKind.OtherItem && DropItem is { Kind: ContentReferenceKind.Asset } drop)
         {
             yield return new AssetReference(drop.AssetId, AssetReferenceKind.Item, Tr.T("dropped item"));
@@ -321,6 +334,11 @@ public sealed class BlockAsset : InventoryAsset
         if (ToolTier != ToolTier.Any && HarvestTool == HarvestTool.None)
         {
             diagnostics.Warning(Tr.T("A tool level is chosen without a tool: it will be ignored."), source, Id);
+        }
+
+        if (DropKind == BlockDropKind.Table && DropTable is null)
+        {
+            diagnostics.Warning(Tr.T("No drop table is chosen: the block drops nothing."), ToString(), Id);
         }
 
         if (DropKind == BlockDropKind.OtherItem && DropItem is null)

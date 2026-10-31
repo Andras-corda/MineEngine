@@ -121,6 +121,8 @@ internal static class SampleContent
         SparkleSample.AddTo(project);
         EntitySample.AddTo(project, goblinTexture);
         ItemSample.AddTo(project, ruby);
+        DamageSample.AddTo(project);
+        LootSample.AddTo(project, ruby);
     }
 
     /// <summary>V0.4.1 : outils, armures, nourriture à effets, combustible, tags et événements d'items.</summary>

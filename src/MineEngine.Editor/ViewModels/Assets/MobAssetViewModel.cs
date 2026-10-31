@@ -363,9 +363,21 @@ public sealed partial class MobAssetViewModel : TexturedAssetViewModel
 
     public string SummonCommand => $"/summon {FullResourceId}";
 
+    /// <summary>The drop table of the project the mob drops instead of its list (V0.7.10).</summary>
+    public Guid? DropTable
+    {
+        get => _mob.DropTable;
+        set => ChangeIfDifferent(Tr.T("Change the drop table"), nameof(MobAsset.DropTable), () => _mob.DropTable, v => _mob.DropTable = v, value);
+    }
+
+    public bool UsesDropList => _mob.DropTable is null;
+
     public override void OnProjectContentChanged()
     {
         base.OnProjectContentChanged();
+        OnPropertyChanged(nameof(LootTableChoices));
+        OnPropertyChanged(nameof(DamageTypeImmunityOptions));
+        OnPropertyChanged(nameof(HasDamageTypes));
         BreedingItem.Refresh();
         AmbientSound.Refresh();
         HurtSound.Refresh();
@@ -417,6 +429,10 @@ public sealed partial class MobAssetViewModel : TexturedAssetViewModel
 
             case nameof(MobAsset.Drops):
                 SyncDrops();
+                break;
+            case nameof(MobAsset.DropTable):
+                OnPropertyChanged(nameof(DropTable));
+                OnPropertyChanged(nameof(UsesDropList));
                 break;
 
             case nameof(MobAsset.BreedingItem):

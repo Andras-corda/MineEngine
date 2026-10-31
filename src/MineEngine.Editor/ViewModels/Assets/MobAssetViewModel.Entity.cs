@@ -517,6 +517,19 @@ public sealed partial class MobAssetViewModel
     private void ChangeBoss(string description, Func<MobBoss, MobBoss> change) =>
         ChangeIfDifferent(description, nameof(MobAsset.Boss), () => _mob.Boss, v => _mob.Boss = v, change(_mob.Boss));
 
+    /// <summary>The damage types of the project, each a box (V0.7.10): the mob ignores the checked ones.</summary>
+    public IReadOnlyList<ToggleOptionViewModel> DamageTypeImmunityOptions =>
+    [
+        .. Context.Project.Assets.OfType<DamageTypeAsset>().OrderBy(d => d.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+            .Select(d => new ToggleOptionViewModel(DisplayLabel(d), () => _mob.ImmuneDamageTypes.Contains(d.Id), on => ToggleDamageType(d.Id, on))),
+    ];
+
+    public bool HasDamageTypes => Context.Project.Assets.OfType<DamageTypeAsset>().Any();
+
+    private void ToggleDamageType(Guid id, bool on) =>
+        ChangeIfDifferent(Tr.T("Change the immunities"), nameof(MobAsset.ImmuneDamageTypes), () => _mob.ImmuneDamageTypes, v => _mob.ImmuneDamageTypes = v,
+            on ? new HashSet<Guid>(_mob.ImmuneDamageTypes) { id } : new HashSet<Guid>(_mob.ImmuneDamageTypes.Where(t => t != id)));
+
     private void Toggle(MobImmunity value, bool on) =>
         ChangeIfDifferent(Tr.T("Change the immunities"), nameof(MobAsset.Immunities), () => _mob.Immunities, v => _mob.Immunities = v, Toggled(_mob.Immunities, value, on));
 
@@ -600,6 +613,9 @@ public sealed partial class MobAssetViewModel
                 break;
             case nameof(MobAsset.Immunities):
                 RefreshAll(ImmunityOptions);
+                break;
+            case nameof(MobAsset.ImmuneDamageTypes):
+                OnPropertyChanged(nameof(DamageTypeImmunityOptions));
                 break;
             case nameof(MobAsset.Vulnerabilities):
                 RefreshAll(VulnerabilityOptions);

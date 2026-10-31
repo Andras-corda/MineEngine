@@ -196,6 +196,15 @@ public sealed partial class BlockAssetViewModel : InventoryAssetViewModel
 
     public bool IsDropOtherItem => _block.DropKind == BlockDropKind.OtherItem;
 
+    public bool IsDropTable => _block.DropKind == BlockDropKind.Table;
+
+    /// <summary>The drop table of the project the block drops (V0.7.10, block.md "bind to drop table").</summary>
+    public Guid? DropTable
+    {
+        get => _block.DropTable;
+        set => ChangeIfDifferent(Tr.T("Change the drop table"), nameof(BlockAsset.DropTable), () => _block.DropTable, v => _block.DropTable = v, value);
+    }
+
     /// <summary>Item laissé : item du projet ou du jeu.</summary>
     public ReferencePickerViewModel DropItemPicker { get; }
 
@@ -239,6 +248,7 @@ public sealed partial class BlockAssetViewModel : InventoryAssetViewModel
     {
         base.OnProjectContentChanged();
         DropItemPicker.Refresh();
+        OnPropertyChanged(nameof(LootTableChoices));
         foreach (TextureSlotViewModel slot in _extraSlots)
         {
             slot.Refresh();
@@ -268,6 +278,11 @@ public sealed partial class BlockAssetViewModel : InventoryAssetViewModel
 
             case nameof(BlockAsset.DropKind):
                 OnPropertyChanged(nameof(IsDropOtherItem));
+                OnPropertyChanged(nameof(IsDropTable));
+                break;
+
+            case nameof(BlockAsset.DropTable):
+                OnPropertyChanged(nameof(DropTable));
                 break;
 
             case nameof(BlockAsset.HasItemFormEnabled):

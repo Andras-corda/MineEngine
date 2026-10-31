@@ -708,6 +708,8 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
         AssetType.Enchantment => Tr.T("Enchantments"),
         AssetType.Fluid => Tr.T("Fluids"),
         AssetType.GameRule => Tr.T("Game rules"),
+        AssetType.DamageType => Tr.T("Damage types"),
+        AssetType.LootTable => Tr.T("Drop tables"),
         AssetType.Effect => Tr.T("Effects"),
         AssetType.GlobalVariable => Tr.T("Global variables"),
         AssetType.Tag => Tr.T("Tags"),

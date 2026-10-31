@@ -81,7 +81,7 @@ public sealed partial class BlockResourcesEmitter : ResourceEmitter
                 WriteJson(context, paths.ItemModel(block.Id), itemModel);
             }
 
-            JsonObject? lootTable = CreateLootTable(block, paths);
+            JsonObject? lootTable = CreateLootTable(block, context);
             if (lootTable is not null)
             {
                 WriteJson(context, paths.BlockLootTable(block.Id), lootTable);
@@ -108,7 +108,7 @@ public sealed partial class BlockResourcesEmitter : ResourceEmitter
         WriteTexture(context, block.Texture, paths.BlockTexture(block.Id));
         string itemTexture = paths.Reference($"block/{id}");
         JsonObject blockState;
-        JsonObject? lootTable = CreateLootTable(block, paths);
+        JsonObject? lootTable = CreateLootTable(block, context);
         switch (plant.Kind)
         {
             case MineEngine.Assets.PlantKind.Tall:
@@ -467,9 +467,16 @@ public sealed partial class BlockResourcesEmitter : ResourceEmitter
         return conditions;
     }
 
-    private static JsonObject? CreateLootTable(IRBlock block, ResourcePaths paths)
+    private static JsonObject? CreateLootTable(IRBlock block, GenerationContext context)
     {
+        ResourcePaths paths = context.Paths;
         IRBlockDrop drop = block.Drop;
+        if (drop.Kind == BlockDropKind.Table)
+        {
+            // V0.7.10: the pools of the drop table, under the conditions of the block (its tool).
+            return LootTablesEmitter.FromProjectTable(context, drop.Table, "minecraft:block", () => DropConditions(block));
+        }
+
         string? item = drop.Kind switch
         {
             BlockDropKind.Self => paths.Reference(block.Id.Value),

@@ -737,6 +737,21 @@ public static class NodeCatalog
             inputs: [new PinInfo("box", Tr.T("Box"), DataType.BoundingBox), new PinInfo("point", Tr.T("Point"), DataType.Vector3f)], outputs: [BooleanOutput]),
         new(GraphNodeKind.GenericDamage, NodeCategory.Variable, Tr.T("Generic damage"), Tr.T("A damage source without cause, for the entity that will be hurt."),
             inputs: [Entity], outputs: [new PinInfo("source", Tr.T("Damage source"), DataType.DamageSource)]),
+        new(GraphNodeKind.DamageOfType, NodeCategory.Variable, Tr.T("Damage of a type"),
+            Tr.T("A damage source of a damage type of the mod (written without namespace) or of the game (minecraft:magic), caused by an entity or by nothing."),
+            inputs:
+            [
+                new PinInfo("type", Tr.T("Damage type"), PinType.Text, "minecraft:magic") { Suggest = PinSuggestion.DamageType },
+                new PinInfo("attacker", Tr.T("Caused by"), DataType.Entity),
+            ],
+            outputs: [new PinInfo("source", Tr.T("Damage source"), DataType.DamageSource)]),
+        new(GraphNodeKind.DropLootTable, NodeCategory.Action, Tr.T("Drop a drop table"),
+            Tr.T("Draws a drop table of the mod (written without namespace) or of the game (minecraft:chests/simple_dungeon) and drops its items at the position."),
+            inputs:
+            [
+                new PinInfo("table", Tr.T("Drop table"), PinType.Text, string.Empty) { Suggest = PinSuggestion.LootTable },
+                Position,
+            ]),
         new(GraphNodeKind.DamageWithSource, NodeCategory.Action, Tr.T("Damage with a source"), Tr.T("Hurts the entity with this damage source."),
             inputs: [Entity, new PinInfo("source", Tr.T("Damage source"), DataType.DamageSource), new PinInfo("amount", Tr.T("Amount"), PinType.Number, "2")]),
         new(GraphNodeKind.MakeEffect, NodeCategory.Variable, Tr.T("Make an effect"), Tr.T("An effect with its duration and its level, to give later; none if the effect does not exist."),
@@ -979,13 +994,14 @@ public static class NodeCatalog
         >= GraphNodeKind.CastToNumber and <= GraphNodeKind.CastToPlayer => NodeGroup.Conversions,
         GraphNodeKind.CharAt or GraphNodeKind.StyledText or GraphNodeKind.IdentifierNamespace or GraphNodeKind.IdentifierPath => NodeGroup.Text,
         GraphNodeKind.EntityUuid or GraphNodeKind.EntityByUuid or GraphNodeKind.RandomUuid or GraphNodeKind.EntityBox or GraphNodeKind.GenericDamage
-            or GraphNodeKind.DamageWithSource or GraphNodeKind.EquipmentItem or GraphNodeKind.ApplyEffect or GraphNodeKind.WorldOf => NodeGroup.Entities,
+            or GraphNodeKind.DamageOfType or GraphNodeKind.DamageWithSource or GraphNodeKind.EquipmentItem or GraphNodeKind.ApplyEffect or GraphNodeKind.WorldOf => NodeGroup.Entities,
         GraphNodeKind.SendRichMessage or GraphNodeKind.ItemInHand or GraphNodeKind.SwingHand or GraphNodeKind.MakeEffect => NodeGroup.Player,
         GraphNodeKind.StackRarity => NodeGroup.Item,
         GraphNodeKind.FluidAt or GraphNodeKind.PlaceFluid => NodeGroup.Block,
         >= GraphNodeKind.MakeBox and <= GraphNodeKind.BoxContains => NodeGroup.World,
         >= GraphNodeKind.NewNbt and <= GraphNodeKind.NbtGetText => NodeGroup.Program,
         >= GraphNodeKind.CurrentWorld and <= GraphNodeKind.GameTime => NodeGroup.World,
+        GraphNodeKind.DropLootTable => NodeGroup.World,
         GraphNodeKind.SetPlayerGuild or GraphNodeKind.PlayerGuild => NodeGroup.Player,
         GraphNodeKind.SetEntityGroup or GraphNodeKind.EntityGroup => NodeGroup.Entities,
         GraphNodeKind.IsBlockInTag => NodeGroup.Block,

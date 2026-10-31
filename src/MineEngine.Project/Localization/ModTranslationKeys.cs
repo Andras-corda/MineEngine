@@ -27,6 +27,7 @@ public enum TranslationSource
     TippedArrow,
     Plant,
     Biome,
+    DeathMessage,
 }
 
 /// <summary>Un texte du mod écrit dans les fichiers de langue : sa clé, le texte saisi et l'élément qui le porte.</summary>
@@ -160,6 +161,15 @@ public static class ModTranslationKeys
             if (rule.Description.Length > 0)
             {
                 entries.Add(new TranslationEntry($"gamerule.{rule.ResourceId}.description", rule.Description, TranslationSource.GameRuleDescription, rule.Id));
+            }
+        }
+
+        foreach (DamageTypeAsset damage in Sorted<DamageTypeAsset>(project))
+        {
+            entries.Add(new TranslationEntry($"death.attack.{ns}.{damage.ResourceId}", damage.DeathMessage, TranslationSource.DeathMessage, damage.Id));
+            if (damage.KillerMessage.Length > 0)
+            {
+                entries.Add(new TranslationEntry($"death.attack.{ns}.{damage.ResourceId}.player", damage.KillerMessage, TranslationSource.DeathMessage, damage.Id));
             }
         }
 

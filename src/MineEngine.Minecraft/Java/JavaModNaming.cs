@@ -17,6 +17,7 @@ public sealed class JavaModNaming
     public JavaModNaming(IRModInfo mod)
     {
         ArgumentNullException.ThrowIfNull(mod);
+        Namespace = mod.ModId.Value;
         RootPackage = $"{BasePackage}.{JavaNames.ToPackageSegment(mod.ModId)}";
         RegistryPackage = RootPackage + ".registry";
         EntityPackage = RootPackage + ".entity";
@@ -28,6 +29,9 @@ public sealed class JavaModNaming
         // Le suffixe "Mod" évite aussi toute collision avec ModBlocks, ModItems et ModCreativeTabs.
         MainClass = typeName.EndsWith("Mod", StringComparison.Ordinal) ? typeName : typeName + "Mod";
     }
+
+    /// <summary>Namespace of the identifiers of the mod ("testmod").</summary>
+    public string Namespace { get; }
 
     public string RootPackage { get; }
 

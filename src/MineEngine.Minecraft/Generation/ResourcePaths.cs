@@ -73,6 +73,9 @@ public sealed class ResourcePaths
 
     public string BlockLootTable(ResourceId id) => $"{DataRoot}/{_lootTableFolder}/blocks/{id}.json";
 
+    /// <summary>Drop table of the project (V0.7.10), at the root of the folder of the loot tables.</summary>
+    public string LootTable(ResourceId id) => $"{DataRoot}/{_lootTableFolder}/{id}.json";
+
     public string EntityLootTable(ResourceId id) => $"{DataRoot}/{_lootTableFolder}/entities/{id}.json";
 
     public string Recipe(ResourceId id) => $"{DataRoot}/{_recipeFolder}/{id}.json";
@@ -135,6 +138,15 @@ public sealed class ResourcePaths
 
     /// <summary>Name of a game rule in the "Edit game rules" screen.</summary>
     public static string GameRuleTranslationKey(ResourceId id) => $"gamerule.{id}";
+
+    /// <summary>Damage type of the mod (V0.7.10), data on every version.</summary>
+    public string DamageType(ResourceId id) => $"{DataRoot}/damage_type/{id}.json";
+
+    /// <summary>Tag of damage types of Minecraft ("bypasses_armor"), joined by the damage types of the mod.</summary>
+    public string VanillaDamageTypeTag(string tag) => $"{ResourcesRoot}/data/minecraft/tags/damage_type/{tag}.json";
+
+    /// <summary>Death message of a damage type; ".player" when another entity caused it.</summary>
+    public string DeathMessageTranslationKey(ResourceId id) => $"death.attack.{Namespace}.{id}";
 
     /// <summary>Enchantment of the mod as data (1.21).</summary>
     public string Enchantment(ResourceId id) => $"{DataRoot}/enchantment/{id}.json";

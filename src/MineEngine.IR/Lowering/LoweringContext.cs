@@ -27,6 +27,8 @@ public sealed class LoweringContext
     private readonly List<IREnchantment> _enchantments = [];
     private readonly List<IRFluid> _fluids = [];
     private readonly List<IRGameRule> _gameRules = [];
+    private readonly List<IRDamageType> _damageTypes = [];
+    private readonly List<IRLootTable> _lootTables = [];
     private readonly List<IREffect> _effects = [];
     private readonly List<IRGlobalVariable> _globals = [];
 
@@ -71,6 +73,10 @@ public sealed class LoweringContext
     public void AddFluid(IRFluid fluid) => _fluids.Add(fluid);
 
     public void AddGameRule(IRGameRule rule) => _gameRules.Add(rule);
+
+    public void AddDamageType(IRDamageType damageType) => _damageTypes.Add(damageType);
+
+    public void AddLootTable(IRLootTable table) => _lootTables.Add(table);
 
     public void AddEffect(IREffect effect) => _effects.Add(effect);
 
@@ -179,6 +185,22 @@ public sealed class LoweringContext
             ? new IRIngredient(reference.Id!, IsTag: true)
             : ResolveItem(owner, reference, role) is { } item ? new IRIngredient(item, IsTag: false) : null;
 
+    /// <summary>Identifier of a drop table of the project; null (the reference check reports a deleted table).</summary>
+    public ResourceId? ResolveLootTable(Asset owner, Guid? id) =>
+        id is { } tableId && Project.Assets.Find(tableId) is LootTableAsset table ? table.ResourceId : null;
+
+    /// <summary>In-game identifier of a damage type of the project; null (and an error) when it no longer exists.</summary>
+    public NamespacedId? ResolveDamageType(Asset owner, Guid id)
+    {
+        if (Project.Assets.Find(id) is not DamageTypeAsset)
+        {
+            Diagnostics.Error(Tr.T("A damage type the mob is immune to no longer exists."), owner.ToString(), owner.Id);
+            return null;
+        }
+
+        return ResolveAsset(owner, id, Tr.T("damage type"));
+    }
+
     /// <summary>Identifiant d'un événement sonore (son du projet ou du jeu).</summary>
     public NamespacedId? ResolveSound(Asset owner, ContentReference? reference, string role) => reference?.Kind switch
     {
@@ -213,6 +235,8 @@ public sealed class LoweringContext
         Enchantments = [.. _enchantments.OrderBy(e => e.Id)],
         Fluids = [.. _fluids.OrderBy(f => f.Id)],
         GameRules = [.. _gameRules.OrderBy(r => r.Id)],
+        DamageTypes = [.. _damageTypes.OrderBy(d => d.Id)],
+        LootTables = [.. _lootTables.OrderBy(t => t.Id)],
         Effects = [.. _effects.OrderBy(e => e.Id)],
         Globals = [.. _globals.OrderBy(g => g.Name, StringComparer.Ordinal)],
         Tags = [.. _tags.OrderBy(t => t.Namespace, StringComparer.Ordinal).ThenBy(t => t.Path, StringComparer.Ordinal)],

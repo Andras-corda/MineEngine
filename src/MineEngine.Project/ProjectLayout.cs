@@ -145,6 +145,8 @@ public sealed class ProjectLayout
         AssetType.Enchantment => "enchantments",
         AssetType.Fluid => "fluids",
         AssetType.GameRule => "gamerules",
+        AssetType.DamageType => "damagetypes",
+        AssetType.LootTable => "droptables",
         AssetType.Effect => "effects",
         AssetType.GlobalVariable => "globals",
         AssetType.Tag => "tags",

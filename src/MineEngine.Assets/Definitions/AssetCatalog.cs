@@ -45,6 +45,8 @@ public sealed class AssetCatalog
             new EnchantmentAssetDefinition(),
             new FluidAssetDefinition(),
             new GameRuleAssetDefinition(),
+            new DamageTypeAssetDefinition(),
+            new LootTableAssetDefinition(),
             new EffectAssetDefinition(),
             new GlobalVariableAssetDefinition(),
             new TagAssetDefinition(),

@@ -208,6 +208,14 @@
                                           ToolTip="{l:Tr 'Rule changed with /gamerule'}">
                                     <MenuItem.Icon><views:IconView Icon="Glyph.Settings" IconSize="14" /></MenuItem.Icon>
                                 </MenuItem>
+                                <MenuItem Header="{l:Tr 'Drop table'}" Command="{Binding AddOfTypeCommand}" CommandParameter="{x:Static core:AssetType.LootTable}"
+                                          ToolTip="{l:Tr 'What a block, a mob or a chest gives: pools of items drawn at random'}">
+                                    <MenuItem.Icon><views:IconView Icon="Glyph.Package" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{l:Tr 'Damage type'}" Command="{Binding AddOfTypeCommand}" CommandParameter="{x:Static core:AssetType.DamageType}"
+                                          ToolTip="{l:Tr 'Kind of damage with its death message, used by the graphs and the immunities of the mobs'}">
+                                    <MenuItem.Icon><views:IconView Icon="Glyph.Warning" IconSize="14" /></MenuItem.Icon>
+                                </MenuItem>
                                 <MenuItem Header="{l:Tr 'Status effect'}" Command="{Binding AddOfTypeCommand}" CommandParameter="{x:Static core:AssetType.Effect}"
                                           ToolTip="{l:Tr 'Effect like Speed or Poison, with its potion'}">
                                     <MenuItem.Icon><views:IconView Icon="PotionGeometry" IconSize="14" /></MenuItem.Icon>

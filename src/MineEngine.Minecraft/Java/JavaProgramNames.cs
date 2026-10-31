@@ -28,6 +28,7 @@ public sealed class JavaProgramNames
     {
         ArgumentNullException.ThrowIfNull(naming);
         Package = naming.RootPackage + ".code";
+        ModNamespace = naming.Namespace;
         _definitions = definitions.ToDictionary(d => d.Id);
         foreach (IRDefinition definition in _definitions.Values)
         {
@@ -48,6 +49,9 @@ public sealed class JavaProgramNames
     }
 
     public string Package { get; }
+
+    /// <summary>Namespace of the mod: an identifier written without one belongs to the mod (V0.7.10).</summary>
+    public string ModNamespace { get; }
 
     public IEnumerable<IRDefinition> Definitions => _definitions.Values;
 

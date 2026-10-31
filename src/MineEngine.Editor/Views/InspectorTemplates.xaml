@@ -117,8 +117,8 @@
                 <ControlTemplate TargetType="views:PropertyRow">
                     <Grid MinHeight="30">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="2*" MinWidth="120" MaxWidth="260" />
-                            <ColumnDefinition Width="3*" />
+                            <ColumnDefinition Width="240" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
                             <DockPanel LastChildFill="False">
@@ -1155,6 +1155,15 @@
                             <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Drops'}" />
                             <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding DropKindChoices}" SelectedValue="{Binding DropKind}" />
                         </WrapPanel>
+                        <StackPanel Visibility="{Binding IsDropTable, Converter={StaticResource BoolToVisibility}}">
+                            <WrapPanel Style="{StaticResource Row}">
+                                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Drop table'}" />
+                                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding LootTableChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                          SelectedValue="{Binding DropTable}" />
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource RowHint}"
+                                       Text="{l:Tr 'The pools of a drop table of the project (Add > Gameplay > Drop table); the tool the block needs still applies.'}" />
+                        </StackPanel>
                         <StackPanel Visibility="{Binding IsDropOtherItem, Converter={StaticResource BoolToVisibility}}">
                             <WrapPanel Style="{StaticResource Row}">
                                 <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Dropped item'}" />
@@ -1850,6 +1859,164 @@
     </DataTemplate>
 
     <!-- ===================== Règle du jeu (V0.6.3) ===================== -->
+    <!-- ===================== Drop table (V0.7.10) ===================== -->
+    <DataTemplate DataType="{x:Type assets:LootEntryViewModel}">
+        <Border Style="{StaticResource Card}" Margin="0,0,0,8">
+            <StackPanel>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" ToolTip="{l:Tr 'Remove the entry'}"
+                            VerticalAlignment="Top" Command="{Binding RemoveCommand}" />
+                    <views:PropertyRow Label="{l:Tr 'Gives an item?'}" Help="{l:Tr 'Unchecked, the entry gives nothing: with its weight, a chance that the roll gives nothing.'}">
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Check to enable'}" IsChecked="{Binding GivesItem}" />
+                    </views:PropertyRow>
+                </DockPanel>
+                <views:PropertyRow Label="{l:Tr 'Item'}" Help="{l:Tr 'An item, or a tag: one of its items at random.'}" IsEnabled="{Binding GivesItem}">
+                    <ContentControl Style="{StaticResource RowPicker}" Content="{Binding ItemPicker}" />
+                </views:PropertyRow>
+                <views:PropertyRow Label="{l:Tr 'Weight'}" Help="{l:Tr 'Chance of this entry against the others of the pool: an entry of weight 3 comes 3 times as often as one of weight 1.'}">
+                    <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="{Binding MaxWeight}" SmallChange="1"
+                                  Value="{Binding Weight, UpdateSourceTrigger=PropertyChanged}" />
+                </views:PropertyRow>
+                <views:PropertyRow Label="{l:Tr 'Count'}" Help="{l:Tr 'Number of items, between the two values.'}" IsEnabled="{Binding GivesItem}">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="0" Maximum="{Binding MaxCount}" SmallChange="1"
+                                      Value="{Binding CountMin, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Text="{l:Tr 'to'}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="0" Maximum="{Binding MaxCount}" SmallChange="1"
+                                      Value="{Binding CountMax, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                </views:PropertyRow>
+                <views:PropertyRow Label="{l:Tr 'Chance (%)'}" Help="{l:Tr 'Chance that the entry gives something when it is drawn. 100: always.'}">
+                    <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="100" SmallChange="5"
+                                  Value="{Binding Chance, UpdateSourceTrigger=PropertyChanged}" />
+                </views:PropertyRow>
+                <views:PropertyRow Label="{l:Tr 'Silk Touch'}" Help="{l:Tr 'Block drop table: what the tool that breaks the block must have.'}">
+                    <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding SilkTouchChoices}" SelectedValue="{Binding SilkTouch}" />
+                </views:PropertyRow>
+                <views:PropertyRow Label="{l:Tr 'More with Looting'}" Help="{l:Tr 'Mob drop table: up to this many more items per level of Looting of the weapon. 0: none.'}" IsEnabled="{Binding GivesItem}">
+                    <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxCount}" SmallChange="1"
+                                  Value="{Binding LootingBonus, UpdateSourceTrigger=PropertyChanged}" />
+                </views:PropertyRow>
+                <views:PropertyRow Label="{l:Tr 'Conditions and functions'}" HorizontalContentAlignment="Stretch"
+                                   Help="{l:Tr 'Killed by a player and smelted on fire: mob drop table. Survives the explosion: block drop table.'}">
+                    <UniformGrid Columns="2">
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Killed by a player'}" IsChecked="{Binding KilledByPlayer}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Survives the explosion'}" IsChecked="{Binding SurvivesExplosion}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Smelted when on fire'}" IsChecked="{Binding SmeltIfOnFire}" IsEnabled="{Binding GivesItem}" />
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Enchanted at random'}" IsChecked="{Binding EnchantRandomly}" IsEnabled="{Binding GivesItem}" />
+                    </UniformGrid>
+                </views:PropertyRow>
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type assets:LootPoolViewModel}">
+        <GroupBox Style="{StaticResource Section}">
+            <GroupBox.Header>
+                <TextBlock Text="{Binding Title}" />
+            </GroupBox.Header>
+            <StackPanel>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}" ToolTip="{l:Tr 'Remove the pool'}"
+                            VerticalAlignment="Top" Command="{Binding RemoveCommand}" />
+                    <views:PropertyRow Label="{l:Tr 'Rolls'}" Help="{l:Tr 'Number of entries drawn from the pool, between the two values.'}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="0" Maximum="{Binding MaxRolls}" SmallChange="1"
+                                          Value="{Binding RollsMin, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Text="{l:Tr 'to'}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Width="110" Minimum="0" Maximum="{Binding MaxRolls}" SmallChange="1"
+                                          Value="{Binding RollsMax, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                    </views:PropertyRow>
+                </DockPanel>
+                <views:PropertyRow Label="{l:Tr 'Bonus rolls'}" Help="{l:Tr 'Rolls added per level of luck of the player (fishing, chests).'}">
+                    <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxRolls}" SmallChange="0.5"
+                                  Value="{Binding BonusRolls, UpdateSourceTrigger=PropertyChanged}" />
+                </views:PropertyRow>
+                <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Entries'}" Margin="0,8,0,4" />
+                <ItemsControl ItemsSource="{Binding Entries}" Focusable="False" />
+                <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Add an entry'}" Command="{Binding AddEntryCommand}" />
+            </StackPanel>
+        </GroupBox>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type assets:LootTableAssetViewModel}">
+        <StackPanel MaxWidth="900" HorizontalAlignment="Left">
+            <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
+            <StackPanel Style="{StaticResource TabContent}">
+                <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Drop table'}">
+                    <StackPanel>
+                        <views:PropertyRow Label="{l:Tr 'Kind'}" Help="{l:Tr 'What the table is for: the game checks the conditions of its kind (tool for a block, killer for a mob).'}">
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding KindChoices}" SelectedValue="{Binding Kind}" />
+                        </views:PropertyRow>
+                        <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" Text="{Binding Usage}" />
+                    </StackPanel>
+                </GroupBox>
+                <ItemsControl ItemsSource="{Binding Pools}" Focusable="False" />
+                <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Add a pool'}" Command="{Binding AddPoolCommand}" />
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ===================== Damage type (V0.7.10) ===================== -->
+    <DataTemplate DataType="{x:Type assets:DamageTypeAssetViewModel}">
+        <StackPanel MaxWidth="900" HorizontalAlignment="Left">
+            <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
+            <StackPanel Style="{StaticResource TabContent}">
+                <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Death message'}">
+                    <StackPanel>
+                        <views:PropertyRow Label="{l:Tr 'Message'}" HorizontalContentAlignment="Stretch"
+                                           Help="{l:Tr 'Shown in the chat when an entity dies of it. {victim} is the name of the entity.'}">
+                            <TextBox Style="{StaticResource FieldBox}" Text="{Binding DeathMessage, UpdateSourceTrigger=LostFocus}" />
+                        </views:PropertyRow>
+                        <views:PropertyRow Label="{l:Tr 'Message with a killer'}" Note="{l:Tr 'Empty: the message above'}" HorizontalContentAlignment="Stretch"
+                                           Help="{l:Tr 'Shown when another entity caused the damage. {killer} is its name.'}">
+                            <TextBox Style="{StaticResource FieldBox}" Text="{Binding KillerMessage, UpdateSourceTrigger=LostFocus}" />
+                        </views:PropertyRow>
+                        <views:PropertyRow Label="{l:Tr 'Preview'}" HorizontalContentAlignment="Stretch">
+                            <TextBlock Text="{Binding MessagePreview}" TextWrapping="Wrap" FontStyle="Italic" Foreground="{DynamicResource HintBrush}" />
+                        </views:PropertyRow>
+                        <views:PropertyRow Label="{l:Tr 'Kind of message'}" Help="{l:Tr 'The messages of a fall name what the entity fell from (a ladder, vines...).'}">
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding MessageTypeChoices}" SelectedValue="{Binding MessageType}" />
+                        </views:PropertyRow>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Damage properties'}">
+                    <StackPanel>
+                        <views:PropertyRow Label="{l:Tr 'Exhaustion'}" Help="{l:Tr 'Hunger the damage costs to a player. Most damages: 0.1; starving and void: 0.'}">
+                            <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="{Binding MaxExhaustion}" SmallChange="0.1"
+                                          Value="{Binding Exhaustion, UpdateSourceTrigger=PropertyChanged}" />
+                        </views:PropertyRow>
+                        <views:PropertyRow Label="{l:Tr 'Scaled by the difficulty'}" Help="{l:Tr 'Easy halves the damage of creatures, hard multiplies it by 1.5.'}">
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ScalingChoices}" SelectedValue="{Binding Scaling}" />
+                        </views:PropertyRow>
+                        <views:PropertyRow Label="{l:Tr 'Sound'}" Help="{l:Tr 'Sound played when an entity takes the damage.'}">
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding EffectsChoices}" SelectedValue="{Binding Effects}" />
+                        </views:PropertyRow>
+                        <views:PropertyRow Label="{l:Tr 'Properties'}" HorizontalContentAlignment="Stretch"
+                                           Help="{l:Tr 'Each property is a tag of the game the damage type joins: the game reads them (armor, fire, projectile...).'}">
+                            <ItemsControl ItemsSource="{Binding FlagOptions}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="2" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type assets:ToggleOptionViewModel}">
+                                        <CheckBox Style="{StaticResource WrapCheck}" Content="{Binding Label}" IsChecked="{Binding IsChecked}" Margin="0,1" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </views:PropertyRow>
+                    </StackPanel>
+                </GroupBox>
+
+                <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" Text="{Binding Usage}" />
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
     <DataTemplate DataType="{x:Type assets:GameRuleAssetViewModel}">
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
             <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
@@ -2482,6 +2649,9 @@
 
                         <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Is immune to'}" Margin="0,14,0,4" />
                         <ContentControl Content="{Binding ImmunityOptions}" ContentTemplate="{StaticResource MobToggleGrid}" Focusable="False" />
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,6,0,2" Text="{l:Tr 'Damage types of the project:'}"
+                                   Visibility="{Binding HasDamageTypes, Converter={StaticResource BoolToVisibility}}" />
+                        <ContentControl Content="{Binding DamageTypeImmunityOptions}" ContentTemplate="{StaticResource MobToggleGrid}" Focusable="False" />
                         <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Is vulnerable to'}" Margin="0,14,0,4" />
                         <ContentControl Content="{Binding VulnerabilityOptions}" ContentTemplate="{StaticResource MobToggleGrid}" Focusable="False" />
                     </StackPanel>
@@ -2692,9 +2862,17 @@
                         </WrapPanel>
 
                         <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Loot'}" Margin="0,12,0,4" />
-                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,6" Text="{l:Tr 'Items dropped on death, each with a random quantity.'}" />
-                        <ItemsControl ItemsSource="{Binding Drops}" Focusable="False" />
-                        <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Add an item'}" Command="{Binding AddDropCommand}" />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Drop table'}" />
+                            <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding LootTableChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                      SelectedValue="{Binding DropTable}" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'A drop table of the project replaces the list below (looting, killed by a player...).'}" />
+                        <StackPanel IsEnabled="{Binding UsesDropList}">
+                            <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,6" Text="{l:Tr 'Items dropped on death, each with a random quantity.'}" />
+                            <ItemsControl ItemsSource="{Binding Drops}" Focusable="False" />
+                            <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Content="{l:Tr 'Add an item'}" Command="{Binding AddDropCommand}" />
+                        </StackPanel>
                     </StackPanel>
                 </TabItem>
             </TabControl>

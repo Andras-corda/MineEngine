@@ -508,6 +508,10 @@ public enum GraphNodeKind
     OnItemCharged,
     OnItemChargingTick,
     OnItemShot,
+
+    // Damage types and drop tables (V0.7.10).
+    DamageOfType,
+    DropLootTable,
 }
 
 /// <summary>Values offered by a text input of a node, taken from the project (V0.7.7).</summary>
@@ -526,6 +530,12 @@ public enum PinSuggestion
 
     /// <summary>Identifiers of the blocks of the project (V0.7.11).</summary>
     Block,
+
+    /// <summary>Identifiers of the damage types of the project and of the game (V0.7.10).</summary>
+    DamageType,
+
+    /// <summary>Identifiers of the drop tables of the project (V0.7.10).</summary>
+    LootTable,
 }
 
 /// <summary>Domain of a node, used to sort the Nodes window like MCreator's procedure blocks.</summary>

@@ -52,29 +52,31 @@ dans la preview cliquer sur le gizmo (xyz) permet de caler la vue
 3. Gameplay
     Achievement
     creative tabs
-    game rule
-    keybind
     command
-    Loot table
-    Villager trade
-    Village profession
     potion effect
     enchantment
-    damage type
     projectile
     recipe
 
-4. Particle (Sparkle system)
+4. Game data
+    game rule
+    keybind
+    Loot table
+    damage type
+    Villager trade
+    Village profession
 
-5. Ai tree (Puppeteer system)
+5. Particle (Sparkle system)
 
-6. Java programming
+6. Ai tree (Puppeteer system)
+
+7. Java programming
     class
     enum
     structure
     Game event listener 
 
-7. Visual programming
+8. Visual programming
     event class
     function
     procedure
@@ -83,7 +85,7 @@ dans la preview cliquer sur le gizmo (xyz) permet de caler la vue
     enum
     struct interface
 
-8. new folder
+9. new folder
 
 # Dashboard
 pouvoir ouvrir en java les elements et en visual programming
@@ -104,3 +106,5 @@ pouvoir ouvrir le fichier java qui le contient
 
 # ressources
 sous forme de grid et/ou list
+mettres des onglets différents pour chaque type de ressources (textures, modele, structure, sound, etc)
+et des sous categories (dans textures : item/block/mob/gui/etc)

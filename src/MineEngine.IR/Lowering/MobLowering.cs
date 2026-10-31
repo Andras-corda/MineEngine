@@ -72,6 +72,7 @@ public sealed class MobLowering : AssetLowering<MobAsset>
                     asset.Water.PushedByFluid, Function(asset, asset.Water.PushedFunction, context, Tr.T("push of the fluids"), FunctionResult.Boolean, PinType.Entity),
                     asset.Water.Fluid is { Kind: ContentReferenceKind.Id } fluid ? fluid.Id : null)
                 : null,
+            ImmuneDamageTypes = [.. asset.ImmuneDamageTypes.Select(id => context.ResolveDamageType(asset, id)).OfType<NamespacedId>().Order()],
             Immunities = asset.Vehicle.Kind == MobVehicleKind.Boat ? new HashSet<MobImmunity>(asset.Immunities) { MobImmunity.Drowning } : asset.Immunities,
             Vulnerabilities = asset.Vulnerabilities,
             DespawnFunction = Function(asset, asset.DespawnFunction, context, Tr.T("despawn condition"), FunctionResult.Boolean, PinType.Entity),
@@ -87,6 +88,7 @@ public sealed class MobLowering : AssetLowering<MobAsset>
             HurtSound = context.ResolveSound(asset, asset.HurtSound, Tr.T("Hurt sound")),
             DeathSound = context.ResolveSound(asset, asset.DeathSound, Tr.T("Death sound")),
             Drops = [.. asset.Drops.Select(d => LowerDrop(asset, d, context)).OfType<IRMobDrop>()],
+            DropTable = context.ResolveLootTable(asset, asset.DropTable),
             SpawnEgg = asset.HasSpawnEgg && !vehicle
                 ? new IRSpawnEgg(asset.SpawnEggId, asset.EggPrimaryColor, asset.EggSecondaryColor)
                 {

@@ -369,6 +369,7 @@ public sealed class LanguagesViewModel : ObservableObject, IDisposable
         TranslationSource.Bucket => Tr.T("Bucket"),
         TranslationSource.GameRule or TranslationSource.GameRuleDescription => Tr.T("Game rule"),
         TranslationSource.Effect => Tr.T("Effect"),
+        TranslationSource.DeathMessage => Tr.T("Death message"),
         TranslationSource.Potion or TranslationSource.SplashPotion or TranslationSource.LingeringPotion or TranslationSource.TippedArrow => Tr.T("Potion"),
         _ => Tr.T("Sound subtitle"),
     };

@@ -58,6 +58,7 @@ public sealed class BlockAssetDefinition : InventoryAssetDefinition<BlockAsset>
         {
             asset.DropKind = drop.GetEnum("kind", BlockDropKind.Self);
             asset.DropItem = drop.GetReference("item");
+            asset.DropTable = drop.GetGuid("table");
             asset.DropMin = drop.GetInt32("min", 1);
             asset.DropMax = drop.GetInt32("max", 1);
             asset.RequiredTool = drop.GetReference("tool");
@@ -109,6 +110,7 @@ public sealed class BlockAssetDefinition : InventoryAssetDefinition<BlockAsset>
         {
             ["kind"] = asset.DropKind.ToString(),
             ["item"] = asset.DropItem?.ToStorageText(),
+            ["table"] = asset.DropTable?.ToString("D"),
             ["min"] = asset.DropMin,
             ["max"] = asset.DropMax,
             ["tool"] = asset.RequiredTool?.ToStorageText(),

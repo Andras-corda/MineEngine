@@ -57,6 +57,12 @@ public sealed class IRContent
 
     public IReadOnlyList<IRGameRule> GameRules { get; init; } = [];
 
+    /// <summary>Damage types of the mod (V0.7.10).</summary>
+    public IReadOnlyList<IRDamageType> DamageTypes { get; init; } = [];
+
+    /// <summary>Drop tables of the mod (V0.7.10).</summary>
+    public IReadOnlyList<IRLootTable> LootTables { get; init; } = [];
+
     public IReadOnlyList<IREffect> Effects { get; init; } = [];
 
     /// <summary>Global variables (Global tab).</summary>
@@ -81,7 +87,7 @@ public sealed class IRContent
         Items.Count == 0 && Blocks.Count == 0 && Mobs.Count == 0 && Recipes.Count == 0 && Sounds.Count == 0 && Behaviors.Count == 0
         && Definitions.Count == 0 && Commands.Count == 0 && CreativeTabs.Count == 0 && Keybinds.Count == 0 && Enchantments.Count == 0
         && Fluids.Count == 0 && GameRules.Count == 0 && Effects.Count == 0 && Globals.Count == 0 && Tags.Count == 0 && Biomes.Count == 0
-        && Sparkles.Count == 0;
+        && Sparkles.Count == 0 && DamageTypes.Count == 0 && LootTables.Count == 0;
 
     /// <summary>Tous les éléments qui ont une forme item (items, puis blocs avec item).</summary>
     public IEnumerable<IRElement> ElementsWithItemForm =>
@@ -342,6 +348,11 @@ public sealed class IRBlockDrop
     public int Min { get; }
 
     public int Max { get; }
+
+    /// <summary>Drop table of the project whose pools the block uses (V0.7.10).</summary>
+    public ResourceId? Table { get; private init; }
+
+    public static IRBlockDrop FromTable(ResourceId table) => new(BlockDropKind.Table, null, 1, 1) { Table = table };
 
     public static IRBlockDrop OtherItem(NamespacedId item, int min, int max) =>
         new(BlockDropKind.OtherItem, item ?? throw new ArgumentNullException(nameof(item)), min, max);

@@ -226,6 +226,118 @@ public sealed class GameRuleAssetDefinition : AssetDefinition<GameRuleAsset>
     }
 }
 
+/// <summary>Damage type (V0.7.10).</summary>
+public sealed class DamageTypeAssetDefinition : AssetDefinition<DamageTypeAsset>
+{
+    public override AssetType Type => AssetType.DamageType;
+
+    public override string Label => Tr.T("Damage type");
+
+    public override string DefaultResourceIdBase => "new_damage";
+
+    public override string DefaultDisplayName => Tr.T("New damage type");
+
+    protected override DamageTypeAsset Create(Guid id, ResourceId resourceId, string displayName) => new(id, resourceId, displayName);
+
+    protected override void ReadProperties(DamageTypeAsset asset, JsonPropertyReader reader)
+    {
+        asset.DeathMessage = reader.GetString("deathMessage") ?? "{victim} died";
+        asset.KillerMessage = reader.GetString("killerMessage") ?? string.Empty;
+        asset.Exhaustion = reader.GetSingle("exhaustion", 0.1f);
+        asset.Scaling = reader.GetEnum("scaling", DamageScaling.WhenCausedByLivingNonPlayer);
+        asset.Effects = reader.GetEnum("effects", DamageEffects.Hurt);
+        asset.MessageType = reader.GetEnum("messageType", DeathMessageType.Default);
+        asset.Flags = new HashSet<DamageTypeFlag>(reader.GetStringList("flags")
+            .Select(f => Enum.TryParse(f, out DamageTypeFlag flag) && Enum.IsDefined(flag) ? flag : (DamageTypeFlag?)null)
+            .OfType<DamageTypeFlag>());
+    }
+
+    protected override void WriteProperties(DamageTypeAsset asset, JsonObject properties)
+    {
+        properties["deathMessage"] = asset.DeathMessage;
+        properties["killerMessage"] = asset.KillerMessage;
+        properties["exhaustion"] = asset.Exhaustion;
+        properties["scaling"] = asset.Scaling.ToString();
+        properties["effects"] = asset.Effects.ToString();
+        properties["messageType"] = asset.MessageType.ToString();
+        properties["flags"] = new JsonArray([.. asset.Flags.Order().Select(f => (JsonNode?)JsonValue.Create(f.ToString()))]);
+    }
+}
+
+/// <summary>Drop table (V0.7.10): its kind, then its pools and their entries.</summary>
+public sealed class LootTableAssetDefinition : AssetDefinition<LootTableAsset>
+{
+    public override AssetType Type => AssetType.LootTable;
+
+    public override string Label => Tr.T("Drop table");
+
+    public override string DefaultResourceIdBase => "new_drops";
+
+    public override string DefaultDisplayName => Tr.T("New drop table");
+
+    protected override LootTableAsset Create(Guid id, ResourceId resourceId, string displayName) => new(id, resourceId, displayName);
+
+    protected override void ReadProperties(LootTableAsset asset, JsonPropertyReader reader)
+    {
+        asset.Kind = reader.GetEnum("kind", LootTableKind.Generic);
+        asset.Pools = [.. reader.GetObjectList("pools").Select(ReadPool)];
+    }
+
+    protected override void WriteProperties(LootTableAsset asset, JsonObject properties)
+    {
+        properties["kind"] = asset.Kind.ToString();
+        properties["pools"] = new JsonArray([.. asset.Pools.Select(WritePool)]);
+    }
+
+    private static LootPool ReadPool(JsonPropertyReader pool) => new()
+    {
+        RollsMin = pool.GetInt32("rollsMin", 1),
+        RollsMax = pool.GetInt32("rollsMax", 1),
+        BonusRolls = pool.GetSingle("bonusRolls", 0f),
+        Entries = [.. pool.GetObjectList("entries").Select(ReadEntry)],
+    };
+
+    private static LootEntry ReadEntry(JsonPropertyReader entry) => new()
+    {
+        Kind = entry.GetEnum("kind", LootEntryKind.Item),
+        Item = entry.GetReference("item"),
+        Weight = entry.GetInt32("weight", 1),
+        CountMin = entry.GetInt32("countMin", 1),
+        CountMax = entry.GetInt32("countMax", 1),
+        Chance = entry.GetInt32("chance", 100),
+        KilledByPlayer = entry.GetBoolean("killedByPlayer", false),
+        SilkTouch = entry.GetEnum("silkTouch", LootSilkTouch.Any),
+        SurvivesExplosion = entry.GetBoolean("survivesExplosion", false),
+        LootingBonus = entry.GetInt32("looting", 0),
+        SmeltIfOnFire = entry.GetBoolean("smeltIfOnFire", false),
+        EnchantRandomly = entry.GetBoolean("enchantRandomly", false),
+    };
+
+    private static JsonNode WritePool(LootPool pool) => new JsonObject
+    {
+        ["rollsMin"] = pool.RollsMin,
+        ["rollsMax"] = pool.RollsMax,
+        ["bonusRolls"] = pool.BonusRolls,
+        ["entries"] = new JsonArray([.. pool.Entries.Select(WriteEntry)]),
+    };
+
+    private static JsonNode WriteEntry(LootEntry entry) => new JsonObject
+    {
+        ["kind"] = entry.Kind.ToString(),
+        ["item"] = entry.Item?.ToStorageText(),
+        ["weight"] = entry.Weight,
+        ["countMin"] = entry.CountMin,
+        ["countMax"] = entry.CountMax,
+        ["chance"] = entry.Chance,
+        ["killedByPlayer"] = entry.KilledByPlayer,
+        ["silkTouch"] = entry.SilkTouch.ToString(),
+        ["survivesExplosion"] = entry.SurvivesExplosion,
+        ["looting"] = entry.LootingBonus,
+        ["smeltIfOnFire"] = entry.SmeltIfOnFire,
+        ["enchantRandomly"] = entry.EnchantRandomly,
+    };
+}
+
 /// <summary>Status effect (V0.6.3).</summary>
 public sealed class EffectAssetDefinition : AssetDefinition<EffectAsset>
 {

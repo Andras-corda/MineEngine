@@ -56,6 +56,8 @@ public sealed class AssetViewModelFactory
             EnchantmentAsset enchantment => new EnchantmentAssetViewModel(enchantment, context, label),
             FluidAsset fluid => new FluidAssetViewModel(fluid, context, label),
             GameRuleAsset rule => new GameRuleAssetViewModel(rule, context, label),
+            DamageTypeAsset damage => new DamageTypeAssetViewModel(damage, context, label),
+            LootTableAsset table => new LootTableAssetViewModel(table, context, label),
             EffectAsset effect => new EffectAssetViewModel(effect, context, label),
             GlobalVariableAsset global => new GlobalVariableAssetViewModel(global, context, label),
             TagAsset tag => new TagAssetViewModel(tag, context, label),

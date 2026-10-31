@@ -87,7 +87,11 @@ public sealed class MobResourcesEmitter : ResourceEmitter
                 });
             }
 
-            if (mob.Drops.Count > 0)
+            if (LootTablesEmitter.FromProjectTable(context, mob.DropTable, "minecraft:entity") is { } table)
+            {
+                WriteJson(context, paths.EntityLootTable(mob.Id), table);
+            }
+            else if (mob.Drops.Count > 0)
             {
                 WriteJson(context, paths.EntityLootTable(mob.Id), CreateLootTable(mob));
             }

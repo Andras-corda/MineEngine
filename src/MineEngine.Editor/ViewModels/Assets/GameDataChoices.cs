@@ -110,6 +110,7 @@ public static class GameDataChoices
         new(BlockDropKind.Self, Tr.T("Itself")),
         new(BlockDropKind.Nothing, Tr.T("Nothing")),
         new(BlockDropKind.OtherItem, Tr.T("Another item")),
+        new(BlockDropKind.Table, Tr.T("A drop table")),
     ];
 
     public static IReadOnlyList<Choice<RecipeKind>> RecipeKinds { get; } =
@@ -364,6 +365,64 @@ public static class GameDataChoices
         new(ItemTier.Diamond, Tr.T("Diamond (1561)")),
         new(ItemTier.Netherite, Tr.T("Netherite (2031)")),
         new(ItemTier.Custom, Tr.T("Custom")),
+    ];
+
+    public static IReadOnlyList<Choice<LootTableKind>> LootTableKinds { get; } =
+    [
+        new(LootTableKind.Generic, Tr.T("Generic")),
+        new(LootTableKind.Block, Tr.T("Block (dropped when broken)")),
+        new(LootTableKind.Entity, Tr.T("Mob (dropped when killed)")),
+        new(LootTableKind.Chest, Tr.T("Chest")),
+        new(LootTableKind.Fishing, Tr.T("Fishing")),
+    ];
+
+    public static IReadOnlyList<Choice<LootSilkTouch>> LootSilkTouches { get; } =
+    [
+        new(LootSilkTouch.Any, Tr.T("Any tool")),
+        new(LootSilkTouch.Required, Tr.T("Only with Silk Touch")),
+        new(LootSilkTouch.Forbidden, Tr.T("Only without Silk Touch")),
+    ];
+
+    public static IReadOnlyList<Choice<DamageScaling>> DamageScalings { get; } =
+    [
+        new(DamageScaling.Never, Tr.T("Never")),
+        new(DamageScaling.WhenCausedByLivingNonPlayer, Tr.T("When caused by a creature (not a player)")),
+        new(DamageScaling.Always, Tr.T("Always")),
+    ];
+
+    public static IReadOnlyList<Choice<DamageEffects>> DamageEffectsChoices { get; } =
+    [
+        new(DamageEffects.Hurt, Tr.T("Hurt")),
+        new(DamageEffects.Thorns, Tr.T("Thorns")),
+        new(DamageEffects.Drowning, Tr.T("Drowning")),
+        new(DamageEffects.Burning, Tr.T("Burning")),
+        new(DamageEffects.Poking, Tr.T("Poking (berry bush)")),
+        new(DamageEffects.Freezing, Tr.T("Freezing")),
+    ];
+
+    public static IReadOnlyList<Choice<DeathMessageType>> DeathMessageTypes { get; } =
+    [
+        new(DeathMessageType.Default, Tr.T("The messages above")),
+        new(DeathMessageType.FallVariants, Tr.T("The messages of a fall")),
+        new(DeathMessageType.IntentionalGameDesign, Tr.T("\"Intentional game design\" (bed in the Nether)")),
+    ];
+
+    public static IReadOnlyList<Choice<DamageTypeFlag>> DamageTypeFlags { get; } =
+    [
+        new(DamageTypeFlag.BypassesArmor, Tr.T("Ignores armor")),
+        new(DamageTypeFlag.BypassesShield, Tr.T("Ignores shields")),
+        new(DamageTypeFlag.BypassesInvulnerability, Tr.T("Hurts in creative mode")),
+        new(DamageTypeFlag.BypassesEffects, Tr.T("Ignores Resistance")),
+        new(DamageTypeFlag.BypassesEnchantments, Tr.T("Ignores Protection")),
+        new(DamageTypeFlag.IsFire, Tr.T("Is fire")),
+        new(DamageTypeFlag.IsProjectile, Tr.T("Is a projectile")),
+        new(DamageTypeFlag.IsExplosion, Tr.T("Is an explosion")),
+        new(DamageTypeFlag.IsFall, Tr.T("Is a fall")),
+        new(DamageTypeFlag.IsDrowning, Tr.T("Is drowning")),
+        new(DamageTypeFlag.IsFreezing, Tr.T("Is freezing")),
+        new(DamageTypeFlag.IsLightning, Tr.T("Is lightning")),
+        new(DamageTypeFlag.NoKnockback, Tr.T("No knockback")),
+        new(DamageTypeFlag.NoImpact, Tr.T("No impact (no red flash)")),
     ];
 
     public static IReadOnlyList<Choice<ItemUseAnimation>> ItemUseAnimations { get; } =

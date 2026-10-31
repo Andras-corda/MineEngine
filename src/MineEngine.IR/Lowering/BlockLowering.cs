@@ -103,6 +103,7 @@ public sealed class BlockLowering : AssetLowering<BlockAsset>
     private static IRBlockDrop CreateDrop(BlockAsset asset, bool hasItemForm, LoweringContext context) => asset.DropKind switch
     {
         BlockDropKind.Nothing => IRBlockDrop.Nothing,
+        BlockDropKind.Table when context.ResolveLootTable(asset, asset.DropTable) is { } table => IRBlockDrop.FromTable(table),
         BlockDropKind.OtherItem when context.ResolveItem(asset, asset.DropItem, Tr.T("Dropped item")) is { } item =>
             IRBlockDrop.OtherItem(item, asset.DropMin, asset.DropMax),
         BlockDropKind.Self when hasItemForm => IRBlockDrop.Self,

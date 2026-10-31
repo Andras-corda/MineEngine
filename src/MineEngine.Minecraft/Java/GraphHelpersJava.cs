@@ -66,7 +66,21 @@ public static class GraphHelpersJava
             "makeBox" => ["net.minecraft.world.phys.AABB"],
             "entitiesInBox" => ["net.minecraft.world.entity.Entity", "net.minecraft.world.phys.AABB", "java.util.List", "java.util.ArrayList"],
             "genericDamage" => ["net.minecraft.world.entity.Entity", "net.minecraft.world.damagesource.DamageSource"],
+            "damageOfType" =>
+            [
+                "net.minecraft.world.entity.Entity", "net.minecraft.world.damagesource.DamageSource", "net.minecraft.world.damagesource.DamageType",
+                "net.minecraft.core.Holder", "net.minecraft.core.registries.Registries", "net.minecraft.resources.ResourceKey", "net.minecraft.resources.ResourceLocation",
+                "java.util.Optional",
+            ],
             "damageWithSource" => ["net.minecraft.world.entity.Entity", "net.minecraft.world.damagesource.DamageSource"],
+            "dropLootTable" =>
+            [
+                "net.minecraft.core.BlockPos", "net.minecraft.server.level.ServerLevel", "net.minecraft.world.item.ItemStack",
+                "net.minecraft.world.level.block.Block", "net.minecraft.world.level.storage.loot.LootTable", "net.minecraft.world.level.storage.loot.LootParams",
+                "net.minecraft.world.level.storage.loot.parameters.LootContextParams", "net.minecraft.world.level.storage.loot.parameters.LootContextParamSets",
+                "net.minecraft.world.phys.Vec3", "net.minecraft.resources.ResourceLocation",
+                .. modern ? new[] { "net.minecraft.resources.ResourceKey", "net.minecraft.core.registries.Registries" } : [],
+            ],
             "makeEffect" => modern
                 ? ["net.minecraft.core.Holder", "net.minecraft.world.effect.MobEffect", "net.minecraft.world.effect.MobEffectInstance"]
                 : ["net.minecraft.world.effect.MobEffect", "net.minecraft.world.effect.MobEffectInstance"],
@@ -750,6 +764,39 @@ public static class GraphHelpersJava
             [
                 "private static DamageSource genericDamage(Level level, Entity entity) {",
                 "    return entity == null ? level.damageSources().generic() : entity.damageSources().generic();",
+                "}",
+            ],
+            "dropLootTable" =>
+            [
+                "/** Draws a drop table (of the mod when the identifier has no namespace) and drops its items at the position (server only). */",
+                "private static void dropLootTable(Level level, String table, BlockPos position, String mod) {",
+                "    if (!(level instanceof ServerLevel server) || table == null || table.isEmpty() || position == null) {",
+                "        return;",
+                "    }",
+                "    String id = table.indexOf(':') < 0 ? mod + \":\" + table : table;",
+                modern
+                    ? "    LootTable loot = server.getServer().reloadableRegistries().getLootTable(ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.parse(id)));"
+                    : "    LootTable loot = server.getServer().getLootData().getLootTable(new ResourceLocation(id));",
+                "    LootParams params = new LootParams.Builder(server).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(position)).create(LootContextParamSets.CHEST);",
+                "    for (ItemStack stack : loot.getRandomItems(params)) {",
+                "        Block.popResource(level, position, stack);",
+                "    }",
+                "}",
+            ],
+            "damageOfType" =>
+            [
+                "/** A damage source of a damage type (of the mod when the identifier has no namespace); null when the type does not exist. */",
+                "private static DamageSource damageOfType(Level level, String type, Entity attacker, String mod) {",
+                "    if (type == null || type.isEmpty()) {",
+                "        return null;",
+                "    }",
+                "    String id = type.indexOf(':') < 0 ? mod + \":\" + type : type;",
+                $"    ResourceKey<DamageType> key = ResourceKey.create(Registries.DAMAGE_TYPE, {(modern ? "ResourceLocation.parse(id)" : "new ResourceLocation(id)")});",
+                "    Optional<Holder.Reference<DamageType>> holder = level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolder(key);",
+                "    if (holder.isEmpty()) {",
+                "        return null;",
+                "    }",
+                "    return attacker == null ? new DamageSource(holder.get()) : new DamageSource(holder.get(), attacker);",
                 "}",
             ],
             "damageWithSource" =>

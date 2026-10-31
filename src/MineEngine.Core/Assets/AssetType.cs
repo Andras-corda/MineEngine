@@ -53,6 +53,12 @@ public enum AssetType
 
     /// <summary>Sparkle particle system: emitters of particles played by the graphs (V0.7.5).</summary>
     Sparkle,
+
+    /// <summary>Damage type of the mod: death message, scaling, sound and properties (V0.7.10).</summary>
+    DamageType,
+
+    /// <summary>Drop table of the mod: pools of weighted entries, with conditions and functions (V0.7.10).</summary>
+    LootTable,
 }
 
 /// <summary>
@@ -79,6 +85,8 @@ public enum AssetIdScope
     Tag,
     Biome,
     Sparkle,
+    DamageType,
+    LootTable,
 }
 
 public static class AssetTypeExtensions
@@ -101,6 +109,8 @@ public static class AssetTypeExtensions
         AssetType.Tag => AssetIdScope.Tag,
         AssetType.Biome => AssetIdScope.Biome,
         AssetType.Sparkle => AssetIdScope.Sparkle,
+        AssetType.DamageType => AssetIdScope.DamageType,
+        AssetType.LootTable => AssetIdScope.LootTable,
         _ => AssetIdScope.GameContent,
     };
 }

@@ -132,6 +132,9 @@ public enum BlockDropKind
     Self,
     Nothing,
     OtherItem,
+
+    /// <summary>A drop table of the project (V0.7.10).</summary>
+    Table,
 }
 
 /// <summary>Apparence d'un mob : modèle 3D d'une créature de Minecraft.</summary>

@@ -73,6 +73,9 @@ public sealed class IRMob
 
     public IReadOnlyList<IRMobDrop> Drops { get; init; } = [];
 
+    /// <summary>Drop table of the project used instead of <see cref="Drops"/> (V0.7.10), or null.</summary>
+    public ResourceId? DropTable { get; init; }
+
     public IRSpawnEgg? SpawnEgg { get; init; }
 
     /// <summary>Apparition naturelle, ou null si le mob n'apparaît que par œuf ou commande.</summary>
@@ -121,6 +124,12 @@ public sealed class IRMob
     public IRMobWater? Water { get; init; }
 
     public IReadOnlySet<MobImmunity> Immunities { get; init; } = new HashSet<MobImmunity>();
+
+    /// <summary>Damage types of the mod the mob is immune to (V0.7.10).</summary>
+    public IReadOnlyList<NamespacedId> ImmuneDamageTypes { get; init; } = [];
+
+    /// <summary>The mob ignores some damages: its "hurt" checks them.</summary>
+    public bool HasImmunities => Immunities.Count > 0 || ImmuneDamageTypes.Count > 0;
 
     public IReadOnlySet<MobVulnerability> Vulnerabilities { get; init; } = new HashSet<MobVulnerability>();
 

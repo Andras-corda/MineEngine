@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using MineEngine.Assets;
 using MineEngine.Core.Assets;
 using MineEngine.Core.Commands;
 using MineEngine.Core.Identifiers;
@@ -102,6 +103,8 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
         AssetType.Enchantment => "Glyph.Star",
         AssetType.Fluid => "FluidGeometry",
         AssetType.GameRule => "Glyph.Settings",
+        AssetType.DamageType => "Glyph.Warning",
+        AssetType.LootTable => "Glyph.Package",
         AssetType.Effect => "PotionGeometry",
         AssetType.GlobalVariable => "Glyph.Field",
         AssetType.Tag => "Glyph.Link",
@@ -200,6 +203,14 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
     }
 
     /// <summary>Nom affiché d'un asset dans les listes : nom en jeu, sinon identifiant.</summary>
+    /// <summary>The drop tables of the project, after "None" (V0.7.10).</summary>
+    public IReadOnlyList<Choice<Guid?>> LootTableChoices =>
+    [
+        new(null, Tr.T("None")),
+        .. Context.Project.Assets.OfType<LootTableAsset>().OrderBy(t => t.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+            .Select(t => new Choice<Guid?>(t.Id, DisplayLabel(t))),
+    ];
+
     protected static string DisplayLabel(Asset asset) =>
         string.IsNullOrWhiteSpace(asset.DisplayName) ? asset.ResourceId.Value : $"{asset.DisplayName} ({asset.ResourceId})";
 

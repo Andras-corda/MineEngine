@@ -11,7 +11,7 @@ namespace MineEngine.Minecraft.Resources;
 /// <summary>
 /// Resources of V0.6.3: the block and bucket of each fluid with their textures, the icon of each
 /// status effect, and, from 1.21, the enchantments as data (with the tags that place them in the
-/// enchanting table, the treasures or the curses).
+/// enchanting table, the treasures or the curses). V0.7.10: the damage types and their tags.
 /// </summary>
 public sealed class GameplayResourcesEmitter : ResourceEmitter
 {
@@ -41,7 +41,56 @@ public sealed class GameplayResourcesEmitter : ResourceEmitter
         {
             EmitEnchantments(context, paths, content.Enchantments);
         }
+
+        if (content.DamageTypes.Count > 0)
+        {
+            EmitDamageTypes(context, paths, content.DamageTypes);
+        }
     }
+
+    /// <summary>
+    /// Damage types (V0.7.10): one data file each, named by the translation key of its message, then the
+    /// tags of the game that give their properties (the game reads them: armor, fire, projectile...).
+    /// </summary>
+    private void EmitDamageTypes(GenerationContext context, ResourcePaths paths, IReadOnlyList<IRDamageType> damageTypes)
+    {
+        foreach (IRDamageType damage in damageTypes)
+        {
+            WriteJson(context, paths.DamageType(damage.Id), new JsonObject
+            {
+                ["message_id"] = $"{paths.Namespace}.{damage.Id}",
+                ["exhaustion"] = damage.Exhaustion,
+                ["scaling"] = damage.Scaling switch
+                {
+                    DamageScaling.Never => "never",
+                    DamageScaling.Always => "always",
+                    _ => "when_caused_by_living_non_player",
+                },
+                ["effects"] = damage.Effects.ToString().ToLowerInvariant(),
+                ["death_message_type"] = damage.MessageType switch
+                {
+                    DeathMessageType.FallVariants => "fall_variants",
+                    DeathMessageType.IntentionalGameDesign => "intentional_game_design",
+                    _ => "default",
+                },
+            });
+        }
+
+        foreach (IGrouping<DamageTypeFlag, IRDamageType> tag in damageTypes
+            .SelectMany(d => d.Flags.Select(f => (Flag: f, Damage: d)))
+            .GroupBy(x => x.Flag, x => x.Damage)
+            .OrderBy(g => g.Key))
+        {
+            WriteJson(context, paths.VanillaDamageTypeTag(DamageTypeTag(tag.Key)), new JsonObject
+            {
+                ["replace"] = false,
+                ["values"] = new JsonArray([.. tag.Select(d => (JsonNode?)JsonValue.Create(paths.Reference(d.Id.Value)))]),
+            });
+        }
+    }
+
+    /// <summary>Tag of the game of a property ("bypasses_armor", "is_fire").</summary>
+    public static string DamageTypeTag(DamageTypeFlag flag) => string.Concat(flag.ToString().Select((c, i) => char.IsUpper(c) && i > 0 ? "_" + char.ToLowerInvariant(c) : char.ToLowerInvariant(c).ToString()));
 
     private void EmitFluid(GenerationContext context, ResourcePaths paths, IRFluid fluid)
     {

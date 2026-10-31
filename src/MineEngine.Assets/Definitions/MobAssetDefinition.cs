@@ -62,6 +62,7 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
         }
 
         asset.Immunities = immunities;
+        asset.ImmuneDamageTypes = new HashSet<Guid>(reader.GetStringList("immuneDamageTypes").Select(t => Guid.TryParse(t, out Guid id) ? id : Guid.Empty).Where(id => id != Guid.Empty));
         asset.Vulnerabilities = vulnerabilities;
         ReadEntity(asset, reader);
 
@@ -77,6 +78,7 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
         }
 
         asset.Drops = [.. reader.GetObjectList("drops").Select(ReadDrop).OfType<MobDrop>()];
+        asset.DropTable = reader.GetGuid("dropTable");
 
         if (reader.GetObject("spawnEgg") is { } egg)
         {
@@ -262,6 +264,7 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
         properties["experience"] = asset.Experience;
         properties["persistent"] = asset.Persistent;
         properties["immunities"] = Names(asset.Immunities.Order());
+        properties["immuneDamageTypes"] = new JsonArray([.. asset.ImmuneDamageTypes.Order().Select(id => (JsonNode?)JsonValue.Create(id.ToString("D")))]);
         properties["vulnerabilities"] = Names(asset.Vulnerabilities.Order());
         properties["visual"] = new JsonObject
         {
@@ -345,6 +348,7 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
             ["death"] = asset.DeathSound?.ToStorageText(),
         };
         properties["drops"] = new JsonArray([.. asset.Drops.Select(WriteDrop)]);
+        properties["dropTable"] = asset.DropTable?.ToString("D");
         properties["spawnEgg"] = new JsonObject
         {
             ["enabled"] = asset.HasSpawnEgg,

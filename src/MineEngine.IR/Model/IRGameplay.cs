@@ -69,6 +69,37 @@ public sealed record IRGlobalVariable(Guid Id, string Name, DataType Type, Globa
 public sealed record IRGameRule(
     Guid SourceAssetId, ResourceId Id, string Name, GameRuleKind Kind, GameRuleCategory Category, bool DefaultBoolean, int DefaultNumber, string Description);
 
+/// <summary>
+/// Damage type of the mod (V0.7.10): its messages ({victim} and {killer} already turned into the
+/// arguments of the game), its exhaustion, scaling, sound, kind of death message and tags.
+/// </summary>
+public sealed record IRDamageType(
+    Guid SourceAssetId, ResourceId Id, string Name, string DeathMessage, string KillerMessage, float Exhaustion,
+    DamageScaling Scaling, DamageEffects Effects, DeathMessageType MessageType, IReadOnlySet<DamageTypeFlag> Flags);
+
+/// <summary>Drop table of the mod (V0.7.10): its kind and its pools.</summary>
+public sealed record IRLootTable(Guid SourceAssetId, ResourceId Id, LootTableKind Kind, IReadOnlyList<IRLootPool> Pools);
+
+public sealed record IRLootPool(int RollsMin, int RollsMax, float BonusRolls, IReadOnlyList<IRLootEntry> Entries);
+
+/// <summary>An entry: its item or tag (null: nothing), weight, count, conditions and functions (see <see cref="LootEntry"/>).</summary>
+public sealed record IRLootEntry(IRIngredient? Item, int Weight, int CountMin, int CountMax)
+{
+    public int Chance { get; init; } = 100;
+
+    public bool KilledByPlayer { get; init; }
+
+    public LootSilkTouch SilkTouch { get; init; }
+
+    public bool SurvivesExplosion { get; init; }
+
+    public int LootingBonus { get; init; }
+
+    public bool SmeltIfOnFire { get; init; }
+
+    public bool EnchantRandomly { get; init; }
+}
+
 /// <summary>Status effect (V0.6.3), with its potion when it has one.</summary>
 public sealed record IREffect(Guid SourceAssetId, ResourceId Id, string Name, EffectCategory Category, int Color, IRTexture Icon)
 {

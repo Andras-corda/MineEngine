@@ -93,6 +93,15 @@ public sealed class LanguageEmitter : IFileEmitter
             entries[paths.EffectTranslationKey(effect.Id)] = effect.Name;
         }
 
+        foreach (IRDamageType damage in content.DamageTypes)
+        {
+            entries[paths.DeathMessageTranslationKey(damage.Id)] = damage.DeathMessage;
+            if (damage.KillerMessage.Length > 0)
+            {
+                entries[paths.DeathMessageTranslationKey(damage.Id) + ".player"] = damage.KillerMessage;
+            }
+        }
+
         foreach (IRBiome biome in content.Biomes)
         {
             entries[$"biome.{paths.Namespace}.{biome.Id}"] = biome.DisplayName;

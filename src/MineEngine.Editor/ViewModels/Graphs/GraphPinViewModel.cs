@@ -138,6 +138,13 @@ public sealed class GraphPinViewModel : ObservableObject
     /// Values offered by a text input (<see cref="PinInfo.Suggest"/>): the identifiers of the particle
     /// systems or of the mobs of the project, or the user parameters of the system chosen on the node.
     /// </summary>
+    /// <summary>Damage types of the game offered by the "Damage of a type" node (V0.7.10).</summary>
+    private static readonly string[] VanillaDamageTypes =
+    [
+        "minecraft:magic", "minecraft:generic", "minecraft:in_fire", "minecraft:lightning_bolt", "minecraft:freeze",
+        "minecraft:fall", "minecraft:drown", "minecraft:wither", "minecraft:cactus", "minecraft:starve", "minecraft:out_of_world",
+    ];
+
     public IReadOnlyList<string> Suggestions
     {
         get
@@ -150,6 +157,16 @@ public sealed class GraphPinViewModel : ObservableObject
             if (Info.Suggest == PinSuggestion.Block)
             {
                 return [.. Node.Document.Assets.OfType<BlockAsset>().Select(b => b.ResourceId.Value).Order(StringComparer.Ordinal)];
+            }
+
+            if (Info.Suggest == PinSuggestion.LootTable)
+            {
+                return [.. Node.Document.Assets.OfType<LootTableAsset>().Select(t => t.ResourceId.Value).Order(StringComparer.Ordinal)];
+            }
+
+            if (Info.Suggest == PinSuggestion.DamageType)
+            {
+                return [.. Node.Document.Assets.OfType<DamageTypeAsset>().Select(d => d.ResourceId.Value).Order(StringComparer.Ordinal), .. VanillaDamageTypes];
             }
 
             IEnumerable<SparkleAsset> systems = Node.Document.Assets.OfType<SparkleAsset>();
