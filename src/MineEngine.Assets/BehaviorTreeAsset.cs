@@ -62,30 +62,7 @@ public sealed class BehaviorTreeAsset : Asset
     /// Starting tree of a new asset, for a monster: spot the nearest player, attack it if
     /// there is one, otherwise wander and wait a little.
     /// </summary>
-    public void ApplyStarterTree()
-    {
-        var target = new BlackboardKey(Guid.NewGuid(), "target", BlackboardKeyType.Entity);
-        string key = target.Id.ToString("D");
-
-        BtNode root = BtNode.Create(BtNodeKind.Root, 0, 0);
-        BtNode selector = BtNode.Create(BtNodeKind.Selector, 0, 120) with
-        {
-            Services = [BtAttachment.Create(BtNodeKind.FindNearestEntityService).WithValue(BtCatalog.Result, key)],
-        };
-        BtNode attack = BtNode.Create(BtNodeKind.MeleeAttack, -220, 300).WithValue(BtCatalog.Target, key) with
-        {
-            Decorators = [BtAttachment.Create(BtNodeKind.IsSet).WithValue(BtCatalog.Key, key).WithValue(BtCatalog.Abort, nameof(BtAbortMode.Both))],
-        };
-        BtNode idle = BtNode.Create(BtNodeKind.Sequence, 220, 300);
-        BtNode wander = BtNode.Create(BtNodeKind.Wander, 100, 460);
-        BtNode wait = BtNode.Create(BtNodeKind.Wait, 340, 460).WithValue("seconds", "2").WithValue("deviation", "1");
-
-        Keys = [target];
-        Tree = new BehaviorTree(
-            [root, selector, attack, idle, wander, wait],
-            [new(root.Id, selector.Id), new(selector.Id, attack.Id), new(selector.Id, idle.Id), new(idle.Id, wander.Id), new(idle.Id, wait.Id)])
-            .Arranged();
-    }
+    public void ApplyStarterTree() => BehaviorTreeTemplates.Apply(this, BehaviorTreeTemplate.Aggressive);
 
     public override IEnumerable<AssetReference> GetReferences()
     {

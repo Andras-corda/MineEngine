@@ -91,6 +91,8 @@ public partial class ProjectHubView : UserControl
 
     private void OnRemoveMenuClick(object sender, RoutedEventArgs e) => Run(Hub?.RemoveCommand, CardOf(sender));
 
+    private void OnPinMenuClick(object sender, RoutedEventArgs e) => Run(Hub?.TogglePinCommand, CardOf(sender));
+
     /// <summary>La liste ne défile pas elle-même : la molette fait défiler toute la page.</summary>
     private void OnListMouseWheel(object sender, MouseWheelEventArgs e)
     {

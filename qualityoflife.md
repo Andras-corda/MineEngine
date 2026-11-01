@@ -108,3 +108,5 @@ pouvoir ouvrir le fichier java qui le contient
 sous forme de grid et/ou list
 mettres des onglets différents pour chaque type de ressources (textures, modele, structure, sound, etc)
 et des sous categories (dans textures : item/block/mob/gui/etc)
+
+# mettre un indicateur quand la touche maj est activé

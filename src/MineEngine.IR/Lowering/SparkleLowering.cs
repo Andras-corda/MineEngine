@@ -81,6 +81,9 @@ public sealed class SparkleLowering : AssetLowering<SparkleAsset>
             TimeEventTime = time.Number(SparkleCatalog.EventTime),
             TimeEventRepeats = time.Choice(SparkleCatalog.TimeMode) == "Repeat",
             LocationEventChance = emitter.Uses(SparkleModuleKind.GenerateLocationEvent) ? zone.Number(SparkleCatalog.Chance) : null,
+            CollisionEventChance = emitter.Uses(SparkleModuleKind.GenerateCollisionEvent) && emitter.Uses(SparkleModuleKind.Collision)
+                ? emitter.Get(SparkleModuleKind.GenerateCollisionEvent).Number(SparkleCatalog.Chance)
+                : null,
             ZoneShape = zone.Choice(SparkleCatalog.ZoneShape) == "Box" ? IRSparkleShape.Box : IRSparkleShape.Sphere,
             ZoneCenter = Vector(zone.Vector(SparkleCatalog.ZoneCenter)),
             ZoneRadius = zone.Number(SparkleCatalog.ZoneRadius),
@@ -90,6 +93,7 @@ public sealed class SparkleLowering : AssetLowering<SparkleAsset>
             {
                 SparkleEventKind.Time => IRSparkleEvent.Time,
                 SparkleEventKind.Location => IRSparkleEvent.Location,
+                SparkleEventKind.Collision => IRSparkleEvent.Collision,
                 _ => IRSparkleEvent.Death,
             },
             CountPerEvent = receive.Integer(SparkleCatalog.CountPerEvent),

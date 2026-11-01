@@ -43,6 +43,80 @@
                 </Setter>
             </Style>
 
+            <!-- Row of a resource (list view): preview, name, folder, status, uses, kind. -->
+            <DataTemplate x:Key="ResourceRow" DataType="{x:Type assets:AssetViewModel}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="40" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="130" />
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="90" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="28" Height="28" CornerRadius="4" Background="{DynamicResource BadgeBrush}" HorizontalAlignment="Left">
+                        <Grid>
+                            <Image Source="{Binding IconPath, Converter={StaticResource FilePathToImage}}" Margin="4"
+                                   RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                   Visibility="{Binding HasIcon, Converter={StaticResource BoolToVisibility}}" />
+                            <views:IconView Icon="{Binding TypeIcon}" IconSize="15" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Foreground="{DynamicResource BadgeTextBrush}"
+                                            Visibility="{Binding HasIcon, Converter={StaticResource InverseBoolToVisibility}}" />
+                        </Grid>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Header}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource StrongTextBrush}" />
+                        <TextBlock Style="{StaticResource MonoHint}" Text="{Binding DetailsSubtitle}" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Text="{Binding FolderLabel}" VerticalAlignment="Center" FontSize="12"
+                               TextTrimming="CharacterEllipsis" Foreground="{DynamicResource HintBrush}" />
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Ellipse x:Name="Dot" Width="7" Height="7" Margin="0,0,6,0" Fill="{DynamicResource LogSuccessBrush}" />
+                        <TextBlock Text="{Binding IssueLabel}" FontSize="12" Foreground="{DynamicResource HintBrush}" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="4" Text="{Binding UsageCount}" VerticalAlignment="Center" FontSize="12"
+                               Foreground="{DynamicResource HintBrush}" />
+                    <Border Grid.Column="5" Style="{StaticResource Badge}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource BadgeText}" Text="{Binding DetailsBadge}" />
+                    </Border>
+                </Grid>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding HasIssueWarnings}" Value="True">
+                        <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource LogWarningBrush}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding HasIssueErrors}" Value="True">
+                        <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource LogErrorBrush}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+            <!-- Tile of a resource (grid view): a big preview, the name and the kind. -->
+            <DataTemplate x:Key="ResourceTile" DataType="{x:Type assets:AssetViewModel}">
+                <StackPanel Width="118" Margin="2,4">
+                    <Border Width="84" Height="84" CornerRadius="6" Background="{DynamicResource BadgeBrush}" HorizontalAlignment="Center">
+                        <Grid>
+                            <Image Source="{Binding IconPath, Converter={StaticResource FilePathToImage}}" Margin="8"
+                                   RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                   Visibility="{Binding HasIcon, Converter={StaticResource BoolToVisibility}}" />
+                            <views:IconView Icon="{Binding TypeIcon}" IconSize="34" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Foreground="{DynamicResource BadgeTextBrush}"
+                                            Visibility="{Binding HasIcon, Converter={StaticResource InverseBoolToVisibility}}" />
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="{Binding Header}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center"
+                               Margin="0,6,0,0" Foreground="{DynamicResource StrongTextBrush}" ToolTip="{Binding Header}" />
+                    <TextBlock Text="{Binding DetailsBadge}" FontSize="10" HorizontalAlignment="Center" Foreground="{DynamicResource HintBrush}" />
+                </StackPanel>
+            </DataTemplate>
+            <!-- View mode button: brighter when its mode is on (Tag). -->
+            <Style x:Key="ModeButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
+                <Setter Property="Opacity" Value="0.55" />
+                <Style.Triggers>
+                    <Trigger Property="Tag" Value="{StaticResource True}">
+                        <Setter Property="Opacity" Value="1" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
             <Style x:Key="ResourceItem" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                 <Setter Property="Padding" Value="8,5" />
                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -55,14 +129,37 @@
         <DockPanel Margin="16,12,16,8" DataContext="{Binding Project.Resources}"
                    Visibility="{Binding DataContext.HasProject, ElementName=Root, Converter={StaticResource BoolToVisibility}}">
 
-            <!-- Sortes d'éléments -->
+            <!-- One tab per kind of resource -->
+            <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Categories}" Focusable="False" Margin="0,0,0,12">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:AssetTypeFilter}">
+                        <Button Style="{StaticResource UnderlineTab}" Tag="{Binding IsActive}" CommandParameter="{Binding}" FontSize="14"
+                                AutomationProperties.Name="{Binding Label}"
+                                Command="{Binding DataContext.Project.Resources.SelectCategoryCommand, ElementName=Root}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Label}" />
+                                <TextBlock Text="{Binding Count}" Margin="6,0,0,0" Foreground="{DynamicResource HintBrush}" />
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Sub-categories of the tab -->
             <StackPanel DockPanel.Dock="Left" Width="190" Margin="0,0,16,0">
-                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'KINDS'}" Margin="10,0,0,8" />
-                <ItemsControl ItemsSource="{Binding Categories}" Focusable="False">
+                <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'USED FOR'}" Margin="10,0,0,8"
+                           ToolTip="{l:Tr 'Sub-categories found from the elements that use each file (and from its folder)'}" />
+                <ItemsControl ItemsSource="{Binding Groups}" Focusable="False">
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:AssetTypeFilter}">
+                        <DataTemplate DataType="{x:Type vm:ResourceGroupFilter}">
                             <Button Style="{StaticResource CategoryButton}" Tag="{Binding IsActive}" CommandParameter="{Binding}"
-                                    Command="{Binding DataContext.Project.Resources.SelectCategoryCommand, ElementName=Root}">
+                                    AutomationProperties.Name="{Binding Label}"
+                                    Command="{Binding DataContext.Project.Resources.SelectGroupCommand, ElementName=Root}">
                                 <DockPanel>
                                     <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Foreground="{DynamicResource HintBrush}" />
                                     <TextBlock Text="{Binding Label}" />
@@ -88,6 +185,13 @@
                 <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0" FontSize="12" Foreground="{DynamicResource HintBrush}">
                     <Run Text="{Binding VisibleCount, Mode=OneWay}" /><Run Text="{l:Tr ' element(s)'}" />
                 </TextBlock>
+                <Button DockPanel.Dock="Right" Style="{StaticResource ModeButton}" Width="30" Height="28" Margin="2,0,0,0"
+                        Content="{StaticResource Glyph.GridView}" Command="{Binding ShowTilesCommand}" Tag="{Binding IsTileView}"
+                        AutomationProperties.Name="{l:Tr 'Show as tiles'}" ToolTip="{l:Tr 'Show as tiles'}" />
+                <Button DockPanel.Dock="Right" Style="{StaticResource ModeButton}" Width="30" Height="28" Margin="12,0,0,0"
+                        Content="{StaticResource Glyph.ListView}" Command="{Binding ShowListCommand}"
+                        Tag="{Binding IsTileView, Converter={StaticResource InverseBool}}"
+                        AutomationProperties.Name="{l:Tr 'Show as a list'}" ToolTip="{l:Tr 'Show as a list'}" />
                 <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="30" Height="28" Margin="6,0,0,0"
                         Content="{StaticResource Glyph.Sort}" Command="{Binding ToggleOrderCommand}"
                         ToolTip="{l:Tr 'Reverse the order'}" />
@@ -98,7 +202,7 @@
             </DockPanel>
 
             <!-- En-têtes de colonnes -->
-            <Grid DockPanel.Dock="Top" Margin="8,0,8,4">
+            <Grid DockPanel.Dock="Top" Margin="8,0,8,4" Visibility="{Binding IsTileView, Converter={StaticResource InverseBoolToVisibility}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="40" />
                     <ColumnDefinition Width="*" />
@@ -119,55 +223,25 @@
                            Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
                 <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedAsset}" Background="Transparent" BorderThickness="0"
                          ItemContainerStyle="{StaticResource ResourceItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         VirtualizingPanel.IsVirtualizing="True">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate DataType="{x:Type assets:AssetViewModel}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="40" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="150" />
-                                    <ColumnDefinition Width="130" />
-                                    <ColumnDefinition Width="90" />
-                                    <ColumnDefinition Width="90" />
-                                </Grid.ColumnDefinitions>
-                                <Border Width="28" Height="28" CornerRadius="4" Background="{DynamicResource BadgeBrush}" HorizontalAlignment="Left">
-                                    <Grid>
-                                        <Image Source="{Binding IconPath, Converter={StaticResource FilePathToImage}}" Margin="4"
-                                               RenderOptions.BitmapScalingMode="NearestNeighbor"
-                                               Visibility="{Binding HasIcon, Converter={StaticResource BoolToVisibility}}" />
-                                        <views:IconView Icon="{Binding TypeIcon}" IconSize="15" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                        Foreground="{DynamicResource BadgeTextBrush}"
-                                                        Visibility="{Binding HasIcon, Converter={StaticResource InverseBoolToVisibility}}" />
-                                    </Grid>
-                                </Border>
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Header}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
-                                               Foreground="{DynamicResource StrongTextBrush}" />
-                                    <TextBlock Style="{StaticResource MonoHint}" Text="{Binding DetailsSubtitle}" />
-                                </StackPanel>
-                                <TextBlock Grid.Column="2" Text="{Binding FolderLabel}" VerticalAlignment="Center" FontSize="12"
-                                           TextTrimming="CharacterEllipsis" Foreground="{DynamicResource HintBrush}" />
-                                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Ellipse x:Name="Dot" Width="7" Height="7" Margin="0,0,6,0" Fill="{DynamicResource LogSuccessBrush}" />
-                                    <TextBlock Text="{Binding IssueLabel}" FontSize="12" Foreground="{DynamicResource HintBrush}" />
-                                </StackPanel>
-                                <TextBlock Grid.Column="4" Text="{Binding UsageCount}" VerticalAlignment="Center" FontSize="12"
-                                           Foreground="{DynamicResource HintBrush}" />
-                                <Border Grid.Column="5" Style="{StaticResource Badge}" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                    <TextBlock Style="{StaticResource BadgeText}" Text="{Binding DetailsBadge}" />
-                                </Border>
-                            </Grid>
-                            <DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding HasIssueWarnings}" Value="True">
-                                    <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource LogWarningBrush}" />
+                         VirtualizingPanel.IsVirtualizing="True" AutomationProperties.Name="{l:Tr 'Resources'}">
+                    <ListBox.Style>
+                        <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+                            <Setter Property="ItemTemplate" Value="{StaticResource ResourceRow}" />
+                            <Style.Triggers>
+                                <!-- Tiles: a grid of previews with the name under each. -->
+                                <DataTrigger Binding="{Binding IsTileView}" Value="True">
+                                    <Setter Property="ItemsPanel">
+                                        <Setter.Value>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter Property="ItemTemplate" Value="{StaticResource ResourceTile}" />
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding HasIssueErrors}" Value="True">
-                                    <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource LogErrorBrush}" />
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
+                            </Style.Triggers>
+                        </Style>
+                    </ListBox.Style>
                 </ListBox>
             </Grid>
         </DockPanel>

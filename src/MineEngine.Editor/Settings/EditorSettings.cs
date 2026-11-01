@@ -71,8 +71,18 @@ public sealed class EditorSettings
     /// <summary>Sparkle preview: the wheel zooms the other way.</summary>
     public bool SparkleInvertZoom { get; set; }
 
+    /// <summary>Colors of the X, Y and Z axes of the gizmo of the Sparkle preview (V0.7.14); null: red, green and blue.</summary>
+    public RgbColor? SparkleAxisXColor { get; set; }
+
+    public RgbColor? SparkleAxisYColor { get; set; }
+
+    public RgbColor? SparkleAxisZColor { get; set; }
+
     /// <summary>Rouvre au démarrage le dernier projet ouvert.</summary>
     public bool ReopenLastProject { get; set; }
+
+    /// <summary>Asks "Are you sure?" before a deletion (V0.7.14).</summary>
+    public bool ConfirmDelete { get; set; } = true;
 
     /// <summary>Preferred display of the Dashboard when a project opens: tiles (grid) rather than a list.</summary>
     public bool DashboardTileView { get; set; }

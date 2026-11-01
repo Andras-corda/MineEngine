@@ -375,6 +375,7 @@ public sealed partial class MainViewModel
             }),
             () => CanEdit && ProjectViewModel.CanDuplicate(_project?.SelectedAsset));
         OpenAssetJavaCommand = new AsyncRelayCommand(() => OpenAssetJavaAsync(null), () => CanEdit && _project?.SelectedAsset is not null);
+        OpenJavaOfCommand = new RelayCommand<Asset>(asset => _ = OpenJavaOfAsync(asset), _ => CanEdit && !IsBusy);
         RenameAssetCommand = new RelayCommand<AssetViewModel?>(
             asset =>
             {
@@ -466,8 +467,10 @@ public sealed partial class MainViewModel
     private void DeleteFolder(FolderItemViewModel folder)
     {
         string where = AssetFolders.Parent(folder.Path) is { Length: > 0 } parent ? Tr.F("\"{0}\"", AssetFolders.Name(parent)) : Tr.T("the root");
-        if (folder.AssetCount + folder.FolderCount > 0
-            && !_dialogs.Confirm(Tr.T("Delete folder"), Tr.F("Delete folder \"{0}\"? Its contents ({1}) move up to {2}.", folder.Name, folder.ContentLabel.ToLowerInvariant(), where)))
+        string message = folder.AssetCount + folder.FolderCount > 0
+            ? Tr.F("Delete folder \"{0}\"? Its contents ({1}) move up to {2}.", folder.Name, folder.ContentLabel.ToLowerInvariant(), where)
+            : Tr.F("Delete folder \"{0}\"?", folder.Name);
+        if (!_deleteConfirmation.Ask(message))
         {
             return;
         }
@@ -506,15 +509,8 @@ public sealed partial class MainViewModel
     /// <summary>Ouvre l'onglet d'édition d'un élément (paramètre : son ViewModel, sinon l'élément sélectionné).</summary>
     public ICommand OpenAssetEditorCommand { get; private set; } = null!;
 
-    /// <summary>Crée un élément et l'ouvre dans son onglet d'édition.</summary>
-    private void AddAndEdit(AssetType type)
-    {
-        _project!.AddAsset(type);
-        if (_project.SelectedAsset is { } created)
-        {
-            OpenAsset(created.Model);
-        }
-    }
+    /// <summary>Opens the generated Java file of the element given as parameter (a global variable, a tag...).</summary>
+    public ICommand OpenJavaOfCommand { get; private set; } = null!;
 
     /// <summary>Ouvre un asset dans son onglet : éditeur nodal pour un graphe, éditeur complet sinon.</summary>
     private void OpenAsset(Asset asset, Guid? nodeId = null)
@@ -708,12 +704,25 @@ public sealed partial class MainViewModel
     /// </summary>
     private async Task OpenAssetJavaAsync(ExternalProgram? program)
     {
-        if (_project?.SelectedAsset is not { } selected)
+        if (_project?.SelectedAsset is { } selected)
+        {
+            await OpenJavaOfAsync(selected.Model, program);
+        }
+    }
+
+    /// <summary>
+    /// Opens the generated Java file of an element at its first line (V0.7.14: also a global variable in
+    /// MineEngineGlobals and a tag in MineEngineTags); the code is generated first.
+    /// </summary>
+    public Task OpenJavaOfAsync(Asset asset, ExternalProgram? program = null) => OpenJavaOfAsync(asset.Id, asset.DisplayName, program);
+
+    private async Task OpenJavaOfAsync(Guid assetId, string header, ExternalProgram? program)
+    {
+        if (_project is null || IsBusy)
         {
             return;
         }
 
-        Guid assetId = selected.Model.Id;
         SetBusy(new CancellationTokenSource());
         StatusText = Tr.T("Generating Java code...");
         try
@@ -732,7 +741,7 @@ public sealed partial class MainViewModel
                 .FirstOrDefault();
             if (entry is null)
             {
-                StatusText = Tr.F("'{0}' produces no Java code (only data files).", selected.Header);
+                StatusText = Tr.F("'{0}' produces no Java code (only data files).", header);
                 return;
             }
 
@@ -746,7 +755,7 @@ public sealed partial class MainViewModel
                 OpenFileAtLine(javaFile, entry.FirstLine);
             }
 
-            StatusText = Tr.F("Java code of '{0}'", selected.Header);
+            StatusText = Tr.F("Java code of '{0}'", header);
         }
         catch (OperationCanceledException)
         {

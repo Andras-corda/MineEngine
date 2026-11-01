@@ -28,6 +28,9 @@ public sealed class WpfInterfaceService : IInterfaceService
     public const string SparkleInvertHorizontalKey = "SparkleInvertHorizontal";
     public const string SparkleInvertVerticalKey = "SparkleInvertVertical";
     public const string SparkleInvertZoomKey = "SparkleInvertZoom";
+    public const string SparkleAxisXKey = "SparkleAxisXColor";
+    public const string SparkleAxisYKey = "SparkleAxisYColor";
+    public const string SparkleAxisZKey = "SparkleAxisZColor";
 
     private static ScaleTransform s_scale = CreateScale(1);
 
@@ -48,6 +51,19 @@ public sealed class WpfInterfaceService : IInterfaceService
 
     public double UiScale => s_scale.ScaleX;
 
+    /// <summary>A color of the settings as a resource of the application, or no resource (the default of the control).</summary>
+    private void SetColor(string key, Core.Theming.RgbColor? color)
+    {
+        if (color is { } value)
+        {
+            _application.Resources[key] = System.Windows.Media.Color.FromRgb(value.R, value.G, value.B);
+        }
+        else
+        {
+            _application.Resources.Remove(key);
+        }
+    }
+
     public void Apply(EditorSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -58,6 +74,9 @@ public sealed class WpfInterfaceService : IInterfaceService
         _application.Resources[SparkleInvertHorizontalKey] = settings.SparkleInvertHorizontal;
         _application.Resources[SparkleInvertVerticalKey] = settings.SparkleInvertVertical;
         _application.Resources[SparkleInvertZoomKey] = settings.SparkleInvertZoom;
+        SetColor(SparkleAxisXKey, settings.SparkleAxisXColor);
+        SetColor(SparkleAxisYKey, settings.SparkleAxisYColor);
+        SetColor(SparkleAxisZKey, settings.SparkleAxisZColor);
 
         if (Math.Abs(settings.UiScale - s_scale.ScaleX) > 0.001)
         {

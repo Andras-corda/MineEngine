@@ -48,6 +48,21 @@ public sealed class WorkspaceTests
     }
 
     [Fact]
+    public void A_pinned_project_stays_pinned_once_saved()
+    {
+        using var temp = new TemporaryDirectory();
+        var store = new KnownProjectsStore(Path.Combine(temp.Path, "projects.json"));
+        string folder = Path.Combine(temp.Path, "Mon Mod");
+
+        // The same folder twice: the latest opening wins, the pin is kept (V0.7.14).
+        store.Save([new KnownProject(folder, DateTimeOffset.Now.AddDays(-1), Pinned: true), new KnownProject(folder, DateTimeOffset.Now)]);
+
+        KnownProject loaded = Assert.Single(store.Load());
+        Assert.True(loaded.Pinned);
+        Assert.DoesNotContain("\"pinned\": false", File.ReadAllText(Path.Combine(temp.Path, "projects.json")), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_project_summary_counts_assets_by_type_without_opening_the_project()
     {
         using var temp = new TemporaryDirectory();

@@ -31,7 +31,7 @@ public sealed class SparkleTests
     public void The_body_of_an_emitter_has_the_six_parts_of_the_spec()
     {
         Assert.Equal(Enum.GetValues<SparkleSection>(), SparkleCatalog.All.Select(m => m.Section).Distinct());
-        Assert.Equal(4, SparkleCatalog.InSection(SparkleSection.Event).Count());
+        Assert.Equal(5, SparkleCatalog.InSection(SparkleSection.Event).Count());
         Assert.All(SparkleCatalog.All.SelectMany(m => m.Parameters), p => Assert.True(p.Type != SparkleParameterType.Choice || p.Choices.Any(c => c.Value == p.DefaultValue)));
 
         SparkleEmitter emitter = SparkleEmitter.Create("Sparks", 3);
@@ -181,6 +181,38 @@ public sealed class SparkleTests
         var inside = new SparkleSimulation([rising.With(SparkleModuleKind.SpawnParticles, m => m.WithValue(SparkleCatalog.Offset, "0 3 0")), splash], ground: null);
         inside.Step(0.1);
         Assert.Equal(0, inside.Events);
+    }
+
+    [Fact]
+    public void A_collision_event_is_sent_once_when_a_particle_starts_touching_the_ground()
+    {
+        SparkleEmitter falling = SparkleEmitter.Create("Falling", 1)
+            .With(SparkleModuleKind.SpawnParticles, m => m.WithValue(SparkleCatalog.Count, "1").WithValue(SparkleCatalog.LifetimeMin, "3").WithValue(SparkleCatalog.LifetimeMax, "3")
+                .WithValue(SparkleCatalog.Offset, "0 1 0"))
+            .With(SparkleModuleKind.Velocity, m => m.WithValue(SparkleCatalog.SpeedMin, "0").WithValue(SparkleCatalog.SpeedMax, "0"))
+            .With(SparkleModuleKind.Collision, m => (m with { Enabled = true }).WithValue(SparkleCatalog.Bounce, "0").WithValue(SparkleCatalog.DieOnCollision, "false"))
+            .With(SparkleModuleKind.GenerateCollisionEvent, m => m with { Enabled = true });
+        SparkleEmitter splash = SparkleEmitter.Create("Splash", 2)
+            .With(SparkleModuleKind.ReceiveDeathEvent, m => (m with { Enabled = true }).WithValue(SparkleCatalog.EventType, "Collision").WithValue(SparkleCatalog.Source, "1").WithValue(SparkleCatalog.CountPerEvent, "3"))
+            .With(SparkleModuleKind.Velocity, m => m.WithValue(SparkleCatalog.SpeedMin, "0").WithValue(SparkleCatalog.SpeedMax, "0"))
+            .With(SparkleModuleKind.Gravity, m => m with { Enabled = false });
+        var simulation = new SparkleSimulation([falling, splash], ground: 0);
+
+        int splashes = 0;
+        for (int i = 0; i < 120; i++)
+        {
+            simulation.Step(1.0 / 60);
+            splashes = Math.Max(splashes, simulation.Particles.Count(p => p.Emitter == 1));
+        }
+
+        // It falls, hits the ground and rests on it: one event, not one per tick.
+        Assert.Equal(1, simulation.Events);
+        Assert.Equal(3, splashes);
+
+        // Without the Collision module, the event cannot happen: the check of the system says so.
+        var diagnostics = new DiagnosticBag();
+        SystemOf(falling.With(SparkleModuleKind.Collision, m => m with { Enabled = false }), splash).Validate(diagnostics);
+        Assert.Contains(diagnostics, d => d.Severity == DiagnosticSeverity.Warning && d.Message.Contains("do not collide", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -507,6 +539,9 @@ public sealed class SparkleTests
         string particle = File.ReadAllText(Path.Combine(java, "client/SparkleParticle.java"));
         Assert.Contains("system.onEvent(index, MineEngineSparkleData.TIME, x, y, z, xd, yd, zd);", particle);
         Assert.Contains("system.onEvent(index, MineEngineSparkleData.LOCATION, x, y, z, xd, yd, zd);", particle);
+        Assert.Contains("s0e0.collisionChance = 50.0;", data);
+        Assert.Contains("if (hit && !touching && emitter.collisionChance >= 0.0) {", particle);
+        Assert.Contains("system.onEvent(index, MineEngineSparkleData.COLLISION, x + mx, y + my, z + mz, xd, yd, zd);", particle);
 
         string client = File.ReadAllText(Path.Combine(java, "client/MineEngineSparkleClient.java"));
         Assert.Contains(loader == ModLoaderKind.NeoForge ? "import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;" : "import net.minecraftforge.client.event.RegisterParticleProvidersEvent;", client);

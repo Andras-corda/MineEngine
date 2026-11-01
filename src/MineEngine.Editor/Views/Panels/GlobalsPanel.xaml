@@ -42,6 +42,14 @@
 
             <!-- Actions -->
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Style="{StaticResource ToolText}" Margin="6,0,0,0"
+                        Command="{Binding DataContext.OpenJavaOfCommand, ElementName=Root}" CommandParameter="{Binding Rows[0].Asset}"
+                        AutomationProperties.Name="{l:Tr 'Java file'}" ToolTip="{l:Tr 'Opens the generated class MineEngineGlobals, which holds the variables (the code is generated first)'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Code}" Margin="0,0,6,0" />
+                        <TextBlock Text="{l:Tr 'Java file'}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
                 <Button DockPanel.Dock="Right" Style="{StaticResource ToolText}" Command="{Binding AddCommand}"
                         AutomationProperties.AutomationId="AddGlobal" AutomationProperties.Name="{l:Tr 'New variable'}"
                         ToolTip="{l:Tr 'Adds a global variable: its Get and Set nodes appear in every graph.'}">
@@ -68,7 +76,7 @@
                     <ColumnDefinition Width="1.1*" MinWidth="110" />
                     <ColumnDefinition Width="2.2*" MinWidth="190" />
                     <ColumnDefinition Width="1.1*" MinWidth="100" />
-                    <ColumnDefinition Width="56" />
+                    <ColumnDefinition Width="84" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'NAME'}" />
                 <TextBlock Grid.Column="1" Style="{StaticResource PanelCaption}" Text="{l:Tr 'CONTAINER'}" />
@@ -97,7 +105,7 @@
                                     <ColumnDefinition Width="1.1*" MinWidth="110" />
                                     <ColumnDefinition Width="2.2*" MinWidth="190" />
                                     <ColumnDefinition Width="1.1*" MinWidth="100" />
-                                    <ColumnDefinition Width="56" />
+                                    <ColumnDefinition Width="84" />
                                 </Grid.ColumnDefinitions>
                                 <TextBox MinHeight="0" Padding="6,3" Margin="0,0,8,0" Text="{Binding Name}"
                                          AutomationProperties.Name="{l:Tr 'Name'}"
@@ -132,6 +140,9 @@
                                     <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Warning}" Margin="0,0,6,0"
                                                Foreground="{DynamicResource LogWarningBrush}" ToolTip="{Binding Warning}"
                                                Visibility="{Binding HasWarning, Converter={StaticResource BoolToVisibility}}" />
+                                    <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Code}" Margin="0,0,4,0"
+                                            Command="{Binding DataContext.OpenJavaOfCommand, ElementName=Root}" CommandParameter="{Binding Asset}"
+                                            AutomationProperties.Name="{l:Tr 'Java code of the variable'}" ToolTip="{l:Tr 'Opens MineEngineGlobals at this variable'}" />
                                     <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}"
                                             AutomationProperties.Name="{l:Tr 'Delete the variable'}"
                                             ToolTip="{l:Tr 'Delete the variable (its nodes are then reported in the diagnostics)'}"

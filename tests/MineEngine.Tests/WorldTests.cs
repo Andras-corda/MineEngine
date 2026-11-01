@@ -110,6 +110,32 @@ public sealed class WorldTests
         Assert.Contains("testmod:moon_valley", Json("data/minecraft/tags/worldgen/biome/is_overworld.json").ToJsonString());
         Assert.True(File.Exists(Path.Combine(tags, "testmod/tags/damage_type/moon.json")));
         Assert.Contains("TagKey.create(Registries.BIOME", File.ReadAllText(Path.Combine(java, "behavior/UsageTagsBehavior.java")));
+
+        // The tags for the Java code (V0.7.14): a constant per tag, each line mapped to its tag.
+        string tagsClass = File.ReadAllText(Path.Combine(java, "code/MineEngineTags.java"));
+        Assert.Contains("public static final TagKey<Block> MOON_PLANTS = TagKey.create(Registries.BLOCK, ", tagsClass);
+        Assert.Contains("TagKey<Item> MINECRAFT_SMALL_FLOWERS", tagsClass);
+        Assert.Contains("TagKey<Item> C_SEEDS_MOON", tagsClass);
+        Assert.Contains("TagKey<EntityType<?>> MOON_MOBS", tagsClass);
+        Assert.Contains(singular ? "ResourceLocation.parse(\"testmod:is_moon\")" : "new ResourceLocation(\"testmod:is_moon\")", tagsClass);
+        Guid plantsTag = project.Assets.OfType<TagAsset>().Single(t => t.TagPath == "moon_plants").Id;
+        SourceMapEntry entry = result.SourceMap.Entries.Single(e => e.AssetId == plantsTag);
+        Assert.Contains("MOON_PLANTS", tagsClass.Split('\n')[entry.FirstLine - 1]);
+    }
+
+    [Fact]
+    public void Resources_are_sorted_by_what_uses_them()
+    {
+        var registry = new AssetRegistry();
+        var used = new TextureAsset(Guid.NewGuid(), ResourceId.Parse("moon"), "moon", "Textures/moon.png");
+        var gui = new TextureAsset(Guid.NewGuid(), ResourceId.Parse("panel"), "panel", "Textures/gui/panel.png");
+        var item = new ItemAsset(Guid.NewGuid(), ResourceId.Parse("moon_dust"), "Moon dust") { TextureId = used.Id };
+        registry.Add(used);
+        registry.Add(gui);
+        registry.Add(item);
+
+        Assert.Equal([ResourceGroup.Items], ResourceGroups.Of(used, registry));
+        Assert.True(ResourceGroups.Of(gui, registry).SetEquals([ResourceGroup.Interface, ResourceGroup.Unused]));
     }
 
     [Theory]

@@ -81,8 +81,43 @@ public sealed class ProjectHubViewModel : ObservableObject
         RemoveCommand = new RelayCommand<ProjectCardViewModel>(Remove);
         OpenFolderCommand = new RelayCommand<ProjectCardViewModel>(card => _shell.OpenFolder(card.RootDirectory), card => !card.IsMissing);
         RefreshCommand = new RelayCommand(Refresh);
+        TogglePinCommand = new RelayCommand<ProjectCardViewModel>(TogglePin);
 
         Load(defaultProjectsDirectory);
+        RefreshPinned();
+    }
+
+    /// <summary>Projects pinned to the sidebar (V0.7.14), by name.</summary>
+    public ObservableCollection<ProjectCardViewModel> PinnedProjects { get; } = [];
+
+    public bool HasPinnedProjects => PinnedProjects.Count > 0;
+
+    /// <summary>The last project opened that still exists, shown in the middle of the home page (V0.7.14).</summary>
+    public ProjectCardViewModel? LatestProject =>
+        Projects.Where(p => !p.IsMissing && p.LastOpened is not null).MaxBy(p => p.SortDate);
+
+    public bool HasLatestProject => LatestProject is not null;
+
+    public ICommand TogglePinCommand { get; }
+
+    private void TogglePin(ProjectCardViewModel card)
+    {
+        card.Update(card.Known with { Pinned = !card.IsPinned }, ProjectSummary.TryRead(card.RootDirectory, _settingsSerializer));
+        Save();
+        RefreshPinned();
+    }
+
+    private void RefreshPinned()
+    {
+        PinnedProjects.Clear();
+        foreach (ProjectCardViewModel card in Projects.Where(p => p.IsPinned).OrderBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase))
+        {
+            PinnedProjects.Add(card);
+        }
+
+        OnPropertyChanged(nameof(HasPinnedProjects));
+        OnPropertyChanged(nameof(LatestProject));
+        OnPropertyChanged(nameof(HasLatestProject));
     }
 
     public ObservableCollection<ProjectCardViewModel> Projects { get; } = [];
@@ -229,6 +264,7 @@ public sealed class ProjectHubViewModel : ObservableObject
         string root = KnownProjectsStore.Normalize(rootDirectory);
         Upsert(new KnownProject(root, DateTimeOffset.Now));
         Save();
+        RefreshPinned();
     }
 
     /// <summary>Relit l'aperçu de chaque projet (contenu modifié, dossier supprimé).</summary>
@@ -308,6 +344,7 @@ public sealed class ProjectHubViewModel : ObservableObject
         }
 
         Save();
+        RefreshPinned();
         OnPropertyChanged(nameof(CountLabel));
         OnPropertyChanged(nameof(IsListEmpty));
         OnPropertyChanged(nameof(EmptyListMessage));
@@ -327,7 +364,7 @@ public sealed class ProjectHubViewModel : ObservableObject
     {
         if (Find(known.RootDirectory) is { } card)
         {
-            card.Update(known with { LastOpened = known.LastOpened ?? card.LastOpened },
+            card.Update(known with { LastOpened = known.LastOpened ?? card.LastOpened, Pinned = known.Pinned || card.IsPinned },
                 ProjectSummary.TryRead(known.RootDirectory, _settingsSerializer));
             _view.Refresh();
         }

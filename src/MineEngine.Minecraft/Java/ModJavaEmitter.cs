@@ -94,8 +94,13 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         if (content.Globals.Count > 0)
         {
             string globals = new GlobalsJava(names, api).Write(context.Mod.ModId.Value, GameEventBus, GlobalPlayerEvent, ServerStartingEvent, ServerStoppingEvent, FmlPaths);
-            context.Files.WriteText(naming.SourcePath(names.Package, JavaProgramNames.GlobalsClass), globals);
+            string globalsFile = naming.SourcePath(names.Package, JavaProgramNames.GlobalsClass);
+            context.Files.WriteText(globalsFile, globals);
+            MapGlobals(context, globalsFile, globals, names);
         }
+
+        WriteTagsClass(context, naming, names, api);
+
         foreach (IRDefinition definition in names.TopLevel)
         {
             WriteDefinitionFile(context, api, names, definition);

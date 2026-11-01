@@ -37,9 +37,20 @@ public sealed class SparklePreview : FrameworkElement
     /// <summary>Particles of colliding emitters that get a box, at most (beyond, the preview would slow down).</summary>
     private const int MaxCollisionBoxes = 150;
 
-    private static readonly Color AxisX = Color.FromRgb(0xE5, 0x48, 0x4D);
-    private static readonly Color AxisY = Color.FromRgb(0x7C, 0xC4, 0x6A);
-    private static readonly Color AxisZ = Color.FromRgb(0x4C, 0x8D, 0xF6);
+    private static readonly Color DefaultAxisX = Color.FromRgb(0xE5, 0x48, 0x4D);
+    private static readonly Color DefaultAxisY = Color.FromRgb(0x7C, 0xC4, 0x6A);
+    private static readonly Color DefaultAxisZ = Color.FromRgb(0x4C, 0x8D, 0xF6);
+
+    /// <summary>Size of the axes of the gizmo and its center, in the bottom left corner.</summary>
+    private const double GizmoSize = 26;
+
+    private Color AxisX => TryFindResource(Services.WpfInterfaceService.SparkleAxisXKey) is Color color ? color : DefaultAxisX;
+
+    private Color AxisY => TryFindResource(Services.WpfInterfaceService.SparkleAxisYKey) is Color color ? color : DefaultAxisY;
+
+    private Color AxisZ => TryFindResource(Services.WpfInterfaceService.SparkleAxisZKey) is Color color ? color : DefaultAxisZ;
+
+    private Point GizmoCenter => new(42, ActualHeight - 42);
 
     private static DependencyProperty Helper(string name) => DependencyProperty.Register(
         name, typeof(bool), typeof(SparklePreview), new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -196,6 +207,13 @@ public sealed class SparklePreview : FrameworkElement
     {
         base.OnMouseLeftButtonDown(e);
         Focus();
+        if (ShowAxes && AxisAt(e.GetPosition(this)) is { } axis)
+        {
+            LookAlong(axis);
+            e.Handled = true;
+            return;
+        }
+
         _drag = e.GetPosition(this);
         CaptureMouse();
         e.Handled = true;
@@ -435,11 +453,51 @@ public sealed class SparklePreview : FrameworkElement
         }
     }
 
+    /// <summary>The end of the gizmo under the pointer (an axis and its side), nearest to the camera first; null if none.</summary>
+    private SparkleVector? AxisAt(Point point)
+    {
+        Point center = GizmoCenter;
+        foreach (SparkleVector axis in GizmoAxes().OrderBy(a => Rotate(a).Z))
+        {
+            (double x, double y, double _) = Rotate(axis);
+            if ((point - (center + new Vector(x * GizmoSize, -y * GizmoSize))).Length <= 9)
+            {
+                return axis;
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<SparkleVector> GizmoAxes() =>
+    [
+        new SparkleVector(1, 0, 0), new SparkleVector(-1, 0, 0), new SparkleVector(0, 1, 0),
+        new SparkleVector(0, -1, 0), new SparkleVector(0, 0, 1), new SparkleVector(0, 0, -1),
+    ];
+
+    /// <summary>
+    /// Turns the camera so that the clicked end of the gizmo points at it (V0.7.14): from the side for X and Z,
+    /// from above or below (as far as the camera goes) for Y.
+    /// </summary>
+    private void LookAlong(SparkleVector axis)
+    {
+        (_yaw, _pitch) = axis switch
+        {
+            { X: > 0 } => (-Math.PI / 2, 0d),
+            { X: < 0 } => (Math.PI / 2, 0d),
+            { Z: > 0 } => (Math.PI, 0d),
+            { Z: < 0 } => (0d, 0d),
+            { Y: > 0 } => (_yaw, -1.4),
+            _ => (_yaw, 1.4),
+        };
+        InvalidateVisual();
+    }
+
     /// <summary>Orientation of the camera in the bottom left corner, like the gizmo of 3D software: X red, Y green (up), Z blue.</summary>
     private void DrawAxes(DrawingContext dc)
     {
-        const double Size = 26;
-        var center = new Point(42, ActualHeight - 42);
+        const double Size = GizmoSize;
+        Point center = GizmoCenter;
         var axes = new List<(double Depth, Vector Screen, Color Color, string Label, bool Positive)>();
         foreach ((SparkleVector direction, Color color, string label) in new[]
                  {

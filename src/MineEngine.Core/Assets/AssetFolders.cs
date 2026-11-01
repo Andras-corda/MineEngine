@@ -55,7 +55,7 @@ public static class AssetFolders
 
     public static string Combine(string parent, string name) {
         if(parent.Length == 0){
-            return name
+            return name;
         } else {
             return parent + Separator + name;
         }

@@ -68,6 +68,10 @@
                 </MenuItem>
                 <!-- Filled when the menu opens: the programs of the settings that open Java files (the IDE). -->
                 <MenuItem Header="{l:Tr 'Open the Java code in'}" Tag="javaWith" />
+                <!-- Filled when the menu opens: the methods of the element in Java or as graphs, and the graphs that use it. -->
+                <MenuItem Header="{l:Tr 'Methods and graphs'}" Tag="methods">
+                    <MenuItem.Icon><views:IconView Icon="NodeGraphGeometry" IconSize="14" /></MenuItem.Icon>
+                </MenuItem>
                 <Separator />
                 <MenuItem Header="{l:Tr 'Rename...'}" InputGestureText="F2" CommandParameter="{Binding}"
                           Command="{Binding PlacementTarget.Tag.RenameAssetCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">

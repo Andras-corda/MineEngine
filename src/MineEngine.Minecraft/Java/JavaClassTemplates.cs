@@ -14,6 +14,12 @@ public enum JavaClassKind
 
     /// <summary>Classe vide.</summary>
     Empty,
+
+    /// <summary>Énumération : une liste de valeurs nommées (V0.7.14).</summary>
+    Enum,
+
+    /// <summary>Structure : un record Java qui groupe des champs (V0.7.14).</summary>
+    Record,
 }
 
 /// <summary>
@@ -56,6 +62,8 @@ public static class JavaClassTemplates
         {
             JavaClassKind.EventListener => EventListener(className, modId, loader),
             JavaClassKind.Utility => Utility(className),
+            JavaClassKind.Enum => $"/** Valeurs nommées. */\npublic enum {className} {{\n    FIRST,\n    SECOND,\n}}\n",
+            JavaClassKind.Record => $"/** Champs groupés ; chacun a son accesseur (point.x()). */\npublic record {className}(int x, int y) {{\n}}\n",
             _ => $"public class {className} {{\n}}\n",
         };
 

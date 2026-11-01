@@ -266,6 +266,75 @@ public partial class DashboardPanel : UserControl
         javaWith.Items.Add(new MenuItem { Header = Tr.T("Configure programs..."), Command = main.OpenSettingsCommand });
     }
 
+    /// <summary>
+    /// "Methods and graphs" (V0.7.14): the methods of an item, opened or created in Java or as a graph (visual
+    /// programming), then the graphs that use the element.
+    /// </summary>
+    private static void FillMethods(ContextMenu menu, AssetViewModel asset, ProjectViewModel project, MainViewModel main)
+    {
+        if (menu.Items.OfType<MenuItem>().FirstOrDefault(i => Equals(i.Tag, "methods")) is not { } methods)
+        {
+            return;
+        }
+
+        methods.Items.Clear();
+        if (asset is ItemAssetViewModel item)
+        {
+            foreach (ElementMethodViewModel method in item.MethodSlots.Values.Where(m => m.Exists))
+            {
+                methods.Items.Add(new MenuItem { Header = $"{method.Slot.Title} ({method.State})", Command = method.OpenCommand });
+            }
+
+            var create = new MenuItem { Header = Tr.T("Create a method") };
+            foreach (ElementMethodViewModel method in item.MethodSlots.Values.Where(m => m.IsMissing))
+            {
+                var slot = new MenuItem { Header = method.Slot.Title, ToolTip = method.Slot.JavaSignature };
+                slot.Items.Add(new MenuItem { Header = Tr.T("In Java"), Command = method.CreateJavaCommand, Icon = new IconView { Icon = "Glyph.Code", IconSize = 14 } });
+                slot.Items.Add(new MenuItem
+                {
+                    Header = Tr.T("As a graph (visual programming)"), Command = method.CreateNodalCommand,
+                    Icon = new IconView { Icon = "NodeGraphGeometry", IconSize = 14 },
+                });
+                create.Items.Add(slot);
+            }
+
+            if (methods.Items.Count > 0 && create.Items.Count > 0)
+            {
+                methods.Items.Add(new Separator());
+            }
+
+            if (create.Items.Count > 0)
+            {
+                methods.Items.Add(create);
+            }
+        }
+
+        List<AssetViewModel> graphs =
+        [
+            .. asset.UsedBy.Select(link => project.Assets.FirstOrDefault(a => a.Model.Id == link.TargetId))
+                .OfType<AssetViewModel>().Where(a => a.Model is MineEngine.Assets.GraphAsset).DistinctBy(a => a.Model.Id),
+        ];
+        if (graphs.Count > 0)
+        {
+            if (methods.Items.Count > 0)
+            {
+                methods.Items.Add(new Separator());
+            }
+
+            methods.Items.Add(new MenuItem { Header = Tr.T("Graphs that use it"), IsEnabled = false });
+            foreach (AssetViewModel graph in graphs)
+            {
+                methods.Items.Add(new MenuItem
+                {
+                    Header = graph.Header, Command = main.OpenAssetEditorCommand, CommandParameter = graph,
+                    Icon = new IconView { Icon = "NodeGraphGeometry", IconSize = 14 },
+                });
+            }
+        }
+
+        methods.Visibility = methods.Items.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     /// <summary>"Déplacer vers" : la racine et tous les dossiers, sauf celui de l'élément.</summary>
     private void OnAssetMenuOpening(object sender, ContextMenuEventArgs e)
     {
@@ -276,6 +345,7 @@ public partial class DashboardPanel : UserControl
 
         OpenWithMenu.Fill(menu, main.AssetFile(asset), main);
         FillJavaPrograms(menu, main);
+        FillMethods(menu, asset, project, main);
         MenuItem? move = menu.Items.OfType<MenuItem>().FirstOrDefault(i => Equals(i.Tag, "move"));
         if (move is null)
         {

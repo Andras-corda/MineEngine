@@ -127,6 +127,28 @@ public sealed class PuppeteerTests
     }
 
     [Fact]
+    public void Every_template_gives_a_valid_tree()
+    {
+        foreach (BehaviorTreeTemplateInfo info in BehaviorTreeTemplates.All)
+        {
+            var asset = (BehaviorTreeAsset)new BehaviorTreeAssetDefinition().CreateNew(ResourceId.Parse("brain"), "Cerveau");
+            BehaviorTreeTemplates.Apply(asset, info.Template);
+
+            if (info.Template == BehaviorTreeTemplate.Empty)
+            {
+                Assert.Single(asset.Tree.Nodes);
+                continue;
+            }
+
+            Assert.Empty(BehaviorTreeValidator.Validate(asset));
+        }
+
+        var fearful = (BehaviorTreeAsset)new BehaviorTreeAssetDefinition().CreateNew(ResourceId.Parse("shy"), "Shy");
+        BehaviorTreeTemplates.Apply(fearful, BehaviorTreeTemplate.Fearful);
+        Assert.Contains(fearful.Tree.Nodes, n => n.Kind == BtNodeKind.FleeFrom);
+    }
+
+    [Fact]
     public void Problems_point_to_the_node_or_attachment()
     {
         var number = new BlackboardKey(Guid.NewGuid(), "count", BlackboardKeyType.Number);

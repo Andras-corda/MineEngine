@@ -40,7 +40,8 @@ internal sealed class SparkleSample
             .With(SparkleModuleKind.Velocity, m => m.WithValue(SparkleCatalog.VelocityMode, "Cone").WithValue(SparkleCatalog.SpeedMin, "4").WithValue(SparkleCatalog.SpeedMax, "6"))
             .With(SparkleModuleKind.Collision, m => (m with { Enabled = true }).WithValue(SparkleCatalog.DieOnCollision, "true"))
             .With(SparkleModuleKind.Texture, m => m.WithValue(SparkleCatalog.Tint, "#FF8800"))
-            .With(SparkleModuleKind.GenerateDeathEvent, m => m with { Enabled = true });
+            .With(SparkleModuleKind.GenerateDeathEvent, m => m with { Enabled = true })
+            .With(SparkleModuleKind.GenerateCollisionEvent, m => (m with { Enabled = true }).WithValue(SparkleCatalog.Chance, "50"));
         SparkleEmitter burst = SparkleEmitter.Create("Burst", 2)
             .With(SparkleModuleKind.ReceiveDeathEvent, m => (m with { Enabled = true }).WithValue(SparkleCatalog.Source, "1").WithValue(SparkleCatalog.CountPerEvent, "4"))
             .With(SparkleModuleKind.Velocity, m => m.WithValue(SparkleCatalog.VelocityMode, "Radial"))

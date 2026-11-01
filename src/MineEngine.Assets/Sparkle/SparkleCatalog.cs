@@ -40,6 +40,9 @@ public enum SparkleModuleKind
 
     /// <summary>Spawns on the events of another emitter: deaths, times or zones (named before V0.7.6, when only deaths existed).</summary>
     ReceiveDeathEvent,
+
+    /// <summary>Event sent by a particle when it hits a block, with the Collision module (V0.7.14).</summary>
+    GenerateCollisionEvent,
 }
 
 /// <summary>Event of a particle that makes another emitter spawn particles.</summary>
@@ -48,6 +51,9 @@ public enum SparkleEventKind
     Death,
     Time,
     Location,
+
+    /// <summary>A particle hits a block (V0.7.14).</summary>
+    Collision,
 }
 
 /// <summary>Kind of value of a module setting.</summary>
@@ -456,6 +462,17 @@ public static class SparkleCatalog
 
         yield return new SparkleModuleInfo
         {
+            Kind = SparkleModuleKind.GenerateCollisionEvent,
+            Section = SparkleSection.Event,
+            Title = Tr.T("Generate collision event"),
+            Description = Tr.T("A particle sends an event when it hits a block (with the Collision module): the emitters that receive it spawn particles where it hit (splashes, sparks...)."),
+            IsOptional = true,
+            EnabledByDefault = false,
+            Parameters = [Number(Chance, Tr.T("Chance (%)"), 100, 0, 100)],
+        };
+
+        yield return new SparkleModuleInfo
+        {
             Kind = SparkleModuleKind.ReceiveDeathEvent,
             Section = SparkleSection.Event,
             Title = Tr.T("Receive event"),
@@ -464,7 +481,8 @@ public static class SparkleCatalog
             EnabledByDefault = false,
             Parameters =
             [
-                Choice(EventType, Tr.T("Event"), new("Death", Tr.T("Death")), new("Time", Tr.T("Time")), new("Location", Tr.T("Location (zone)"))),
+                Choice(EventType, Tr.T("Event"), new("Death", Tr.T("Death")), new("Time", Tr.T("Time")), new("Location", Tr.T("Location (zone)")),
+                    new("Collision", Tr.T("Collision"))),
                 new SparkleParameterInfo(Source, Tr.T("Emitter ID"), SparkleParameterType.EmitterId, "1"),
                 Integer(CountPerEvent, Tr.T("Particles per event"), 5, 1, 1000),
                 Boolean(AtDeathLocation, Tr.T("At the place of the event"), true),

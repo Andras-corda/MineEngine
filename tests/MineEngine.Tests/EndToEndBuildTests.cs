@@ -78,7 +78,7 @@ public sealed class EndToEndBuildTests
 
         // Code écrit par l'utilisateur, compilé avec le code généré (classes "custom" de la V0.4.2).
         string package = JavaClassTemplates.DefaultPackage(settings.ModId);
-        foreach ((JavaClassKind kind, string name) in new[] { (JavaClassKind.EventListener, "Welcome"), (JavaClassKind.Utility, "MathTools") })
+        foreach ((JavaClassKind kind, string name) in new[] { (JavaClassKind.EventListener, "Welcome"), (JavaClassKind.Utility, "MathTools"), (JavaClassKind.Enum, "Colors"), (JavaClassKind.Record, "Point") })
         {
             string file = project.Layout.ToAbsolutePath(JavaClassTemplates.SourcePath(package, name));
             Directory.CreateDirectory(Path.GetDirectoryName(file)!);

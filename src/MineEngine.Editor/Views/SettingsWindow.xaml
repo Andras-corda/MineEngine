@@ -4,6 +4,7 @@
         xmlns:l="clr-namespace:MineEngine.Editor.Localization"
         xmlns:ui="http://schemas.modernwpf.com/2019"
         xmlns:vm="clr-namespace:MineEngine.Editor.ViewModels"
+        xmlns:views="clr-namespace:MineEngine.Editor.Views"
         ui:WindowHelper.UseModernWindowStyle="True"
         Background="{DynamicResource HubBackgroundBrush}"
         Title="{l:Tr 'Settings'}"
@@ -68,6 +69,12 @@
                                   Content="{l:Tr 'Reopen the last project at startup'}" />
                         <TextBlock Style="{StaticResource FieldHint}" Margin="28,0,0,0"
                                    Text="{l:Tr 'Otherwise, Mine Engine opens on the home page.'}" />
+
+                        <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Deletion'}" />
+                        <CheckBox Style="{StaticResource SettingsCheck}" IsChecked="{Binding ConfirmDelete}"
+                                  Content="{l:Tr 'Ask for confirmation before deleting'}" />
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="28,0,0,0"
+                                   Text="{l:Tr 'Unticked, elements, folders and files are deleted at once (Undo still brings back the elements).'}" />
 
                         <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Dashboard'}" />
                         <RadioButton GroupName="DashboardView" IsChecked="{Binding DashboardListView}" Margin="0,4"
@@ -138,6 +145,10 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0" Text="{Binding SelectedAccent.Name}" />
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBlock Text="{l:Tr 'Any color:'}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <views:ColorPicker Color="{Binding CustomAccent}" />
+                        </StackPanel>
 
                         <TextBlock Style="{StaticResource SettingsSection}" Text="{l:Tr 'Interface size'}" />
                         <ComboBox Width="160" HorizontalAlignment="Left" ItemsSource="{Binding ScaleChoices}"
@@ -244,6 +255,18 @@
                                   Content="{l:Tr 'Invert the zoom of the wheel'}" />
                         <TextBlock Style="{StaticResource FieldHint}" Margin="28,0,0,0"
                                    Text="{l:Tr 'The camera of the particle preview turns and zooms the other way when the mouse is dragged or the wheel turned.'}" />
+                        <TextBlock Text="{l:Tr 'Colors of the gizmo (axes in the corner of the preview)'}" Margin="0,10,0,4" />
+                        <WrapPanel>
+                            <TextBlock Text="X" VerticalAlignment="Center" Margin="0,0,6,0" FontWeight="SemiBold" />
+                            <views:ColorPicker Color="{Binding SparkleAxisX}" Margin="0,0,14,0" />
+                            <TextBlock Text="Y" VerticalAlignment="Center" Margin="0,0,6,0" FontWeight="SemiBold" />
+                            <views:ColorPicker Color="{Binding SparkleAxisY}" Margin="0,0,14,0" />
+                            <TextBlock Text="Z" VerticalAlignment="Center" Margin="0,0,6,0" FontWeight="SemiBold" />
+                            <views:ColorPicker Color="{Binding SparkleAxisZ}" Margin="0,0,14,0" />
+                            <Button Content="{l:Tr 'Reset'}" Command="{Binding ResetSparkleAxesCommand}" Padding="10,3" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0"
+                                   Text="{l:Tr 'A click on an axis of the gizmo turns the camera to look along it.'}" />
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

@@ -9,7 +9,8 @@ namespace MineEngine.Project.Workspace;
 /// <summary>Projet présent dans la liste de l'accueil.</summary>
 /// <param name="RootDirectory">Dossier du projet (celui qui contient le fichier .mineengine).</param>
 /// <param name="LastOpened">Dernière ouverture dans l'éditeur, ou null s'il n'a jamais été ouvert.</param>
-public sealed record KnownProject(string RootDirectory, DateTimeOffset? LastOpened);
+/// <param name="Pinned">Shown in the sidebar of the home page (V0.7.14).</param>
+public sealed record KnownProject(string RootDirectory, DateTimeOffset? LastOpened, bool Pinned = false);
 
 /// <summary>
 /// Liste des projets connus de l'éditeur (accueil "Mes projets"), enregistrée dans un
@@ -51,7 +52,7 @@ public sealed class KnownProjectsStore
                     entry["lastOpened"]?.GetValue<string>(), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTimeOffset date)
                     ? date
                     : null;
-                projects.Add(new KnownProject(path, lastOpened));
+                projects.Add(new KnownProject(path, lastOpened, entry["pinned"]?.GetValue<bool>() ?? false));
             }
 
             return Distinct(projects);
@@ -72,6 +73,7 @@ public sealed class KnownProjectsStore
             {
                 ["path"] = project.RootDirectory,
                 ["lastOpened"] = project.LastOpened?.ToString("O", CultureInfo.InvariantCulture),
+                ["pinned"] = project.Pinned ? true : null,
             });
         }
 
@@ -84,7 +86,7 @@ public sealed class KnownProjectsStore
         projects
             .Select(p => p with { RootDirectory = Normalize(p.RootDirectory) })
             .GroupBy(p => p.RootDirectory, StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.OrderByDescending(p => p.LastOpened ?? DateTimeOffset.MinValue).First())
+            .Select(g => g.OrderByDescending(p => p.LastOpened ?? DateTimeOffset.MinValue).First() with { Pinned = g.Any(p => p.Pinned) })
             .ToList();
 
     public static string Normalize(string directory) =>

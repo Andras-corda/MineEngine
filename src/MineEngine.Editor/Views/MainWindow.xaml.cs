@@ -45,6 +45,7 @@ public partial class MainWindow : Window
         _layout = layout ?? throw new ArgumentNullException(nameof(layout));
 
         InitializeComponent();
+        NewElementMenu.Fill(AddMenu);
         DataContext = viewModel;
 
         // Un panneau détaché dans une fenêtre flottante ne garde pas toujours le DataContext
@@ -59,6 +60,10 @@ public partial class MainWindow : Window
 
         ApplyTheme();
         _themes.AppearanceChanged += OnAppearanceChanged;
+        // V0.7.14: the status bar shows when Caps Lock is on, as soon as the key changes or the window comes back.
+        PreviewKeyUp += (_, _) => UpdateCapsLock();
+        Activated += (_, _) => UpdateCapsLock();
+        Loaded += (_, _) => UpdateCapsLock();
         _viewModel.PanelRequested += (_, panelId) => ShowPanel(panelId);
         _viewModel.RestartRequested += (_, project) => Restart(project);
         _viewModel.Documents.CollectionChanged += OnDocumentsChanged;
@@ -465,6 +470,9 @@ public partial class MainWindow : Window
     }
 
     private void OnAppearanceChanged(object? sender, EventArgs e) => ApplyTheme();
+
+    private void UpdateCapsLock() =>
+        CapsLockIndicator.Visibility = Keyboard.IsKeyToggled(Key.CapsLock) ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Ctrl+Z et Ctrl+Y agissent sur l'historique du projet, même quand un champ de

@@ -45,7 +45,11 @@ public sealed class EditorSettingsStore
             settings.SparkleInvertHorizontal = root["sparkleInvertHorizontal"]?.GetValue<bool>() ?? settings.SparkleInvertHorizontal;
             settings.SparkleInvertVertical = root["sparkleInvertVertical"]?.GetValue<bool>() ?? settings.SparkleInvertVertical;
             settings.SparkleInvertZoom = root["sparkleInvertZoom"]?.GetValue<bool>() ?? settings.SparkleInvertZoom;
+            settings.SparkleAxisXColor = RgbColor.TryParse(root["sparkleAxisX"]?.GetValue<string>(), out RgbColor axisX) ? axisX : null;
+            settings.SparkleAxisYColor = RgbColor.TryParse(root["sparkleAxisY"]?.GetValue<string>(), out RgbColor axisY) ? axisY : null;
+            settings.SparkleAxisZColor = RgbColor.TryParse(root["sparkleAxisZ"]?.GetValue<string>(), out RgbColor axisZ) ? axisZ : null;
             settings.ReopenLastProject = root["reopenLastProject"]?.GetValue<bool>() ?? settings.ReopenLastProject;
+            settings.ConfirmDelete = root["confirmDelete"]?.GetValue<bool>() ?? settings.ConfirmDelete;
             settings.DashboardTileView = root["dashboardTileView"]?.GetValue<bool>() ?? settings.DashboardTileView;
             settings.HubSidebarCollapsed = root["hubSidebarCollapsed"]?.GetValue<bool>() ?? settings.HubSidebarCollapsed;
             settings.DebugMode = root["debugMode"]?.GetValue<bool>() ?? settings.DebugMode;
@@ -92,7 +96,11 @@ public sealed class EditorSettingsStore
             ["sparkleInvertHorizontal"] = settings.SparkleInvertHorizontal,
             ["sparkleInvertVertical"] = settings.SparkleInvertVertical,
             ["sparkleInvertZoom"] = settings.SparkleInvertZoom,
+            ["sparkleAxisX"] = settings.SparkleAxisXColor?.ToString(),
+            ["sparkleAxisY"] = settings.SparkleAxisYColor?.ToString(),
+            ["sparkleAxisZ"] = settings.SparkleAxisZColor?.ToString(),
             ["reopenLastProject"] = settings.ReopenLastProject,
+            ["confirmDelete"] = settings.ConfirmDelete,
             ["dashboardTileView"] = settings.DashboardTileView,
             ["debugMode"] = settings.DebugMode,
             ["hubSidebarCollapsed"] = settings.HubSidebarCollapsed,

@@ -11,6 +11,7 @@ public partial class MainToolbar : UserControl
     public MainToolbar()
     {
         InitializeComponent();
+        NewElementMenu.Fill(AddButton.ContextMenu);
     }
 
     /// <summary>Place le curseur dans la recherche (Ctrl+F hors d'un éditeur).</summary>

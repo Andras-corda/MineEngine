@@ -130,6 +130,7 @@ public sealed record SparkleEmitter(Guid Id, string Name, bool Preview, Immutabl
     {
         SparkleEventKind.Time => SparkleModuleKind.GenerateTimeEvent,
         SparkleEventKind.Location => SparkleModuleKind.GenerateLocationEvent,
+        SparkleEventKind.Collision => SparkleModuleKind.GenerateCollisionEvent,
         _ => SparkleModuleKind.GenerateDeathEvent,
     };
 

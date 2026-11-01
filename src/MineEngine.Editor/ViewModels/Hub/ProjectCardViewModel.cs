@@ -87,6 +87,11 @@ public sealed class ProjectCardViewModel : ObservableObject
 
     public DateTimeOffset? LastOpened => _known.LastOpened;
 
+    /// <summary>Shown in the sidebar of the home page (V0.7.14).</summary>
+    public bool IsPinned => _known.Pinned;
+
+    public string PinMenuLabel => IsPinned ? Tr.T("Unpin from the sidebar") : Tr.T("Pin to the sidebar");
+
     public DateTimeOffset SortDate => _known.LastOpened ?? DateTimeOffset.MinValue;
 
     /// <summary>Version de Minecraft comparable ("1.21.1" avant "1.20.1" une fois inversé).</summary>

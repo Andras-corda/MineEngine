@@ -12,6 +12,7 @@ using MineEngine.Editor.Mvvm;
 using MineEngine.Editor.Services;
 using MineEngine.Editor.Settings;
 using MineEngine.Editor.ViewModels.Assets;
+using MineEngine.Editor.ViewModels.Creation;
 using MineEngine.Editor.ViewModels.Documents;
 using MineEngine.Editor.ViewModels.Hub;
 using MineEngine.Editor.ViewModels.Panels;
@@ -49,6 +50,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IShellService _shell;
     private readonly MdkServices _mdks;
     private readonly EditorPreferences _preferences;
+    private readonly DeleteConfirmation _deleteConfirmation;
     private readonly ILog _log;
     private readonly DispatcherTimer _validationTimer;
     private readonly DispatcherTimer _autoSaveTimer;
@@ -79,6 +81,7 @@ public sealed partial class MainViewModel : ObservableObject
         _shell = shell ?? throw new ArgumentNullException(nameof(shell));
         _mdks = mdks ?? throw new ArgumentNullException(nameof(mdks));
         _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
+        _deleteConfirmation = new DeleteConfirmation(dialogs, () => _preferences.Current.ConfirmDelete);
         Output = output ?? throw new ArgumentNullException(nameof(output));
         _log = log ?? throw new ArgumentNullException(nameof(log));
 
@@ -86,8 +89,10 @@ public sealed partial class MainViewModel : ObservableObject
         Hub = createHub(OpenProjectFromHub);
         Diagnostics = new DiagnosticsViewModel(NavigateToDiagnostic);
         Explorer = new ProjectExplorerViewModel(shell, dialogs, OpenFileFromExplorer, SelectFileFromExplorer);
+        Explorer.ConfirmDelete = message => _deleteConfirmation.Ask(message);
         InitializeDocumentCommands();
         InitializeFolderCommands();
+        InitializeCreationCommands();
         _assetViewModels.Navigation.OpenRequested += (_, e) => OpenAsset(e.Asset, e.NodeId);
         _assetViewModels.Navigation.OpenMethodRequested += (_, e) => OpenMethodDocument(e.Asset, e.Slot);
 
@@ -125,13 +130,13 @@ public sealed partial class MainViewModel : ObservableObject
         // Projet
         EditProjectSettingsCommand = new RelayCommand(EditProjectSettings, () => CanEdit);
         // Un nouvel élément s'ouvre directement dans son onglet d'édition.
-        AddItemCommand = new RelayCommand(() => AddAndEdit(AssetType.Item), () => CanEdit);
-        AddBlockCommand = new RelayCommand(() => AddAndEdit(AssetType.Block), () => CanEdit);
-        AddMobCommand = new RelayCommand(() => AddAndEdit(AssetType.Mob), () => CanEdit);
-        AddRecipeCommand = new RelayCommand(() => AddAndEdit(AssetType.Recipe), () => CanEdit);
-        AddBehaviorTreeCommand = new RelayCommand(() => AddAndEdit(AssetType.BehaviorTree), () => CanEdit);
-        AddOfTypeCommand = new RelayCommand<AssetType>(type => AddAndEdit(type), _ => CanEdit);
-        AddGraphCommand = new RelayCommand<GraphKind>(kind => AddGraph(kind), _ => CanEdit);
+        AddItemCommand = new RelayCommand(() => OpenNewElement(NewElementCatalog.ForAsset(AssetType.Item)), () => CanEdit);
+        AddBlockCommand = new RelayCommand(() => OpenNewElement(NewElementCatalog.ForAsset(AssetType.Block)), () => CanEdit);
+        AddMobCommand = new RelayCommand(() => OpenNewElement(NewElementCatalog.ForAsset(AssetType.Mob)), () => CanEdit);
+        AddRecipeCommand = new RelayCommand(() => OpenNewElement(NewElementCatalog.ForAsset(AssetType.Recipe)), () => CanEdit);
+        AddBehaviorTreeCommand = new RelayCommand(() => OpenNewElement(NewElementCatalog.ForAsset(AssetType.BehaviorTree)), () => CanEdit);
+        AddOfTypeCommand = new RelayCommand<AssetType>(type => OpenNewElement(NewElementCatalog.ForAsset(type)), _ => CanEdit);
+        AddGraphCommand = new RelayCommand<GraphKind>(kind => OpenNewElement(NewElementCatalog.ForGraph(kind)), _ => CanEdit);
         ImportTexturesCommand = new RelayCommand(ImportTextures, () => CanEdit);
         ImportSoundsCommand = new RelayCommand(ImportSounds, () => CanEdit);
         ImportModelsCommand = new RelayCommand(ImportModels, () => CanEdit);
@@ -566,6 +571,11 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
+        else if (usedBy.Count == 0 && !_deleteConfirmation.Ask(Tr.F("Delete \"{0}\"? (Ctrl+Z to undo)", selected.Header)))
+        {
+            return;
+        }
+
         _project!.RemoveAsset(selected);
         StatusText = Tr.F("'{0}' deleted (Ctrl+Z to undo)", selected.Header);
     }
@@ -581,7 +591,9 @@ public sealed partial class MainViewModel : ObservableObject
             message += "\n\n" + Tr.F("{0} of them are used by other elements: these links will be reported in Diagnostics.", used);
         }
 
-        if (!_dialogs.Confirm(Tr.T("Delete elements"), message + "\n\n" + Tr.T("(Ctrl+Z to undo)")))
+        // A link that breaks is always told; otherwise the user may have stopped the question.
+        string full = message + "\n\n" + Tr.T("(Ctrl+Z to undo)");
+        if (used > 0 ? !_dialogs.Confirm(Tr.T("Delete elements"), full) : !_deleteConfirmation.Ask(full))
         {
             return;
         }

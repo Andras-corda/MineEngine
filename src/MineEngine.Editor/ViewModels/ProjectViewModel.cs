@@ -352,14 +352,18 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
     public int RecipeCount => Model.Assets.OfType<RecipeAsset>().Count();
 
     /// <summary>Crée un nouvel asset avec un identifiant libre (étape annulable) et le sélectionne.</summary>
-    public void AddAsset(AssetType type)
+    public Asset AddAsset(AssetType type, string? name = null, Action<Asset>? prepare = null)
     {
         IAssetDefinition definition = _factory.Catalog.Get(type);
+        name = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
         Asset asset = definition.CreateNew(
-            Model.Assets.CreateUniqueResourceId(definition.DefaultResourceIdBase, type), definition.DefaultDisplayName);
+            Model.Assets.CreateUniqueResourceId(name is null ? definition.DefaultResourceIdBase : ResourceId.FromText(name).Value, type),
+            name ?? definition.DefaultDisplayName);
         asset.Folder = _currentFolder;
+        prepare?.Invoke(asset);
         History.Execute(new AddAssetCommand(Model.Assets, asset, definition.Label));
         SelectAsset(asset.Id);
+        return asset;
     }
 
     /// <summary>
@@ -367,12 +371,15 @@ public sealed class ProjectViewModel : ObservableObject, IDisposable
     /// structure, interface ou énumération, avec ses nœuds de départ. Avec <paramref name="owner"/>,
     /// la définition est intégrée à cette classe et rangée dans son dossier.
     /// </summary>
-    public GraphAsset AddGraph(GraphKind kind, Guid? owner = null)
+    public GraphAsset AddGraph(GraphKind kind, Guid? owner = null, string? displayName = null)
     {
         GraphAsset? ownerGraph = owner is { } id ? Model.Assets.Find(id) as GraphAsset : null;
-        string baseId = ownerGraph is null ? ProgramPalette.ResourceIdBase(kind) : $"{ownerGraph.ResourceId}_{kind.ToString().ToLowerInvariant()}";
+        displayName = string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim();
+        string baseId = displayName is not null ? ResourceId.FromText(displayName).Value
+            : ownerGraph is null ? ProgramPalette.ResourceIdBase(kind) : $"{ownerGraph.ResourceId}_{kind.ToString().ToLowerInvariant()}";
         bool inLibrary = ownerGraph?.Kind == GraphKind.Library;
-        string name = kind is GraphKind.Function or GraphKind.Procedure && ownerGraph is not null && !inLibrary ? Tr.T("new method") : ProgramPalette.DefaultName(kind);
+        string name = displayName
+            ?? (kind is GraphKind.Function or GraphKind.Procedure && ownerGraph is not null && !inLibrary ? Tr.T("new method") : ProgramPalette.DefaultName(kind));
         GraphAsset graph = ProgramPalette.CreateGraph(kind, Model.Assets.CreateUniqueResourceId(baseId, AssetType.Graph), name, owner);
         if (inLibrary)
         {

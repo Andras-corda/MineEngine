@@ -51,6 +51,14 @@
 
             <!-- Actions -->
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Style="{StaticResource ToolText}" Margin="6,0,0,0"
+                        Command="{Binding DataContext.OpenJavaOfCommand, ElementName=Root}" CommandParameter="{Binding Rows[0].Asset}"
+                        AutomationProperties.Name="{l:Tr 'Java file'}" ToolTip="{l:Tr 'Opens the generated class MineEngineTags: a TagKey constant per tag, for the Java code (the code is generated first)'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Code}" Margin="0,0,6,0" />
+                        <TextBlock Text="{l:Tr 'Java file'}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
                 <Button DockPanel.Dock="Right" Style="{StaticResource ToolText}" Command="{Binding AddCommand}"
                         AutomationProperties.AutomationId="AddTag" AutomationProperties.Name="{l:Tr 'New tag'}"
                         ToolTip="{l:Tr 'Adds a tag: a name for a group of blocks, items, entities, biomes...'}">
@@ -77,7 +85,7 @@
                     <ColumnDefinition Width="2.6*" MinWidth="160" />
                     <ColumnDefinition Width="1.2*" MinWidth="130" />
                     <ColumnDefinition Width="80" />
-                    <ColumnDefinition Width="40" />
+                    <ColumnDefinition Width="72" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Style="{StaticResource PanelCaption}" Text="{l:Tr 'KIND'}" />
                 <TextBlock Grid.Column="1" Style="{StaticResource PanelCaption}" Text="{l:Tr 'NAMESPACE'}" />
@@ -107,7 +115,7 @@
                                     <ColumnDefinition Width="2.6*" MinWidth="160" />
                                     <ColumnDefinition Width="1.2*" MinWidth="130" />
                                     <ColumnDefinition Width="80" />
-                                    <ColumnDefinition Width="40" />
+                                    <ColumnDefinition Width="72" />
                                 </Grid.ColumnDefinitions>
                                 <ComboBox Style="{StaticResource Cell}" AutomationProperties.Name="{l:Tr 'Kind'}"
                                           ItemsSource="{Binding Source={x:Static vm:TagsViewModel.Registries}}" SelectedItem="{Binding Registry}"
@@ -136,9 +144,14 @@
                                 <CheckBox Grid.Column="5" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="0" IsChecked="{Binding Replace}"
                                           IsEnabled="{Binding DataContext.Tags.CanEdit, ElementName=Root}"
                                           AutomationProperties.Name="{l:Tr 'Replace'}" ToolTip="{l:Tr 'Replace the entries of the other mods and of Minecraft'}" />
-                                <Button Grid.Column="6" HorizontalAlignment="Right" Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}"
-                                        Command="{Binding RemoveCommand}"
-                                        AutomationProperties.Name="{l:Tr 'Delete the tag'}" ToolTip="{l:Tr 'Delete the tag'}" />
+                                <StackPanel Grid.Column="6" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Code}" Margin="0,0,4,0"
+                                            Command="{Binding DataContext.OpenJavaOfCommand, ElementName=Root}" CommandParameter="{Binding Asset}"
+                                            AutomationProperties.Name="{l:Tr 'Java code of the tag'}" ToolTip="{l:Tr 'Opens MineEngineTags at this tag'}" />
+                                    <Button Style="{StaticResource IconButton}" Content="{StaticResource Glyph.Delete}"
+                                            Command="{Binding RemoveCommand}"
+                                            AutomationProperties.Name="{l:Tr 'Delete the tag'}" ToolTip="{l:Tr 'Delete the tag'}" />
+                                </StackPanel>
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>

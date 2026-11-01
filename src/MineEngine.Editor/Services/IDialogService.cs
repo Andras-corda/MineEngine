@@ -72,6 +72,12 @@ public interface IDialogService
 
     bool Confirm(string title, string message);
 
+    /// <summary>"Are you sure?" before a deletion; <paramref name="skipUntilRestart"/> when the user asks not to be asked again.</summary>
+    bool ConfirmDelete(string message, out bool skipUntilRestart);
+
+    /// <summary>Creation window (category, element, name, template); true when something was created.</summary>
+    bool ShowNewElement(ViewModels.Creation.NewElementViewModel viewModel);
+
     /// <summary>Demande un texte court (nom de fichier...) ; null si l'utilisateur annule.</summary>
     string? AskText(string title, string prompt, string defaultValue);
 

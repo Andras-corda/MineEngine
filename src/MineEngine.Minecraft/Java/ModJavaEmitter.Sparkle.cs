@@ -247,6 +247,7 @@ public abstract partial class ModJavaEmitter
             .Line("public static final int DEATH = 0;")
             .Line("public static final int TIME = 1;")
             .Line("public static final int LOCATION = 2;")
+            .Line("public static final int COLLISION = 3;")
             .Line()
             .Line("public static final int DIRECTION = 0;")
             .Line("public static final int CONE = 1;")
@@ -304,13 +305,14 @@ public abstract partial class ModJavaEmitter
             "public boolean timeRepeats;",
             "/** Chance (0-100) of a location event when a particle enters the zone; below 0: none. */",
             "public double locationChance = -1.0;",
+            "public double collisionChance = -1.0;",
             "public int zoneShape = SPHERE;",
             "public double zoneX, zoneY, zoneZ;",
             "public double zoneRadius = 1.0;",
             "public double zoneSizeX = 2.0, zoneSizeY = 2.0, zoneSizeZ = 2.0;",
             "/** Emitter whose events spawn these particles; below 0: its own lifecycle. */",
             "public int eventSource = -1;",
-            "/** DEATH, TIME or LOCATION: the events of the source it receives. */",
+            "/** DEATH, TIME, LOCATION or COLLISION: the events of the source it receives. */",
             "public int eventType = DEATH;",
             "public int countPerEvent = 1;",
             "public boolean atDeath = true;",
@@ -448,6 +450,7 @@ public abstract partial class ModJavaEmitter
             ("GenerateTimeEvent", "chance") when e.TimeEventChance is not null => ["timeChance = x"],
             ("GenerateTimeEvent", "time") => [$"timeTicks = {Ticks}"],
             ("GenerateLocationEvent", "chance") when e.LocationEventChance is not null => ["locationChance = x"],
+            ("GenerateCollisionEvent", "chance") when e.CollisionEventChance is not null => ["collisionChance = x"],
             ("GenerateLocationEvent", "center") => vector("zone"),
             ("GenerateLocationEvent", "radius") => ["zoneRadius = x"],
             ("GenerateLocationEvent", "size") => [.. vector("zoneSize")],
@@ -559,10 +562,15 @@ public abstract partial class ModJavaEmitter
             yield return $"zoneSizeZ = {D(e.ZoneSize.Z)}";
         }
 
+        if (e.CollisionEventChance is { } collisionChance)
+        {
+            yield return $"collisionChance = {D(collisionChance)}";
+        }
+
         if (e.EventSource is { } source)
         {
             yield return $"eventSource = {source}";
-            yield return $"eventType = {e.ReceivedEvent switch { IRSparkleEvent.Time => "TIME", IRSparkleEvent.Location => "LOCATION", _ => "DEATH" }}";
+            yield return $"eventType = {e.ReceivedEvent switch { IRSparkleEvent.Time => "TIME", IRSparkleEvent.Location => "LOCATION", IRSparkleEvent.Collision => "COLLISION", _ => "DEATH" }}";
             yield return $"countPerEvent = {e.CountPerEvent}";
             yield return $"atDeath = {(e.AtDeathLocation ? "true" : "false")}";
             yield return $"inheritVelocity = {D(e.InheritVelocity)}";
@@ -833,10 +841,11 @@ public abstract partial class ModJavaEmitter
             $"    onEvent(index, {SparkleDataClass}.DEATH, x, y, z, xd, yd, zd);",
             "}",
             "",
-            "/** An event of a particle (DEATH, TIME, LOCATION): the emitters that receive this kind from its emitter spawn. */",
+            "/** An event of a particle (DEATH, TIME, LOCATION, COLLISION): the emitters that receive this kind from its emitter spawn. */",
             "void onEvent(int index, int type, double x, double y, double z, double xd, double yd, double zd) {",
             "    Emitter e = emitters[index];",
-            $"    double chance = type == {SparkleDataClass}.TIME ? e.timeChance : type == {SparkleDataClass}.LOCATION ? e.locationChance : e.deathChance;",
+            $"    double chance = type == {SparkleDataClass}.TIME ? e.timeChance : type == {SparkleDataClass}.LOCATION ? e.locationChance",
+            $"        : type == {SparkleDataClass}.COLLISION ? e.collisionChance : e.deathChance;",
             "    if (!isAlive() || chance < 0.0 || random.nextDouble() * 100.0 >= chance) {",
             "        return;",
             "    }",
@@ -932,6 +941,7 @@ public abstract partial class ModJavaEmitter
             "private final SpriteSet sprites;",
             "/** Inside the zone of its location event at the last tick (the event is sent when it enters). */",
             "private boolean inZone;",
+            "private boolean touching;",
             "",
             $"{SparkleParticleClass}(ClientLevel level, {SparkleSystemClass} system, int index, Emitter emitter, SpriteSet sprites,",
             "        double x, double y, double z, double xd, double yd, double zd, int lifetime) {",
@@ -981,6 +991,12 @@ public abstract partial class ModJavaEmitter
             "        my = moved.y;",
             "        mz = moved.z;",
             "        boolean hit = mx != xd || my != yd || mz != zd;",
+            "        // V0.7.14: one event when the particle starts touching a block, not at every tick it rests on it.",
+            "        if (hit && !touching && emitter.collisionChance >= 0.0) {",
+            $"            system.onEvent(index, {SparkleDataClass}.COLLISION, x + mx, y + my, z + mz, xd, yd, zd);",
+            "        }",
+            "",
+            "        touching = hit;",
             "        if (hit && emitter.diesOnCollision) {",
             "            setPos(x + mx, y + my, z + mz);",
             "            die();",

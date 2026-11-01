@@ -216,6 +216,17 @@ public sealed class SettingsViewModel : ObservableObject
         }
     }
 
+    /// <summary>"Are you sure?" before a deletion.</summary>
+    public bool ConfirmDelete
+    {
+        get => _draft.ConfirmDelete;
+        set
+        {
+            _draft.ConfirmDelete = value;
+            OnPropertyChanged();
+        }
+    }
+
     /// <summary>The Dashboard opens as tiles (grid).</summary>
     public bool DashboardTileView
     {
@@ -306,8 +317,29 @@ public sealed class SettingsViewModel : ObservableObject
             _draft.AccentColor = value.Color;
             Preview();
             OnPropertyChanged();
+            OnPropertyChanged(nameof(CustomAccent));
         }
     }
+
+    /// <summary>Any accent color, chosen with the color picker (V0.7.14); the theme color while none is chosen.</summary>
+    public string CustomAccent
+    {
+        get => (_draft.AccentColor ?? DefaultAccent).ToString();
+        set
+        {
+            if (!RgbColor.TryParse(value, out RgbColor color) || color == _draft.AccentColor)
+            {
+                return;
+            }
+
+            _draft.AccentColor = color;
+            Preview();
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(SelectedAccent));
+        }
+    }
+
+    private static readonly RgbColor DefaultAccent = new(0x3B, 0x82, 0xF6);
 
     public IReadOnlyList<Choice<double>> ScaleChoices { get; }
 
@@ -436,6 +468,50 @@ public sealed class SettingsViewModel : ObservableObject
         {
             _draft.SparkleInvertZoom = value;
             OnPropertyChanged();
+        }
+    }
+
+    /// <summary>Colors of the axes of the gizmo of the Sparkle preview (V0.7.14).</summary>
+    public string SparkleAxisX
+    {
+        get => (_draft.SparkleAxisXColor ?? DefaultAxisX).ToString();
+        set => SetAxis(value, c => _draft.SparkleAxisXColor = c);
+    }
+
+    public string SparkleAxisY
+    {
+        get => (_draft.SparkleAxisYColor ?? DefaultAxisY).ToString();
+        set => SetAxis(value, c => _draft.SparkleAxisYColor = c);
+    }
+
+    public string SparkleAxisZ
+    {
+        get => (_draft.SparkleAxisZColor ?? DefaultAxisZ).ToString();
+        set => SetAxis(value, c => _draft.SparkleAxisZColor = c);
+    }
+
+    public ICommand ResetSparkleAxesCommand => new RelayCommand(() =>
+    {
+        _draft.SparkleAxisXColor = null;
+        _draft.SparkleAxisYColor = null;
+        _draft.SparkleAxisZColor = null;
+        OnPropertyChanged(nameof(SparkleAxisX));
+        OnPropertyChanged(nameof(SparkleAxisY));
+        OnPropertyChanged(nameof(SparkleAxisZ));
+    });
+
+    private static readonly RgbColor DefaultAxisX = new(0xE5, 0x48, 0x4D);
+    private static readonly RgbColor DefaultAxisY = new(0x7C, 0xC4, 0x6A);
+    private static readonly RgbColor DefaultAxisZ = new(0x4C, 0x8D, 0xF6);
+
+    private void SetAxis(string value, Action<RgbColor> set)
+    {
+        if (RgbColor.TryParse(value, out RgbColor color))
+        {
+            set(color);
+            OnPropertyChanged(nameof(SparkleAxisX));
+            OnPropertyChanged(nameof(SparkleAxisY));
+            OnPropertyChanged(nameof(SparkleAxisZ));
         }
     }
 

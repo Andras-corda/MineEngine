@@ -194,6 +194,17 @@ public sealed class WpfDialogService : IDialogService
     public bool Confirm(string title, string message) =>
         ShowMessage(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
 
+    public bool ConfirmDelete(string message, out bool skipUntilRestart)
+    {
+        var window = new ConfirmDeleteWindow(message) { Owner = Owner };
+        bool confirmed = window.ShowDialog() == true;
+        skipUntilRestart = confirmed && window.SkipUntilRestart;
+        return confirmed;
+    }
+
+    public bool ShowNewElement(ViewModels.Creation.NewElementViewModel viewModel) =>
+        new Views.NewElementWindow(viewModel) { Owner = Owner }.ShowDialog() == true;
+
     public void ShowError(string title, string message) =>
         ShowMessage(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
 

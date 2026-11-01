@@ -1,8 +1,10 @@
 using System.Collections;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Windows.Data;
 using System.Windows.Input;
+using MineEngine.Assets;
 using MineEngine.Core.Assets;
 using MineEngine.Editor.Mvvm;
 using MineEngine.Editor.ViewModels.Assets;
@@ -20,6 +22,43 @@ public enum ResourceSort
     Usage,
 }
 
+/// <summary>A sub-category of the Resources tab (V0.7.14): what the files are for, or all of them.</summary>
+public sealed class ResourceGroupFilter(string label, ResourceGroup? group) : ObservableObject
+{
+    private int _count;
+    private bool _isActive;
+
+    public string Label { get; } = label;
+
+    /// <summary>The sub-category, or null for all.</summary>
+    public ResourceGroup? Group { get; } = group;
+
+    public int Count
+    {
+        get => _count;
+        set => SetProperty(ref _count, value);
+    }
+
+    public bool IsActive
+    {
+        get => _isActive;
+        set => SetProperty(ref _isActive, value);
+    }
+
+    public static string LabelOf(ResourceGroup group) => group switch
+    {
+        ResourceGroup.Items => Tr.T("Items"),
+        ResourceGroup.Blocks => Tr.T("Blocks"),
+        ResourceGroup.Mobs => Tr.T("Mobs"),
+        ResourceGroup.Interface => Tr.T("Interface (GUI)"),
+        ResourceGroup.Particles => Tr.T("Particles"),
+        ResourceGroup.World => Tr.T("World"),
+        ResourceGroup.Graphs => Tr.T("Graphs"),
+        ResourceGroup.Other => Tr.T("Other"),
+        _ => Tr.T("Unused"),
+    };
+}
+
 /// <summary>
 /// Resources tab: the asset files of the project (textures, sounds, 3D models), whatever their folder,
 /// grouped by kind and sorted at will. Game content (items, blocks, mobs, graphs...) stays in
@@ -33,6 +72,10 @@ public sealed class ResourcesViewModel : ObservableObject
     private ResourceSort _sort = ResourceSort.Name;
     private bool _descending;
     private string _searchText = string.Empty;
+    private readonly List<ResourceGroupFilter> _allGroups;
+    private ResourceGroupFilter _group;
+    private bool _isTileView;
+    private bool _updatePending;
 
     public ResourcesViewModel(ProjectViewModel project, IEnumerable<(AssetType Type, string Label)> types)
     {
@@ -40,6 +83,9 @@ public sealed class ResourcesViewModel : ObservableObject
         Categories = [new AssetTypeFilter(Tr.T("All"), null), .. types.Select(t => new AssetTypeFilter(t.Label, t.Type))];
         _category = Categories[0];
         _category.IsActive = true;
+        _allGroups = [new ResourceGroupFilter(Tr.T("All"), null), .. Enum.GetValues<ResourceGroup>().Select(g => new ResourceGroupFilter(ResourceGroupFilter.LabelOf(g), g))];
+        _group = _allGroups[0];
+        _group.IsActive = true;
 
         _view = new ListCollectionView(project.Assets) { Filter = Matches, CustomSort = new Comparer(this) };
         project.Assets.CollectionChanged += OnAssetsChanged;
@@ -58,11 +104,49 @@ public sealed class ResourcesViewModel : ObservableObject
             new(ResourceSort.Usage, Tr.T("Uses")),
         ];
         SelectCategoryCommand = new RelayCommand<AssetTypeFilter>(c => Category = c);
+        SelectGroupCommand = new RelayCommand<ResourceGroupFilter>(g => Group = g);
+        ShowListCommand = new RelayCommand(() => IsTileView = false);
+        ShowTilesCommand = new RelayCommand(() => IsTileView = true);
         ToggleOrderCommand = new RelayCommand(() => Descending = !Descending);
         UpdateCounts();
     }
 
+    /// <summary>The tabs: all the resources, then one per kind (textures, 3D models, sounds).</summary>
     public IReadOnlyList<AssetTypeFilter> Categories { get; }
+
+    /// <summary>Sub-categories of the open tab that hold something ("All" first).</summary>
+    public ObservableCollection<ResourceGroupFilter> Groups { get; } = [];
+
+    public ICommand SelectGroupCommand { get; }
+
+    public ICommand ShowListCommand { get; }
+
+    public ICommand ShowTilesCommand { get; }
+
+    /// <summary>Tiles (a grid of previews) rather than the list with columns.</summary>
+    public bool IsTileView
+    {
+        get => _isTileView;
+        set => SetProperty(ref _isTileView, value);
+    }
+
+    public ResourceGroupFilter Group
+    {
+        get => _group;
+        set
+        {
+            if (value is null || ReferenceEquals(value, _group))
+            {
+                return;
+            }
+
+            _group.IsActive = false;
+            _group = value;
+            _group.IsActive = true;
+            OnPropertyChanged();
+            Refresh();
+        }
+    }
 
     /// <summary>True for the kinds listed by the Resources tab: imported files, not game content.</summary>
     public static bool IsResource(AssetType type) => type is AssetType.Texture or AssetType.Sound or AssetType.Model;
@@ -90,6 +174,7 @@ public sealed class ResourcesViewModel : ObservableObject
             _category = value;
             _category.IsActive = true;
             OnPropertyChanged();
+            UpdateCounts();
             Refresh();
         }
     }
@@ -155,7 +240,8 @@ public sealed class ResourcesViewModel : ObservableObject
 
     private bool Matches(object item)
     {
-        if (item is not AssetViewModel asset || !IsResource(asset.Model.Type) || (_category.Type is { } type && asset.Model.Type != type))
+        if (item is not AssetViewModel asset || !InCategory(asset)
+            || (_group.Group is { } group && !ResourceGroups.Of(asset.Model, _project.Model.Assets).Contains(group)))
         {
             return false;
         }
@@ -164,6 +250,9 @@ public sealed class ResourcesViewModel : ObservableObject
             || asset.Header.Contains(_searchText, StringComparison.CurrentCultureIgnoreCase)
             || asset.Model.ResourceId.Value.Contains(_searchText, StringComparison.OrdinalIgnoreCase);
     }
+
+    private bool InCategory(AssetViewModel asset) =>
+        IsResource(asset.Model.Type) && (_category.Type is not { } type || asset.Model.Type == type);
 
     private void Refresh()
     {
@@ -179,6 +268,23 @@ public sealed class ResourcesViewModel : ObservableObject
             category.Count = category.Type is { } type
                 ? _project.Assets.Count(a => a.Model.Type == type)
                 : _project.Assets.Count(a => IsResource(a.Model.Type));
+        }
+
+        // The sub-categories of the open tab: only those that hold something, the chosen one kept.
+        List<IReadOnlySet<ResourceGroup>> groups = [.. _project.Assets.Where(InCategory).Select(a => ResourceGroups.Of(a.Model, _project.Model.Assets))];
+        foreach (ResourceGroupFilter filter in _allGroups)
+        {
+            filter.Count = filter.Group is { } group ? groups.Count(g => g.Contains(group)) : groups.Count;
+        }
+
+        List<ResourceGroupFilter> visible = [.. _allGroups.Where(f => f.Group is null || f.Count > 0 || ReferenceEquals(f, _group))];
+        if (!visible.SequenceEqual(Groups))
+        {
+            Groups.Clear();
+            foreach (ResourceGroupFilter filter in visible)
+            {
+                Groups.Add(filter);
+            }
         }
     }
 
@@ -201,7 +307,21 @@ public sealed class ResourcesViewModel : ObservableObject
     /// <summary>Un nom, un identifiant ou un état change : l'ordre peut changer.</summary>
     private void OnAssetChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(AssetViewModel.Header) or nameof(AssetViewModel.DisplayName) or nameof(AssetViewModel.ResourceIdText)
+        if (e.PropertyName is nameof(AssetViewModel.UsageCount))
+        {
+            // Every element says it when the project changes: the sub-categories are counted once after.
+            if (!_updatePending)
+            {
+                _updatePending = true;
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, () =>
+                {
+                    _updatePending = false;
+                    UpdateCounts();
+                    Refresh();
+                });
+            }
+        }
+        else if (e.PropertyName is nameof(AssetViewModel.Header) or nameof(AssetViewModel.DisplayName) or nameof(AssetViewModel.ResourceIdText)
             or nameof(AssetViewModel.IssueLabel) or nameof(AssetViewModel.FolderLabel))
         {
             Refresh();

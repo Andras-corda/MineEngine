@@ -44,6 +44,7 @@ public enum IRSparkleEvent
     Death,
     Time,
     Location,
+    Collision,
 }
 
 public enum IRSparkleDirection
@@ -150,6 +151,9 @@ public sealed record IRSparkleEmitter(string Name, int EventId)
 
     /// <summary>Chance (0-100) that a particle entering the zone sends its location event; null: no location event.</summary>
     public double? LocationEventChance { get; init; }
+
+    /// <summary>Chance (%) of an event when a particle hits a block (V0.7.14), or null.</summary>
+    public double? CollisionEventChance { get; init; }
 
     /// <summary>Sphere or box.</summary>
     public IRSparkleShape ZoneShape { get; init; } = IRSparkleShape.Sphere;

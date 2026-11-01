@@ -152,6 +152,11 @@ public sealed class SparkleAsset : Asset
                 Add(DiagnosticSeverity.Warning, Tr.F("Emitter \"{0}\": the minimum speed is above the maximum.", emitter.Name));
             }
 
+            if (emitter.Uses(SparkleModuleKind.GenerateCollisionEvent) && !emitter.Uses(SparkleModuleKind.Collision))
+            {
+                Add(DiagnosticSeverity.Warning, Tr.F("Emitter \"{0}\" generates collision events, but its particles do not collide (Collision module).", emitter.Name));
+            }
+
             if (emitter.EventSource is { } sourceId)
             {
                 SparkleEmitter? sender = resolved.FirstOrDefault(e => e.EventId == sourceId && e.Id != emitter.Id);
@@ -165,6 +170,7 @@ public sealed class SparkleAsset : Asset
                     {
                         SparkleEventKind.Time => Tr.F("Emitter \"{0}\" receives the time events of \"{1}\", which does not generate any.", emitter.Name, sender.Name),
                         SparkleEventKind.Location => Tr.F("Emitter \"{0}\" receives the location events of \"{1}\", which does not generate any.", emitter.Name, sender.Name),
+                        SparkleEventKind.Collision => Tr.F("Emitter \"{0}\" receives the collision events of \"{1}\", which does not generate any.", emitter.Name, sender.Name),
                         _ => Tr.F("Emitter \"{0}\" receives the death events of \"{1}\", which does not generate any.", emitter.Name, sender.Name),
                     });
                 }

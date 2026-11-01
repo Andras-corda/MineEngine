@@ -42,6 +42,12 @@ public sealed class SparkleParticle
 
     /// <summary>Inside the zone of its Generate location event at the last step (it sends the event when it enters).</summary>
     internal bool InZone { get; set; }
+
+    /// <summary>On the ground since the last step: a collision event is sent when it starts touching (V0.7.14).</summary>
+    internal bool Touching { get; set; }
+
+    /// <summary>Hit the ground during this step.</summary>
+    internal bool Hit { get; set; }
 }
 
 /// <summary>
@@ -351,8 +357,10 @@ public sealed class SparkleSimulation
         }
 
         particle.Position += particle.Velocity * delta;
+        particle.Hit = false;
         if (Ground is { } ground && emitter.Uses(SparkleModuleKind.Collision) && particle.Position.Y < ground)
         {
+            particle.Hit = true;
             SparkleModule collision = emitter.Get(SparkleModuleKind.Collision);
             if (collision.Boolean(SparkleCatalog.DieOnCollision))
             {
@@ -409,6 +417,16 @@ public sealed class SparkleSimulation
             {
                 events.Add((particle, SparkleEventKind.Time));
             }
+        }
+
+        if (emitter.Uses(SparkleModuleKind.GenerateCollisionEvent))
+        {
+            if (particle.Hit && !particle.Touching)
+            {
+                events.Add((particle, SparkleEventKind.Collision));
+            }
+
+            particle.Touching = particle.Hit;
         }
 
         if (emitter.Uses(SparkleModuleKind.GenerateLocationEvent))

@@ -168,6 +168,9 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<FileNodeViewModel> Roots { get; } = [];
 
+    /// <summary>"Are you sure?" before a file goes to the Recycle Bin; true to go on.</summary>
+    public Func<string, bool> ConfirmDelete { get; set; } = _ => true;
+
     /// <summary>Résultats de la recherche (fichiers dont le nom contient le texte).</summary>
     public ObservableCollection<FileNodeViewModel> SearchResults { get; } = [];
 
@@ -453,11 +456,7 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
             return;
         }
 
-        ProjectLayout layout = _project.Layout;
-        string? folder = SelectedFolder();
-        string package = (folder is null ? null : JavaClassTemplates.PackageForFolder(layout.ToRelativePath(folder)))
-            ?? JavaClassTemplates.DefaultPackage(_project.Settings.ModId);
-
+        string package = JavaClassPackage();
         string? name = _dialogs.AskText(Tr.T("New Java class"),
             Tr.F("Class name (package {0}):", package.Length == 0 ? Tr.T("default") : package),
             kind == JavaClassKind.EventListener ? "MyEvents" : "MyClass");
@@ -466,18 +465,45 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
             return;
         }
 
+        if (CreateJavaClass(kind, name) is { } error)
+        {
+            _dialogs.ShowError(Tr.T("Cannot create"), error);
+        }
+    }
+
+    /// <summary>Package of a new Java class: the one of the selected folder under src/main/java, or the default one.</summary>
+    public string JavaClassPackage()
+    {
+        if (_project is null)
+        {
+            return string.Empty;
+        }
+
+        string? folder = SelectedFolder();
+        return (folder is null ? null : JavaClassTemplates.PackageForFolder(_project.Layout.ToRelativePath(folder)))
+            ?? JavaClassTemplates.DefaultPackage(_project.Settings.ModId);
+    }
+
+    /// <summary>Writes a new Java class from its template and opens it; returns why it could not, or null.</summary>
+    public string? CreateJavaClass(JavaClassKind kind, string name)
+    {
+        if (_project is null)
+        {
+            return Tr.T("No project is open.");
+        }
+
+        ProjectLayout layout = _project.Layout;
+        string package = JavaClassPackage();
         name = name.Trim();
         if (!JavaClassTemplates.IsValidClassName(name))
         {
-            _dialogs.ShowError(Tr.T("Invalid name"), Tr.F("\"{0}\" is not a Java class name (letters, digits and _, not starting with a digit).", name));
-            return;
+            return Tr.F("\"{0}\" is not a Java class name (letters, digits and _, not starting with a digit).", name);
         }
 
         string path = layout.ToAbsolutePath(JavaClassTemplates.SourcePath(package, name));
         if (File.Exists(path))
         {
-            _dialogs.ShowError(Tr.T("Name already used"), Tr.F("The class {0} already exists in this package.", name));
-            return;
+            return Tr.F("The class {0} already exists in this package.", name);
         }
 
         ModLoaderKind loader = ModLoaderKindExtensions.FromId(_project.Settings.LoaderId);
@@ -488,12 +514,12 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            _dialogs.ShowError(Tr.T("Cannot create"), exception.Message);
-            return;
+            return exception.Message;
         }
 
         Refresh();
         _openFile(path);
+        return null;
     }
 
     private void Rename(FileNodeViewModel node)
@@ -528,7 +554,7 @@ public sealed class ProjectExplorerViewModel : ObservableObject, IDisposable
     /// <summary>Envoie le fichier ou le dossier dans la corbeille de Windows (récupérable).</summary>
     private void Delete(FileNodeViewModel node)
     {
-        if (!_dialogs.Confirm(Tr.T("Move to Recycle Bin"), Tr.F("Move \"{0}\" to the Recycle Bin?", node.Name)))
+        if (!ConfirmDelete(Tr.F("Move \"{0}\" to the Recycle Bin?", node.Name)))
         {
             return;
         }
