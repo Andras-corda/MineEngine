@@ -123,6 +123,7 @@ internal static class SampleContent
         ItemSample.AddTo(project, ruby);
         DamageSample.AddTo(project);
         LootSample.AddTo(project, ruby);
+        GuiSample.AddTo(project, swordTexture);
     }
 
     /// <summary>V0.4.1 : outils, armures, nourriture à effets, combustible, tags et événements d'items.</summary>

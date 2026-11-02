@@ -316,6 +316,12 @@ public sealed class BehaviorJava
             GraphNodeKind.SwingHand => $"{args[0]}.swing({args[1]}, true);",
             GraphNodeKind.PlaceFluid => $"level.setBlockAndUpdate({args[0]}, {args[1]}.defaultFluidState().createLegacyBlock());",
             GraphNodeKind.DamageWithSource => Helper("damageWithSource", $"damageWithSource({args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.OpenGui => Guis($"open({args[0]}, {args[1]});"),
+            GraphNodeKind.CloseGui => Guis($"close({args[0]});"),
+            GraphNodeKind.SetGuiText => Guis($"setText({args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.SetGuiTicked => Guis($"setTicked({args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.SetGuiSlotItem => Guis($"setSlotItem({args[0]}, {args[1]}, {args[2]});"),
+            GraphNodeKind.SetGuiVisible => Guis($"setVisible({args[0]}, {args[1]}, {args[2]});"),
             GraphNodeKind.DropLootTable => Helper("dropLootTable", $"dropLootTable(level, {args[0]}, {args[1]}, {JavaNames.StringLiteral(_names.ModNamespace)});"),
             GraphNodeKind.ApplyEffect => Helper("applyEffect", $"applyEffect({args[0]}, {args[1]});"),
             GraphNodeKind.NbtPutNumber => $"{args[0]}.putInt({args[1]}, {args[2]});",
@@ -533,6 +539,10 @@ public sealed class BehaviorJava
             GraphNodeKind.EntitiesInBox => Helper("entitiesInBox", $"entitiesInBox(level, {a[0]})"),
             GraphNodeKind.BoxContains => $"{a[0]}.contains({a[1]})",
             GraphNodeKind.GenericDamage => Helper("genericDamage", $"genericDamage(level, {a[0]})"),
+            GraphNodeKind.GuiText => Guis($"text({a[0]}, {a[1]})"),
+            GraphNodeKind.GuiTicked => Guis($"ticked({a[0]}, {a[1]})"),
+            GraphNodeKind.GuiSlotItem => Guis($"slotItem({a[0]}, {a[1]})"),
+            GraphNodeKind.IsGuiOpen => Guis($"isOpen({a[0]}, {a[1]})"),
             GraphNodeKind.DamageOfType => Helper("damageOfType", $"damageOfType(level, {a[0]}, {a[1]}, {JavaNames.StringLiteral(_names.ModNamespace)})"),
             GraphNodeKind.MakeEffect => Helper("makeEffect", $"makeEffect({a[0]}, {a[1]}, {a[2]})"),
             GraphNodeKind.NewNbt => Uses("new CompoundTag()", "net.minecraft.nbt.CompoundTag"),
@@ -724,6 +734,12 @@ public sealed class BehaviorJava
     }
 
     /// <summary>Call of the Sparkle class of the mod (particle package), which sends the system to the players nearby.</summary>
+    private string Guis(string call)
+    {
+        Use($"{_names.Package[..^".code".Length]}.{ModJavaEmitter.GuiPackage}.{ModJavaEmitter.GuisClass}");
+        return $"{ModJavaEmitter.GuisClass}.{call}";
+    }
+
     private string Sparkle(string call)
     {
         Use($"{_names.Package[..^".code".Length]}.{ModJavaEmitter.SparklePackage}.{ModJavaEmitter.SparkleClass}");

@@ -55,6 +55,7 @@ public sealed class BlockLowering : AssetLowering<BlockAsset>
             CustomModel = asset.Model.IsBase() ? null : context.ResolveCustomModel(asset),
             Appearances = asset.Model.IsBase() ? [] : context.ResolveAppearances(asset),
             Options = Normalize(asset),
+            Gui = context.ResolveGui(asset, asset.Gui),
             ItemTexture = asset.Options.ItemTextureId is { } item ? context.ResolveTexture(asset, item) : null,
             ParticleTexture = asset.Options.ParticleTextureId is { } particle ? context.ResolveTexture(asset, particle) : null,
             RequiredTool = asset.RequiresCorrectTool && asset.RequiredTool is not null ? context.ResolveItem(asset, asset.RequiredTool, Tr.T("Tool that harvests it")) : null,

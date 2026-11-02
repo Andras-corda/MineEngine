@@ -47,6 +47,7 @@ public sealed class AssetCatalog
             new GameRuleAssetDefinition(),
             new DamageTypeAssetDefinition(),
             new LootTableAssetDefinition(),
+            new GuiAssetDefinition(),
             new EffectAssetDefinition(),
             new GlobalVariableAssetDefinition(),
             new TagAssetDefinition(),

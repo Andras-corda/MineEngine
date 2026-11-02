@@ -148,6 +148,15 @@ public sealed class ResourcePaths
     /// <summary>Death message of a damage type; ".player" when another entity caused it.</summary>
     public string DeathMessageTranslationKey(ResourceId id) => $"death.attack.{Namespace}.{id}";
 
+    /// <summary>Title of a GUI ("gui.ruby.rune_table"), or a text of one of its components ("gui.ruby.rune_table.engrave").</summary>
+    public string GuiTranslationKey(ResourceId gui, string? component = null) =>
+        component is null ? $"gui.{Namespace}.{gui}" : $"gui.{Namespace}.{gui}.{component.ToLowerInvariant()}";
+
+    /// <summary>Texture of an image of a GUI, inside the assets of the mod ("textures/gui/rune_table/rune.png").</summary>
+    public string GuiTextureLocation(ResourceId gui, string image) => $"textures/gui/{gui}/{image.ToLowerInvariant()}.png";
+
+    public string GuiTexture(ResourceId gui, string image) => $"{AssetsRoot}/{GuiTextureLocation(gui, image)}";
+
     /// <summary>Enchantment of the mod as data (1.21).</summary>
     public string Enchantment(ResourceId id) => $"{DataRoot}/enchantment/{id}.json";
 

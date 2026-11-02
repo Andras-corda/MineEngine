@@ -35,6 +35,9 @@ public sealed class BlockEventCalls(IReadOnlyDictionary<BlockEventKind, IReadOnl
 /// </summary>
 public sealed partial class BlockJava
 {
+    /// <summary>The block opens a GUI (V0.8.1): a block entity keeps the items of its slots, dropped when it is broken.</summary>
+    private bool KeepsItems => _block.Gui is not null && _block.Plant is null;
+
     private bool TracksRedstone => _events.Has(BlockEventKind.RedstoneOn) || _events.Has(BlockEventKind.RedstoneOff);
 
     private bool ScheduledTicks => _events.Has(BlockEventKind.Tick) && _options.TickEnabled && !_options.TickRandomly;
@@ -59,6 +62,23 @@ public sealed partial class BlockJava
         WriteNeighbor(w);
         WriteDestruction(w);
         WriteContacts(w);
+        WriteBlockEntity(w);
+    }
+
+    /// <summary>The block entity that keeps the items of the GUI of the block (V0.8.1).</summary>
+    private void WriteBlockEntity(JavaSourceWriter w)
+    {
+        if (!KeepsItems)
+        {
+            return;
+        }
+
+        string entity = ModJavaEmitter.GuiBlockEntityClass;
+        Use($"{_naming.RootPackage}.{ModJavaEmitter.GuiPackage}.{entity}", "net.minecraft.world.level.block.entity.BlockEntity");
+        w.Line().Line("@Override")
+            .OpenBlock("public BlockEntity newBlockEntity(BlockPos position, BlockState state)")
+            .Line($"return new {entity}(position, state);")
+            .CloseBlock();
     }
 
     /// <summary>Opens an override that runs on the server: the line before (super call), then the guard.</summary>
@@ -179,13 +199,22 @@ public sealed partial class BlockJava
 
     private void WriteDestruction(JavaSourceWriter w)
     {
-        if (_events.Has(BlockEventKind.Destroyed))
+        if (_events.Has(BlockEventKind.Destroyed) || KeepsItems)
         {
             // Run before the block entity and the neighbors forget it.
             w.Line().Line("@Override")
                 .OpenBlock("public void onRemove(BlockState state, Level level, BlockPos position, BlockState newState, boolean moved)")
                 .OpenBlock("if (!level.isClientSide && !state.is(newState.getBlock()))");
             _events.Write(w, BlockEventKind.Destroyed, "null", "null", "0.0");
+            if (KeepsItems)
+            {
+                // The items kept for the GUI fall on the ground.
+                Use("net.minecraft.world.Containers");
+                w.OpenBlock($"if (level.getBlockEntity(position) instanceof {ModJavaEmitter.GuiBlockEntityClass} kept)")
+                    .Line("Containers.dropContents(level, position, kept.items());")
+                    .CloseBlock();
+            }
+
             w.CloseBlock()
                 .Line()
                 .Line("super.onRemove(state, level, position, newState, moved);")

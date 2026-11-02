@@ -100,7 +100,7 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
     public Asset? Find(Guid id) => _byId.GetValueOrDefault(id);
 
     /// <summary>Program definitions of the graphs (functions, classes...), shared and kept until a graph is added or removed.</summary>
-    public ProgramModel Program => _program ??= new ProgramModel(_assets.OfType<GraphAsset>(), _assets.OfType<GlobalVariableAsset>());
+    public ProgramModel Program => _program ??= new ProgramModel(_assets.OfType<GraphAsset>(), _assets.OfType<GlobalVariableAsset>(), _assets.OfType<GuiAsset>());
 
     /// <summary>Asset du même espace d'identifiants que <paramref name="type"/> qui porte cet identifiant.</summary>
     public Asset? FindByResourceId(ResourceId resourceId, AssetType type) =>
@@ -238,6 +238,8 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
                 Tr.F("{0}: block {1} has no item form.", Capitalize(reference.Role), target.ResourceId),
             AssetReferenceKind.Definition when target is not GraphAsset =>
                 Tr.F("{0}: {1} is not a definition.", Capitalize(reference.Role), target),
+            AssetReferenceKind.Gui when target is not GuiAsset =>
+                Tr.F("{0}: {1} is not a GUI.", Capitalize(reference.Role), target),
             AssetReferenceKind.GlobalVariable when target is not GlobalVariableAsset =>
                 Tr.F("{0}: {1} is not a global variable.", Capitalize(reference.Role), target),
             AssetReferenceKind.LootTable when target is not LootTableAsset =>

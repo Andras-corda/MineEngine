@@ -19,18 +19,27 @@ public sealed class ProgramModel
 {
     private readonly Dictionary<Guid, GraphAsset> _graphs;
     private readonly Dictionary<Guid, GlobalVariableAsset> _globals;
+    private readonly Dictionary<Guid, GuiAsset> _guis;
 
-    public ProgramModel(IEnumerable<GraphAsset> graphs, IEnumerable<GlobalVariableAsset>? globals = null)
+    public ProgramModel(IEnumerable<GraphAsset> graphs, IEnumerable<GlobalVariableAsset>? globals = null, IEnumerable<GuiAsset>? guis = null)
     {
         _graphs = (graphs ?? []).GroupBy(g => g.Id).ToDictionary(g => g.Key, g => g.First());
         _globals = (globals ?? []).GroupBy(g => g.Id).ToDictionary(g => g.Key, g => g.First());
+        _guis = (guis ?? []).GroupBy(g => g.Id).ToDictionary(g => g.Key, g => g.First());
     }
 
     public static ProgramModel From(IEnumerable<Asset> assets)
     {
         List<Asset> all = [.. assets];
-        return new ProgramModel(all.OfType<GraphAsset>(), all.OfType<GlobalVariableAsset>());
+        return new ProgramModel(all.OfType<GraphAsset>(), all.OfType<GlobalVariableAsset>(), all.OfType<GuiAsset>());
     }
+
+    /// <summary>The GUI a graph belongs to (its Nodes tab, V0.8.1), or null.</summary>
+    public GuiAsset? GuiOf(GraphAsset graph) => graph.ElementId is { } id ? _guis.GetValueOrDefault(id) : null;
+
+    public GuiAsset? FindGui(Guid? id) => id is { } value ? _guis.GetValueOrDefault(value) : null;
+
+    public IEnumerable<GuiAsset> Guis => _guis.Values;
 
     /// <summary>Global variables of the project (Global tab), usable in every graph.</summary>
     public IEnumerable<GlobalVariableAsset> Globals => _globals.Values;
@@ -225,6 +234,7 @@ public sealed class ProgramModel
             GraphNodeKind.SuperConstructor => Super(node, graph),
             GraphNodeKind.Reroute => Reroutes.Describe(node, TypeLabel),
             GraphNodeKind.GetGlobal or GraphNodeKind.SetGlobal => Global(node),
+            GraphNodeKind.GuiComponentRef => GuiComponentRef(node),
             GraphNodeKind.Comment or GraphNodeKind.Tooltip => GraphAnnotations.Describe(node),
             _ => NodeCatalog.Missing(node.Kind, node.Kind.ToString()),
         };
@@ -395,6 +405,19 @@ public sealed class ProgramModel
             : new NodeInfo(GraphNodeKind.SetGlobal, NodeCategory.Global, Tr.F("Set {0}", name),
                 Tr.F("Changes the global variable \"{0}\" ({1}).", name, scope),
                 inputs: [.. inputs, Pin("value", name, global.ValueType, global.DefaultValue)], flow: NodeFlow.Step);
+    }
+
+    /// <summary>A component of a GUI as a variable of its graph: it gives its name to the GUI nodes, and follows a renaming.</summary>
+    private NodeInfo GuiComponentRef(GraphNode node)
+    {
+        if (FindGui(node.Target)?.FindComponent(node.Member ?? Guid.Empty) is not { } component)
+        {
+            return NodeCatalog.Missing(node.Kind, Tr.T("GUI component not found"));
+        }
+
+        return new NodeInfo(GraphNodeKind.GuiComponentRef, NodeCategory.Object, component.Name,
+            Tr.F("The component \"{0}\" of the GUI, for the GUI nodes (Text of a GUI component, Show or hide a GUI component...).", component.Name),
+            outputs: [new PinInfo("component", component.Name, PinType.Text)]);
     }
 
     private NodeInfo Variable(GraphNode node, GraphAsset graph)

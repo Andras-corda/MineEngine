@@ -89,6 +89,7 @@ public sealed class MobLowering : AssetLowering<MobAsset>
             DeathSound = context.ResolveSound(asset, asset.DeathSound, Tr.T("Death sound")),
             Drops = [.. asset.Drops.Select(d => LowerDrop(asset, d, context)).OfType<IRMobDrop>()],
             DropTable = context.ResolveLootTable(asset, asset.DropTable),
+            Gui = context.ResolveGui(asset, asset.Gui),
             SpawnEgg = asset.HasSpawnEgg && !vehicle
                 ? new IRSpawnEgg(asset.SpawnEggId, asset.EggPrimaryColor, asset.EggSecondaryColor)
                 {

@@ -32,6 +32,9 @@ public enum AssetReferenceKind
 
     /// <summary>A drop table of the project (V0.7.10).</summary>
     LootTable,
+
+    /// <summary>A GUI (V0.8.1: a component of it used by a graph).</summary>
+    Gui,
 }
 
 /// <summary>

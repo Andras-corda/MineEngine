@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using MineEngine.Assets;
 using MineEngine.Core.Json;
 using MineEngine.IR.Model;
 using MineEngine.Minecraft.Generation;
@@ -91,6 +92,28 @@ public sealed class LanguageEmitter : IFileEmitter
         foreach (IREffect effect in content.Effects)
         {
             entries[paths.EffectTranslationKey(effect.Id)] = effect.Name;
+        }
+
+        foreach (IRGui gui in content.Guis)
+        {
+            entries[paths.GuiTranslationKey(gui.Id)] = gui.Title;
+            foreach (IRGuiComponent component in gui.Components)
+            {
+                if (component.Text.Length > 0 && component.Kind != GuiComponentKind.Image && component.Kind != GuiComponentKind.Slot)
+                {
+                    entries[paths.GuiTranslationKey(gui.Id, component.Name)] = component.Text;
+                }
+
+                if (component.Tooltip.Length > 0)
+                {
+                    entries[paths.GuiTranslationKey(gui.Id, component.Name) + ".tooltip"] = component.Tooltip;
+                }
+
+                if (component.Style.HoverText.Length > 0)
+                {
+                    entries[paths.GuiTranslationKey(gui.Id, component.Name) + ".hover"] = component.Style.HoverText;
+                }
+            }
         }
 
         foreach (IRDamageType damage in content.DamageTypes)

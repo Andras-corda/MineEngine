@@ -237,6 +237,78 @@ public sealed class ForgeJavaEmitter : ModJavaEmitter
         return (imports, members);
     }
 
+    /// <summary>
+    /// The network of the GUIs (V0.8.0): a SimpleChannel with a message to the server and one to the
+    /// client; the sender is read in the context, given by a supplier in 1.20.1.
+    /// </summary>
+    protected override (IReadOnlyList<string> Imports, IReadOnlyList<string> Members) GuiNetwork(JavaModNaming naming, JavaGameApi api)
+    {
+        bool modern = api.UsesDataComponents;
+        string location = api.ParseResourceLocation($"{naming.MainClass}.MOD_ID + \":gui\"");
+        string sender = modern ? "context.getSender()" : "context.get().getSender()";
+        IReadOnlyList<string> imports =
+        [
+            $"{naming.RootPackage}.{naming.MainClass}",
+            "net.minecraft.resources.ResourceLocation",
+            "net.minecraftforge.eventbus.api.IEventBus",
+            "net.minecraftforge.network.NetworkDirection",
+            "net.minecraftforge.network.PacketDistributor",
+            .. modern
+                ? (string[])["net.minecraftforge.network.ChannelBuilder", "net.minecraftforge.network.SimpleChannel"]
+                : ["net.minecraftforge.network.NetworkRegistry", "net.minecraftforge.network.simple.SimpleChannel"],
+        ];
+        IReadOnlyList<string> members =
+        [
+            "/** A click, a tick or a text of a screen. */",
+            "public record ToServer(int container, int action, int component, String value) {",
+            "}",
+            "",
+            "/** A text or a checkbox changed by the graphs. */",
+            "public record ToClient(int container, int action, int component, String value) {",
+            "}",
+            "",
+            modern
+                ? $"private static final SimpleChannel CHANNEL = ChannelBuilder.named({location}).networkProtocolVersion(1).simpleChannel();"
+                : $"private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel({location}, () -> \"1\", \"1\"::equals, \"1\"::equals);",
+            "",
+            "public static void register(IEventBus modEventBus) {",
+            "    CHANNEL.messageBuilder(ToServer.class, 0, NetworkDirection.PLAY_TO_SERVER)",
+            "            .encoder((message, buffer) -> {",
+            "                buffer.writeVarInt(message.container());",
+            "                buffer.writeVarInt(message.action());",
+            "                buffer.writeVarInt(message.component());",
+            "                buffer.writeUtf(message.value());",
+            "            })",
+            "            .decoder(buffer -> new ToServer(buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readUtf(32767)))",
+            $"            .consumerMainThread((message, context) -> {GuisClass}.receive({sender}, message.container(), message.action(), message.component(), message.value()))",
+            "            .add();",
+            "    CHANNEL.messageBuilder(ToClient.class, 1, NetworkDirection.PLAY_TO_CLIENT)",
+            "            .encoder((message, buffer) -> {",
+            "                buffer.writeVarInt(message.container());",
+            "                buffer.writeVarInt(message.action());",
+            "                buffer.writeVarInt(message.component());",
+            "                buffer.writeUtf(message.value());",
+            "            })",
+            "            .decoder(buffer -> new ToClient(buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readUtf(32767)))",
+            "            .consumerMainThread((message, context) -> ModGuisClient.apply(message.container(), message.action(), message.component(), message.value()))",
+            "            .add();",
+            "}",
+            "",
+            "public static void toServer(int container, int action, int component, String value) {",
+            modern
+                ? "    CHANNEL.send(new ToServer(container, action, component, value), PacketDistributor.SERVER.noArg());"
+                : "    CHANNEL.sendToServer(new ToServer(container, action, component, value));",
+            "}",
+            "",
+            "public static void toClient(ServerPlayer player, int container, int action, int component, String value) {",
+            modern
+                ? "    CHANNEL.send(new ToClient(container, action, component, value), PacketDistributor.PLAYER.with(player));"
+                : "    CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ToClient(container, action, component, value));",
+            "}",
+        ];
+        return (imports, members);
+    }
+
     protected override string EntityTypeHolderType(string entityClass) => $"RegistryObject<EntityType<{entityClass}>>";
 
     protected override string EntityTypesRegisterDeclaration(JavaModNaming naming) =>

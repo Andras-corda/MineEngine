@@ -9,7 +9,7 @@ namespace MineEngine.Assets;
 /// Un item : objet d'inventaire, éventuellement à durabilité, brillant ou comestible.
 /// Inspiré de l'éditeur d'items de MCreator (pages Visuel, Propriétés, Nourriture).
 /// </summary>
-public sealed class ItemAsset : InventoryAsset
+public sealed class ItemAsset : InventoryAsset, IHasMethods, IHasGui
 {
     public const int MaxDurability = 100_000;
     public const int MaxNutrition = 20;
@@ -38,6 +38,7 @@ public sealed class ItemAsset : InventoryAsset
     private bool _alwaysEdible;
     private bool _isMeat;
     private Guid? _guiTextureId;
+    private Guid? _gui;
     private Guid? _glintCondition;
     private ContentReference? _repairItem;
     private bool _harvestsAnyBlock;
@@ -219,6 +220,13 @@ public sealed class ItemAsset : InventoryAsset
     // ----- Visual and properties of item.md (V0.7.12) -----
 
     /// <summary>Texture shown in the inventories when the item has a 3D model; null: the model there too.</summary>
+    /// <summary>The GUI of the project opened by a right click (V0.8.1), or null.</summary>
+    public Guid? Gui
+    {
+        get => _gui;
+        set => SetField(ref _gui, value == Guid.Empty ? null : value);
+    }
+
     public Guid? GuiTextureId
     {
         get => _guiTextureId;
@@ -344,6 +352,11 @@ public sealed class ItemAsset : InventoryAsset
         foreach (AssetReference reference in base.GetReferences())
         {
             yield return reference;
+        }
+
+        if (Gui is { } boundGui)
+        {
+            yield return new AssetReference(boundGui, AssetReferenceKind.Gui, Tr.T("GUI opened by a right click"));
         }
 
         if (Remainder == ItemRemainderKind.OtherItem && CraftRemainder is { Kind: ContentReferenceKind.Asset } remainder)

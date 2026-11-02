@@ -752,6 +752,56 @@ public static class NodeCatalog
                 new PinInfo("table", Tr.T("Drop table"), PinType.Text, string.Empty) { Suggest = PinSuggestion.LootTable },
                 Position,
             ]),
+        new(GraphNodeKind.OpenGui, NodeCategory.Action, Tr.T("Open a GUI"),
+            Tr.T("Opens a GUI of the mod for the player (identifier of the GUI: \"rune_table\"); the one already open closes."),
+            inputs: [Player, new PinInfo("gui", Tr.T("GUI"), PinType.Text, string.Empty) { Suggest = PinSuggestion.Gui }]),
+        new(GraphNodeKind.CloseGui, NodeCategory.Action, Tr.T("Close the GUI"),
+            Tr.T("Closes the GUI or the inventory the player has open; the items left in its slots go back to the player."),
+            inputs: [Player]),
+        new(GraphNodeKind.GuiText, NodeCategory.Variable, Tr.T("Text of a GUI component"),
+            Tr.T("What the player typed in a text input of the GUI open (or the text given to a component); empty when the GUI is not open."),
+            inputs: [Player, new PinInfo("component", Tr.T("Component"), PinType.Text, string.Empty) { Suggest = PinSuggestion.GuiComponent }],
+            outputs: [new PinInfo("text", Tr.T("Text"), PinType.Text)]),
+        new(GraphNodeKind.GuiTicked, NodeCategory.Variable, Tr.T("GUI checkbox ticked"),
+            Tr.T("True when the checkbox of the GUI open is ticked."),
+            inputs: [Player, new PinInfo("component", Tr.T("Component"), PinType.Text, string.Empty) { Suggest = PinSuggestion.GuiComponent }],
+            outputs: [new PinInfo("ticked", Tr.T("Ticked"), PinType.Boolean)]),
+        new(GraphNodeKind.GuiSlotItem, NodeCategory.Variable, Tr.T("Item in a GUI slot"),
+            Tr.T("The items in a slot of the GUI open; empty when there is none."),
+            inputs: [Player, new PinInfo("component", Tr.T("Component"), PinType.Text, string.Empty) { Suggest = PinSuggestion.GuiComponent }],
+            outputs: [StackOutput]),
+        new(GraphNodeKind.IsGuiOpen, NodeCategory.Variable, Tr.T("GUI open"),
+            Tr.T("True when the player has this GUI of the mod open."),
+            inputs: [Player, new PinInfo("gui", Tr.T("GUI"), PinType.Text, string.Empty) { Suggest = PinSuggestion.Gui }],
+            outputs: [new PinInfo("open", Tr.T("Open"), PinType.Boolean)]),
+        new(GraphNodeKind.SetGuiText, NodeCategory.Action, Tr.T("Set the text of a GUI component"),
+            Tr.T("Changes the text of a text, a button, a checkbox or a text input of the GUI open, on the screen of the player."),
+            inputs: [Player, new PinInfo("component", Tr.T("Component"), PinType.Text, string.Empty) { Suggest = PinSuggestion.GuiComponent }, new PinInfo("text", Tr.T("Text"), PinType.Text, string.Empty)]),
+        new(GraphNodeKind.SetGuiTicked, NodeCategory.Action, Tr.T("Tick a GUI checkbox"),
+            Tr.T("Ticks or unticks a checkbox of the GUI open, on the screen of the player."),
+            inputs: [Player, new PinInfo("component", Tr.T("Component"), PinType.Text, string.Empty) { Suggest = PinSuggestion.GuiComponent }, new PinInfo("ticked", Tr.T("Ticked"), PinType.Boolean, "true")]),
+        new(GraphNodeKind.SetGuiSlotItem, NodeCategory.Action, Tr.T("Put an item in a GUI slot"),
+            Tr.T("Replaces the items of a slot of the GUI open (an empty stack clears it)."),
+            inputs: [Player, new PinInfo("component", Tr.T("Component"), PinType.Text, string.Empty) { Suggest = PinSuggestion.GuiComponent }, Stack]),
+        // ----- The graph of a GUI (V0.8.1) -----
+        GuiEvent(GraphNodeKind.OnGuiOpened, Tr.T("GUI: opened"), Tr.T("The GUI opens for the player."), component: false),
+        GuiEvent(GraphNodeKind.OnGuiTick, Tr.T("GUI: every tick"), Tr.T("Every tick (20 times a second) while the GUI is open."), component: false),
+        GuiEvent(GraphNodeKind.OnGuiClosed, Tr.T("GUI: closed"), Tr.T("The GUI closes; the items of its slots go back to the player after."), component: false),
+        GuiEvent(GraphNodeKind.OnGuiPressed, Tr.T("GUI: button pressed"), Tr.T("The player presses a button of the GUI."), component: true),
+        GuiEvent(GraphNodeKind.OnGuiReleased, Tr.T("GUI: button released"), Tr.T("The player releases the mouse over a button of the GUI."), component: true),
+        GuiEvent(GraphNodeKind.OnGuiHovered, Tr.T("GUI: mouse over"), Tr.T("The mouse comes over a button or an image of the GUI."), component: true),
+        GuiEvent(GraphNodeKind.OnGuiUnhovered, Tr.T("GUI: mouse out"), Tr.T("The mouse leaves a button or an image of the GUI."), component: true),
+        GuiEvent(GraphNodeKind.OnGuiImageClicked, Tr.T("GUI: image clicked"), Tr.T("The player clicks an image of the GUI."), component: true),
+        GuiEvent(GraphNodeKind.OnGuiTicked, Tr.T("GUI: checkbox changed"), Tr.T("A checkbox of the GUI is ticked or unticked."), component: true,
+            [new PinInfo("ticked", Tr.T("Ticked"), PinType.Boolean)]),
+        GuiEvent(GraphNodeKind.OnGuiTextChanged, Tr.T("GUI: text changed"), Tr.T("The player types in a text input of the GUI."), component: true,
+            [new PinInfo("text", Tr.T("Text"), PinType.Text)]),
+        GuiEvent(GraphNodeKind.OnGuiSlotChanged, Tr.T("GUI: slot changed"), Tr.T("The items of a slot of the GUI change."), component: true,
+            [new PinInfo("stack", Tr.T("Item stack"), PinType.ItemStack)]),
+        new(GraphNodeKind.SetGuiVisible, NodeCategory.Action, Tr.T("Show or hide a GUI component"),
+            Tr.T("Shows or hides a component of the GUI open, on the screen of the player (a hidden button cannot be clicked)."),
+            inputs: [Player, new PinInfo("component", Tr.T("Component"), PinType.Text, string.Empty) { Suggest = PinSuggestion.GuiComponent },
+                new PinInfo("visible", Tr.T("Visible"), PinType.Boolean, "true")]),
         new(GraphNodeKind.DamageWithSource, NodeCategory.Action, Tr.T("Damage with a source"), Tr.T("Hurts the entity with this damage source."),
             inputs: [Entity, new PinInfo("source", Tr.T("Damage source"), DataType.DamageSource), new PinInfo("amount", Tr.T("Amount"), PinType.Number, "2")]),
         new(GraphNodeKind.MakeEffect, NodeCategory.Variable, Tr.T("Make an effect"), Tr.T("An effect with its duration and its level, to give later; none if the effect does not exist."),
@@ -1002,6 +1052,9 @@ public static class NodeCatalog
         >= GraphNodeKind.NewNbt and <= GraphNodeKind.NbtGetText => NodeGroup.Program,
         >= GraphNodeKind.CurrentWorld and <= GraphNodeKind.GameTime => NodeGroup.World,
         GraphNodeKind.DropLootTable => NodeGroup.World,
+        >= GraphNodeKind.OpenGui and <= GraphNodeKind.SetGuiSlotItem => NodeGroup.Player,
+        >= GraphNodeKind.OnGuiOpened and <= GraphNodeKind.OnGuiSlotChanged => NodeGroup.Events,
+        GraphNodeKind.SetGuiVisible or GraphNodeKind.GuiComponentRef => NodeGroup.Player,
         GraphNodeKind.SetPlayerGuild or GraphNodeKind.PlayerGuild => NodeGroup.Player,
         GraphNodeKind.SetEntityGroup or GraphNodeKind.EntityGroup => NodeGroup.Entities,
         GraphNodeKind.IsBlockInTag => NodeGroup.Block,
@@ -1088,6 +1141,19 @@ public static class NodeCatalog
     /// Event of an item: its input names the item; its outputs are the player, a position and, since
     /// V0.7.12, the ones of the event (other entity, amount), named like the parameters of the Java method.
     /// </summary>
+    /// <summary>
+    /// An event of a GUI (V0.8.1): the GUI (empty in the graph of a GUI: that one) and, for a component, its name;
+    /// it gives the player and the value of the component.
+    /// </summary>
+    private static NodeInfo GuiEvent(GraphNodeKind kind, string title, string description, bool component, IReadOnlyList<PinInfo>? outputs = null) =>
+        new(kind, NodeCategory.Event, title, description,
+            inputs:
+            [
+                new PinInfo("gui", Tr.T("GUI"), PinType.Text, string.Empty, Connectable: false) { Suggest = PinSuggestion.Gui },
+                .. component ? (PinInfo[])[new PinInfo("component", Tr.T("Component"), PinType.Text, string.Empty, Connectable: false) { Suggest = PinSuggestion.GuiComponent }] : [],
+            ],
+            outputs: [Player, .. outputs ?? []]) { IsGuiEvent = true };
+
     private static NodeInfo ItemEvent(GraphNodeKind kind, ItemEventKind itemEvent, string title, string description, string positionLabel, IReadOnlyList<PinInfo>? outputs = null) =>
         new(kind, NodeCategory.Event, title, description,
             inputs: [new PinInfo("item", Tr.T("Mod item"), PinType.Item, string.Empty, Connectable: false)],

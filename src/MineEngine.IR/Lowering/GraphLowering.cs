@@ -82,6 +82,26 @@ public sealed class GraphLowering : AssetLowering<GraphAsset>
             }
         }
 
+        // A GUI event is called by the menu of its GUI (V0.8.1): the GUI, and the component it names, must exist.
+        foreach (GraphNode node in asset.Graph.Nodes.Where(n => NodeCatalog.Find(n.Kind)?.IsGuiEvent == true))
+        {
+            GuiAsset? gui = compiler.GuiOf(node);
+            string title = NodeCatalog.Get(node.Kind).Title;
+            if (gui is null)
+            {
+                context.Diagnostics.Error(Tr.F("\"{0}\": choose a GUI of the project (or put the node in the graph of a GUI).", title), asset.ToString(), asset.Id);
+                return;
+            }
+
+            string component = node.GetValue("component")?.Trim() ?? string.Empty;
+            if (NodeCatalog.Get(node.Kind).FindInput("component") is not null
+                && !gui.Components.Any(c => string.Equals(c.Name, component, StringComparison.OrdinalIgnoreCase)))
+            {
+                context.Diagnostics.Error(Tr.F("\"{0}\": \"{1}\" is not a component of the GUI \"{2}\".", title, component, gui.DisplayName), asset.ToString(), asset.Id);
+                return;
+            }
+        }
+
         // A mob event adds code to the class of the mob: it must name a mob of the project (V0.7.9).
         foreach (GraphNode node in asset.Graph.Nodes.Where(n => NodeCatalog.Find(n.Kind)?.MobEvent is not null))
         {

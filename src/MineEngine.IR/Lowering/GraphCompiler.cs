@@ -78,7 +78,19 @@ public sealed class GraphCompiler
             Trigger = Info(eventNode).DirectEvent is null ? null : eventNode.GetValue(Info(eventNode).Inputs[0].Name)?.Trim(),
             Mob = Info(eventNode).MobEvent is null ? null : MobId(eventNode.GetValue("mob") ?? Info(eventNode).Inputs[0].DefaultValue),
             Block = Info(eventNode).BlockEvent is null ? null : MobId(eventNode.GetValue("block") ?? Info(eventNode).Inputs[0].DefaultValue),
+            Gui = Info(eventNode).IsGuiEvent ? GuiOf(eventNode)?.ResourceId.Value : null,
+            Component = Info(eventNode).IsGuiEvent ? eventNode.GetValue("component")?.Trim() : null,
         };
+    }
+
+    /// <summary>The GUI of a GUI event: the one it names, else the one the graph belongs to (its Nodes tab).</summary>
+    public GuiAsset? GuiOf(GraphNode eventNode)
+    {
+        string id = (eventNode.GetValue("gui") ?? string.Empty).Trim();
+        id = id[(id.IndexOf(':', StringComparison.Ordinal) + 1)..];
+        return id.Length > 0
+            ? _program.Guis.FirstOrDefault(g => g.ResourceId.Value == id)
+            : _program.GuiOf(_asset);
     }
 
     /// <summary>Identifier of the mob or the block of an event, without the namespace of the mod ("testmod:goblin" → "goblin").</summary>
@@ -251,6 +263,7 @@ public sealed class GraphCompiler
             Literal(info.Inputs[0], node.GetValue("value")),
         GraphNodeKind.GetVariable => new IRVariableValue(output.Type, node.Member!.Value),
         GraphNodeKind.GetGlobal => new IRGlobalValue(output.Type, node.Target!.Value, GlobalKey(node, info, start)),
+        GraphNodeKind.GuiComponentRef => new IRTextLiteral(_program.FindGui(node.Target)?.FindComponent(node.Member ?? Guid.Empty)?.Name ?? string.Empty),
         GraphNodeKind.GetField => new IRFieldValue(output.Type, Target(node, info, start), node.Target!.Value, node.Member!.Value),
         GraphNodeKind.EnumLiteral => Literal(info.Inputs[0], node.Values.GetValueOrDefault("value") ?? info.Inputs[0].DefaultValue),
         GraphNodeKind.Self => new IRSelfValue(output.Type),

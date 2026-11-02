@@ -200,6 +200,7 @@ public partial class MainWindow : Window
                 GraphDocumentViewModel => new GraphDocumentView { DataContext = document },
                 BehaviorTreeDocumentViewModel => new Puppeteer.BehaviorTreeView { DataContext = document },
                 SparkleDocumentViewModel => new Sparkle.SparkleView { DataContext = document },
+                ViewModels.Gui.GuiDocumentViewModel => new Gui.GuiView { DataContext = document },
                 AssetEditorDocumentViewModel => new AssetEditorView { DataContext = document },
                 _ => new CodeDocumentView { DataContext = document },
             };

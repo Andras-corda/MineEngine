@@ -2,12 +2,14 @@
 
 Liste de tous les ajouts et modifications apportés à Mine Engine, de la version la plus récente à la plus ancienne.
 
-- Les versions V0.7.10 et V0.7.12 à V0.7.14 sont détaillées étape par étape.
+- Les versions V0.7.10, V0.7.12 à V0.7.14, V0.8.0 et V0.8.1 sont détaillées étape par étape.
 - Les autres versions reprennent le contenu de ROADMAP.md.
 - État : F = faite, P = en pause. Les versions pas encore commencées ne sont pas listées (voir ROADMAP.md).
 
 ## Sommaire
 
+- V0.8.1 — GUI dynamique + bind code + GUI branché sur les blocs, items et mobs — F
+- V0.8.0 — Creation de Gui systeme de widget en xaml — F
 - V0.7.14 — Ajouts et modifications de qualityoflife.md — F
 - V0.7.13 — Méthodes de classe et affichage façon MCreator pour l'item — F
 - V0.7.12 — Refonte de l'onglet item — F
@@ -54,6 +56,70 @@ Liste de tous les ajouts et modifications apportés à Mine Engine, de la versio
 - V0.3 — Système d'assets, mobs et IA — F
 - V0.2 — Fondation de l'éditeur — F
 - V0.1 — Prototype technique — F
+
+---
+
+## V0.8.1 — GUI dynamique, code branché, GUI sur les blocs, items et mobs — F
+
+### Étape 1 : édition dans l'éditeur
+- Double-clic sur un composant : texte tapé directement sur le canevas, navigateur d'images pour une image, type d'emplacement pour un slot.
+- Retour arrière ou Suppr pour supprimer ; Ctrl+C / Ctrl+V / Ctrl+D, F2 pour renommer, Entrée pour modifier.
+- Clic droit : modifier, renommer, dupliquer, copier, coller, supprimer ; renommer l'identifiant depuis la liste.
+- Case à cocher sans texte ; slots vide (affichage seul), entrée et sortie.
+
+### Étape 2 : propriétés d'apparence
+- Alignement, justification des lignes, marge, opacité, rotation pour tous les composants.
+- Texte : taille, retour à la ligne, texte et couleur au survol.
+- Image : taille (étirée, ajustée, celle du fichier), teinte, mosaïque, bordure et sa couleur, flou, surbrillance, effet au survol (surbrillance, flou, teinte).
+- Bouton en image ; case placée dans son cadre. Visible dans l'aperçu de l'éditeur et en jeu.
+
+### Étape 3 : onglet Nodes
+- Onglet Nodes entre Design et Événements : le graphe d'événements de la GUI, créé d'un clic (avec un nœud « GUI : ouverte ») et modifié dans l'onglet ; supprimé avec la GUI.
+- Nœuds d'événements : GUI ouverte, à chaque tick, fermée ; bouton pressé, bouton relâché, survol, souris sortie, image cliquée, case changée, texte changé, slot changé.
+- Case « Est une variable » : le composant devient un nœud du graphe qui suit son renommage.
+- Nœud « Afficher ou masquer un composant » (un bouton masqué ne peut pas être cliqué).
+- L'écran envoie au serveur le relâchement, le survol, la sortie de la souris et le clic sur une image.
+- Erreur si un nœud vise une GUI absente ou un composant qui n'est pas dans la GUI.
+- Correction : un composant variable branché sur un nœud de GUI donnait null dans le Java généré.
+
+### Étape 4 : GUI sur les blocs, items et mobs
+- Choix « Ouvre la GUI » dans l'onglet Événements des blocs, des items et des mobs.
+- Clic droit sur le bloc, avec l'item en main, ou sur le mob : la GUI s'ouvre (en plus des graphes du clic droit).
+- Un bloc garde les items de ses slots dans une entité de bloc (ModGuiBlockEntity), sauvegardée avec le monde, lâchés quand le bloc est cassé ; un joueur trop loin ne peut plus l'utiliser.
+- Avec un item ou un mob, les items laissés dans les slots retournent au joueur à la fermeture.
+- Erreur si la GUI choisie a été supprimée. Forge 1.20.1, Forge 1.21.1 et NeoForge 1.21.1, compilés par le test de build complet.
+
+---
+
+## V0.8.0 — Interfaces graphiques (GUI) — F
+
+### Étape 1 : l'élément GUI et son éditeur
+- Nouvel élément GUI (fenêtre de création, catégorie Contenu du jeu) : largeur et hauteur, emplacements de l'inventaire du joueur et leur décalage, monde assombri derrière, pause du jeu.
+- Éditeur façon MCreator dans un onglet : boîte à outils, fenêtre dessinée comme dans le jeu sur une vue du monde.
+- Composants : texte (couleur), image (texture du projet), bouton, emplacement (entrée ou sortie), case à cocher (cochée par défaut), champ de texte (indication, longueur maximale) ; une infobulle sur chacun.
+- Déplacement et redimensionnement à la souris, flèches (Maj : 10 pixels), Suppr, Ctrl+D, zoom Ctrl+molette ; un nouveau composant se place au premier endroit libre.
+- Grille d'aimantation réglable (pas X/Y, décalage X/Y), liste des composants (avancer, reculer, dupliquer, supprimer), propriétés du composant choisi ; tout s'annule.
+- Vérifications : noms en double ou invalides, composant qui dépasse, image sans texture, GUI trop petit pour l'inventaire.
+
+### Étape 2 : génération Java
+- Un menu par GUI (côté serveur) : emplacements (une sortie refuse les items), inventaire et barre rapide, shift-clic, items rendus au joueur à la fermeture.
+- Un écran par GUI (côté client) : fenêtre et emplacements du jeu, textes, images étirées, boutons, cases, champs de texte (la touche E ne ferme pas pendant la saisie), infobulles, pause et fond selon les options.
+- Enregistrement des menus et des écrans : RegisterMenuScreensEvent sur NeoForge, MenuScreens.register sur Forge (vérifié dans les fichiers du jeu).
+- Textes traduisibles (titre, textes et infobulles des composants), aussi dans l'onglet Langues ; images copiées dans textures/gui.
+- Nœuds « Ouvrir un GUI » et « Fermer le GUI ».
+- Forge 1.20.1, Forge 1.21.1 et NeoForge 1.21.1, compilés par le test de build complet.
+
+### Étape 3 : comportements
+- Onglet Événements à côté du Design : à l'ouverture, à chaque tick, à la fermeture, bouton cliqué, case cochée, texte modifié, item d'un emplacement modifié.
+- Chaque événement en Java (onglet de code) ou en graphe qui appartient au GUI, comme les méthodes des items ; exécutés sur le serveur.
+- Réseau des GUI dans les deux sens : clics, cases et textes vers le serveur ; textes et cases changés par les graphes vers l'écran (SimpleChannel en Forge 1.20.1, ChannelBuilder en Forge 1.21.1, payloads en NeoForge).
+- Classes de base partagées ModGuiMenu et ModGuiScreen.
+- Nœuds : Texte d'un composant de GUI, Case de GUI cochée, Item dans un emplacement de GUI, GUI ouvert, Changer le texte d'un composant de GUI, Cocher une case de GUI, Mettre un item dans un emplacement de GUI.
+
+### Étape 4 : finitions
+- Supprimer un composant supprime aussi son événement et le graphe de l'événement, en une étape annulable.
+- Les événements d'un GUI dans le menu « Méthodes et graphes » du Dashboard, comme pour les items.
+- Tests : les événements d'un GUI, l'événement d'un composant supprimé ignoré.
 
 ---
 

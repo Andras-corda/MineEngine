@@ -10,7 +10,7 @@ namespace MineEngine.Assets;
 /// face, transparence, lumière), propriétés (dureté, son, glissance...), récolte
 /// (outil, drops, expérience) et forme item.
 /// </summary>
-public sealed class BlockAsset : InventoryAsset
+public sealed class BlockAsset : InventoryAsset, IHasGui
 {
     public const float MaxStrength = 3_600_000f;
     public const float DefaultHardness = 1.5f;
@@ -38,6 +38,7 @@ public sealed class BlockAsset : InventoryAsset
     private BlockDropKind _dropKind = BlockDropKind.Self;
     private ContentReference? _dropItem;
     private Guid? _dropTable;
+    private Guid? _gui;
     private int _dropMin = 1;
     private int _dropMax = 1;
     private int _experienceMin;
@@ -190,6 +191,13 @@ public sealed class BlockAsset : InventoryAsset
         set => SetField(ref _dropKind, value);
     }
 
+    /// <summary>The GUI of the project opened by a right click (V0.8.1), or null.</summary>
+    public Guid? Gui
+    {
+        get => _gui;
+        set => SetField(ref _gui, value == Guid.Empty ? null : value);
+    }
+
     /// <summary>Drop table of the project used when <see cref="DropKind"/> is Table (V0.7.10, block.md "bind to drop table").</summary>
     public Guid? DropTable
     {
@@ -284,6 +292,11 @@ public sealed class BlockAsset : InventoryAsset
         foreach ((BlockTextureSlot slot, Guid texture) in _extraTextures.OrderBy(t => t.Key))
         {
             yield return new AssetReference(texture, AssetReferenceKind.Texture, Tr.F("{0} texture", slot.ToString().ToLowerInvariant()));
+        }
+
+        if (Gui is { } boundGui)
+        {
+            yield return new AssetReference(boundGui, AssetReferenceKind.Gui, Tr.T("GUI opened by a right click"));
         }
 
         if (DropKind == BlockDropKind.Table && DropTable is { } table)

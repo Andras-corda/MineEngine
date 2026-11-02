@@ -512,6 +512,32 @@ public enum GraphNodeKind
     // Damage types and drop tables (V0.7.10).
     DamageOfType,
     DropLootTable,
+
+    // GUIs (V0.8.0).
+    OpenGui,
+    CloseGui,
+    GuiText,
+    GuiTicked,
+    GuiSlotItem,
+    IsGuiOpen,
+    SetGuiText,
+    SetGuiTicked,
+    SetGuiSlotItem,
+
+    // The graph of a GUI (V0.8.1): its events, its components as variables, their visibility.
+    OnGuiOpened,
+    OnGuiTick,
+    OnGuiClosed,
+    OnGuiPressed,
+    OnGuiReleased,
+    OnGuiHovered,
+    OnGuiUnhovered,
+    OnGuiImageClicked,
+    OnGuiTicked,
+    OnGuiTextChanged,
+    OnGuiSlotChanged,
+    GuiComponentRef,
+    SetGuiVisible,
 }
 
 /// <summary>Values offered by a text input of a node, taken from the project (V0.7.7).</summary>
@@ -536,6 +562,12 @@ public enum PinSuggestion
 
     /// <summary>Identifiers of the drop tables of the project (V0.7.10).</summary>
     LootTable,
+
+    /// <summary>Identifiers of the GUIs of the project (V0.8.0).</summary>
+    Gui,
+
+    /// <summary>Names of the components of the GUIs (of the GUI of the graph when it belongs to one).</summary>
+    GuiComponent,
 }
 
 /// <summary>Domain of a node, used to sort the Nodes window like MCreator's procedure blocks.</summary>
@@ -681,6 +713,12 @@ public sealed class NodeInfo
     /// rather than by the event bus; its first input names the command or the keybind.
     /// </summary>
     public DirectEventKind? DirectEvent { get; init; }
+
+    /// <summary>
+    /// An event of a GUI (V0.8.1): its menu calls it, on the server; "gui" names the GUI (the one of the graph when
+    /// it belongs to a GUI) and "component" its component, for the events of a component.
+    /// </summary>
+    public bool IsGuiEvent { get; init; }
 
     /// <summary>Vrai si la définition visée par le nœud n'existe plus (le nœud est alors en erreur).</summary>
     public bool IsMissing { get; init; }

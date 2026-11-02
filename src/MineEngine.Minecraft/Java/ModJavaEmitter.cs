@@ -123,6 +123,11 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             WriteSparkles(context, naming);
         }
 
+        if (UsesGuis(content))
+        {
+            WriteGuis(context, naming, api, names);
+        }
+
         if (content.Mobs.Count > 0)
         {
             Write(context, naming, naming.RegistryPackage, naming.EntitiesClass, WriteEntitiesClass(context, naming, api, names));
@@ -220,6 +225,12 @@ public abstract partial class ModJavaEmitter : IFileEmitter
             imports.AddRange(SparkleMainImports(naming));
         }
 
+        bool usesGuis = UsesGuis(content);
+        if (usesGuis)
+        {
+            imports.AddRange(GuiMainImports(naming, content));
+        }
+
         JavaSourceWriter w = WriteHeader(naming.RootPackage, imports, $"Classe principale du mod {mod.Name}.")
             .Line($"@Mod({naming.MainClass}.MOD_ID)")
             .OpenBlock($"public final class {naming.MainClass}")
@@ -284,6 +295,12 @@ public abstract partial class ModJavaEmitter : IFileEmitter
         if (usesSparkle)
         {
             WriteSparkleRegistrations(w);
+        }
+
+        // GUIs: their menus, and on the client their screens.
+        if (usesGuis)
+        {
+            WriteGuiRegistrations(w, content);
         }
 
         // Global variables: the events that load and save the data of the players.
@@ -425,6 +442,14 @@ public abstract partial class ModJavaEmitter : IFileEmitter
                 calls.TryAdd(kind, []);
                 calls[kind].Add($"{behaviorClass}.{method}");
             }
+        }
+
+        // A right click opens the GUI of the block (V0.8.1), on the items the block keeps.
+        if (GuiBindingCall(content, "block", block.Gui) is { } gui)
+        {
+            imports.Add(GuiBindingImport(naming));
+            calls.TryAdd(BlockEventKind.RightClicked, []);
+            calls[BlockEventKind.RightClicked].Add(gui);
         }
 
         return new BlockEventCalls(calls.ToDictionary(c => c.Key, c => (IReadOnlyList<string>)c.Value), [.. imports]);

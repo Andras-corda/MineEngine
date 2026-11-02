@@ -527,6 +527,12 @@ public sealed partial class MainViewModel
             return;
         }
 
+        if (asset is GuiAsset gui)
+        {
+            OpenGuiDocument(gui);
+            return;
+        }
+
         if (asset is BehaviorTreeAsset tree)
         {
             OpenBehaviorTreeDocument(tree);
@@ -654,6 +660,28 @@ public sealed partial class MainViewModel
                                          sparkle,
                                          _assetViewModels.CreateContext(_project.Model, assetId => _project.SelectAsset(assetId)),
                                          _project.Model.Layout.ToRelativePath(_project.Model.Layout.GetAssetFilePath(sparkle))));
+        Activate(document);
+    }
+
+    /// <summary>Opens (or activates) the editor tab of a GUI.</summary>
+    private void OpenGuiDocument(GuiAsset gui)
+    {
+        if (_project is null)
+        {
+            return;
+        }
+
+        DocumentViewModel document = Documents.FirstOrDefault(d => d.Id == ViewModels.Gui.GuiDocumentViewModel.IdFor(gui.Id))
+                                     ?? AddDocument(new ViewModels.Gui.GuiDocumentViewModel(
+                                         gui,
+                                         _assetViewModels.CreateContext(_project.Model, assetId => _project.SelectAsset(assetId)),
+                                         _project.Model.Layout.ToRelativePath(_project.Model.Layout.GetAssetFilePath(gui)),
+                                         graph => new GraphDocumentViewModel(
+                                             graph,
+                                             _assetViewModels.CreateContext(_project.Model, assetId => _project.SelectAsset(assetId)),
+                                             _project.Model.Layout.ToRelativePath(_project.Model.Layout.GetAssetFilePath(graph)),
+                                             (kind, owner) => AddGraph(kind, owner),
+                                             GraphOptions)));
         Activate(document);
     }
 
@@ -866,14 +894,20 @@ public sealed partial class MainViewModel
     /// <summary>Tab of the Java code of a method of an item (V0.7.13), reused when it is open.</summary>
     private void OpenMethodDocument(Asset asset, string slot)
     {
-        if (_project is null || asset is not ItemAsset item || ItemMethodSlots.Find(slot) is not { } methodSlot)
+        // The methods of an item are in its class; those of a GUI in the class of its menu (V0.8.0).
+        (MethodSlot? methodSlot, string className) = asset switch
+        {
+            ItemAsset => (ItemMethodSlots.Find(slot), JavaNames.ToTypeName(asset.ResourceId.Value, "Custom") + "Item"),
+            GuiAsset gui => (GuiMethodSlots.Find(gui, slot), JavaNames.ToTypeName(asset.ResourceId.Value, "Gui") + "Menu"),
+            _ => (null, string.Empty),
+        };
+        if (_project is null || methodSlot is null)
         {
             return;
         }
 
-        string className = JavaNames.ToTypeName(item.ResourceId.Value, "Custom") + "Item";
-        DocumentViewModel document = Documents.FirstOrDefault(d => d.Id == MethodDocumentViewModel.Key(item, slot))
-                                         ?? AddDocument(new MethodDocumentViewModel(item, methodSlot, className, _project.History));
+        DocumentViewModel document = Documents.FirstOrDefault(d => d.Id == MethodDocumentViewModel.Key(asset, slot))
+                                         ?? AddDocument(new MethodDocumentViewModel(asset, methodSlot, className, _project.History));
         Activate(document);
     }
 

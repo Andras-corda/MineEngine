@@ -267,7 +267,7 @@ public partial class DashboardPanel : UserControl
     }
 
     /// <summary>
-    /// "Methods and graphs" (V0.7.14): the methods of an item, opened or created in Java or as a graph (visual
+    /// "Methods and graphs" (V0.7.14): the methods of an item (and the events of a GUI, V0.8.0), opened or created in Java or as a graph (visual
     /// programming), then the graphs that use the element.
     /// </summary>
     private static void FillMethods(ContextMenu menu, AssetViewModel asset, ProjectViewModel project, MainViewModel main)
@@ -278,15 +278,21 @@ public partial class DashboardPanel : UserControl
         }
 
         methods.Items.Clear();
-        if (asset is ItemAssetViewModel item)
+        IReadOnlyList<ElementMethodViewModel>? all = asset switch
         {
-            foreach (ElementMethodViewModel method in item.MethodSlots.Values.Where(m => m.Exists))
+            ItemAssetViewModel item => [.. item.MethodSlots.Values],
+            GuiAssetViewModel gui => gui.Events,
+            _ => null,
+        };
+        if (all is not null)
+        {
+            foreach (ElementMethodViewModel method in all.Where(m => m.Exists))
             {
                 methods.Items.Add(new MenuItem { Header = $"{method.Slot.Title} ({method.State})", Command = method.OpenCommand });
             }
 
             var create = new MenuItem { Header = Tr.T("Create a method") };
-            foreach (ElementMethodViewModel method in item.MethodSlots.Values.Where(m => m.IsMissing))
+            foreach (ElementMethodViewModel method in all.Where(m => m.IsMissing))
             {
                 var slot = new MenuItem { Header = method.Slot.Title, ToolTip = method.Slot.JavaSignature };
                 slot.Items.Add(new MenuItem { Header = Tr.T("In Java"), Command = method.CreateJavaCommand, Icon = new IconView { Icon = "Glyph.Code", IconSize = 14 } });

@@ -92,7 +92,8 @@ public abstract partial class ModJavaEmitter
     private static string CallImport(string call, JavaModNaming naming)
     {
         string type = call[..call.IndexOf('.')];
-        return type.EndsWith("Behavior", StringComparison.Ordinal) ? $"{naming.BehaviorPackage}.{type}" : $"{ItemPackage(naming)}.{type}";
+        return type == GuiBindingsClass ? GuiBindingImport(naming)
+            : type.EndsWith("Behavior", StringComparison.Ordinal) ? $"{naming.BehaviorPackage}.{type}" : $"{ItemPackage(naming)}.{type}";
     }
 
     /// <summary>
@@ -442,6 +443,13 @@ public abstract partial class ModJavaEmitter
         calls.AddRange(Enum.GetValues<ItemEventKind>()
             .Where(k => item.Method(ItemMethodSlots.EventKey(k)) is not null)
             .Select(k => (k, $"{ItemClassName(item)}.{item.Method(ItemMethodSlots.EventKey(k))!.JavaName}")));
+
+        // A right click opens the GUI of the item (V0.8.1).
+        if (GuiBindingCall(context.Ir.Content, "item", item.Gui) is { } gui)
+        {
+            calls.Add((ItemEventKind.RightClick, gui));
+        }
+
         return calls;
     }
 

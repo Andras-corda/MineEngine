@@ -46,6 +46,15 @@ public sealed class GameplayResourcesEmitter : ResourceEmitter
         {
             EmitDamageTypes(context, paths, content.DamageTypes);
         }
+
+        // The images of the GUIs (V0.8.0).
+        foreach (IRGui gui in content.Guis)
+        {
+            foreach (IRGuiComponent image in gui.Images)
+            {
+                WriteTexture(context, image.Texture!, paths.GuiTexture(gui.Id, image.Name));
+            }
+        }
     }
 
     /// <summary>

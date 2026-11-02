@@ -32,6 +32,18 @@ public sealed record ElementMethod(string Slot, MethodLanguage Language, Guid? G
     public static ElementMethod Nodal(string slot, Guid graphId) => new(slot, MethodLanguage.Nodal, graphId, string.Empty);
 }
 
+/// <summary>An element whose class has methods in Java or as graphs (an item V0.7.13, a GUI V0.8.0).</summary>
+public interface IHasMethods
+{
+    Guid Id { get; }
+
+    string DisplayName { get; }
+
+    IReadOnlyList<ElementMethod> Methods { get; set; }
+
+    ElementMethod? FindMethod(string slot);
+}
+
 /// <summary>
 /// A place of the class where a method can be created: its Java name, what it gives back, and the
 /// parameters of its graph (the world is always given first, like the functions of the project).
@@ -43,8 +55,11 @@ public sealed record MethodSlot(string Key, string JavaName, MethodReturn Return
     /// <summary>Kind of the node graph of the method: a procedure for an event, a function otherwise.</summary>
     public GraphKind GraphKind => IsEvent ? GraphKind.Procedure : GraphKind.Function;
 
+    /// <summary>Signature of a method that does not follow the ones of the items (the events of a GUI, V0.8.0).</summary>
+    public string? CustomSignature { get; init; }
+
     /// <summary>Java signature of the method, as the generator writes it in the class of the element.</summary>
-    public string JavaSignature => Return switch
+    public string JavaSignature => CustomSignature ?? Return switch
     {
         MethodReturn.Boolean => $"public static boolean {JavaName}(Level level, Entity entity)",
         MethodReturn.Decimal => $"public static double {JavaName}(Level level, Entity entity)",
@@ -117,4 +132,75 @@ public static class ItemMethodSlots
     public static string EventKey(ItemEventKind kind) => "event." + kind;
 
     public static MethodSlot? Find(string key) => All.FirstOrDefault(s => s.Key == key);
+}
+
+/// <summary>
+/// The places of methods of a GUI (V0.8.0): opened, every tick, closed, then one per button (clicked), per
+/// checkbox (ticked or not), per text input (text changed) and per slot (item changed). The world is
+/// given first, then the player, then the value of the component.
+/// </summary>
+public static class GuiMethodSlots
+{
+    public const string Opened = "opened";
+    public const string Tick = "tick";
+    public const string Closed = "closed";
+
+    private static readonly (string, DataType)[] PlayerOnly = [("player", DataType.Player)];
+
+    /// <summary>Key of the method of a component ("click.0f8f...").</summary>
+    public static string ComponentKey(GuiComponent component) => component.Kind switch
+    {
+        GuiComponentKind.Button => "click.",
+        GuiComponentKind.Checkbox => "check.",
+        GuiComponentKind.TextInput => "text.",
+        GuiComponentKind.Slot => "slot.",
+        _ => "none.",
+    } + component.Id.ToString("N");
+
+    /// <summary>The value given with the event of a component: its Java type, its name and its type in a graph.</summary>
+    public static (string JavaType, string Name, DataType Type)? ValueOf(GuiComponentKind kind) => kind switch
+    {
+        GuiComponentKind.Checkbox => ("boolean", "ticked", DataType.Boolean),
+        GuiComponentKind.TextInput => ("String", "text", DataType.Text),
+        GuiComponentKind.Slot => ("ItemStack", "stack", DataType.ItemStack),
+        _ => null,
+    };
+
+    /// <summary>The places of the GUI: its 3 events, then the ones of its components that have one.</summary>
+    public static IReadOnlyList<MethodSlot> For(GuiAsset gui)
+    {
+        ArgumentNullException.ThrowIfNull(gui);
+        List<MethodSlot> slots =
+        [
+            Event(Opened, "onOpened", Tr.T("When the GUI opens"), null),
+            Event(Tick, "onTick", Tr.T("Every tick while it is open"), null),
+            Event(Closed, "onClosed", Tr.T("When the GUI closes"), null),
+        ];
+        foreach (GuiComponent component in gui.Components)
+        {
+            string name = char.ToUpperInvariant(component.Name.FirstOrDefault('x')) + component.Name[Math.Min(1, component.Name.Length)..];
+            (string java, string title) = component.Kind switch
+            {
+                GuiComponentKind.Button => ($"on{name}Clicked", Tr.F("Button \"{0}\" clicked", component.Name)),
+                GuiComponentKind.Checkbox => ($"on{name}Ticked", Tr.F("Checkbox \"{0}\" ticked or unticked", component.Name)),
+                GuiComponentKind.TextInput => ($"on{name}Changed", Tr.F("Text of \"{0}\" changed", component.Name)),
+                GuiComponentKind.Slot => ($"on{name}Changed", Tr.F("Item of the slot \"{0}\" changed", component.Name)),
+                _ => (string.Empty, string.Empty),
+            };
+            if (java.Length > 0)
+            {
+                slots.Add(Event(ComponentKey(component), java, title, ValueOf(component.Kind)));
+            }
+        }
+
+        return slots;
+    }
+
+    public static MethodSlot? Find(GuiAsset gui, string key) => For(gui).FirstOrDefault(s => s.Key == key);
+
+    private static MethodSlot Event(string key, string java, string title, (string JavaType, string Name, DataType Type)? value) =>
+        new(key, java, MethodReturn.Void, value is { } v ? [.. PlayerOnly, (v.Name, v.Type)] : PlayerOnly, title)
+        {
+            CustomSignature = $"public static void {java}(Player player, Level level{(value is { } w ? $", {w.JavaType} {w.Name}" : string.Empty)})",
+        };
 }

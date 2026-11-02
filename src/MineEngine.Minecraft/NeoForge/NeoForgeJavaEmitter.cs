@@ -154,6 +154,8 @@ public sealed class NeoForgeJavaEmitter : ModJavaEmitter
 
     protected override string ClientEventPackage => "net.neoforged.neoforge.client.event";
 
+    protected override string? MenuScreensEventType => "net.neoforged.neoforge.client.event.RegisterMenuScreensEvent";
+
     /// <summary>A payload registered on the mod bus and sent with PacketDistributor; its handler runs on the main thread.</summary>
     protected override (IReadOnlyList<string> Imports, IReadOnlyList<string> Members) CameraNetwork(JavaModNaming naming, JavaGameApi api)
     {
@@ -191,6 +193,67 @@ public sealed class NeoForgeJavaEmitter : ModJavaEmitter
             "",
             "private static void sendTo(ServerPlayer player, int action, float a, float b) {",
             "    PacketDistributor.sendToPlayer(player, new Message(action, a, b));",
+            "}",
+        ];
+        return (imports, members);
+    }
+
+    /// <summary>The network of the GUIs (V0.8.0): a payload to the server and one to the client.</summary>
+    protected override (IReadOnlyList<string> Imports, IReadOnlyList<string> Members) GuiNetwork(JavaModNaming naming, JavaGameApi api)
+    {
+        string Location(string name) => api.ParseResourceLocation($"{naming.MainClass}.MOD_ID + \":{name}\"");
+        IReadOnlyList<string> imports =
+        [
+            $"{naming.RootPackage}.{naming.MainClass}",
+            "io.netty.buffer.ByteBuf",
+            "net.minecraft.network.codec.ByteBufCodecs",
+            "net.minecraft.network.codec.StreamCodec",
+            "net.minecraft.network.protocol.common.custom.CustomPacketPayload",
+            "net.minecraft.resources.ResourceLocation",
+            "net.neoforged.bus.api.IEventBus",
+            "net.neoforged.neoforge.network.PacketDistributor",
+            "net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent",
+            "net.neoforged.neoforge.network.registration.PayloadRegistrar",
+        ];
+        string[] Payload(string name, string location, string comment) =>
+        [
+            $"/** {comment} */",
+            $"public record {name}(int container, int action, int component, String value) implements CustomPacketPayload {{",
+            $"    public static final CustomPacketPayload.Type<{name}> TYPE = new CustomPacketPayload.Type<>({location});",
+            $"    public static final StreamCodec<ByteBuf, {name}> STREAM_CODEC = StreamCodec.composite(",
+            $"            ByteBufCodecs.VAR_INT, {name}::container, ByteBufCodecs.VAR_INT, {name}::action,",
+            $"            ByteBufCodecs.VAR_INT, {name}::component, ByteBufCodecs.STRING_UTF8, {name}::value, {name}::new);",
+            "",
+            "    @Override",
+            $"    public CustomPacketPayload.Type<{name}> type() {{",
+            "        return TYPE;",
+            "    }",
+            "}",
+            "",
+        ];
+        IReadOnlyList<string> members =
+        [
+            .. Payload("ToServer", Location("gui_to_server"), "A click, a tick or a text of a screen."),
+            .. Payload("ToClient", Location("gui_to_client"), "A text or a checkbox changed by the graphs."),
+            "public static void register(IEventBus modEventBus) {",
+            "    modEventBus.addListener(RegisterPayloadHandlersEvent.class, event -> {",
+            "        PayloadRegistrar registrar = event.registrar(\"1\");",
+            "        registrar.playToServer(ToServer.TYPE, ToServer.STREAM_CODEC, (message, context) -> {",
+            "            if (context.player() instanceof ServerPlayer player) {",
+            $"                {GuisClass}.receive(player, message.container(), message.action(), message.component(), message.value());",
+            "            }",
+            "        });",
+            "        registrar.playToClient(ToClient.TYPE, ToClient.STREAM_CODEC,",
+            "                (message, context) -> ModGuisClient.apply(message.container(), message.action(), message.component(), message.value()));",
+            "    });",
+            "}",
+            "",
+            "public static void toServer(int container, int action, int component, String value) {",
+            "    PacketDistributor.sendToServer(new ToServer(container, action, component, value));",
+            "}",
+            "",
+            "public static void toClient(ServerPlayer player, int container, int action, int component, String value) {",
+            "    PacketDistributor.sendToPlayer(player, new ToClient(container, action, component, value));",
             "}",
         ];
         return (imports, members);

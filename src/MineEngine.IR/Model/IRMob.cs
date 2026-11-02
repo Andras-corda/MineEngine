@@ -76,6 +76,9 @@ public sealed class IRMob
     /// <summary>Drop table of the project used instead of <see cref="Drops"/> (V0.7.10), or null.</summary>
     public ResourceId? DropTable { get; init; }
 
+    /// <summary>The GUI opened by a right click (V0.8.1), or null.</summary>
+    public ResourceId? Gui { get; init; }
+
     public IRSpawnEgg? SpawnEgg { get; init; }
 
     /// <summary>Apparition naturelle, ou null si le mob n'apparaît que par œuf ou commande.</summary>

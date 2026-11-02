@@ -47,8 +47,14 @@ public sealed record IREventHandler(GraphNodeKind Event, Guid NodeId, IReadOnlyL
     /// <summary>Block of the mod ("rune_door") whose class calls a block event (V0.7.11), or null.</summary>
     public string? Block { get; init; }
 
-    /// <summary>Called directly by the generated code (item, mob, block, command, keybind) instead of the event bus.</summary>
-    public bool IsDirectCall => Item is not null || Trigger is not null || Mob is not null || Block is not null;
+    /// <summary>GUI of the mod ("rune_table") whose menu calls a GUI event (V0.8.1), or null.</summary>
+    public string? Gui { get; init; }
+
+    /// <summary>Component of the GUI ("engrave") of a GUI event of a component, or null.</summary>
+    public string? Component { get; init; }
+
+    /// <summary>Called directly by the generated code (item, mob, block, GUI, command, keybind) instead of the event bus.</summary>
+    public bool IsDirectCall => Item is not null || Trigger is not null || Mob is not null || Block is not null || Gui is not null;
 
     /// <summary>Valeurs produites par les nœuds exécutés (appel, création d'objet), déclarées en tête de méthode.</summary>
     public IReadOnlyList<IRLocal> Locals { get; init; } = [];

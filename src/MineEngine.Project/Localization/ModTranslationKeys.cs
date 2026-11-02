@@ -28,6 +28,8 @@ public enum TranslationSource
     Plant,
     Biome,
     DeathMessage,
+    Gui,
+    GuiText,
 }
 
 /// <summary>Un texte du mod écrit dans les fichiers de langue : sa clé, le texte saisi et l'élément qui le porte.</summary>
@@ -161,6 +163,29 @@ public static class ModTranslationKeys
             if (rule.Description.Length > 0)
             {
                 entries.Add(new TranslationEntry($"gamerule.{rule.ResourceId}.description", rule.Description, TranslationSource.GameRuleDescription, rule.Id));
+            }
+        }
+
+        foreach (GuiAsset gui in Sorted<GuiAsset>(project))
+        {
+            entries.Add(new TranslationEntry($"gui.{ns}.{gui.ResourceId}", gui.DisplayName, TranslationSource.Gui, gui.Id));
+            foreach (GuiComponent component in gui.Components)
+            {
+                string key = $"gui.{ns}.{gui.ResourceId}.{component.Name.ToLowerInvariant()}";
+                if (component.Text.Length > 0 && component.Kind is not (GuiComponentKind.Image or GuiComponentKind.Slot))
+                {
+                    entries.Add(new TranslationEntry(key, component.Text, TranslationSource.GuiText, gui.Id));
+                }
+
+                if (component.Tooltip.Length > 0)
+                {
+                    entries.Add(new TranslationEntry(key + ".tooltip", component.Tooltip, TranslationSource.GuiText, gui.Id));
+                }
+
+                if (component.Style.HoverText.Length > 0)
+                {
+                    entries.Add(new TranslationEntry(key + ".hover", component.Style.HoverText, TranslationSource.GuiText, gui.Id));
+                }
             }
         }
 

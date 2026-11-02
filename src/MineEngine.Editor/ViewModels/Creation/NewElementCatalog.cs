@@ -107,6 +107,7 @@ public static class NewElementCatalog
                 Prepare = asset => ((ItemAsset)asset).Kind = ItemKind.Chestplate,
             },
             Coming(Tr.T("Painting"), Tr.T("Painting that players can hang on walls"), "Glyph.Texture"),
+            Asset(AssetType.Gui, Tr.T("GUI"), Tr.T("Window with texts, images, buttons, slots, checkboxes and text inputs, placed with the mouse"), "Glyph.Layout", Tr.T("New GUI")),
         ]),
         new(Tr.T("World"), "Glyph.Explorer",
         [

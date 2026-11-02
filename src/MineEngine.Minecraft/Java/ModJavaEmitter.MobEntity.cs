@@ -577,6 +577,14 @@ public abstract partial class ModJavaEmitter
             }
         }
 
+        // A right click opens the GUI of the mob (V0.8.1).
+        if (GuiBindingCall(context.Ir.Content, "mob", mob.Gui) is { } gui)
+        {
+            imports.Add(GuiBindingImport(naming));
+            calls.TryAdd(MobEventKind.RightClicked, []);
+            calls[MobEventKind.RightClicked].Add(gui);
+        }
+
         if (calls.Count > 0)
         {
             imports.UnionWith(["net.minecraft.world.entity.Entity", "net.minecraft.world.entity.player.Player"]);

@@ -53,6 +53,7 @@ public sealed class BlockAssetDefinition : InventoryAssetDefinition<BlockAsset>
         asset.HarvestTool = reader.GetEnum("harvestTool", HarvestTool.None);
         asset.ToolTier = reader.GetEnum("toolTier", ToolTier.Any);
         asset.RequiresCorrectTool = reader.GetBoolean("requiresCorrectTool", false);
+        asset.Gui = reader.GetGuid("gui");
 
         if (reader.GetObject("drop") is { } drop)
         {
@@ -106,6 +107,7 @@ public sealed class BlockAssetDefinition : InventoryAssetDefinition<BlockAsset>
         properties["harvestTool"] = asset.HarvestTool.ToString();
         properties["toolTier"] = asset.ToolTier.ToString();
         properties["requiresCorrectTool"] = asset.RequiresCorrectTool;
+        properties["gui"] = asset.Gui?.ToString("D");
         properties["drop"] = new JsonObject
         {
             ["kind"] = asset.DropKind.ToString(),

@@ -122,3 +122,52 @@ public sealed record IREffect(Guid SourceAssetId, ResourceId Id, string Name, Ef
     /// <summary>Duration of the potion in ticks, or 0 when the effect has no potion.</summary>
     public int PotionTicks { get; init; }
 }
+
+/// <summary>
+/// A component of a GUI (V0.8.0), in pixels of the GUI. <see cref="Color"/> is 0xRRGGBB; an image has
+/// its texture and the size of its file (the game stretches it to the size of the component).
+/// </summary>
+public sealed record IRGuiComponent(GuiComponentKind Kind, string Name, int X, int Y, int Width, int Height)
+{
+    public Guid Id { get; init; }
+
+    public string Text { get; init; } = string.Empty;
+
+    public int Color { get; init; } = 0x404040;
+
+    public string Tooltip { get; init; } = string.Empty;
+
+    public GuiSlotMode SlotMode { get; init; }
+
+    public bool Checked { get; init; }
+
+    public int MaxLength { get; init; } = 32;
+
+    public IRTexture? Texture { get; init; }
+
+    /// <summary>How it looks (V0.8.1).</summary>
+    public GuiStyle Style { get; init; } = GuiStyle.Default;
+
+    public int TextureWidth { get; init; } = 16;
+
+    public int TextureHeight { get; init; } = 16;
+}
+
+/// <summary>
+/// GUI of the mod (V0.8.0): its title (the name of the element), its size, the place of the player's
+/// inventory (top left corner of its first slot frame) when it has one, and its components.
+/// </summary>
+public sealed record IRGui(
+    Guid SourceAssetId, ResourceId Id, string Title, int Width, int Height, bool HasInventory, int InventoryX, int InventoryY,
+    bool PauseGame, bool RenderBackground, IReadOnlyList<IRGuiComponent> Components)
+{
+    public IEnumerable<IRGuiComponent> Slots => Components.Where(c => c.Kind == GuiComponentKind.Slot);
+
+    /// <summary>The components drawn with a texture: the images, and the buttons that are images (V0.8.1).</summary>
+    public IEnumerable<IRGuiComponent> Images => Components.Where(c => c.Texture is not null);
+
+    /// <summary>Events of the GUI and of its components (V0.8.0), in Java or as graphs.</summary>
+    public IReadOnlyList<IRElementMethod> Methods { get; init; } = [];
+
+    public IRElementMethod? Method(string slot) => Methods.FirstOrDefault(m => m.Slot == slot);
+}

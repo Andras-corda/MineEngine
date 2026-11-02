@@ -104,6 +104,7 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
         AssetType.Fluid => "FluidGeometry",
         AssetType.GameRule => "Glyph.Settings",
         AssetType.DamageType => "Glyph.Warning",
+        AssetType.Gui => "Glyph.Layout",
         AssetType.LootTable => "Glyph.Package",
         AssetType.Effect => "PotionGeometry",
         AssetType.GlobalVariable => "Glyph.Field",
@@ -195,6 +196,7 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
     /// </summary>
     public virtual void OnProjectContentChanged()
     {
+        OnPropertyChanged(nameof(GuiChoices));
         OnPropertyChanged(nameof(UsedBy));
         OnPropertyChanged(nameof(IsUsed));
         OnPropertyChanged(nameof(UsageCount));
@@ -210,6 +212,35 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
         .. Context.Project.Assets.OfType<LootTableAsset>().OrderBy(t => t.DisplayName, StringComparer.CurrentCultureIgnoreCase)
             .Select(t => new Choice<Guid?>(t.Id, DisplayLabel(t))),
     ];
+
+    /// <summary>The GUIs of the project, after "None" (V0.8.1).</summary>
+    public IReadOnlyList<Choice<Guid?>> GuiChoices =>
+    [
+        new(null, Tr.T("None")),
+        .. Context.Project.Assets.OfType<GuiAsset>().OrderBy(g => g.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+            .Select(g => new Choice<Guid?>(g.Id, DisplayLabel(g))),
+    ];
+
+    /// <summary>The GUI a right click on the block, the item or the mob opens (V0.8.1), or null.</summary>
+    public Guid? BoundGui
+    {
+        get => (Model as IHasGui)?.Gui;
+        set
+        {
+            if (Model is IHasGui bound)
+            {
+                ChangeIfDifferent(Tr.T("Change the GUI opened by a right click"), nameof(IHasGui.Gui), () => bound.Gui, v => bound.Gui = v, value);
+            }
+        }
+    }
+
+    /// <summary>What the right click does with the GUI, for this kind of element.</summary>
+    public string GuiBindingHint => Model switch
+    {
+        BlockAsset => Tr.T("A right click on the block opens this GUI. The items of its slots stay in the block (saved with the world) and fall when it is broken."),
+        ItemAsset => Tr.T("A right click with the item in the hand opens this GUI. The items left in its slots go back to the player when it closes."),
+        _ => Tr.T("A right click on the mob opens this GUI. The items left in its slots go back to the player when it closes."),
+    };
 
     protected static string DisplayLabel(Asset asset) =>
         string.IsNullOrWhiteSpace(asset.DisplayName) ? asset.ResourceId.Value : $"{asset.DisplayName} ({asset.ResourceId})";
@@ -249,6 +280,10 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
     {
         switch (propertyName)
         {
+            case nameof(IHasGui.Gui) when Model is IHasGui:
+                OnPropertyChanged(nameof(BoundGui));
+                break;
+
             case nameof(Asset.Folder):
                 OnPropertyChanged(nameof(FolderLabel));
                 break;

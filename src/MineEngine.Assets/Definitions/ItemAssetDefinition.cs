@@ -66,6 +66,7 @@ public sealed class ItemAssetDefinition : InventoryAssetDefinition<ItemAsset>
         asset.CraftRemainder = reader.GetReference("craftRemainder");
         asset.Remainder = reader.GetEnum("remainder", asset.CraftRemainder is null ? ItemRemainderKind.Consumed : ItemRemainderKind.OtherItem);
         asset.GuiTextureId = reader.GetGuid("guiTexture");
+        asset.Gui = reader.GetGuid("gui");
         asset.GlintCondition = reader.GetGuid("glintCondition");
         asset.RepairItem = reader.GetReference("repairItem");
         asset.HarvestsAnyBlock = reader.GetBoolean("harvestsAnyBlock", false);
@@ -133,6 +134,7 @@ public sealed class ItemAssetDefinition : InventoryAssetDefinition<ItemAsset>
         properties["craftRemainder"] = asset.CraftRemainder?.ToStorageText();
         properties["remainder"] = asset.Remainder.ToString();
         properties["guiTexture"] = asset.GuiTextureId?.ToString("D");
+        properties["gui"] = asset.Gui?.ToString("D");
         properties["glintCondition"] = asset.GlintCondition?.ToString("D");
         properties["repairItem"] = asset.RepairItem?.ToStorageText();
         properties["harvestsAnyBlock"] = asset.HarvestsAnyBlock;
@@ -159,12 +161,12 @@ public sealed class ItemAssetDefinition : InventoryAssetDefinition<ItemAsset>
     }
 
     /// <summary>A method without a place is ignored.</summary>
-    private static ElementMethod? ReadMethod(JsonPropertyReader reader) =>
+    internal static ElementMethod? ReadMethod(JsonPropertyReader reader) =>
         reader.GetString("slot") is { Length: > 0 } slot
             ? new ElementMethod(slot, reader.GetEnum("language", MethodLanguage.Java), reader.GetGuid("graph"), reader.GetString("java") ?? string.Empty)
             : null;
 
-    private static JsonNode WriteMethod(ElementMethod method) => new JsonObject
+    internal static JsonNode WriteMethod(ElementMethod method) => new JsonObject
     {
         ["slot"] = method.Slot,
         ["language"] = method.Language.ToString(),

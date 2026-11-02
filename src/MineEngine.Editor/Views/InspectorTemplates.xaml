@@ -473,6 +473,20 @@
         </StackPanel>
     </DataTemplate>
 
+    <!-- The GUI opened by a right click on a block, an item or a mob (V0.8.1). -->
+    <DataTemplate x:Key="GuiBindingSection" DataType="{x:Type assets:AssetViewModel}">
+        <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'GUI'}">
+            <StackPanel>
+                <WrapPanel Style="{StaticResource Row}">
+                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Opens the GUI'}" />
+                    <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding GuiChoices}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                              SelectedValue="{Binding BoundGui}" AutomationProperties.Name="{l:Tr 'Opens the GUI'}" />
+                </WrapPanel>
+                <TextBlock Style="{StaticResource RowHint}" Text="{Binding GuiBindingHint}" />
+            </StackPanel>
+        </GroupBox>
+    </DataTemplate>
+
     <!-- ===================== Item ===================== -->
     <DataTemplate DataType="{x:Type assets:ItemAssetViewModel}">
         <StackPanel MaxWidth="900" HorizontalAlignment="Left">
@@ -844,6 +858,7 @@
                     <StackPanel Style="{StaticResource TabContent}">
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,8" TextWrapping="Wrap"
                                    Text="{l:Tr 'Each event can run a method of the class of the item (+), in Java or as a graph of the item, and the event graphs connected to it. No event is used by default.'}" />
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource GuiBindingSection}" Focusable="False" />
                         <GroupBox Style="{StaticResource Section}" Header="{l:Tr 'Item'}">
                             <ItemsControl ItemsSource="{Binding BasicEvents}" Focusable="False" ItemTemplate="{StaticResource ItemEventCard}" ItemsPanel="{StaticResource CardGrid}" />
                         </GroupBox>
@@ -1233,6 +1248,7 @@
                     <StackPanel Style="{StaticResource TabContent}">
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,8" TextWrapping="Wrap"
                                    Text="{l:Tr 'Connect an event of the block to a node graph: what happens there runs on the server when the event occurs. No event is used by default.'}" />
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource GuiBindingSection}" Focusable="False" />
                         <ItemsControl ItemsSource="{Binding Events}" Focusable="False" ItemTemplate="{StaticResource EventLinkCard}" />
                     </StackPanel>
                 </TabItem>
@@ -2264,6 +2280,22 @@
         </StackPanel>
     </DataTemplate>
 
+    <!-- ===================== GUI (V0.8.0) ===================== -->
+    <DataTemplate DataType="{x:Type assets:GuiAssetViewModel}">
+        <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+            <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
+            <Button Style="{DynamicResource AccentButtonStyle}" HorizontalAlignment="Left" Padding="14,6" Margin="0,8,0,4"
+                    Command="{Binding DataContext.OpenAssetEditorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    CommandParameter="{Binding}">
+                <StackPanel Orientation="Horizontal">
+                    <views:IconView Icon="Glyph.Layout" IconSize="14" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{l:Tr 'Open the GUI editor'}" />
+                </StackPanel>
+            </Button>
+            <TextBlock Style="{StaticResource RowHint}" Text="{Binding Summary}" TextWrapping="Wrap" />
+        </StackPanel>
+    </DataTemplate>
+
     <!-- ===================== Recette ===================== -->
     <DataTemplate DataType="{x:Type assets:RecipeAssetViewModel}">
         <StackPanel MaxWidth="680" HorizontalAlignment="Left">
@@ -2794,6 +2826,7 @@
                     <StackPanel Style="{StaticResource TabContent}">
                         <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,8" TextWrapping="Wrap"
                                    Text="{l:Tr 'Connect an event of the mob to a node graph: what happens there runs on the server when the event occurs. No event is used by default.'}" />
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource GuiBindingSection}" Focusable="False" />
                         <ItemsControl ItemsSource="{Binding Events}" Focusable="False" ItemTemplate="{StaticResource EventLinkCard}" />
                     </StackPanel>
                 </TabItem>

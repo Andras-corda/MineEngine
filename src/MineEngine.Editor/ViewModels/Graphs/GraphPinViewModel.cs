@@ -159,6 +159,22 @@ public sealed class GraphPinViewModel : ObservableObject
                 return [.. Node.Document.Assets.OfType<BlockAsset>().Select(b => b.ResourceId.Value).Order(StringComparer.Ordinal)];
             }
 
+            if (Info.Suggest == PinSuggestion.GuiComponent)
+            {
+                // The components of the GUI of the graph (one of its events); of every GUI otherwise.
+                IEnumerable<GuiAsset> guis = Node.Document.Assets.OfType<GuiAsset>();
+                Guid? owner = Node.Document.Asset.ElementId;
+                IEnumerable<GuiAsset> own = guis.Where(g => g.Id == owner);
+                return [.. (own.Any() ? own : guis).SelectMany(g => g.Components)
+                    .Where(c => c.Kind is not (GuiComponentKind.Image))
+                    .Select(c => c.Name).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
+            }
+
+            if (Info.Suggest == PinSuggestion.Gui)
+            {
+                return [.. Node.Document.Assets.OfType<GuiAsset>().Select(g => g.ResourceId.Value).Order(StringComparer.Ordinal)];
+            }
+
             if (Info.Suggest == PinSuggestion.LootTable)
             {
                 return [.. Node.Document.Assets.OfType<LootTableAsset>().Select(t => t.ResourceId.Value).Order(StringComparer.Ordinal)];

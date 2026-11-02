@@ -117,6 +117,7 @@ public sealed class ItemLowering : AssetLowering<ItemAsset>
                 ? context.ResolveItem(asset, asset.CraftRemainder, Tr.T("Item returned after crafting"))
                 : null,
             Remainder = remainder,
+            Gui = context.ResolveGui(asset, asset.Gui),
             GuiTexture = asset.UsesCustomModel && asset.GuiTextureId is { } gui ? context.ResolveTexture(asset, gui) : null,
             GlintCondition = asset.HasGlint
                 ? context.ResolveFunction(asset, asset.GlintCondition, Tr.T("glint condition"), returnsBoolean: true, PinType.Entity)

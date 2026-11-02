@@ -13,7 +13,7 @@ namespace MineEngine.Assets;
 /// apparition (dimensions, biomes, structures, groupes, œuf), propriétés spéciales (boss,
 /// golem), sons et butin.
 /// </summary>
-public sealed class MobAsset : TexturedAsset
+public sealed class MobAsset : TexturedAsset, IHasGui
 {
     /// <summary>The geometry of a mob stays: its appearances are textures.</summary>
     public override bool AppearancesCanUseModels => false;
@@ -92,6 +92,7 @@ public sealed class MobAsset : TexturedAsset
     private ContentReference? _deathSound;
     private IReadOnlyList<MobDrop> _drops = [];
     private Guid? _dropTable;
+    private Guid? _gui;
 
     private bool _hasSpawnEgg = true;
     private int _eggPrimaryColor = 0x4C7A2A;
@@ -414,6 +415,13 @@ public sealed class MobAsset : TexturedAsset
     }
 
     /// <summary>Drop table of the project the mob drops instead of <see cref="Drops"/> (V0.7.10), or null.</summary>
+    /// <summary>The GUI of the project opened by a right click (V0.8.1), or null.</summary>
+    public Guid? Gui
+    {
+        get => _gui;
+        set => SetField(ref _gui, value == Guid.Empty ? null : value);
+    }
+
     public Guid? DropTable
     {
         get => _dropTable;
@@ -577,6 +585,11 @@ public sealed class MobAsset : TexturedAsset
 
     public override IEnumerable<AssetReference> GetReferences()
     {
+        if (Gui is { } boundGui)
+        {
+            yield return new AssetReference(boundGui, AssetReferenceKind.Gui, Tr.T("GUI opened by a right click"));
+        }
+
         if (DropTable is { } table)
         {
             yield return new AssetReference(table, AssetReferenceKind.LootTable, Tr.T("drop table"));

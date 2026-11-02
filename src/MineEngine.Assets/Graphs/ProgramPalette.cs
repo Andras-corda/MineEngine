@@ -86,6 +86,15 @@ public static class ProgramPalette
             yield return Make(GraphNodeKind.Self);
         }
 
+        // The graph of a GUI (V0.8.1): its components marked "variable".
+        if (program.GuiOf(graph) is { } gui)
+        {
+            foreach (GuiComponent component in gui.Components.Where(c => c.IsVariable))
+            {
+                yield return Make(GraphNodeKind.GuiComponentRef, gui.Id, component.Id);
+            }
+        }
+
         foreach (GlobalVariableAsset global in program.Globals.OrderBy(g => g.VariableName, StringComparer.CurrentCultureIgnoreCase))
         {
             yield return Make(GraphNodeKind.GetGlobal, global.Id);

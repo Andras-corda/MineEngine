@@ -28,6 +28,7 @@ public sealed class LoweringContext
     private readonly List<IRFluid> _fluids = [];
     private readonly List<IRGameRule> _gameRules = [];
     private readonly List<IRDamageType> _damageTypes = [];
+    private readonly List<IRGui> _guis = [];
     private readonly List<IRLootTable> _lootTables = [];
     private readonly List<IREffect> _effects = [];
     private readonly List<IRGlobalVariable> _globals = [];
@@ -75,6 +76,8 @@ public sealed class LoweringContext
     public void AddGameRule(IRGameRule rule) => _gameRules.Add(rule);
 
     public void AddDamageType(IRDamageType damageType) => _damageTypes.Add(damageType);
+
+    public void AddGui(IRGui gui) => _guis.Add(gui);
 
     public void AddLootTable(IRLootTable table) => _lootTables.Add(table);
 
@@ -189,6 +192,23 @@ public sealed class LoweringContext
     public ResourceId? ResolveLootTable(Asset owner, Guid? id) =>
         id is { } tableId && Project.Assets.Find(tableId) is LootTableAsset table ? table.ResourceId : null;
 
+    /// <summary>Identifier of the GUI an element opens by a right click (V0.8.1); null (and an error) when it no longer exists.</summary>
+    public ResourceId? ResolveGui(Asset owner, Guid? id)
+    {
+        if (id is not { } guiId)
+        {
+            return null;
+        }
+
+        if (Project.Assets.Find(guiId) is not GuiAsset gui)
+        {
+            Diagnostics.Error(Tr.T("The GUI opened by a right click no longer exists."), owner.ToString(), owner.Id);
+            return null;
+        }
+
+        return gui.ResourceId;
+    }
+
     /// <summary>In-game identifier of a damage type of the project; null (and an error) when it no longer exists.</summary>
     public NamespacedId? ResolveDamageType(Asset owner, Guid id)
     {
@@ -237,6 +257,7 @@ public sealed class LoweringContext
         GameRules = [.. _gameRules.OrderBy(r => r.Id)],
         DamageTypes = [.. _damageTypes.OrderBy(d => d.Id)],
         LootTables = [.. _lootTables.OrderBy(t => t.Id)],
+        Guis = [.. _guis.OrderBy(g => g.Id)],
         Effects = [.. _effects.OrderBy(e => e.Id)],
         Globals = [.. _globals.OrderBy(g => g.Name, StringComparer.Ordinal)],
         Tags = [.. _tags.OrderBy(t => t.Namespace, StringComparer.Ordinal).ThenBy(t => t.Path, StringComparer.Ordinal)],

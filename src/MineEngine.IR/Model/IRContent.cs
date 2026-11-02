@@ -63,6 +63,9 @@ public sealed class IRContent
     /// <summary>Drop tables of the mod (V0.7.10).</summary>
     public IReadOnlyList<IRLootTable> LootTables { get; init; } = [];
 
+    /// <summary>GUIs of the mod (V0.8.0).</summary>
+    public IReadOnlyList<IRGui> Guis { get; init; } = [];
+
     public IReadOnlyList<IREffect> Effects { get; init; } = [];
 
     /// <summary>Global variables (Global tab).</summary>
@@ -87,7 +90,7 @@ public sealed class IRContent
         Items.Count == 0 && Blocks.Count == 0 && Mobs.Count == 0 && Recipes.Count == 0 && Sounds.Count == 0 && Behaviors.Count == 0
         && Definitions.Count == 0 && Commands.Count == 0 && CreativeTabs.Count == 0 && Keybinds.Count == 0 && Enchantments.Count == 0
         && Fluids.Count == 0 && GameRules.Count == 0 && Effects.Count == 0 && Globals.Count == 0 && Tags.Count == 0 && Biomes.Count == 0
-        && Sparkles.Count == 0 && DamageTypes.Count == 0 && LootTables.Count == 0;
+        && Sparkles.Count == 0 && DamageTypes.Count == 0 && LootTables.Count == 0 && Guis.Count == 0;
 
     /// <summary>Tous les éléments qui ont une forme item (items, puis blocs avec item).</summary>
     public IEnumerable<IRElement> ElementsWithItemForm =>
@@ -230,6 +233,9 @@ public sealed class IRItem : IRElement
     public bool HasGlint { get; }
 
     public IRFood? Food { get; }
+
+    /// <summary>The GUI opened by a right click (V0.8.1), or null.</summary>
+    public ResourceId? Gui { get; init; }
 
     /// <summary>Classe de l'item : simple, outil, arme ou armure.</summary>
     public ItemKind Kind { get; init; } = ItemKind.Simple;
@@ -381,6 +387,9 @@ public sealed class IRBlock : IRElement
 
     /// <summary>What makes the block a plant (V0.7.0), or null.</summary>
     public IRPlant? Plant { get; init; }
+
+    /// <summary>The GUI opened by a right click (V0.8.1), or null.</summary>
+    public ResourceId? Gui { get; init; }
 
     /// <summary>The one tool that harvests it (V0.7.11), or null: any tool of the type and the level.</summary>
     public NamespacedId? RequiredTool { get; init; }

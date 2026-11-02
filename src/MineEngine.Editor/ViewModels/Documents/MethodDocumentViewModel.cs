@@ -5,19 +5,21 @@ using MineEngine.Core.Commands;
 namespace MineEngine.Editor.ViewModels.Documents;
 
 /// <summary>
-/// The Java code of a method of an item (V0.7.13): the tab shows the body only, its signature is in
+/// The Java code of a method of an item (V0.7.13) or a GUI (V0.8.0): the tab shows the body only, its signature is in
 /// the banner. Saving puts the body in the item, as a step that can be undone; the text follows an
 /// undo while it is not modified.
 /// </summary>
 public sealed class MethodDocumentViewModel : CodeDocumentViewModel, IDisposable
 {
-    private readonly ItemAsset _item;
+    private readonly Asset _item;
+    private readonly IHasMethods _methods;
     private readonly UndoHistory _history;
 
-    public MethodDocumentViewModel(ItemAsset item, MethodSlot slot, string className, UndoHistory history)
+    public MethodDocumentViewModel(Asset item, MethodSlot slot, string className, UndoHistory history)
         : base(Key(item, slot.Key), $"{className}/{slot.JavaName}.java", ".java")
     {
         _item = item ?? throw new ArgumentNullException(nameof(item));
+        _methods = item as IHasMethods ?? throw new ArgumentException(Tr.T("This element has no methods."), nameof(item));
         Slot = slot ?? throw new ArgumentNullException(nameof(slot));
         _history = history ?? throw new ArgumentNullException(nameof(history));
         _item.Changed += OnItemChanged;
@@ -33,13 +35,13 @@ public sealed class MethodDocumentViewModel : CodeDocumentViewModel, IDisposable
 
     public override string? Banner => IsReadOnly
         ? Tr.T("This method no longer exists in Java: it was removed or is now a graph.")
-        : Tr.F("Body of {0} {{ ... }} in the class of the item. Save to put it in the item.", Slot.JavaSignature);
+        : Tr.F("Body of {0} {{ ... }} in the class of the element. Save to put it in the element.", Slot.JavaSignature);
 
     public override string DetailsTitle => $"{_item.DisplayName} . {Slot.JavaName}";
 
     public override string DetailsBadge => Tr.T("METHOD");
 
-    private string? Body => _item.FindMethod(Slot.Key) is { Language: MethodLanguage.Java } method ? method.JavaBody : null;
+    private string? Body => _methods.FindMethod(Slot.Key) is { Language: MethodLanguage.Java } method ? method.JavaBody : null;
 
     public static string Key(Asset item, string slot) => $"method:{item.Id:N}:{slot}";
 
@@ -51,9 +53,9 @@ public sealed class MethodDocumentViewModel : CodeDocumentViewModel, IDisposable
         }
 
         string text = Document.Text;
-        IReadOnlyList<ElementMethod> methods = [.. _item.Methods.Select(m => m.Slot == Slot.Key ? m with { JavaBody = text } : m)];
+        IReadOnlyList<ElementMethod> methods = [.. _methods.Methods.Select(m => m.Slot == Slot.Key ? m with { JavaBody = text } : m)];
         _history.Execute(new PropertyChangeCommand<IReadOnlyList<ElementMethod>>(
-            Tr.F("Edit the method {0}", Slot.JavaName), _item, nameof(ItemAsset.Methods), () => _item.Methods, v => _item.Methods = v, methods));
+            Tr.F("Edit the method {0}", Slot.JavaName), _item, nameof(IHasMethods.Methods), () => _methods.Methods, v => _methods.Methods = v, methods));
         _history.Seal();
         MarkSaved();
         return true;
@@ -63,7 +65,7 @@ public sealed class MethodDocumentViewModel : CodeDocumentViewModel, IDisposable
 
     private void OnItemChanged(object? sender, AssetChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(ItemAsset.Methods))
+        if (e.PropertyName != nameof(IHasMethods.Methods))
         {
             return;
         }

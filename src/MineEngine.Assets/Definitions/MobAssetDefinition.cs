@@ -79,6 +79,7 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
 
         asset.Drops = [.. reader.GetObjectList("drops").Select(ReadDrop).OfType<MobDrop>()];
         asset.DropTable = reader.GetGuid("dropTable");
+        asset.Gui = reader.GetGuid("gui");
 
         if (reader.GetObject("spawnEgg") is { } egg)
         {
@@ -349,6 +350,7 @@ public sealed class MobAssetDefinition : AssetDefinition<MobAsset>
         };
         properties["drops"] = new JsonArray([.. asset.Drops.Select(WriteDrop)]);
         properties["dropTable"] = asset.DropTable?.ToString("D");
+        properties["gui"] = asset.Gui?.ToString("D");
         properties["spawnEgg"] = new JsonObject
         {
             ["enabled"] = asset.HasSpawnEgg,

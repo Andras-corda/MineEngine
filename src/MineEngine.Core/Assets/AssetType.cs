@@ -59,6 +59,9 @@ public enum AssetType
 
     /// <summary>Drop table of the mod: pools of weighted entries, with conditions and functions (V0.7.10).</summary>
     LootTable,
+
+    /// <summary>GUI of the mod: a window with texts, images, buttons, slots, checkboxes and text inputs (V0.8.0).</summary>
+    Gui,
 }
 
 /// <summary>
@@ -87,6 +90,7 @@ public enum AssetIdScope
     Sparkle,
     DamageType,
     LootTable,
+    Gui,
 }
 
 public static class AssetTypeExtensions
@@ -111,6 +115,7 @@ public static class AssetTypeExtensions
         AssetType.Sparkle => AssetIdScope.Sparkle,
         AssetType.DamageType => AssetIdScope.DamageType,
         AssetType.LootTable => AssetIdScope.LootTable,
+        AssetType.Gui => AssetIdScope.Gui,
         _ => AssetIdScope.GameContent,
     };
 }

@@ -146,6 +146,7 @@ public sealed class ProjectLayout
         AssetType.Fluid => "fluids",
         AssetType.GameRule => "gamerules",
         AssetType.DamageType => "damagetypes",
+        AssetType.Gui => "guis",
         AssetType.LootTable => "droptables",
         AssetType.Effect => "effects",
         AssetType.GlobalVariable => "globals",

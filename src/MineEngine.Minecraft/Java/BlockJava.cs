@@ -35,7 +35,8 @@ public sealed partial class BlockJava
 
     /// <summary>True when the block needs this class (otherwise it is a plain Block of the registry).</summary>
     public static bool IsNeeded(IRBlock block, IRContent content) =>
-        block.Plant is not null || block.Options.NeedsOwnClass || block.DropCondition is not null || HasEvents(block, content);
+        block.Plant is not null || block.Options.NeedsOwnClass || block.DropCondition is not null || HasEvents(block, content)
+        || ModJavaEmitter.GuiBindingCall(content, "block", block.Gui) is not null;
 
     public static string Package(JavaModNaming naming) => naming.RootPackage + ".block";
 
@@ -68,6 +69,12 @@ public sealed partial class BlockJava
         {
             Use("net.minecraft.world.level.block.BeaconBeamBlock", "net.minecraft.world.item.DyeColor");
             interfaces.Add("BeaconBeamBlock");
+        }
+
+        if (KeepsItems)
+        {
+            Use("net.minecraft.world.level.block.EntityBlock");
+            interfaces.Add("EntityBlock");
         }
 
         var body = new JavaSourceWriter();
