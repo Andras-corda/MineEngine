@@ -378,7 +378,8 @@
                             <WrapPanel IsItemsHost="True" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
                             <Border Height="1" Background="{DynamicResource CardBorderBrush}" />
                         </StackPanel>
-                        <ContentPresenter ContentSource="SelectedContent" Margin="0,12,0,0" />
+                        <!-- Named like WPF's own: UI Automation (screen readers) then sees the content of the selected tab. -->
+                        <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent" Margin="0,12,0,0" />
                     </DockPanel>
                 </ControlTemplate>
             </Setter.Value>

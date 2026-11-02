@@ -19,16 +19,36 @@ internal static class GameplaySample
         project.Assets.Add(new CommandAsset(Guid.NewGuid(), ResourceId.Parse("heal"), "Heal") { PermissionLevel = 2, Feedback = "Healed!" });
         project.Assets.Add(new CommandAsset(Guid.NewGuid(), ResourceId.Parse("boost"), "Boost")
         {
-            Argument = CommandArgumentKind.Number, ArgumentName = "seconds", Minimum = 1, Maximum = 600,
+            Parameters = [new CommandParameter(Guid.NewGuid(), "seconds", CommandParameterKind.Integer, 1, 600)],
         });
-        project.Assets.Add(new CommandAsset(Guid.NewGuid(), ResourceId.Parse("bless"), "Bless") { Argument = CommandArgumentKind.Player, ArgumentName = "target" });
-        project.Assets.Add(new CommandAsset(Guid.NewGuid(), ResourceId.Parse("shout"), "Shout") { Argument = CommandArgumentKind.Message, ArgumentName = "message" });
+        project.Assets.Add(new CommandAsset(Guid.NewGuid(), ResourceId.Parse("bless"), "Bless") { Parameters = [Parameter("target", CommandParameterKind.Player)] });
+        project.Assets.Add(new CommandAsset(Guid.NewGuid(), ResourceId.Parse("shout"), "Shout") { Parameters = [Parameter("message", CommandParameterKind.Message)] });
+
+        // A parameter of each kind, and the console or a command block may run it.
+        project.Assets.Add(new CommandAsset(Guid.NewGuid(), ResourceId.Parse("send_to"), "Send to")
+        {
+            AnySource = true,
+            PermissionLevel = 2,
+            Parameters =
+            [
+                Parameter("who", CommandParameterKind.Entity), Parameter("where", CommandParameterKind.Position),
+                Parameter("push", CommandParameterKind.Vector), new CommandParameter(Guid.NewGuid(), "speed", CommandParameterKind.Decimal, 0.5, 4),
+                Parameter("silent", CommandParameterKind.Boolean), Parameter("gift", CommandParameterKind.Item), Parameter("marker", CommandParameterKind.Block),
+                Parameter("world", CommandParameterKind.Dimension), Parameter("tag", CommandParameterKind.Word), Parameter("label", CommandParameterKind.Text),
+                Parameter("guest", CommandParameterKind.Player), Parameter("note", CommandParameterKind.Message),
+            ],
+        });
         project.Assets.Add(new KeybindAsset(Guid.NewGuid(), ResourceId.Parse("dash"), "Dash") { DefaultKey = "G" });
+        project.Assets.Add(new KeybindAsset(Guid.NewGuid(), ResourceId.Parse("charge"), "Charge")
+        {
+            DefaultKey = "MOUSE_RIGHT", HoldSeconds = 0.75, PulseSeconds = 0.25, ComboKey = "LEFT_CONTROL",
+        });
 
         project.Assets.Add(new CreativeTabAsset(Guid.NewGuid(), ResourceId.Parse("treasures"), "Trésors")
         {
             Icon = ContentReference.ToAsset(item.Id),
             Items = [ContentReference.ToAsset(item.Id), Id("minecraft:diamond"), Id("minecraft:emerald")],
+            HasSearchBar = true,
         });
 
         project.Assets.Add(new EnchantmentAsset(Guid.NewGuid(), ResourceId.Parse("frost_edge"), "Tranchant de givre")
@@ -85,8 +105,43 @@ internal static class GameplaySample
         b.Exec(key, check).Exec(check, setBool, NodeInfo.ExecFalse)
             .Data(key, "player", has, "player").Data(has, "result", check, "condition");
 
+        // Every trigger of a keybind (V0.7.x): the times and the pulses become messages.
+        double y = 1100;
+        foreach (GraphNodeKind trigger in NodeCatalog.KeyEvents.Skip(1))
+        {
+            GraphNode keyEvent = b.Add(trigger, 0, y += 200, ("key", "charge"));
+            GraphNode message = b.Add(GraphNodeKind.SendMessage, 600, y, ("message", trigger.ToString()));
+            b.Exec(keyEvent, message).Data(keyEvent, "player", message, "player");
+            NodeInfo info = NodeCatalog.Get(trigger);
+            if (info.FindOutput("seconds") is not null)
+            {
+                GraphNode round = b.Add(GraphNodeKind.RoundDecimal, 200, y + 100);
+                GraphNode text = b.Add(GraphNodeKind.NumberToText, 400, y + 100);
+                b.Data(keyEvent, "seconds", round, "a").Data(round, "value", text, "number").Data(text, "text", message, "message");
+            }
+            else if (info.FindOutput("count") is not null)
+            {
+                GraphNode text = b.Add(GraphNodeKind.NumberToText, 400, y + 100);
+                b.Data(keyEvent, "count", text, "number").Data(text, "text", message, "message");
+            }
+        }
+
         project.Assets.Add(new GraphAsset(Guid.NewGuid(), ResourceId.Parse("gameplay"), "Gameplay") { Graph = b.Build() });
+
+        // The parameters of a command are outputs of its event (described with the commands of the project).
+        var commandGraph = new GraphAsset(Guid.NewGuid(), ResourceId.Parse("send_to_events"), "Send to") { Kind = GraphKind.Events };
+        project.Assets.Add(commandGraph);
+        var c = new ProgramGraphBuilder(commandGraph, () => ProgramModel.From(project.Assets));
+        GraphNode sendTo = c.Add(GraphNodeKind.OnCommand, 0, 0, values: ("command", "send_to"));
+        GraphNode teleport = c.Add(GraphNodeKind.TeleportEntity, 300, 0);
+        GraphNode place = c.Add(GraphNodeKind.SetBlockState, 600, 0);
+        c.Exec(sendTo, teleport).Exec(teleport, place)
+            .Data(sendTo, "arg_who", teleport, "entity").Data(sendTo, "arg_where", teleport, "position")
+            .Data(sendTo, "arg_where", place, "position").Data(sendTo, "arg_marker", place, "state");
+        c.Commit();
     }
+
+    private static CommandParameter Parameter(string name, CommandParameterKind kind) => new(Guid.NewGuid(), name, kind);
 
     private static ContentReference Id(string id) =>
         ContentReference.ToId(NamespacedId.TryParse(id, out NamespacedId? result) ? result! : throw new ArgumentException(id));

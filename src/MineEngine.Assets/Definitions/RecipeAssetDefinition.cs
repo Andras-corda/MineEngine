@@ -30,6 +30,10 @@ public sealed class RecipeAssetDefinition : AssetDefinition<RecipeAsset>
         asset.ResultCount = reader.GetInt32("count", 1);
         asset.Experience = reader.GetSingle("experience", 0.1f);
         asset.CookingTime = reader.GetInt32("cookingTime", RecipeAsset.DefaultCookingTime);
+        asset.Group = reader.GetString("group") ?? string.Empty;
+        asset.Namespace = reader.GetString("namespace") ?? string.Empty;
+        asset.Category = reader.GetString("category") ?? "misc";
+        asset.UnlockItems = [.. reader.GetReferenceList("unlockedBy").OfType<ContentReference>()];
     }
 
     protected override void WriteProperties(RecipeAsset asset, JsonObject properties)
@@ -41,5 +45,9 @@ public sealed class RecipeAssetDefinition : AssetDefinition<RecipeAsset>
         properties["count"] = asset.ResultCount;
         properties["experience"] = asset.Experience;
         properties["cookingTime"] = asset.CookingTime;
+        properties["group"] = asset.Group;
+        properties["namespace"] = asset.Namespace;
+        properties["category"] = asset.Category;
+        properties["unlockedBy"] = new JsonArray([.. asset.UnlockItems.Select(r => (JsonNode?)JsonValue.Create(r.ToStorageText()))]);
     }
 }

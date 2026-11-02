@@ -447,6 +447,13 @@ public enum GraphNodeKind
     CameraPitch,
     CameraDirection,
     CameraPosition,
+
+    // ----- Triggers of the keybinds: events of a key, sent by the client like "On key pressed" -----
+    OnKeyReleased,
+    OnKeyHeld,
+    OnKeyPulse,
+    OnKeyHoldReleased,
+    OnKeyCombo,
 }
 
 /// <summary>Domain of a node, used to sort the Nodes window like MCreator's procedure blocks.</summary>

@@ -1,4 +1,5 @@
 using System.Globalization;
+using MineEngine.Assets;
 using MineEngine.Assets.Graphs;
 using MineEngine.Core.GameData;
 using MineEngine.Core.Identifiers;
@@ -28,8 +29,11 @@ public abstract partial class ModJavaEmitter
 
     protected abstract string RegisterKeyMappingsEventType { get; }
 
-    /// <summary>Class of the input events (its nested class Key is used).</summary>
-    protected abstract string InputEventType { get; }
+    /// <summary>
+    /// Tick of the client, once per tick: its import, its type, and the first lines of the listener
+    /// (Forge 1.20.1 keeps only the end of the tick).
+    /// </summary>
+    protected abstract (string Import, string TypeName, IReadOnlyList<string> Guard) ClientTickEvent(JavaGameApi api);
 
     protected abstract string ClientSetupEventType { get; }
 
@@ -58,6 +62,29 @@ public abstract partial class ModJavaEmitter
     /// <summary>Hidden command through which a keybind (client) runs its events on the server.</summary>
     private static string KeyCommand(GenerationContext context) => context.Mod.ModId.Value + "_key";
 
+    /// <summary>Events of a keybind: the action sent by the client, and its flag in the events a keybind sends.</summary>
+    private static readonly (GraphNodeKind Event, string Action, int Flag)[] KeyActions =
+    [
+        (GraphNodeKind.OnKeyPressed, "pressed", 1),
+        (GraphNodeKind.OnKeyReleased, "released", 2),
+        (GraphNodeKind.OnKeyHeld, "held", 4),
+        (GraphNodeKind.OnKeyPulse, "pulse", 8),
+        (GraphNodeKind.OnKeyHoldReleased, "hold_released", 16),
+        (GraphNodeKind.OnKeyCombo, "combo", 32),
+    ];
+
+    /// <summary>Methods that run the key events of the graphs: event, keybind and "Class.method".</summary>
+    private static List<(GraphNodeKind Event, string Trigger, string Call)> KeyHandlers(GenerationContext context, JavaModNaming naming) =>
+    [
+        .. context.Ir.Content.Behaviors.SelectMany(b => HandlerMethods(b)
+            .Where(h => h.Handler.Trigger is not null && NodeCatalog.Get(h.Handler.Event).DirectEvent == DirectEventKind.Key)
+            .Select(h => (h.Handler.Event, h.Handler.Trigger!, $"{naming.BehaviorClassFor(b.Id)}.{h.Method}"))),
+    ];
+
+    /// <summary>Flags of the events of a keybind that a graph uses: the client sends only those.</summary>
+    private static int UsedKeyEvents(IEnumerable<(GraphNodeKind Event, string Trigger, string Call)> handlers, IRKeybind keybind) =>
+        handlers.Where(h => h.Trigger == keybind.Id.Value).Aggregate(0, (flags, h) => flags | KeyActions.First(a => a.Event == h.Event).Flag);
+
     private static string ConstantOf(ResourceId id) => JavaNames.ToConstantName(id);
 
     private static string ConstantOf(string id) => id.ToUpperInvariant();
@@ -74,7 +101,7 @@ public abstract partial class ModJavaEmitter
 
         if (content.Keybinds.Count > 0)
         {
-            Write(context, naming, naming.ClientPackage, KeybindsClass, WriteKeybindsClass(context, naming));
+            Write(context, naming, naming.ClientPackage, KeybindsClass, WriteKeybindsClass(context, naming, api));
         }
 
         if (content.Enchantments.Count > 0 && !api.EnchantmentsAreData)
@@ -195,7 +222,7 @@ public abstract partial class ModJavaEmitter
             if (content.Keybinds.Count > 0)
             {
                 w.Line($"modEventBus.addListener({KeybindsClass}::registerKeyMappings);")
-                    .Line($"{gameBus}.addListener({KeybindsClass}::onKeyInput);");
+                    .Line($"{gameBus}.addListener({KeybindsClass}::onClientTick);");
             }
 
             if (content.Fluids.Count > 0)
@@ -232,14 +259,14 @@ public abstract partial class ModJavaEmitter
             "net.minecraft.world.entity.player.Player",
             "net.minecraft.world.level.Level",
         };
-        if (content.Commands.Any(c => c.Argument == CommandArgumentKind.Number))
+        if (content.Keybinds.Count > 0)
         {
             imports.Add("com.mojang.brigadier.arguments.IntegerArgumentType");
         }
 
-        if (content.Commands.Any(c => c.Argument == CommandArgumentKind.Player))
+        foreach (CommandParameter parameter in content.Commands.SelectMany(c => c.Parameters))
         {
-            imports.Add("net.minecraft.commands.arguments.EntityArgument");
+            imports.UnionWith(ArgumentImports(parameter.Kind));
         }
 
         // The handlers of each command and keybind: "On command" and "On key pressed" events of the graphs.
@@ -259,29 +286,20 @@ public abstract partial class ModJavaEmitter
             int first = w.NextLineNumber;
             string method = "run" + JavaNames.ToTypeName(command.Id.Value, "Command");
             string name = JavaNames.StringLiteral(command.Id.Value);
-            string argument = JavaNames.StringLiteral(command.ArgumentName);
             w.Line($"dispatcher.register(Commands.literal({name})")
                 .Indent().Indent()
                 .Line($".requires(source -> source.hasPermission({command.PermissionLevel}))");
-            (string? type, string getter) = command.Argument switch
+
+            // One argument after the other: "/give_gem <player> <amount>" runs only with all of them.
+            foreach (CommandParameter parameter in command.Parameters)
             {
-                CommandArgumentKind.Number => ($"IntegerArgumentType.integer({command.Minimum}, {command.Maximum})",
-                    $"{method}(context, IntegerArgumentType.getInteger(context, {argument}), \"\", null)"),
-                CommandArgumentKind.Word => ("StringArgumentType.word()", $"{method}(context, 0, StringArgumentType.getString(context, {argument}), null)"),
-                CommandArgumentKind.Message => ("StringArgumentType.greedyString()", $"{method}(context, 0, StringArgumentType.getString(context, {argument}), null)"),
-                CommandArgumentKind.Player => ("EntityArgument.player()", $"{method}(context, 0, \"\", EntityArgument.getPlayer(context, {argument}))"),
-                _ => (null, $"{method}(context, 0, \"\", null)"),
-            };
-            if (type is null)
-            {
-                w.Line($".executes(context -> {getter}));");
+                w.Line($".then(Commands.argument({JavaNames.StringLiteral(parameter.Name)}, {ArgumentType(parameter)})").Indent().Indent();
             }
-            else
+
+            w.Line($".executes(context -> {method}(context)){new string(')', command.Parameters.Count)});");
+            foreach (CommandParameter _ in command.Parameters)
             {
-                w.Line($".then(Commands.argument({argument}, {type})")
-                    .Indent().Indent()
-                    .Line($".executes(context -> {getter})));")
-                    .Unindent().Unindent();
+                w.Unindent().Unindent();
             }
 
             w.Unindent().Unindent();
@@ -290,11 +308,15 @@ public abstract partial class ModJavaEmitter
 
         if (content.Keybinds.Count > 0)
         {
+            // "<mod>_key <keybind> <action> <number>": sent by the client (ModKeybinds), the number is a duration in ticks or a pulse.
             w.Line($"dispatcher.register(Commands.literal({JavaNames.StringLiteral(KeyCommand(context))})")
                 .Indent().Indent()
                 .Line(".then(Commands.argument(\"key\", StringArgumentType.word())")
+                .Line(".then(Commands.argument(\"action\", StringArgumentType.word())")
+                .Line(".then(Commands.argument(\"number\", IntegerArgumentType.integer(0))")
                 .Indent().Indent()
-                .Line(".executes(context -> runKey(context, StringArgumentType.getString(context, \"key\")))));")
+                .Line(".executes(context -> runKey(context, StringArgumentType.getString(context, \"key\"), "
+                      + "StringArgumentType.getString(context, \"action\"), IntegerArgumentType.getInteger(context, \"number\")))))));")
                 .Unindent().Unindent().Unindent().Unindent();
         }
 
@@ -305,14 +327,36 @@ public abstract partial class ModJavaEmitter
             int first = w.NextLineNumber;
             string method = "run" + JavaNames.ToTypeName(command.Id.Value, "Command");
             w.Line()
-                .OpenBlock($"private static int {method}(CommandContext<CommandSourceStack> context, int number, String text, Player target) throws CommandSyntaxException")
-                .Line("ServerPlayer player = context.getSource().getPlayerOrException();")
-                .Line("Level level = player.level();")
-                .Line("BlockPos position = player.blockPosition();")
-                .Line("Player chosen = target == null ? player : target;");
+                .OpenBlock($"private static int {method}(CommandContext<CommandSourceStack> context) throws CommandSyntaxException")
+                .Line("CommandSourceStack source = context.getSource();");
+            if (command.AnySource)
+            {
+                // A command block or the console: no player, the position of the source.
+                w.Line("ServerPlayer player = source.getPlayer();")
+                    .Line("Level level = source.getLevel();")
+                    .Line("BlockPos position = BlockPos.containing(source.getPosition());");
+            }
+            else
+            {
+                w.Line("ServerPlayer player = source.getPlayerOrException();")
+                    .Line("Level level = player.level();")
+                    .Line("BlockPos position = player.blockPosition();");
+            }
+
+            foreach (CommandParameter parameter in command.Parameters)
+            {
+                w.Line($"{ArgumentJavaType(parameter.Kind)} {parameter.PinName} = {ArgumentValue(parameter)};");
+            }
+
+            // The outputs of the single argument of V0.6.2, still given to the graphs that use them.
+            string number = command.Parameters.FirstOrDefault(p => p.Kind == CommandParameterKind.Integer)?.PinName ?? "0";
+            string text = command.Parameters.FirstOrDefault(p => p.Kind is CommandParameterKind.Word or CommandParameterKind.Text or CommandParameterKind.Message)?.PinName
+                          ?? "\"\"";
+            string target = command.Parameters.FirstOrDefault(p => p.Kind == CommandParameterKind.Player)?.PinName ?? "player";
+            string values = string.Concat(command.Parameters.Select(p => ", " + p.PinName));
             foreach ((_, _, string call) in handlers.Where(h => h.Event == GraphNodeKind.OnCommand && h.Trigger == command.Id.Value))
             {
-                w.Line($"{call}(player, level, position, number, text, chosen);");
+                w.Line($"{call}(player, level, position, {number}, {text}, {target}{values});");
             }
 
             if (command.Feedback.Length > 0)
@@ -327,21 +371,34 @@ public abstract partial class ModJavaEmitter
         if (content.Keybinds.Count > 0)
         {
             w.Line()
-                .Line("/** A keybind of the mod was pressed on the client of the player. */")
-                .OpenBlock("private static int runKey(CommandContext<CommandSourceStack> context, String key) throws CommandSyntaxException")
+                .Line("/** An event of a keybind of the mod on the client of the player: pressed, released, held, pulse... */")
+                .OpenBlock("private static int runKey(CommandContext<CommandSourceStack> context, String key, String action, int number) throws CommandSyntaxException")
                 .Line("ServerPlayer player = context.getSource().getPlayerOrException();")
                 .Line("Level level = player.level();")
                 .Line("BlockPos position = player.blockPosition();")
+                .Line("double seconds = number / 20.0;")
                 .OpenBlock("switch (key)");
             foreach (IRKeybind keybind in content.Keybinds)
             {
-                w.Line($"case {JavaNames.StringLiteral(keybind.Id.Value)} -> {{").Indent();
-                foreach ((_, _, string call) in handlers.Where(h => h.Event == GraphNodeKind.OnKeyPressed && h.Trigger == keybind.Id.Value))
+                w.Line($"case {JavaNames.StringLiteral(keybind.Id.Value)} -> {{").Indent().OpenBlock("switch (action)");
+                foreach ((GraphNodeKind kind, string action, _) in KeyActions)
                 {
-                    w.Line($"{call}(player, level, position);");
+                    List<string> calls = [.. handlers.Where(h => h.Event == kind && h.Trigger == keybind.Id.Value).Select(h => h.Call)];
+                    if (calls.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    w.Line($"case {JavaNames.StringLiteral(action)} -> {{").Indent();
+                    foreach (string call in calls)
+                    {
+                        w.Line($"{call}(player, level, position, seconds, number);");
+                    }
+
+                    w.Unindent().Line("}");
                 }
 
-                w.Unindent().Line("}");
+                w.Line("default -> {").Line("}").CloseBlock().Unindent().Line("}");
             }
 
             w.Line("default -> {").Line("}").CloseBlock().Line("return 1;").CloseBlock();
@@ -350,27 +407,112 @@ public abstract partial class ModJavaEmitter
         return WritePrivateConstructor(w, CommandsClass);
     }
 
+    /// <summary>Brigadier type of the argument of a parameter ("IntegerArgumentType.integer(1, 64)").</summary>
+    private static string ArgumentType(CommandParameter parameter) => parameter.Kind switch
+    {
+        CommandParameterKind.Integer => $"IntegerArgumentType.integer({(int)Math.Round(parameter.Minimum)}, {(int)Math.Round(parameter.Maximum)})",
+        CommandParameterKind.Decimal => $"DoubleArgumentType.doubleArg({JavaNames.DoubleLiteral(parameter.Minimum)}, {JavaNames.DoubleLiteral(parameter.Maximum)})",
+        CommandParameterKind.Boolean => "BoolArgumentType.bool()",
+        CommandParameterKind.Word => "StringArgumentType.word()",
+        CommandParameterKind.Text => "StringArgumentType.string()",
+        CommandParameterKind.Message => "StringArgumentType.greedyString()",
+        CommandParameterKind.Player => "EntityArgument.player()",
+        CommandParameterKind.Entity => "EntityArgument.entity()",
+        CommandParameterKind.Position => "BlockPosArgument.blockPos()",
+        CommandParameterKind.Vector => "Vec3Argument.vec3()",
+        CommandParameterKind.Item => "ItemArgument.item(event.getBuildContext())",
+        CommandParameterKind.Block => "BlockStateArgument.block(event.getBuildContext())",
+        _ => "DimensionArgument.dimension()",
+    };
+
+    /// <summary>Java expression that reads the value of a parameter in the context of the command.</summary>
+    private static string ArgumentValue(CommandParameter parameter)
+    {
+        string name = JavaNames.StringLiteral(parameter.Name);
+        return parameter.Kind switch
+        {
+            CommandParameterKind.Integer => $"IntegerArgumentType.getInteger(context, {name})",
+            CommandParameterKind.Decimal => $"DoubleArgumentType.getDouble(context, {name})",
+            CommandParameterKind.Boolean => $"BoolArgumentType.getBool(context, {name})",
+            CommandParameterKind.Word or CommandParameterKind.Text or CommandParameterKind.Message => $"StringArgumentType.getString(context, {name})",
+            CommandParameterKind.Player => $"EntityArgument.getPlayer(context, {name})",
+            CommandParameterKind.Entity => $"EntityArgument.getEntity(context, {name})",
+            CommandParameterKind.Position => $"BlockPosArgument.getLoadedBlockPos(context, {name})",
+            CommandParameterKind.Vector => $"Vec3Argument.getVec3(context, {name})",
+            CommandParameterKind.Item => $"ItemArgument.getItem(context, {name}).getItem()",
+            CommandParameterKind.Block => $"BlockStateArgument.getBlock(context, {name}).getState()",
+            _ => $"DimensionArgument.getDimension(context, {name})",
+        };
+    }
+
+    /// <summary>Java type of the variable of a parameter (the same as in the graphs).</summary>
+    private static string ArgumentJavaType(CommandParameterKind kind) => kind switch
+    {
+        CommandParameterKind.Integer => "int",
+        CommandParameterKind.Decimal => "double",
+        CommandParameterKind.Boolean => "boolean",
+        CommandParameterKind.Word or CommandParameterKind.Text or CommandParameterKind.Message => "String",
+        CommandParameterKind.Player => "Player",
+        CommandParameterKind.Entity => "Entity",
+        CommandParameterKind.Position => "BlockPos",
+        CommandParameterKind.Vector => "Vec3",
+        CommandParameterKind.Item => "Item",
+        CommandParameterKind.Block => "BlockState",
+        _ => "Level",
+    };
+
+    private static IEnumerable<string> ArgumentImports(CommandParameterKind kind) => kind switch
+    {
+        CommandParameterKind.Integer => ["com.mojang.brigadier.arguments.IntegerArgumentType"],
+        CommandParameterKind.Decimal => ["com.mojang.brigadier.arguments.DoubleArgumentType"],
+        CommandParameterKind.Boolean => ["com.mojang.brigadier.arguments.BoolArgumentType"],
+        CommandParameterKind.Word or CommandParameterKind.Text or CommandParameterKind.Message => [],
+        CommandParameterKind.Player => ["net.minecraft.commands.arguments.EntityArgument"],
+        CommandParameterKind.Entity => ["net.minecraft.commands.arguments.EntityArgument", "net.minecraft.world.entity.Entity"],
+        CommandParameterKind.Position => ["net.minecraft.commands.arguments.coordinates.BlockPosArgument"],
+        CommandParameterKind.Vector => ["net.minecraft.commands.arguments.coordinates.Vec3Argument", "net.minecraft.world.phys.Vec3"],
+        CommandParameterKind.Item => ["net.minecraft.commands.arguments.item.ItemArgument", "net.minecraft.world.item.Item"],
+        CommandParameterKind.Block => ["net.minecraft.commands.arguments.blocks.BlockStateArgument", "net.minecraft.world.level.block.state.BlockState"],
+        _ => ["net.minecraft.commands.arguments.DimensionArgument"],
+    };
+
     // ----- Keybinds (client) -----
 
-    private JavaSourceWriter WriteKeybindsClass(GenerationContext context, JavaModNaming naming)
+    /// <summary>
+    /// Keys of the mod on the client: their registration, then, at each tick, the watch of each key
+    /// (pressed, released, held, pulse, held then released, combo) and the events sent to the server.
+    /// A key sends only the events its graphs use.
+    /// </summary>
+    private JavaSourceWriter WriteKeybindsClass(GenerationContext context, JavaModNaming naming, JavaGameApi api)
     {
         IRContent content = context.Ir.Content;
         string category = context.Paths.KeyCategoryTranslationKey;
+        (string tickImport, string tickType, IReadOnlyList<string> guard) = ClientTickEvent(api);
+        List<(GraphNodeKind Event, string Trigger, string Call)> handlers = KeyHandlers(context, naming);
         var imports = new[]
         {
             RegisterKeyMappingsEventType,
-            InputEventType,
+            tickImport,
             "com.mojang.blaze3d.platform.InputConstants",
             "net.minecraft.client.KeyMapping",
             "net.minecraft.client.Minecraft",
+            "org.lwjgl.glfw.GLFW",
         };
 
-        JavaSourceWriter w = WriteHeader(naming.ClientPackage, imports, "Touches du mod (client) : une touche appuyée lance ses événements sur le serveur.")
+        JavaSourceWriter w = WriteHeader(naming.ClientPackage, imports, "Touches du mod (client) : chaque touche surveillée envoie ses événements au serveur.")
             .OpenBlock($"public final class {KeybindsClass}");
+        foreach ((string action, int flag) in KeyActions.Select(a => (a.Action, a.Flag)))
+        {
+            w.Line($"private static final int {action.ToUpperInvariant()} = {flag};");
+        }
+
+        w.Line();
         foreach (IRKeybind keybind in content.Keybinds)
         {
+            string type = keybind.IsMouse ? "MOUSE" : "KEYSYM";
             w.Line($"public static final KeyMapping {ConstantOf(keybind.Id)} = new KeyMapping({JavaNames.StringLiteral(context.Paths.KeyTranslationKey(keybind.Id))}, "
-                   + $"InputConstants.Type.KEYSYM, {keybind.KeyCode}, {JavaNames.StringLiteral(category)});");
+                   + $"InputConstants.Type.{type}, {keybind.KeyCode}, {JavaNames.StringLiteral(category)});")
+                .Line($"private static final KeyState {ConstantOf(keybind.Id)}_STATE = new KeyState();");
         }
 
         w.Line().OpenBlock($"public static void registerKeyMappings({SimpleName(RegisterKeyMappingsEventType)} event)");
@@ -381,20 +523,95 @@ public abstract partial class ModJavaEmitter
 
         w.CloseBlock()
             .Line()
-            .Line("/** Keys pressed in the game (not in a menu) are sent to the server, which runs their events. */")
-            .OpenBlock($"public static void onKeyInput({SimpleName(InputEventType)}.Key event)")
-            .Line("Minecraft minecraft = Minecraft.getInstance();")
-            .OpenBlock("if (minecraft.player == null || minecraft.screen != null)")
-            .Line("return;")
-            .CloseBlock();
-        foreach (IRKeybind keybind in content.Keybinds)
+            .Line("/** Every tick of the client: the keys are watched outside the menus. */")
+            .OpenBlock($"public static void onClientTick({tickType} event)");
+        foreach (string line in guard)
         {
-            w.OpenBlock($"while ({ConstantOf(keybind.Id)}.consumeClick())")
-                .Line($"minecraft.player.connection.sendCommand({JavaNames.StringLiteral($"{KeyCommand(context)} {keybind.Id}")});")
-                .CloseBlock();
+            w.Line(line);
         }
 
-        w.CloseBlock();
+        w.Line("Minecraft minecraft = Minecraft.getInstance();")
+            .OpenBlock("if (minecraft.player == null)")
+            .Line("return;")
+            .CloseBlock()
+            .Line("boolean free = minecraft.screen == null;");
+        foreach (IRKeybind keybind in content.Keybinds)
+        {
+            string c = ConstantOf(keybind.Id);
+            w.Line($"watch(minecraft, {c}, {c}_STATE, {JavaNames.StringLiteral(keybind.Id.Value)}, free, {keybind.HoldTicks}, {keybind.PulseTicks}, "
+                   + $"{keybind.ComboCode}, {(keybind.ComboIsMouse ? "true" : "false")}, {UsedKeyEvents(handlers, keybind)});");
+        }
+
+        string command = JavaNames.StringLiteral(KeyCommand(context) + " ");
+        string[] lines =
+        [
+            "}",
+            "",
+            "/** Follows a key from one tick to the next and sends the events it triggers (those of the flags \"events\"). */",
+            "private static void watch(Minecraft minecraft, KeyMapping key, KeyState state, String id, boolean free, int holdTicks, int pulseTicks,",
+            "        int combo, boolean comboMouse, int events) {",
+            "    boolean clicked = false;",
+            "    while (key.consumeClick()) {",
+            "        clicked = true;",
+            "    }",
+            "    boolean down = free && key.isDown();",
+            "    if (!state.down && free && (down || clicked)) {",
+            "        state.down = true;",
+            "        state.ticks = 0;",
+            "        state.held = false;",
+            "        state.pulses = 0;",
+            "        send(minecraft, id, \"pressed\", 0, events, PRESSED);",
+            "        if ((events & COMBO) != 0 && isDown(minecraft, combo, comboMouse)) {",
+            "            send(minecraft, id, \"combo\", 0, events, COMBO);",
+            "        }",
+            "    } else if (state.down) {",
+            "        state.ticks++;",
+            "    }",
+            "    if (state.down && down) {",
+            "        if (!state.held && state.ticks >= holdTicks) {",
+            "            state.held = true;",
+            "            send(minecraft, id, \"held\", state.ticks, events, HELD);",
+            "        }",
+            "        if (state.ticks > 0 && state.ticks % pulseTicks == 0) {",
+            "            state.pulses++;",
+            "            send(minecraft, id, \"pulse\", state.pulses, events, PULSE);",
+            "        }",
+            "    }",
+            "    if (state.down && !down) {",
+            "        state.down = false;",
+            "        send(minecraft, id, \"released\", state.ticks, events, RELEASED);",
+            "        if (state.held) {",
+            "            send(minecraft, id, \"hold_released\", state.ticks, events, HOLD_RELEASED);",
+            "        }",
+            "    }",
+            "}",
+            "",
+            "private static void send(Minecraft minecraft, String id, String action, int number, int events, int flag) {",
+            "    if ((events & flag) != 0 && minecraft.player != null) {",
+            $"        minecraft.player.connection.sendCommand({command} + id + \" \" + action + \" \" + number);",
+            "    }",
+            "}",
+            "",
+            "/** True if the key (or the button of the mouse) of a combo is held. */",
+            "private static boolean isDown(Minecraft minecraft, int code, boolean mouse) {",
+            "    long window = minecraft.getWindow().getWindow();",
+            "    return mouse ? GLFW.glfwGetMouseButton(window, code) == GLFW.GLFW_PRESS : InputConstants.isKeyDown(window, code);",
+            "}",
+            "",
+            "/** What a key is doing: held since some ticks, already counted as held, pulses sent. */",
+            "private static final class KeyState {",
+            "    private boolean down;",
+            "    private int ticks;",
+            "    private boolean held;",
+            "    private int pulses;",
+            "}",
+        ];
+        w.Unindent();
+        foreach (string line in lines)
+        {
+            w.Line(line);
+        }
+
         return WritePrivateConstructor(w, KeybindsClass);
     }
 
@@ -847,8 +1064,13 @@ public abstract partial class ModJavaEmitter
                 .Line($"{JavaNames.StringLiteral(tab.Id.Value)}, () -> CreativeModeTab.builder()")
                 .Indent().Indent()
                 .Line($".title(Component.translatable({JavaNames.StringLiteral(context.Paths.CreativeTabTranslationKeyFor(tab.Id))}))")
-                .Line(icon is null ? ".icon(() -> new ItemStack(Items.BOOK))" : $".icon(() -> new ItemStack(item({JavaNames.StringLiteral(icon.ToString())})))")
-                .OpenBlock(".displayItems((parameters, output) ->");
+                .Line(icon is null ? ".icon(() -> new ItemStack(Items.BOOK))" : $".icon(() -> new ItemStack(item({JavaNames.StringLiteral(icon.ToString())})))");
+            if (tab.HasSearchBar)
+            {
+                w.Line(".withSearchBar()");
+            }
+
+            w.OpenBlock(".displayItems((parameters, output) ->");
             foreach (NamespacedId item in tab.Items)
             {
                 w.Line($"output.accept(item({JavaNames.StringLiteral(item.ToString())}));");

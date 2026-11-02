@@ -19,11 +19,25 @@ public sealed class RecipeLowering : AssetLowering<RecipeAsset>
             return;
         }
 
+        var unlockItems = new List<IRIngredient>();
+        foreach (ContentReference item in asset.UnlockItems)
+        {
+            if (context.ResolveIngredient(asset, item, Tr.T("Unlocked by")) is { } unlock)
+            {
+                unlockItems.Add(unlock);
+            }
+        }
+
+        IReadOnlyList<string> categories = RecipeAsset.CategoriesOf(asset.Kind);
+        var book = new IRRecipeBook(
+            asset.Namespace.Length == 0 ? null : asset.Namespace, asset.Group, categories.Contains(asset.Category) ? asset.Category : "misc", unlockItems);
         IRRecipe? recipe = asset.Kind switch
         {
-            RecipeKind.Shaped => LowerShaped(asset, result, context),
-            RecipeKind.Shapeless => LowerShapeless(asset, result, context),
-            _ => LowerSmelting(asset, result, context),
+            RecipeKind.Shaped => LowerShaped(asset, result, context, book),
+            RecipeKind.Shapeless => LowerShapeless(asset, result, context, book),
+            RecipeKind.Stonecutting => LowerStonecutting(asset, result, context, book),
+            RecipeKind.Smithing => LowerSmithing(asset, result, context, book),
+            _ => LowerSmelting(asset, result, context, book),
         };
 
         if (recipe is not null)
@@ -37,7 +51,7 @@ public sealed class RecipeLowering : AssetLowering<RecipeAsset>
     /// jeu, qui accepte alors le motif n'importe où dans la grille) et attribue une
     /// lettre à chaque ingrédient distinct.
     /// </summary>
-    private static IRShapedRecipe? LowerShaped(RecipeAsset asset, NamespacedId result, LoweringContext context)
+    private static IRShapedRecipe? LowerShaped(RecipeAsset asset, NamespacedId result, LoweringContext context, IRRecipeBook book)
     {
         IReadOnlyList<ContentReference?> grid = asset.Grid;
         int width = RecipeAsset.GridWidth;
@@ -83,10 +97,10 @@ public sealed class RecipeLowering : AssetLowering<RecipeAsset>
             pattern.Add(new string(line));
         }
 
-        return new IRShapedRecipe(asset.Id, asset.ResourceId, pattern, keys, result, asset.ResultCount);
+        return new IRShapedRecipe(asset.Id, asset.ResourceId, pattern, keys, result, asset.ResultCount) { Book = book };
     }
 
-    private static IRShapelessRecipe? LowerShapeless(RecipeAsset asset, NamespacedId result, LoweringContext context)
+    private static IRShapelessRecipe? LowerShapeless(RecipeAsset asset, NamespacedId result, LoweringContext context, IRRecipeBook book)
     {
         var ingredients = new List<IRIngredient>();
         foreach (ContentReference reference in asset.Grid.OfType<ContentReference>())
@@ -101,11 +115,28 @@ public sealed class RecipeLowering : AssetLowering<RecipeAsset>
 
         return ingredients.Count == 0
             ? null
-            : new IRShapelessRecipe(asset.Id, asset.ResourceId, ingredients, result, asset.ResultCount);
+            : new IRShapelessRecipe(asset.Id, asset.ResourceId, ingredients, result, asset.ResultCount) { Book = book };
     }
 
-    private static IRSmeltingRecipe? LowerSmelting(RecipeAsset asset, NamespacedId result, LoweringContext context) =>
+    private static IRSmeltingRecipe? LowerSmelting(RecipeAsset asset, NamespacedId result, LoweringContext context, IRRecipeBook book) =>
         asset.SmeltingInput is { } input && context.ResolveIngredient(asset, input, Tr.T("Ingredient")) is { } ingredient
-            ? new IRSmeltingRecipe(asset.Id, asset.ResourceId, ingredient, result, asset.Experience, asset.CookingTime)
+            ? new IRSmeltingRecipe(asset.Id, asset.ResourceId, ingredient, result, asset.Experience, asset.CookingTime) { Kind = asset.Kind, Book = book }
             : null;
+
+    private static IRStonecuttingRecipe? LowerStonecutting(RecipeAsset asset, NamespacedId result, LoweringContext context, IRRecipeBook book) =>
+        asset.SmeltingInput is { } input && context.ResolveIngredient(asset, input, Tr.T("Ingredient")) is { } ingredient
+            ? new IRStonecuttingRecipe(asset.Id, asset.ResourceId, ingredient, result, asset.ResultCount) { Book = book }
+            : null;
+
+    private static IRSmithingRecipe? LowerSmithing(RecipeAsset asset, NamespacedId result, LoweringContext context, IRRecipeBook book)
+    {
+        IRIngredient? Slot(int index, string role) =>
+            asset.Grid[index] is { } reference ? context.ResolveIngredient(asset, reference, role) : null;
+
+        return Slot(RecipeAsset.SmithingTemplate, Tr.T("Template")) is { } template
+               && Slot(RecipeAsset.SmithingBase, Tr.T("Base item")) is { } @base
+               && Slot(RecipeAsset.SmithingAddition, Tr.T("Material")) is { } addition
+            ? new IRSmithingRecipe(asset.Id, asset.ResourceId, template, @base, addition, result) { Book = book }
+            : null;
+    }
 }

@@ -209,6 +209,21 @@ public enum RecipeKind
 
     /// <summary>Four.</summary>
     Smelting,
+
+    /// <summary>Haut fourneau : minerais et métaux, deux fois plus vite.</summary>
+    Blasting,
+
+    /// <summary>Fumoir : nourriture, deux fois plus vite.</summary>
+    Smoking,
+
+    /// <summary>Feu de camp : nourriture, lentement et sans combustible.</summary>
+    CampfireCooking,
+
+    /// <summary>Tailleur de pierre : un ingrédient donne un résultat (en plusieurs exemplaires).</summary>
+    Stonecutting,
+
+    /// <summary>Table de forgeron : modèle, objet de base et matériau donnent l'objet amélioré.</summary>
+    Smithing,
 }
 
 /// <summary>Argument typed after a command of the mod (V0.6.2).</summary>

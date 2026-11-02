@@ -19,17 +19,20 @@ public sealed class ProgramModel
 {
     private readonly Dictionary<Guid, GraphAsset> _graphs;
     private readonly Dictionary<Guid, GlobalVariableAsset> _globals;
+    private readonly List<CommandAsset> _commands;
 
-    public ProgramModel(IEnumerable<GraphAsset> graphs, IEnumerable<GlobalVariableAsset>? globals = null)
+    /// <param name="commands">Commands of the project: the "On command" event gives their parameters.</param>
+    public ProgramModel(IEnumerable<GraphAsset> graphs, IEnumerable<GlobalVariableAsset>? globals = null, IEnumerable<CommandAsset>? commands = null)
     {
         _graphs = (graphs ?? []).GroupBy(g => g.Id).ToDictionary(g => g.Key, g => g.First());
         _globals = (globals ?? []).GroupBy(g => g.Id).ToDictionary(g => g.Key, g => g.First());
+        _commands = [.. commands ?? []];
     }
 
     public static ProgramModel From(IEnumerable<Asset> assets)
     {
         List<Asset> all = [.. assets];
-        return new ProgramModel(all.OfType<GraphAsset>(), all.OfType<GlobalVariableAsset>());
+        return new ProgramModel(all.OfType<GraphAsset>(), all.OfType<GlobalVariableAsset>(), all.OfType<CommandAsset>());
     }
 
     /// <summary>Global variables of the project (Global tab), usable in every graph.</summary>
@@ -207,6 +210,11 @@ public sealed class ProgramModel
             return GenericNodes.Describe(node, TypeLabel, (name, label, type) => Pin(name, label, type));
         }
 
+        if (node.Kind == GraphNodeKind.OnCommand && FindCommand(node.GetValue("command")) is { } command)
+        {
+            return CommandEvent(node, graph, command);
+        }
+
         if (NodeCatalog.Find(node.Kind) is { } catalog)
         {
             return catalog;
@@ -227,6 +235,26 @@ public sealed class ProgramModel
             GraphNodeKind.GetGlobal or GraphNodeKind.SetGlobal => Global(node),
             GraphNodeKind.Comment or GraphNodeKind.Tooltip => GraphAnnotations.Describe(node),
             _ => NodeCatalog.Missing(node.Kind, node.Kind.ToString()),
+        };
+    }
+
+    /// <summary>The command of the project typed on an "On command" event, or null.</summary>
+    public CommandAsset? FindCommand(string? name) => _commands.Find(c => c.ResourceId.Value == name?.Trim());
+
+    /// <summary>
+    /// "On command" for a command of the project: the player, the position, then one output per parameter.
+    /// The outputs of the single argument of V0.6.2 (number, text, target player) stay while they are wired.
+    /// </summary>
+    private static NodeInfo CommandEvent(GraphNode node, GraphAsset graph, CommandAsset command)
+    {
+        NodeInfo basis = NodeCatalog.Get(GraphNodeKind.OnCommand);
+        HashSet<string> wired = [.. graph.Graph.Connections.Where(c => c.FromNode == node.Id).Select(c => c.FromPin)];
+        PinInfo[] legacy = [.. basis.Outputs.Skip(2).Where(p => wired.Contains(p.Name))];
+        return new NodeInfo(GraphNodeKind.OnCommand, NodeCategory.Event, basis.Title, basis.Description,
+            inputs: basis.Inputs,
+            outputs: [.. basis.Outputs.Take(2), .. legacy, .. command.Parameters.Select(p => new PinInfo(p.PinName, p.Name, p.Type))])
+        {
+            DirectEvent = basis.DirectEvent,
         };
     }
 

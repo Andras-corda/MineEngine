@@ -795,7 +795,8 @@ public sealed class GraphDocumentViewModel : DocumentViewModel, INodeLibraryHost
     /// <summary>Un autre graphe a changé (fonction appelée, classe utilisée...) : nœuds et types à revoir.</summary>
     private void OnRegistryChanged(object? sender, AssetRegistryChangedEventArgs e)
     {
-        if (e.Asset is GraphAsset && !ReferenceEquals(e.Asset, _asset))
+        // A command whose parameters change gives other outputs to its "On command" events.
+        if (e.Asset is GraphAsset or CommandAsset && !ReferenceEquals(e.Asset, _asset))
         {
             ScheduleRefresh();
         }

@@ -100,7 +100,7 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
     public Asset? Find(Guid id) => _byId.GetValueOrDefault(id);
 
     /// <summary>Program definitions of the graphs (functions, classes...), shared and kept until a graph is added or removed.</summary>
-    public ProgramModel Program => _program ??= new ProgramModel(_assets.OfType<GraphAsset>(), _assets.OfType<GlobalVariableAsset>());
+    public ProgramModel Program => _program ??= new ProgramModel(_assets.OfType<GraphAsset>(), _assets.OfType<GlobalVariableAsset>(), _assets.OfType<CommandAsset>());
 
     /// <summary>Asset du même espace d'identifiants que <paramref name="type"/> qui porte cet identifiant.</summary>
     public Asset? FindByResourceId(ResourceId resourceId, AssetType type) =>
@@ -198,7 +198,7 @@ public sealed class AssetRegistry : IReadOnlyCollection<Asset>
     private void OnStructureChanged(Asset asset)
     {
         _referencesTo = null;
-        if (asset is GraphAsset or GlobalVariableAsset)
+        if (asset is GraphAsset or GlobalVariableAsset or CommandAsset)
         {
             _program = null;
             _definitionsVersion++;

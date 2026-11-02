@@ -5,15 +5,37 @@ using MineEngine.Core.Identifiers;
 
 namespace MineEngine.IR.Model;
 
-/// <summary>Command of the mod (V0.6.2); its handlers are the "On command" events naming it.</summary>
+/// <summary>
+/// Command of the mod (V0.6.2); its handlers are the "On command" events naming it, which receive the
+/// value of each parameter. <paramref name="AnySource"/>: command blocks and the console may run it too.
+/// </summary>
 public sealed record IRCommand(
-    Guid SourceAssetId, ResourceId Id, int PermissionLevel, CommandArgumentKind Argument, string ArgumentName, int Minimum, int Maximum, string Feedback);
+    Guid SourceAssetId, ResourceId Id, int PermissionLevel, bool AnySource, IReadOnlyList<CommandParameter> Parameters, string Feedback);
 
 /// <summary>Creative tab (V0.6.2): title, icon and items in order.</summary>
-public sealed record IRCreativeTab(Guid SourceAssetId, ResourceId Id, string Title, NamespacedId? Icon, IReadOnlyList<NamespacedId> Items);
+public sealed record IRCreativeTab(Guid SourceAssetId, ResourceId Id, string Title, NamespacedId? Icon, IReadOnlyList<NamespacedId> Items)
+{
+    /// <summary>A search bar above the items, like the Search tab of the game.</summary>
+    public bool HasSearchBar { get; init; }
+}
 
 /// <summary>Keybind (V0.6.2): name in the Controls screen and default key (GLFW code).</summary>
-public sealed record IRKeybind(Guid SourceAssetId, ResourceId Id, string Name, int KeyCode);
+public sealed record IRKeybind(Guid SourceAssetId, ResourceId Id, string Name, int KeyCode)
+{
+    /// <summary>The default key is a button of the mouse (its GLFW button number).</summary>
+    public bool IsMouse { get; init; }
+
+    /// <summary>Ticks before "On key held" (20 per second).</summary>
+    public int HoldTicks { get; init; } = 20;
+
+    /// <summary>Ticks between two "On key pulse".</summary>
+    public int PulseTicks { get; init; } = 10;
+
+    /// <summary>GLFW code of the key held for "On key combo".</summary>
+    public int ComboCode { get; init; } = 340;
+
+    public bool ComboIsMouse { get; init; }
+}
 
 /// <summary>Enchantment (V0.6.3).</summary>
 public sealed record IREnchantment(

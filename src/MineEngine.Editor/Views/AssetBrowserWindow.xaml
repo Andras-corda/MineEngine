@@ -8,15 +8,16 @@
         ui:WindowHelper.UseModernWindowStyle="True"
         Background="{DynamicResource HubBackgroundBrush}"
         Title="{Binding Title}"
-        Width="820" Height="640" MinWidth="480" MinHeight="380"
+        Width="900" Height="620" MinWidth="520" MinHeight="380"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         FocusManager.FocusedElement="{Binding ElementName=SearchBox}">
 
     <!--
-        Asset browser (V0.6.8, models and Minecraft in V0.6.11): the textures or the 3D models of the
-        project, or those of Minecraft, as tiles. Opened by a double-click on a texture slot or by
-        Browse... of a 3D model. DataContext: AssetBrowserViewModel.
+        Asset selector, like the element selector of MCreator: the textures or the 3D models of the
+        project and of Minecraft as a grid of icons, a filter (origin, folder of the game, format), a
+        search, the import of new files; the tooltip of a tile gives its file name with the extension.
+        Opened by a double-click on a texture slot or by Browse... of a 3D model. DataContext: AssetBrowserViewModel.
     -->
 
     <Window.Resources>
@@ -24,87 +25,123 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/MineEngine.Editor;component/Themes/BaseStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- A tile: just the icon, the selection drawn around it. -->
+            <Style x:Key="TileItem" TargetType="ListBoxItem">
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Margin" Value="1" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="Frame" BorderThickness="2" BorderBrush="Transparent" Background="Transparent" CornerRadius="2">
+                                <ContentPresenter />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Frame" Property="Background" Value="{DynamicResource PreviewBackgroundBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource CardSelectedBorderBrush}" />
+                                    <Setter TargetName="Frame" Property="Background" Value="{DynamicResource PreviewBackgroundBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
 
-    <DockPanel Margin="16">
-        <!-- Search, size of the tiles, import -->
-        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-            <Button DockPanel.Dock="Right" Margin="10,0,0,0" Padding="10,4" Command="{Binding ImportCommand}"
+    <DockPanel>
+        <!-- Import on the left; filter and search on the right -->
+        <DockPanel DockPanel.Dock="Top" Margin="12,12,12,8">
+            <Button DockPanel.Dock="Left" Padding="12,5" Command="{Binding ImportCommand}"
+                    Visibility="{Binding CanImport, Converter={StaticResource BoolToVisibility}}"
                     ToolTip="{l:Tr 'Import files: they become assets of the project'}">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.Import}" />
                     <TextBlock Text="{l:Tr 'Import...'}" />
                 </StackPanel>
             </Button>
-            <Slider DockPanel.Dock="Right" Width="120" Minimum="48" Maximum="192" Value="{Binding TileSize}" VerticalAlignment="Center"
-                    Margin="10,0,0,0" ToolTip="{l:Tr 'Size of the tiles'}" AutomationProperties.Name="{l:Tr 'Size of the tiles'}" />
-            <TextBlock DockPanel.Dock="Right" Text="{Binding CountLabel}" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="12"
-                       Foreground="{DynamicResource HintBrush}" />
-            <!-- Source: the project or Minecraft. -->
-            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center"
-                        Visibility="{Binding CanShowMinecraft, Converter={StaticResource BoolToVisibility}}">
-                <RadioButton Content="{l:Tr 'Project'}" IsChecked="{Binding ShowsProject}" MinWidth="0" Margin="0,0,10,0"
-                             AutomationProperties.AutomationId="SourceProject" />
-                <RadioButton Content="Minecraft" IsChecked="{Binding ShowsMinecraft}" MinWidth="0"
-                             AutomationProperties.AutomationId="SourceMinecraft" />
-            </StackPanel>
-            <Grid>
-                <TextBox x:Name="SearchBox" Padding="28,4,8,4" MinHeight="28" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" />
+            <Grid DockPanel.Dock="Right" Width="260" Margin="8,0,0,0">
+                <TextBox x:Name="SearchBox" Padding="28,4,8,4" MinHeight="30" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{Binding SearchHint}" />
                 <TextBlock FontFamily="{StaticResource IconFont}" Text="{StaticResource Glyph.Search}" FontSize="12" Margin="10,0,0,0"
                            VerticalAlignment="Center" IsHitTestVisible="False" Foreground="{DynamicResource HintBrush}" />
-                <TextBlock Text="{Binding SearchHint}" Margin="29,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                <TextBlock Text="{Binding SearchHint}" Margin="29,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" TextTrimming="CharacterEllipsis"
                            Foreground="{DynamicResource HintBrush}"
                            Visibility="{Binding Text, ElementName=SearchBox, Converter={StaticResource EmptyToVisible}}" />
             </Grid>
+            <ComboBox DockPanel.Dock="Right" MinWidth="190" ItemsSource="{Binding Filters}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                      SelectedValue="{Binding Filter}" ToolTip="{l:Tr 'Origin, folder of the game or format'}"
+                      AutomationProperties.Name="{l:Tr 'Filter'}" />
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                <TextBlock Text="{Binding CountLabel}" FontSize="12" Foreground="{DynamicResource HintBrush}" VerticalAlignment="Center" />
+                <ProgressBar Width="60" Height="4" IsIndeterminate="True" Margin="10,0,0,0" VerticalAlignment="Center"
+                             Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Text="{Binding VanillaMessage}" FontSize="12" Margin="10,0,0,0" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                           Foreground="{DynamicResource HintBrush}" />
+            </StackPanel>
         </DockPanel>
 
-        <!-- Choice -->
-        <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
-            <Button DockPanel.Dock="Right" Content="{l:Tr 'Cancel'}" Padding="14,5" Margin="8,0,0,0" Command="{Binding CancelCommand}" IsCancel="True" />
-            <Button DockPanel.Dock="Right" Style="{DynamicResource AccentButtonStyle}" Content="{l:Tr 'Choose'}" Padding="14,5" Command="{Binding AcceptCommand}"
+        <!-- Select / Cancel -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="12,8,12,12">
+            <Button DockPanel.Dock="Right" Content="{l:Tr 'Cancel'}" Padding="18,5" Margin="8,0,0,0" Command="{Binding CancelCommand}" IsCancel="True" />
+            <Button DockPanel.Dock="Right" Style="{DynamicResource AccentButtonStyle}" Content="{l:Tr 'Select'}" Padding="18,5" Command="{Binding AcceptCommand}"
                     IsDefault="True" />
             <TextBlock Text="{Binding SelectionLabel}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource HintBrush}" />
         </DockPanel>
 
-        <!-- Where the files of Minecraft come from (or why there are none). -->
-        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8" Visibility="{Binding ShowsMinecraft, Converter={StaticResource BoolToVisibility}}">
-            <ProgressBar DockPanel.Dock="Left" Width="80" Height="4" IsIndeterminate="True" Margin="0,0,8,0" VerticalAlignment="Center"
-                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
-            <TextBlock Text="{Binding VanillaMessage}" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource HintBrush}" />
-        </DockPanel>
-
-        <ListBox ItemsSource="{Binding View}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" MouseDoubleClick="OnTileDoubleClick"
-                 AutomationProperties.Name="{Binding Title}">
-            <ListBox.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <views:VirtualizingTilePanel />
-                </ItemsPanelTemplate>
-            </ListBox.ItemsPanel>
-            <ListBox.ItemTemplate>
-                <DataTemplate DataType="{x:Type assets:AssetBrowserItem}">
-                    <StackPanel Width="{Binding DataContext.TileSize, RelativeSource={RelativeSource AncestorType=ListBox}}" Margin="4" ToolTip="{Binding Details}">
-                        <Border Height="{Binding DataContext.TileSize, RelativeSource={RelativeSource AncestorType=ListBox}}" BorderThickness="1"
-                                BorderBrush="{DynamicResource PreviewBorderBrush}" Background="{DynamicResource PreviewBackgroundBrush}">
-                            <Grid>
-                                <Image Source="{Binding Image}" Margin="6"
-                                       RenderOptions.BitmapScalingMode="NearestNeighbor" Stretch="Uniform" />
-                                <TextBlock x:Name="None" Text="∅" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource HintBrush}" Visibility="Collapsed" />
-                            </Grid>
-                        </Border>
-                        <TextBlock Text="{Binding Name}" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" />
-                        <TextBlock Text="{Binding Details}" FontSize="10" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center"
-                                   Foreground="{DynamicResource HintBrush}" />
-                    </StackPanel>
-                    <DataTemplate.Triggers>
-                        <DataTrigger Binding="{Binding IsNone}" Value="True">
-                            <Setter TargetName="None" Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                    </DataTemplate.Triggers>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+        <!-- Grid of icons -->
+        <Border BorderThickness="0,1" BorderBrush="{DynamicResource PreviewBorderBrush}" Background="{DynamicResource PreviewBackgroundBrush}">
+            <ListBox ItemsSource="{Binding View}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0" Padding="6"
+                     ItemContainerStyle="{StaticResource TileItem}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" MouseDoubleClick="OnTileDoubleClick"
+                     AutomationProperties.Name="{Binding Title}">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <views:VirtualizingTilePanel />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type assets:AssetBrowserItem}">
+                        <Grid Width="40" Height="40" Background="Transparent" AutomationProperties.Name="{Binding FileName}">
+                            <Grid.ToolTip>
+                                <StackPanel MaxWidth="360">
+                                    <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding Details}" FontSize="11" Foreground="{DynamicResource HintBrush}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Grid.ToolTip>
+                            <Border Width="32" Height="32" ClipToBounds="True">
+                                <Image Source="{Binding Image}" Stretch="UniformToFill" VerticalAlignment="Top" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                            </Border>
+                            <TextBlock x:Name="None" Text="∅" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource HintBrush}" Visibility="Collapsed" />
+                            <!-- Tag of items -->
+                            <TextBlock x:Name="Tag" Text="#" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource LinkBrush}" Visibility="Collapsed" />
+                            <!-- Format of a model -->
+                            <Border x:Name="Badge" HorizontalAlignment="Right" VerticalAlignment="Bottom" Padding="2,0" CornerRadius="2"
+                                    Background="{DynamicResource AccentLineBrush}" Visibility="Collapsed">
+                                <TextBlock Text="{Binding Badge}" FontSize="8" FontWeight="Bold" Foreground="White" />
+                            </Border>
+                        </Grid>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsNone}" Value="True">
+                                <Setter TargetName="None" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsTag}" Value="True">
+                                <Setter TargetName="Tag" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsModelTile}" Value="True">
+                                <Setter TargetName="Badge" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
     </DockPanel>
 </Window>

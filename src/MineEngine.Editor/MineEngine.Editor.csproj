@@ -30,6 +30,20 @@
     <None Include="Fonts\LICENSE-Roboto.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- Fonds de l'inventaire créatif, pour l'aperçu des onglets créatifs. -->
+  <ItemGroup>
+    <Resource Include="Themes\CreativeInventory\*.png" />
+  </ItemGroup>
+
+  <!--
+    Textures de Minecraft (dossier import-MinecraftContent à la racine du dépôt), copiées à côté de
+    l'application : la fenêtre de choix des assets et les icônes les lisent sans ouvrir le jar du jeu.
+  -->
+  <ItemGroup>
+    <None Include="..\..\import-MinecraftContent\**\*.png;..\..\import-MinecraftContent\**\*.mcmeta"
+          Link="MinecraftContent\textures\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\MineEngine.Core\MineEngine.Core.csproj" />
     <ProjectReference Include="..\MineEngine.Assets\MineEngine.Assets.csproj" />

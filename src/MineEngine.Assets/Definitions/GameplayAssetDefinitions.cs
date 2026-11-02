@@ -22,21 +22,56 @@ public sealed class CommandAssetDefinition : AssetDefinition<CommandAsset>
     protected override void ReadProperties(CommandAsset asset, JsonPropertyReader reader)
     {
         asset.PermissionLevel = reader.GetInt32("permission", 0);
-        asset.Argument = reader.GetEnum("argument", CommandArgumentKind.None);
-        asset.ArgumentName = reader.GetString("argumentName") ?? "value";
-        asset.Minimum = reader.GetInt32("minimum", 0);
-        asset.Maximum = reader.GetInt32("maximum", 100);
+        asset.AnySource = reader.GetBoolean("anySource", false);
         asset.Feedback = reader.GetString("feedback") ?? string.Empty;
+        asset.GraphId = reader.GetGuid("graph");
+        if (reader.GetNode("parameters") is not null)
+        {
+            asset.Parameters =
+            [
+                .. reader.GetObjectList("parameters").Select(p => new CommandParameter(
+                    p.GetGuid("id") ?? Guid.NewGuid(), CommandAsset.CleanName(p.GetString("name") ?? "value"), p.GetEnum("kind", CommandParameterKind.Integer),
+                    p.GetDouble("minimum", 0), p.GetDouble("maximum", 100))),
+            ];
+            return;
+        }
+
+        // Before the parameters (V0.6.2): one optional argument, which becomes the first parameter.
+        CommandParameterKind? kind = reader.GetEnum("argument", CommandArgumentKind.None) switch
+        {
+            CommandArgumentKind.Number => CommandParameterKind.Integer,
+            CommandArgumentKind.Word => CommandParameterKind.Word,
+            CommandArgumentKind.Message => CommandParameterKind.Message,
+            CommandArgumentKind.Player => CommandParameterKind.Player,
+            _ => null,
+        };
+        if (kind is { } argument)
+        {
+            asset.Parameters =
+            [
+                new CommandParameter(Guid.NewGuid(), CommandAsset.CleanName(reader.GetString("argumentName") ?? "value"), argument,
+                    reader.GetInt32("minimum", 0), reader.GetInt32("maximum", 100)),
+            ];
+        }
     }
 
     protected override void WriteProperties(CommandAsset asset, JsonObject properties)
     {
         properties["permission"] = asset.PermissionLevel;
-        properties["argument"] = asset.Argument.ToString();
-        properties["argumentName"] = asset.ArgumentName;
-        properties["minimum"] = asset.Minimum;
-        properties["maximum"] = asset.Maximum;
+        properties["anySource"] = asset.AnySource;
         properties["feedback"] = asset.Feedback;
+        properties["graph"] = asset.GraphId?.ToString("D");
+        properties["parameters"] = new JsonArray(
+        [
+            .. asset.Parameters.Select(p => (JsonNode)new JsonObject
+            {
+                ["id"] = p.Id.ToString("D"),
+                ["name"] = p.Name,
+                ["kind"] = p.Kind.ToString(),
+                ["minimum"] = p.Minimum,
+                ["maximum"] = p.Maximum,
+            }),
+        ]);
     }
 }
 
@@ -57,12 +92,14 @@ public sealed class CreativeTabAssetDefinition : AssetDefinition<CreativeTabAsse
     {
         asset.Icon = reader.GetReference("icon");
         asset.Items = [.. reader.GetReferenceList("items").OfType<ContentReference>()];
+        asset.HasSearchBar = reader.GetBoolean("searchBar", false);
     }
 
     protected override void WriteProperties(CreativeTabAsset asset, JsonObject properties)
     {
         properties["icon"] = asset.Icon?.ToStorageText();
         properties["items"] = new JsonArray([.. asset.Items.Select(i => (JsonNode)JsonValue.Create(i.ToStorageText()))]);
+        properties["searchBar"] = asset.HasSearchBar;
     }
 }
 
@@ -79,11 +116,23 @@ public sealed class KeybindAssetDefinition : AssetDefinition<KeybindAsset>
 
     protected override KeybindAsset Create(Guid id, ResourceId resourceId, string displayName) => new(id, resourceId, displayName);
 
-    protected override void ReadProperties(KeybindAsset asset, JsonPropertyReader reader) =>
+    protected override void ReadProperties(KeybindAsset asset, JsonPropertyReader reader)
+    {
         asset.DefaultKey = reader.GetString("key") ?? "R";
+        asset.HoldSeconds = reader.GetDouble("holdSeconds", 1);
+        asset.PulseSeconds = reader.GetDouble("pulseSeconds", 0.5);
+        asset.ComboKey = reader.GetString("comboKey") ?? "LEFT_SHIFT";
+        asset.GraphId = reader.GetGuid("graph");
+    }
 
-    protected override void WriteProperties(KeybindAsset asset, JsonObject properties) =>
+    protected override void WriteProperties(KeybindAsset asset, JsonObject properties)
+    {
         properties["key"] = asset.DefaultKey;
+        properties["holdSeconds"] = asset.HoldSeconds;
+        properties["pulseSeconds"] = asset.PulseSeconds;
+        properties["comboKey"] = asset.ComboKey;
+        properties["graph"] = asset.GraphId?.ToString("D");
+    }
 }
 
 /// <summary>Enchantment (V0.6.3).</summary>

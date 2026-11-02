@@ -380,6 +380,38 @@ internal static class SampleContent
             Experience = 0.7f,
             CookingTime = 200,
         });
+
+        // Every other station, a group, a tab of the book and the items that unlock a recipe.
+        project.Assets.Add(new RecipeAsset(Guid.NewGuid(), ResourceId.Parse("ruby_from_ore_blasting"), "Rubis au haut fourneau")
+        {
+            Kind = RecipeKind.Blasting, SmeltingInput = ContentReference.ToAsset(rubyOre.Id), Result = rubyRef, CookingTime = 100,
+            Group = "ruby", Category = "blocks", UnlockItems = [ContentReference.ToAsset(rubyOre.Id), ContentReference.ToTag(NamespacedId("minecraft:logs"))],
+        });
+        project.Assets.Add(new RecipeAsset(Guid.NewGuid(), ResourceId.Parse("cooked_beast_smoking"), "Viande fumée")
+        {
+            Kind = RecipeKind.Smoking, SmeltingInput = Id("minecraft:beef"), Result = ContentReference.ToAsset(cookedBeast.Id), Category = "food",
+        });
+        project.Assets.Add(new RecipeAsset(Guid.NewGuid(), ResourceId.Parse("cooked_beast_campfire"), "Viande au feu de camp")
+        {
+            Kind = RecipeKind.CampfireCooking, SmeltingInput = Id("minecraft:beef"), Result = ContentReference.ToAsset(cookedBeast.Id), CookingTime = 600,
+        });
+        project.Assets.Add(new RecipeAsset(Guid.NewGuid(), ResourceId.Parse("stone_bricks_cut"), "Briques taillées")
+        {
+            Kind = RecipeKind.Stonecutting, SmeltingInput = Id("minecraft:stone"), Result = Id("minecraft:stone_bricks"), ResultCount = 2,
+            UnlockItems = [Id("minecraft:stone")],
+        });
+        project.Assets.Add(new RecipeAsset(Guid.NewGuid(), ResourceId.Parse("ruby_sword_upgrade"), "Épée améliorée")
+        {
+            Kind = RecipeKind.Smithing,
+            Grid = [Id("minecraft:netherite_upgrade_smithing_template"), Id("minecraft:diamond_sword"), rubyRef, null, null, null, null, null, null],
+            Result = ContentReference.ToAsset(sword.Id),
+        });
+        project.Assets.Add(new RecipeAsset(Guid.NewGuid(), ResourceId.Parse("stick"), "Bâton (remplace celui du jeu)")
+        {
+            Kind = RecipeKind.Shaped, Namespace = "minecraft", Group = "sticks", Category = "misc",
+            Grid = [ContentReference.ToTag(NamespacedId("minecraft:planks")), null, null, ContentReference.ToTag(NamespacedId("minecraft:planks")), null, null, null, null, null],
+            Result = Id("minecraft:stick"), ResultCount = 8,
+        });
     }
 
     private static TextureAsset AddTexture(ModProject project, string id)

@@ -1,3 +1,4 @@
+using MineEngine.Core.GameData;
 using MineEngine.Core.Identifiers;
 
 namespace MineEngine.IR.Model;
@@ -20,6 +21,19 @@ public abstract class IRRecipe
     public ResourceId Id { get; }
 
     public NamespacedId Result { get; }
+
+    /// <summary>Namespace of the file, place in the recipe book and items that unlock the recipe.</summary>
+    public IRRecipeBook Book { get; init; } = IRRecipeBook.Default;
+}
+
+/// <summary>
+/// Where a recipe goes: <paramref name="Namespace"/> of its file (null for the mod; "minecraft" replaces a
+/// recipe of the game), its <paramref name="Group"/> and <paramref name="Category"/> in the recipe book,
+/// and the items or tags that unlock it when the player gets one (an advancement; empty for none).
+/// </summary>
+public sealed record IRRecipeBook(string? Namespace, string Group, string Category, IReadOnlyList<IRIngredient> UnlockItems)
+{
+    public static IRRecipeBook Default { get; } = new(null, string.Empty, "misc", []);
 }
 
 /// <summary>Établi avec disposition : motif réduit au plus petit rectangle et légende.</summary>
@@ -68,10 +82,46 @@ public sealed class IRSmeltingRecipe : IRRecipe
 
     public IRIngredient Input { get; }
 
+    /// <summary>Station: furnace (Smelting), blast furnace, smoker or campfire.</summary>
+    public RecipeKind Kind { get; init; } = RecipeKind.Smelting;
+
     public float Experience { get; }
 
     /// <summary>Durée de cuisson en ticks.</summary>
     public int CookingTime { get; }
+}
+
+/// <summary>Stonecutter: one ingredient gives the result, in several copies.</summary>
+public sealed class IRStonecuttingRecipe : IRRecipe
+{
+    public IRStonecuttingRecipe(Guid sourceAssetId, ResourceId id, IRIngredient input, NamespacedId result, int count)
+        : base(sourceAssetId, id, result)
+    {
+        Input = input ?? throw new ArgumentNullException(nameof(input));
+        Count = count;
+    }
+
+    public IRIngredient Input { get; }
+
+    public int Count { get; }
+}
+
+/// <summary>Smithing table: a template, a base item and a material give the improved item.</summary>
+public sealed class IRSmithingRecipe : IRRecipe
+{
+    public IRSmithingRecipe(Guid sourceAssetId, ResourceId id, IRIngredient template, IRIngredient @base, IRIngredient addition, NamespacedId result)
+        : base(sourceAssetId, id, result)
+    {
+        Template = template;
+        Base = @base;
+        Addition = addition;
+    }
+
+    public IRIngredient Template { get; }
+
+    public IRIngredient Base { get; }
+
+    public IRIngredient Addition { get; }
 }
 
 /// <summary>Événement sonore du mod et son fichier OGG.</summary>
