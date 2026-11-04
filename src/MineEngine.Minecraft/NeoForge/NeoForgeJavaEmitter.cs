@@ -119,7 +119,8 @@ public sealed class NeoForgeJavaEmitter : ModJavaEmitter
 
     protected override string RegisterKeyMappingsEventType => "net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent";
 
-    protected override string InputEventType => "net.neoforged.neoforge.client.event.InputEvent";
+    protected override (string Import, string TypeName, IReadOnlyList<string> Guard) ClientTickEvent(JavaGameApi api) =>
+        ("net.neoforged.neoforge.client.event.ClientTickEvent", "ClientTickEvent.Post", []);
 
     protected override string ClientSetupEventType => "net.neoforged.fml.event.lifecycle.FMLClientSetupEvent";
 

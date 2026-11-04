@@ -120,6 +120,9 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
 
     public bool HasIcon => IconPath is not null;
 
+    /// <summary>Largest width of the editor tab of the asset; wider for an editor with a preview beside its fields.</summary>
+    public virtual double EditorMaxWidth => 760;
+
     /// <summary>Problèmes de la dernière validation ("OK", "2 avertissements"...).</summary>
     public string IssueLabel => (_errorCount, _warningCount) switch
     {
@@ -188,7 +191,7 @@ public abstract class AssetViewModel : ValidatingObservableObject, IDisposable, 
     /// <summary>Utilisé par WPF pour le nom accessible et la recherche au clavier dans la liste.</summary>
     public override string ToString() => Header;
 
-    public void Dispose() => Model.Changed -= OnModelChanged;
+    public virtual void Dispose() => Model.Changed -= OnModelChanged;
 
     /// <summary>
     /// Appelé quand un autre asset du projet change (ajout, suppression, renommage) :

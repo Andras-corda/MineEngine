@@ -113,13 +113,6 @@ public static class GameDataChoices
         new(BlockDropKind.Table, Tr.T("A drop table")),
     ];
 
-    public static IReadOnlyList<Choice<RecipeKind>> RecipeKinds { get; } =
-    [
-        new(RecipeKind.Shaped, Tr.T("Crafting table, fixed pattern")),
-        new(RecipeKind.Shapeless, Tr.T("Crafting table, free pattern")),
-        new(RecipeKind.Smelting, Tr.T("Furnace")),
-    ];
-
     public static IReadOnlyList<Choice<MobModel>> MobModels { get; } =
     [
         new(MobModel.Zombie, Tr.T("Humanoid (zombie)")),
@@ -137,15 +130,6 @@ public static class GameDataChoices
         new(MobModel.Silverfish, Tr.T("Silverfish")),
         new(MobModel.SnowGolem, Tr.T("Snow Golem")),
         new(MobModel.Custom, Tr.T("3D model (Blockbench)")),
-    ];
-
-    public static IReadOnlyList<Choice<CommandArgumentKind>> CommandArguments { get; } =
-    [
-        new(CommandArgumentKind.None, Tr.T("None")),
-        new(CommandArgumentKind.Number, Tr.T("A whole number")),
-        new(CommandArgumentKind.Word, Tr.T("One word")),
-        new(CommandArgumentKind.Message, Tr.T("A message (the rest of the line)")),
-        new(CommandArgumentKind.Player, Tr.T("A player")),
     ];
 
     public static IReadOnlyList<Choice<int>> PermissionLevels { get; } =

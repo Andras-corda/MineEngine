@@ -155,7 +155,10 @@ public sealed class ForgeJavaEmitter : ModJavaEmitter
 
     protected override string RegisterKeyMappingsEventType => "net.minecraftforge.client.event.RegisterKeyMappingsEvent";
 
-    protected override string InputEventType => "net.minecraftforge.client.event.InputEvent";
+    /// <summary>1.20.1: one event with a phase (the end is kept); 1.21.1: a Post event after the tick.</summary>
+    protected override (string Import, string TypeName, IReadOnlyList<string> Guard) ClientTickEvent(JavaGameApi api) => api.UsesDataComponents
+        ? ("net.minecraftforge.event.TickEvent", "TickEvent.ClientTickEvent.Post", [])
+        : ("net.minecraftforge.event.TickEvent", "TickEvent.ClientTickEvent", ["if (event.phase != TickEvent.Phase.END) {", "    return;", "}"]);
 
     protected override string ClientSetupEventType => "net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent";
 

@@ -538,6 +538,13 @@ public enum GraphNodeKind
     OnGuiSlotChanged,
     GuiComponentRef,
     SetGuiVisible,
+
+    // ----- Triggers of the keybinds: events of a key, sent by the client like "On key pressed" -----
+    OnKeyReleased,
+    OnKeyHeld,
+    OnKeyPulse,
+    OnKeyHoldReleased,
+    OnKeyCombo,
 }
 
 /// <summary>Values offered by a text input of a node, taken from the project (V0.7.7).</summary>

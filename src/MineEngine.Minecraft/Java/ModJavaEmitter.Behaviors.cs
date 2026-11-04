@@ -1,3 +1,4 @@
+using MineEngine.Assets;
 using MineEngine.Assets.Graphs;
 using MineEngine.IR.Model;
 using MineEngine.Minecraft.Generation;
@@ -67,7 +68,10 @@ public abstract partial class ModJavaEmitter
                     { Block: not null } => $"public static void {method}(Level level, BlockPos position, Player player, Entity other, double amount)",
                     { Item: not null } => $"public static void {method}(Player player, Level level, BlockPos position, Entity other, double amount)",
                     { Gui: not null } => $"public static void {method}(Player player, Level level, String text, boolean ticked, ItemStack stack)",
-                    { Event: GraphNodeKind.OnCommand } => $"public static void {method}(Player player, Level level, BlockPos position, int number, String text, Player target)",
+                    { Event: GraphNodeKind.OnCommand } =>
+                        $"public static void {method}(Player player, Level level, BlockPos position, int number, String text, Player target{CommandParameters(context, names, handler, imports)})",
+                    _ when NodeCatalog.Find(handler.Event)?.DirectEvent == Core.GameData.DirectEventKind.Key =>
+                        $"public static void {method}(Player player, Level level, BlockPos position, double seconds, int count)",
                     _ => $"public static void {method}(Player player, Level level, BlockPos position)",
                 });
             }
@@ -129,6 +133,23 @@ public abstract partial class ModJavaEmitter
         }
 
         context.SourceMap.Add(path, 1, w.NextLineNumber - 1, behavior.SourceAssetId, label);
+    }
+
+    /// <summary>", int arg_amount, Vec3 arg_where": the parameters of the command of an "On command" event, after the fixed ones.</summary>
+    private static string CommandParameters(GenerationContext context, JavaProgramNames names, IREventHandler handler, ISet<string> imports)
+    {
+        IRCommand? command = context.Ir.Content.Commands.FirstOrDefault(c => c.Id.Value == handler.Trigger);
+        if (command is null)
+        {
+            return string.Empty;
+        }
+
+        foreach (CommandParameter parameter in command.Parameters)
+        {
+            imports.UnionWith(JavaProgramNames.ImportsFor(parameter.Type));
+        }
+
+        return string.Concat(command.Parameters.Select(p => $", {names.JavaType(p.Type)} {p.PinName}"));
     }
 
     /// <summary>Nom de la méthode Java de chaque réaction ("onRightClickBlock1"...), partagé avec la classe des items.</summary>

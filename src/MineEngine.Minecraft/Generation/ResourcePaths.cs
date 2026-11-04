@@ -14,6 +14,7 @@ public sealed class ResourcePaths
     private readonly string _blockTagFolder;
     private readonly string _itemTagFolder;
     private readonly string _recipeFolder;
+    private readonly string _advancementFolder;
 
     public ResourcePaths(ModId modId, MinecraftVersion minecraftVersion)
     {
@@ -23,6 +24,7 @@ public sealed class ResourcePaths
         _blockTagFolder = minecraftVersion.UsesSingularDataFolders ? "block" : "blocks";
         _itemTagFolder = minecraftVersion.UsesSingularDataFolders ? "item" : "items";
         _recipeFolder = minecraftVersion.UsesSingularDataFolders ? "recipe" : "recipes";
+        _advancementFolder = minecraftVersion.UsesSingularDataFolders ? "advancement" : "advancements";
     }
 
     public string Namespace { get; }
@@ -79,6 +81,13 @@ public sealed class ResourcePaths
     public string EntityLootTable(ResourceId id) => $"{DataRoot}/{_lootTableFolder}/entities/{id}.json";
 
     public string Recipe(ResourceId id) => $"{DataRoot}/{_recipeFolder}/{id}.json";
+
+    /// <summary>Recipe in another namespace ("minecraft" replaces the recipe of the game); null: the mod.</summary>
+    public string Recipe(string? recipeNamespace, ResourceId id) => $"{ResourcesRoot}/data/{recipeNamespace ?? Namespace}/{_recipeFolder}/{id}.json";
+
+    /// <summary>Advancement that unlocks a recipe in the recipe book, like those of the game ("recipes/ruby_block").</summary>
+    public string RecipeAdvancement(string? recipeNamespace, ResourceId id) =>
+        $"{ResourcesRoot}/data/{recipeNamespace ?? Namespace}/{_advancementFolder}/recipes/{id}.json";
 
     /// <summary>Modificateur de biome propre au loader ("forge" ou "neoforge").</summary>
     public string BiomeModifier(string loaderNamespace, string name) =>

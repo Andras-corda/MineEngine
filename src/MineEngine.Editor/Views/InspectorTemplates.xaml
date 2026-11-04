@@ -1,6 +1,7 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:views="clr-namespace:MineEngine.Editor.Views"
+                    xmlns:graphs="clr-namespace:MineEngine.Editor.Views.Graphs"
                     xmlns:l="clr-namespace:MineEngine.Editor.Localization"
                     xmlns:ui="http://schemas.modernwpf.com/2019"
                     xmlns:assets="clr-namespace:MineEngine.Editor.ViewModels.Assets">
@@ -1670,111 +1671,412 @@
 
     <!-- ===================== Commande (V0.6.2) ===================== -->
     <DataTemplate DataType="{x:Type assets:CommandAssetViewModel}">
-        <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+        <StackPanel>
             <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
-            <StackPanel Style="{StaticResource TabContent}">
-                <TextBlock Style="{StaticResource StackedLabel}" Text="{l:Tr 'Typed in the chat'}" />
-                <!-- The name of the command is its identifier: it is typed here (validated when the field is left). -->
-                <DockPanel Margin="0,2,0,2">
-                    <TextBlock DockPanel.Dock="Left" Text="/" FontFamily="Consolas" FontSize="15" VerticalAlignment="Center" Margin="0,0,4,0" />
-                    <TextBox FontFamily="Consolas" Text="{Binding CommandName, UpdateSourceTrigger=LostFocus, ValidatesOnNotifyDataErrors=True}"
-                             ToolTip="{Binding ResourceIdRule}" />
-                </DockPanel>
-                <TextBlock Style="{StaticResource FieldHint}" Margin="0,0,0,8" Text="{Binding Usage, StringFormat={l:Tr 'The player types: {0}'}}" />
-                <WrapPanel Style="{StaticResource Row}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Graph'}" />
-                    <TextBlock VerticalAlignment="Center" Margin="0,0,10,0" MaxWidth="260" TextWrapping="Wrap" Text="{Binding GraphsLabel}" />
-                    <Button Command="{Binding OpenGraphCommand}" Padding="10,4">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource IconGlyph}" Text="{StaticResource Glyph.NewItem}" />
-                            <TextBlock x:Name="GraphButton" Text="{l:Tr 'Create its graph'}" />
-                        </StackPanel>
-                    </Button>
-                </WrapPanel>
-                <WrapPanel Style="{StaticResource Row}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Who can run it'}" />
-                    <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding PermissionChoices}" SelectedValue="{Binding PermissionLevel}" />
-                </WrapPanel>
-                <WrapPanel Style="{StaticResource Row}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Argument'}" />
-                    <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding ArgumentChoices}" SelectedValue="{Binding Argument}" />
-                </WrapPanel>
-                <StackPanel Visibility="{Binding HasArgument, Converter={StaticResource BoolToVisibility}}">
-                    <WrapPanel Style="{StaticResource Row}">
-                        <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Name of the argument'}" />
-                        <TextBox Width="230" Text="{Binding ArgumentName, UpdateSourceTrigger=LostFocus}" />
-                    </WrapPanel>
-                    <StackPanel Visibility="{Binding IsNumberArgument, Converter={StaticResource BoolToVisibility}}">
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Minimum'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" SmallChange="1" Value="{Binding Minimum, UpdateSourceTrigger=PropertyChanged}" />
+            <views:SideBySidePanel FirstMinWidth="500" Gap="16" FillSecond="True" Margin="0,8,0,0">
+                <!-- La commande et ses paramètres -->
+                <Border Width="500" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="14" CornerRadius="6" BorderThickness="1"
+                        Background="{DynamicResource PreviewBackgroundBrush}" BorderBrush="{DynamicResource PreviewBorderBrush}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="{l:Tr 'Name without /'}" Width="150" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding CommandName, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" FontFamily="Consolas"
+                                     AutomationProperties.Name="{l:Tr 'Name without /'}" />
+                        </DockPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="{l:Tr 'Who runs it'}" Width="150" VerticalAlignment="Center" />
+                            <ComboBox ItemsSource="{Binding SourceChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding AnySource}"
+                                      HorizontalAlignment="Stretch" AutomationProperties.Name="{l:Tr 'Who runs it'}"
+                                      ToolTip="{l:Tr 'From a command block or the console, the player of the event is empty and the position is the one of the source.'}" />
+                        </DockPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="{l:Tr 'Required level'}" Width="150" VerticalAlignment="Center" />
+                            <ComboBox ItemsSource="{Binding PermissionChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding PermissionLevel}"
+                                      HorizontalAlignment="Stretch" AutomationProperties.Name="{l:Tr 'Required level'}" />
+                        </DockPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="{l:Tr 'Message'}" Width="150" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding Feedback, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="{l:Tr 'Message'}"
+                                     ToolTip="{l:Tr 'Sent to the player once the command has run; empty for none.'}" />
+                        </DockPanel>
+                        <TextBlock Text="{Binding Usage}" FontFamily="Consolas" Foreground="{DynamicResource LinkBrush}" Margin="0,2,0,10" TextWrapping="Wrap" />
+                        <Border Height="2" Background="{DynamicResource PreviewBorderBrush}" Margin="0,0,0,10" />
+
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Parameters'}" Margin="0,0,0,6" />
+                        <ItemsControl ItemsSource="{Binding Parameters}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type assets:CommandParameterViewModel}">
+                                    <Border views:RowReorder.IsRow="True" Margin="0,2" Padding="6,5" CornerRadius="4" BorderThickness="1"
+                                            Background="{DynamicResource HubBackgroundBrush}" BorderBrush="{DynamicResource PreviewBorderBrush}">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <TextBlock DockPanel.Dock="Left" views:RowReorder.IsHandle="True" Text="⠿" FontSize="16" Cursor="SizeAll" Width="20"
+                                                           VerticalAlignment="Center" Foreground="{DynamicResource HintBrush}" Background="Transparent"
+                                                           ToolTip="{l:Tr 'Drag to move the parameter.'}" />
+                                                <TextBlock DockPanel.Dock="Left" Text="{Binding Order}" Width="20" VerticalAlignment="Center" />
+                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                    <Button Style="{StaticResource ToolButton}" Width="30" MinWidth="0" Padding="0" Content="▲" Command="{Binding MoveUpCommand}" ToolTip="{l:Tr 'Move up'}" />
+                                                    <Button Style="{StaticResource ToolButton}" Width="30" MinWidth="0" Padding="0" Content="▼" Command="{Binding MoveDownCommand}" ToolTip="{l:Tr 'Move down'}" />
+                                                    <Button Style="{StaticResource ToolButton}" Width="30" MinWidth="0" Padding="0" Content="✕" Command="{Binding RemoveCommand}" ToolTip="{l:Tr 'Remove'}"
+                                                            AutomationProperties.Name="{l:Tr 'Remove'}" />
+                                                </StackPanel>
+                                                <ComboBox DockPanel.Dock="Right" Width="190" Margin="6,0" ItemsSource="{x:Static assets:CommandParameterViewModel.KindChoices}"
+                                                          DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Kind}"
+                                                          AutomationProperties.Name="{l:Tr 'Kind of the parameter'}" />
+                                                <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus}" FontFamily="Consolas" VerticalAlignment="Center"
+                                                         AutomationProperties.Name="{l:Tr 'Name of the parameter'}" />
+                                            </DockPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="40,4,0,0" Visibility="{Binding IsNumber, Converter={StaticResource BoolToVisibility}}">
+                                                <TextBlock Text="{l:Tr 'Minimum'}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                                <ui:NumberBox Width="110" Value="{Binding Minimum, UpdateSourceTrigger=LostFocus}" SpinButtonPlacementMode="Compact" />
+                                                <TextBlock Text="{l:Tr 'Maximum'}" VerticalAlignment="Center" Margin="12,0,6,0" />
+                                                <ui:NumberBox Width="110" Value="{Binding Maximum, UpdateSourceTrigger=LostFocus}" SpinButtonPlacementMode="Compact" />
+                                            </StackPanel>
+                                            <TextBlock Style="{StaticResource FieldHint}" Margin="40,3,0,0" Text="{Binding Example}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,4" Text="{l:Tr 'No parameter: the command is typed alone.'}"
+                                   Visibility="{Binding HasParameters, Converter={StaticResource InverseBoolToVisibility}}" />
+                        <WrapPanel Margin="0,6,0,0">
+                            <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Add a parameter'}" Command="{Binding AddParameterCommand}" />
+                            <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Add the event to the graph'}" Command="{Binding AddEventCommand}"
+                                    ToolTip="{l:Tr 'Adds the event On command of this command to the graph beside: it gives the value of each parameter.'}" />
                         </WrapPanel>
-                        <WrapPanel Style="{StaticResource Row}">
-                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Maximum'}" />
-                            <ui:NumberBox Style="{StaticResource RowNumber}" SmallChange="1" Value="{Binding Maximum, UpdateSourceTrigger=PropertyChanged}" />
-                        </WrapPanel>
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,8,0,0" TextWrapping="Wrap" Text="{Binding GraphsLabel}" />
                     </StackPanel>
-                </StackPanel>
-                <TextBlock Style="{StaticResource StackedLabel}" Text="{l:Tr 'Message sent back to the player'}" Margin="0,8,0,2" />
-                <TextBox Text="{Binding Feedback, UpdateSourceTrigger=LostFocus}" />
-                <TextBlock Style="{StaticResource FieldHint}" Margin="0,8,0,0" TextWrapping="Wrap"
-                           Text="{l:Tr 'What the command does is written in an event graph, with the event &quot;On command&quot; and the identifier of the command. It gives the player, the number or text typed, and the target player.'}" />
-            </StackPanel>
+                </Border>
+
+                <!-- Le graphe des événements de la commande -->
+                <ContentControl Content="{Binding EventGraph}" MinWidth="420" Focusable="False" />
+            </views:SideBySidePanel>
         </StackPanel>
-        <DataTemplate.Triggers>
-            <DataTrigger Binding="{Binding HasGraph}" Value="True">
-                <Setter TargetName="GraphButton" Property="Text" Value="{l:Tr 'Open its graph'}" />
-            </DataTrigger>
-        </DataTemplate.Triggers>
     </DataTemplate>
 
     <!-- ===================== Onglet créatif (V0.6.2) ===================== -->
+    <!-- Image d'un item : le haut d'une texture animée (bande verticale), en pixels nets. -->
+    <Style x:Key="ItemIconImage" TargetType="Image">
+        <Setter Property="Stretch" Value="UniformToFill" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="RenderOptions.BitmapScalingMode" Value="NearestNeighbor" />
+    </Style>
+
+    <!-- Fonds de l'inventaire créatif (195 × 136 pixels utiles), embarqués dans l'éditeur -->
+    <CroppedBitmap x:Key="CreativeItemsBackground" SourceRect="0,0,195,136"
+                   Source="/MineEngine.Editor;component/Themes/CreativeInventory/tab_items.png" />
+    <CroppedBitmap x:Key="CreativeSearchBackground" SourceRect="0,0,195,136"
+                   Source="/MineEngine.Editor;component/Themes/CreativeInventory/tab_item_search.png" />
+
     <DataTemplate DataType="{x:Type assets:CreativeTabAssetViewModel}">
-        <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+        <StackPanel>
             <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
             <StackPanel Style="{StaticResource TabContent}">
-                <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'The name of the element is the title of the tab.'}" />
-                <WrapPanel Style="{StaticResource Row}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Icon'}" />
-                    <ContentControl Style="{StaticResource RowPicker}" Content="{Binding Icon}" />
-                </WrapPanel>
-                <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Items of the tab'}" Margin="0,10,0,4" />
-                <ItemsControl ItemsSource="{Binding Items}" Focusable="False">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <DockPanel Margin="0,2">
-                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                    <Button Style="{StaticResource ToolButton}" Content="▲" Command="{Binding MoveUpCommand}" ToolTip="{l:Tr 'Move up'}" />
-                                    <Button Style="{StaticResource ToolButton}" Content="▼" Command="{Binding MoveDownCommand}" ToolTip="{l:Tr 'Move down'}" />
-                                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Remove'}" Command="{Binding RemoveCommand}" />
-                                </StackPanel>
-                                <ContentControl Content="{Binding Picker}" Focusable="False" HorizontalContentAlignment="Stretch" Margin="0,0,6,0" />
-                            </DockPanel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <WrapPanel Margin="0,6">
-                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Add an item'}" Command="{Binding AddItemCommand}" />
-                    <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Add all the items of the mod'}" Command="{Binding AddAllModItemsCommand}" />
-                </WrapPanel>
-                <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap"
-                           Text="{l:Tr 'Items of the mod or of Minecraft (minecraft:diamond), in this order. The mod also keeps its own tab with all its items.'}" />
+                <views:SideBySidePanel FirstMinWidth="600" Gap="20">
+                    <!-- Propriétés et contenu de l'onglet -->
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'The name of the element is the title of the tab.'}" />
+                        <WrapPanel Style="{StaticResource Row}">
+                            <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Icon'}" />
+                            <ContentControl Style="{StaticResource RowPicker}" Content="{Binding Icon}" />
+                        </WrapPanel>
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Has a search bar'}" Margin="0,4"
+                                  IsChecked="{Binding HasSearchBar}" ToolTip="{l:Tr 'A search field above the items, like the Search tab of the game.'}" />
+
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Contains'}" Margin="0,12,0,4" />
+                        <Border BorderBrush="{DynamicResource PreviewBorderBrush}" BorderThickness="1" Background="{DynamicResource PreviewBackgroundBrush}" Padding="4">
+                            <StackPanel>
+                                <!-- En-têtes des colonnes -->
+                                <Grid Margin="4,0,4,4" TextElement.Foreground="{DynamicResource HintBrush}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="22" />
+                                        <ColumnDefinition Width="32" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="72" />
+                                        <ColumnDefinition Width="36" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="1" Text="#" />
+                                    <TextBlock Grid.Column="2" Text="{l:Tr 'Name'}" />
+                                    <TextBlock Grid.Column="3" Text="{l:Tr 'Identifier'}" />
+                                    <TextBlock Grid.Column="4" Text="{l:Tr 'Type'}" />
+                                    <TextBlock Grid.Column="5" Text="{l:Tr 'Icon'}" />
+                                    <!-- Réserve la place des boutons des lignes -->
+                                    <StackPanel Grid.Column="6" Orientation="Horizontal" Visibility="Hidden">
+                                        <Button Style="{StaticResource ToolButton}" Width="30" MinWidth="0" Padding="0" Content="▲" />
+                                        <Button Style="{StaticResource ToolButton}" Width="30" MinWidth="0" Padding="0" Content="▼" />
+                                        <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Remove'}" />
+                                    </StackPanel>
+                                </Grid>
+                                <ItemsControl ItemsSource="{Binding Items}" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border views:RowReorder.IsRow="True" Margin="0,1" Padding="4,2" Background="{DynamicResource HubBackgroundBrush}"
+                                                    BorderBrush="{DynamicResource PreviewBorderBrush}" BorderThickness="1">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="22" />
+                                                        <ColumnDefinition Width="32" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="200" />
+                                                        <ColumnDefinition Width="72" />
+                                                        <ColumnDefinition Width="36" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" views:RowReorder.IsHandle="True" Text="⠿" FontSize="16" Cursor="SizeAll"
+                                                               VerticalAlignment="Center" Foreground="{DynamicResource HintBrush}" Background="Transparent"
+                                                               ToolTip="{l:Tr 'Drag to move the item in the tab.'}" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Order}" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="2" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,6,0" />
+                                                    <ContentControl Grid.Column="3" Content="{Binding Picker}" Focusable="False" HorizontalContentAlignment="Stretch" Margin="0,0,6,0" />
+                                                    <TextBlock Grid.Column="4" Text="{Binding TypeLabel}" VerticalAlignment="Center" Foreground="{DynamicResource HintBrush}" />
+                                                    <Grid Grid.Column="5" Width="24" Height="24" ClipToBounds="True" HorizontalAlignment="Left"
+                                                          ToolTip="{l:Tr 'Image of the texture of the item, or of Minecraft; ? when there is none.'}">
+                                                        <Image Style="{StaticResource ItemIconImage}" Source="{Binding IconPath, Converter={StaticResource FilePathToImage}}" />
+                                                        <TextBlock Text="?" Foreground="{DynamicResource HintBrush}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                   Visibility="{Binding ShowsPlaceholder, Converter={StaticResource BoolToVisibility}}" />
+                                                    </Grid>
+                                                    <StackPanel Grid.Column="6" Orientation="Horizontal">
+                                                        <Button Style="{StaticResource ToolButton}" Width="30" MinWidth="0" Padding="0" Content="▲" Command="{Binding MoveUpCommand}" ToolTip="{l:Tr 'Move up'}" />
+                                                        <Button Style="{StaticResource ToolButton}" Width="30" MinWidth="0" Padding="0" Content="▼" Command="{Binding MoveDownCommand}" ToolTip="{l:Tr 'Move down'}" />
+                                                        <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Remove'}" Command="{Binding RemoveCommand}" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Style="{StaticResource FieldHint}" Margin="4,6" Text="{l:Tr 'The tab is empty: add items to it.'}"
+                                           Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+                        </Border>
+                        <WrapPanel Margin="0,6">
+                            <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Add an item'}" Command="{Binding AddItemCommand}" />
+                            <Button Style="{StaticResource ToolButton}" Content="{l:Tr 'Add all the items of the mod'}" Command="{Binding AddAllModItemsCommand}" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap"
+                                   Text="{l:Tr 'Items of the mod or of Minecraft (minecraft:diamond), in this order. The mod also keeps its own tab with all its items.'}" />
+                    </StackPanel>
+
+                    <!-- Aperçu de l'onglet dans l'inventaire créatif -->
+                    <StackPanel Width="392" HorizontalAlignment="Left">
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Preview'}" Margin="0,0,0,4" />
+                        <!-- Inventaire créatif à l'échelle 2 (unités : pixels de la texture) : fond embarqué, onglets et poignée dessinés -->
+                        <Canvas Width="195" Height="164" HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="NearestNeighbor" SnapsToDevicePixels="True">
+                            <Canvas.LayoutTransform>
+                                <ScaleTransform ScaleX="2" ScaleY="2" />
+                            </Canvas.LayoutTransform>
+                            <!-- Onglets non sélectionnés, derrière le fond -->
+                            <Border Canvas.Left="27" Canvas.Top="2" Width="26" Height="28" Background="#8B8B8B" BorderBrush="#000000" BorderThickness="1,1,1,0">
+                                <Border BorderBrush="#A8A8A8" BorderThickness="1,1,0,0" />
+                            </Border>
+                            <Border Canvas.Left="54" Canvas.Top="2" Width="26" Height="28" Background="#8B8B8B" BorderBrush="#000000" BorderThickness="1,1,1,0">
+                                <Border BorderBrush="#A8A8A8" BorderThickness="1,1,0,0" />
+                            </Border>
+                            <Image Canvas.Left="0" Canvas.Top="28" Width="195" Height="136" Stretch="None">
+                                <Image.Style>
+                                    <Style TargetType="Image">
+                                        <Setter Property="Source" Value="{StaticResource CreativeItemsBackground}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasSearchBar}" Value="True">
+                                                <Setter Property="Source" Value="{StaticResource CreativeSearchBackground}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Image.Style>
+                            </Image>
+                            <!-- Onglet de l'élément, sélectionné : il se fond dans le panneau -->
+                            <Border Canvas.Left="0" Canvas.Top="0" Width="26" Height="32" Background="#C6C6C6" BorderBrush="#000000" BorderThickness="1,1,1,0" ToolTip="{Binding PreviewTitle}">
+                                <Grid>
+                                    <Border BorderBrush="#FFFFFF" BorderThickness="1,1,0,0" Margin="0,0,1,0" />
+                                    <Border BorderBrush="#555555" BorderThickness="0,0,1,0" />
+                                    <Border Width="16" Height="16" Margin="0,8,0,0" VerticalAlignment="Top" ClipToBounds="True" IsHitTestVisible="False">
+                                        <Image Style="{StaticResource ItemIconImage}" Source="{Binding TabIconPath, Converter={StaticResource FilePathToImage}}" />
+                                    </Border>
+                                </Grid>
+                            </Border>
+                            <TextBlock Canvas.Left="8" Canvas.Top="33" Text="{Binding PreviewTitle}" Foreground="#404040" FontSize="8" MaxWidth="70" TextTrimming="CharacterEllipsis" />
+                            <ScrollViewer Canvas.Left="9" Canvas.Top="46" Width="162" Height="90" VerticalScrollBarVisibility="Hidden" Focusable="False">
+                                <ItemsControl ItemsSource="{Binding Items}" Focusable="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel ItemWidth="18" ItemHeight="18" Width="162" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Width="16" Height="16" HorizontalAlignment="Left" VerticalAlignment="Top" ClipToBounds="True"
+                                                  Background="Transparent" ToolTip="{Binding Name}">
+                                                <Image Style="{StaticResource ItemIconImage}" Source="{Binding IconPath, Converter={StaticResource FilePathToImage}}" />
+                                                <TextBlock Text="?" FontSize="10" FontWeight="Bold" Foreground="#404040" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           Visibility="{Binding ShowsPlaceholder, Converter={StaticResource BoolToVisibility}}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                            <!-- Poignée de la barre de défilement -->
+                            <Border Canvas.Left="175" Canvas.Top="46" Width="12" Height="15" Background="#C6C6C6" BorderBrush="#000000" BorderThickness="1">
+                                <Grid>
+                                    <Border BorderBrush="#FFFFFF" BorderThickness="1,1,0,0" />
+                                    <Border BorderBrush="#555555" BorderThickness="0,0,1,1" />
+                                </Grid>
+                            </Border>
+                        </Canvas>
+
+                        <!-- Zone de dépôt des éléments : prévue pour une prochaine version -->
+                        <Grid Margin="0,12,0,0" Height="150">
+                            <Rectangle Stroke="{DynamicResource PreviewBorderBrush}" StrokeThickness="1.5" StrokeDashArray="4 3" RadiusX="4" RadiusY="4" />
+                            <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16"
+                                       Text="{l:Tr 'Drag and drop elements here: coming in a later version.'}" />
+                        </Grid>
+                    </StackPanel>
+                </views:SideBySidePanel>
             </StackPanel>
         </StackPanel>
     </DataTemplate>
 
+    <!-- Graphe d'événements d'un élément (touche, commande), édité dans son éditeur -->
+    <DataTemplate DataType="{x:Type assets:OwnedEventGraph}">
+        <Border MinWidth="420" Height="760" VerticalAlignment="Top" CornerRadius="6" BorderThickness="1" ClipToBounds="True"
+                Background="{DynamicResource PreviewBackgroundBrush}" BorderBrush="{DynamicResource PreviewBorderBrush}">
+            <Grid>
+                <DockPanel Visibility="{Binding HasGraph, Converter={StaticResource BoolToVisibility}}">
+                    <DockPanel DockPanel.Dock="Top" Margin="10,6">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Content="{l:Tr 'Show in the Dashboard'}" Command="{Binding ShowCommand}" />
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{Binding Graph.FileName}" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <graphs:GraphDocumentView DataContext="{Binding Graph}" />
+                </DockPanel>
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="360"
+                            Visibility="{Binding HasGraph, Converter={StaticResource InverseBoolToVisibility}}">
+                    <TextBlock Style="{StaticResource FieldHint}" TextAlignment="Center" TextWrapping="Wrap" FontSize="13"
+                               Text="{l:Tr 'The events of this element go in its graph, edited here.'}" />
+                    <Button Style="{DynamicResource AccentButtonStyle}" Content="{Binding CreateLabel}" Command="{Binding CreateCommand}"
+                            HorizontalAlignment="Center" Margin="0,12,0,0" Padding="14,6" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </DataTemplate>
+
     <!-- ===================== Touche (V0.6.2) ===================== -->
+    <!-- Bouton qui lit la prochaine touche du clavier ou bouton de la souris (comme Unreal). -->
+    <Style x:Key="KeyCapture" TargetType="views:KeyCaptureButton">
+        <Setter Property="MinWidth" Value="130" />
+        <Setter Property="Padding" Value="10,5" />
+        <Setter Property="Margin" Value="6,0,0,0" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="views:KeyCaptureButton">
+                    <Border x:Name="Frame" Background="#7A2323" BorderBrush="#A33A3A" BorderThickness="1" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <TextBlock x:Name="Label" Text="{l:Tr 'Press to choose'}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Frame" Property="Background" Value="#8E2B2B" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Frame" Property="Background" Value="{DynamicResource AccentLineBrush}" />
+                            <Setter TargetName="Label" Property="Text" Value="{l:Tr 'Press a key or a button...'}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Frame" Property="BorderBrush" Value="White" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="ToolTip" Value="{l:Tr 'Click, then press the key of the keyboard or the button of the mouse to use (Escape: cancel).'}" />
+    </Style>
+
     <DataTemplate DataType="{x:Type assets:KeybindAssetViewModel}">
-        <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+        <StackPanel>
             <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
-            <StackPanel Style="{StaticResource TabContent}">
-                <WrapPanel Style="{StaticResource Row}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Default key'}" />
-                    <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding KeyChoices}" SelectedValue="{Binding DefaultKey}" />
-                </WrapPanel>
-                <TextBlock Style="{StaticResource FieldHint}" Margin="0,8,0,0" TextWrapping="Wrap"
-                           Text="{l:Tr 'Players can change the key in Options > Controls, where it is listed with the name of the element under the name of the mod. Pressing it runs the event &quot;On key pressed&quot; of the event graphs, on the server.'}" />
-            </StackPanel>
+            <views:SideBySidePanel FirstMinWidth="430" Gap="16" FillSecond="True" Margin="0,8,0,0">
+                <!-- La touche et ses déclencheurs -->
+                <Border Width="430" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="14" CornerRadius="6" BorderThickness="1"
+                        Background="{DynamicResource PreviewBackgroundBrush}" BorderBrush="{DynamicResource PreviewBorderBrush}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="{l:Tr 'Key of the keybind'}" Width="70" VerticalAlignment="Center" FontSize="15" />
+                            <views:KeyCaptureButton DockPanel.Dock="Right" Style="{StaticResource KeyCapture}" KeyName="{Binding DefaultKey}"
+                                                    AutomationProperties.Name="{l:Tr 'Press to choose'}" />
+                            <ComboBox ItemsSource="{Binding KeyChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding DefaultKey}"
+                                      HorizontalAlignment="Stretch" AutomationProperties.Name="{l:Tr 'Default key'}" />
+                        </DockPanel>
+                        <DockPanel Margin="0,0,0,12">
+                            <TextBlock Text="{l:Tr 'Name'}" Width="70" VerticalAlignment="Center" FontSize="15" />
+                            <TextBox Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:Tr 'Name'}"
+                                     ToolTip="{l:Tr 'Name of the key in Options > Controls.'}" />
+                        </DockPanel>
+                        <Border Height="2" Background="{DynamicResource PreviewBorderBrush}" Margin="0,0,0,10" />
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Triggers'}" Margin="0,0,0,6" />
+                        <ItemsControl ItemsSource="{Binding Triggers}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type assets:KeyTriggerViewModel}">
+                                    <Border Margin="0,3" Padding="10,8" CornerRadius="4" BorderThickness="1"
+                                            Background="{DynamicResource HubBackgroundBrush}" BorderBrush="{DynamicResource PreviewBorderBrush}">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Content="{l:Tr 'Add to the graph'}" Command="{Binding AddCommand}"
+                                                        ToolTip="{l:Tr 'Adds this event of the key to the graph beside.'}" />
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                            </DockPanel>
+                                            <TextBlock Text="{Binding UsageLabel}" FontSize="11" Margin="0,1,0,0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource HintBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsUsed}" Value="True">
+                                                                <Setter Property="Foreground" Value="{DynamicResource LinkBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource FieldHint}" Text="{Binding Description}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                            <!-- Réglage du déclencheur, porté par la touche -->
+                                            <DockPanel Margin="0,6,0,0" Visibility="{Binding UsesHoldTime, Converter={StaticResource BoolToVisibility}}">
+                                                <TextBlock Text="{l:Tr 'Hold time (seconds)'}" Width="215" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                                <ui:NumberBox Minimum="{Binding DataContext.MinSeconds, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                              Maximum="{Binding DataContext.MaxSeconds, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                              SmallChange="0.05" SpinButtonPlacementMode="Inline"
+                                                              Value="{Binding DataContext.HoldSeconds, RelativeSource={RelativeSource AncestorType=ItemsControl}, UpdateSourceTrigger=PropertyChanged}" />
+                                            </DockPanel>
+                                            <DockPanel Margin="0,6,0,0" Visibility="{Binding UsesPulse, Converter={StaticResource BoolToVisibility}}">
+                                                <TextBlock Text="{l:Tr 'Pulse interval (seconds)'}" Width="215" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                                <ui:NumberBox Minimum="{Binding DataContext.MinSeconds, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                              Maximum="{Binding DataContext.MaxSeconds, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                              SmallChange="0.05" SpinButtonPlacementMode="Inline"
+                                                              Value="{Binding DataContext.PulseSeconds, RelativeSource={RelativeSource AncestorType=ItemsControl}, UpdateSourceTrigger=PropertyChanged}" />
+                                            </DockPanel>
+                                            <DockPanel Margin="0,6,0,0" Visibility="{Binding UsesCombo, Converter={StaticResource BoolToVisibility}}">
+                                                <TextBlock Text="{l:Tr 'Combo key'}" Width="100" VerticalAlignment="Center" />
+                                                <views:KeyCaptureButton DockPanel.Dock="Right" Style="{StaticResource KeyCapture}" MinWidth="110"
+                                                                        KeyName="{Binding DataContext.ComboKey, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                        AutomationProperties.Name="{l:Tr 'Combo key'}" />
+                                                <ComboBox ItemsSource="{Binding DataContext.KeyChoices, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                          DisplayMemberPath="Label" SelectedValuePath="Value"
+                                                          SelectedValue="{Binding DataContext.ComboKey, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                          HorizontalAlignment="Stretch" AutomationProperties.Name="{l:Tr 'Combo key'}" />
+                                            </DockPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,10,0,0" TextWrapping="Wrap"
+                                   Text="{l:Tr 'Players can change the key in Options > Controls, where it is listed with the name of the element under the name of the mod. Its events run on the server.'}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Le graphe des événements de la touche -->
+                <ContentControl Content="{Binding EventGraph}" MinWidth="420" Focusable="False" />
+            </views:SideBySidePanel>
         </StackPanel>
     </DataTemplate>
 
@@ -2297,64 +2599,163 @@
     </DataTemplate>
 
     <!-- ===================== Recette ===================== -->
+    <!-- Case de l'aperçu d'une recette, aux couleurs du jeu : double-clic pour choisir (fenêtre de choix des assets). -->
+    <DataTemplate x:Key="RecipeSlot" DataType="{x:Type assets:RecipeSlotViewModel}">
+        <Border Width="52" Height="52" BorderBrush="#373737" BorderThickness="2,2,0,0" Background="Transparent" Cursor="Hand" Focusable="True"
+                ToolTip="{Binding ToolTip}" AutomationProperties.Name="{Binding ToolTip}">
+            <Border.InputBindings>
+                <MouseBinding Gesture="LeftDoubleClick" Command="{Binding BrowseCommand}" />
+                <KeyBinding Key="Enter" Command="{Binding BrowseCommand}" />
+                <KeyBinding Key="Delete" Command="{Binding ClearCommand}" />
+            </Border.InputBindings>
+            <Border.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="{l:Tr 'Choose...'}" Command="{Binding BrowseCommand}" />
+                    <MenuItem Header="{l:Tr 'Empty the slot'}" Command="{Binding ClearCommand}" />
+                </ContextMenu>
+            </Border.ContextMenu>
+            <Border Background="#8B8B8B" BorderBrush="#FFFFFF" BorderThickness="0,0,2,2">
+                <Grid Width="36" Height="36" ClipToBounds="True">
+                    <Image Style="{StaticResource ItemIconImage}" Source="{Binding IconPath, Converter={StaticResource FilePathToImage}}" />
+                    <TextBlock Text="#" FontSize="22" FontWeight="Bold" Foreground="#2B4D8C" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Visibility="{Binding IsTag, Converter={StaticResource BoolToVisibility}}" />
+                    <TextBlock Text="?" FontSize="20" FontWeight="Bold" Foreground="#404040" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Visibility="{Binding ShowsPlaceholder, Converter={StaticResource BoolToVisibility}}" />
+                </Grid>
+            </Border>
+        </Border>
+    </DataTemplate>
+
+    <!-- Flèche de l'interface du jeu, entre les ingrédients et le résultat -->
+    <DataTemplate x:Key="RecipeArrow">
+        <TextBlock Text="➜" FontSize="34" Foreground="#8B8B8B" VerticalAlignment="Center" Margin="18,0" />
+    </DataTemplate>
+
     <DataTemplate DataType="{x:Type assets:RecipeAssetViewModel}">
-        <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+        <StackPanel>
             <ContentControl Content="{Binding}" ContentTemplate="{DynamicResource CommonAssetFields}" Focusable="False" />
-            <WrapPanel Style="{StaticResource Row}">
-                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Type'}" />
-                <ComboBox Style="{StaticResource RowCombo}" ItemsSource="{Binding KindChoices}" SelectedValue="{Binding Kind}" />
-            </WrapPanel>
+            <views:SideBySidePanel FirstMinWidth="440" Gap="16" FillSecond="True" Margin="0,8,0,0">
+                <!-- Réglages de la recette -->
+                <Border Width="440" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="14" CornerRadius="6" BorderThickness="1"
+                        Background="{DynamicResource PreviewBackgroundBrush}" BorderBrush="{DynamicResource PreviewBorderBrush}">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="{l:Tr 'Type'}" Width="150" VerticalAlignment="Center" />
+                            <ComboBox ItemsSource="{Binding StationChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Station}"
+                                      HorizontalAlignment="Stretch" AutomationProperties.Name="{l:Tr 'Type'}" />
+                        </DockPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="{l:Tr 'Registry name'}" Width="150" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding RegistryName, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" FontFamily="Consolas"
+                                     AutomationProperties.Name="{l:Tr 'Registry name'}" ToolTip="{l:Tr 'Name of the file of the recipe.'}" />
+                        </DockPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="{l:Tr 'Group name'}" Width="150" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding Group, UpdateSourceTrigger=LostFocus}" FontFamily="Consolas" AutomationProperties.Name="{l:Tr 'Group name'}"
+                                     ToolTip="{l:Tr 'Recipes of the same group are shown as one in the recipe book (like the wooden doors); empty for none.'}" />
+                        </DockPanel>
+                        <DockPanel Margin="0,0,0,2">
+                            <TextBlock Text="{l:Tr 'Namespace'}" Width="150" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding Namespace, UpdateSourceTrigger=LostFocus}" FontFamily="Consolas" AutomationProperties.Name="{l:Tr 'Namespace'}" />
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="150,0,0,8" TextWrapping="Wrap"
+                                   Text="{l:Tr 'Empty: the mod. minecraft: replaces the recipe of the game with the same name.'}" />
+                        <TextBlock Text="{Binding FullName}" FontFamily="Consolas" Foreground="{DynamicResource LinkBrush}" Margin="150,0,0,8" />
+                        <DockPanel Margin="0,0,0,8" Visibility="{Binding HasCategory, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{l:Tr 'Book category'}" Width="150" VerticalAlignment="Center" />
+                            <ComboBox ItemsSource="{Binding CategoryChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Category}"
+                                      HorizontalAlignment="Stretch" AutomationProperties.Name="{l:Tr 'Book category'}" />
+                        </DockPanel>
+                        <CheckBox Style="{StaticResource WrapCheck}" Content="{l:Tr 'Is shapeless (ingredients in any order)'}" Margin="0,2,0,8"
+                                  IsChecked="{Binding IsShapeless}" Visibility="{Binding IsCrafting, Converter={StaticResource BoolToVisibility}}" />
+                        <StackPanel Visibility="{Binding IsCooking, Converter={StaticResource BoolToVisibility}}">
+                            <DockPanel Margin="0,0,0,8">
+                                <TextBlock Text="{l:Tr 'Experience'}" Width="150" VerticalAlignment="Center" />
+                                <ui:NumberBox Minimum="0" Maximum="100" SmallChange="0.1" SpinButtonPlacementMode="Inline"
+                                              Value="{Binding Experience, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:Tr 'Experience'}" />
+                            </DockPanel>
+                            <DockPanel Margin="0,0,0,8">
+                                <TextBlock Text="{l:Tr 'Cooking time (seconds)'}" Width="150" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                <ui:NumberBox Minimum="0.05" Maximum="3600" SmallChange="0.5" SpinButtonPlacementMode="Inline"
+                                              Value="{Binding CookingSeconds, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:Tr 'Cooking time (seconds)'}" />
+                            </DockPanel>
+                        </StackPanel>
 
-            <StackPanel Visibility="{Binding IsCrafting, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Crafting grid'}" Margin="0,12,0,4" />
-                <ItemsControl ItemsSource="{Binding GridSlots}" Focusable="False" MaxWidth="330" HorizontalAlignment="Left">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <UniformGrid Columns="3" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type assets:ReferencePickerViewModel}">
-                            <ContentControl Content="{Binding}" Margin="2" Focusable="False" FontSize="11"
-                                            HorizontalContentAlignment="Stretch" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0" Text="{Binding GridHint}" />
-                <TextBlock Style="{StaticResource FieldHint}" Margin="0,2,0,0"
-                           Text="{l:Tr 'A slot accepts an item from the project (&quot;ruby&quot;), from Minecraft (&quot;minecraft:stick&quot;) or a tag (&quot;#minecraft:planks&quot;).'}" />
-            </StackPanel>
+                        <Border Height="2" Background="{DynamicResource PreviewBorderBrush}" Margin="0,4,0,10" />
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Need items to unlock'}" Margin="0,0,0,2" />
+                        <TextBlock Style="{StaticResource FieldHint}" TextWrapping="Wrap" Margin="0,0,0,6"
+                                   Text="{l:Tr 'The recipe appears in the recipe book as soon as the player gets one of these items (or an item of a tag).'}" />
+                        <ItemsControl ItemsSource="{Binding UnlockItems}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type assets:RecipeSlotViewModel}">
+                                    <DockPanel Margin="0,2">
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Width="30" MinWidth="0" Padding="0" Content="✕"
+                                                Command="{Binding ClearCommand}" ToolTip="{l:Tr 'Remove'}" AutomationProperties.Name="{l:Tr 'Remove'}" />
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Content="{l:Tr 'Choose...'}" Command="{Binding BrowseCommand}" />
+                                        <Grid Width="28" Height="28" ClipToBounds="True" Margin="0,0,8,0">
+                                            <Image Style="{StaticResource ItemIconImage}" Source="{Binding IconPath, Converter={StaticResource FilePathToImage}}" />
+                                            <TextBlock Text="#" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource LinkBrush}"
+                                                       Visibility="{Binding IsTag, Converter={StaticResource BoolToVisibility}}" />
+                                        </Grid>
+                                        <TextBlock Text="{Binding Text}" FontFamily="Consolas" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,2" Text="{l:Tr 'None: the recipe appears once it has been crafted.'}"
+                                   Visibility="{Binding HasUnlockItems, Converter={StaticResource InverseBoolToVisibility}}" />
+                        <Button Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Margin="0,6,0,0" Content="{l:Tr 'Add an item or a tag...'}"
+                                Command="{Binding AddUnlockItemCommand}" />
+                    </StackPanel>
+                </Border>
 
-            <StackPanel Visibility="{Binding IsSmelting, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Furnace'}" Margin="0,12,0,4" />
-                <WrapPanel Style="{StaticResource Row}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Ingredient to smelt'}" />
-                    <ContentControl Style="{StaticResource RowPicker}" Content="{Binding SmeltingInput}" />
-                </WrapPanel>
-                <WrapPanel Style="{StaticResource Row}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Duration (seconds)'}" />
-                    <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0.05" Maximum="3600" SmallChange="1"
-                                  Value="{Binding CookingSeconds, UpdateSourceTrigger=PropertyChanged}" />
-                </WrapPanel>
-                <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Furnace: 10 seconds for most recipes.'}" />
-                <WrapPanel Style="{StaticResource Row}">
-                    <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Experience'}" />
-                    <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="0" Maximum="100" SmallChange="0.1"
-                                  Value="{Binding Experience, UpdateSourceTrigger=PropertyChanged}" />
-                </WrapPanel>
-                <TextBlock Style="{StaticResource RowHint}" Text="{l:Tr 'Iron ingot: 0.7; diamond: 1.'}" />
-            </StackPanel>
-
-            <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Result'}" Margin="0,12,0,4" />
-            <WrapPanel Style="{StaticResource Row}">
-                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Result item'}" />
-                <ContentControl Style="{StaticResource RowPicker}" Content="{Binding Result}" />
-            </WrapPanel>
-            <WrapPanel Style="{StaticResource Row}" Visibility="{Binding IsCrafting, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Style="{StaticResource RowLabel}" Text="{l:Tr 'Quantity'}" />
-                <ui:NumberBox Style="{StaticResource RowNumber}" Minimum="1" Maximum="{Binding MaxResultCount}" SmallChange="1"
-                              Value="{Binding ResultCount, UpdateSourceTrigger=PropertyChanged}" />
-            </WrapPanel>
+                <!-- Aperçu de la station du jeu -->
+                <Border MinWidth="420" VerticalAlignment="Top" CornerRadius="6" BorderThickness="1" Padding="16"
+                        Background="{DynamicResource PreviewBackgroundBrush}" BorderBrush="{DynamicResource PreviewBorderBrush}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="{l:Tr 'Preview'}" Margin="0,0,0,10" />
+                        <Border HorizontalAlignment="Center" Background="#C6C6C6" BorderBrush="#555555" BorderThickness="2" Padding="18" CornerRadius="3">
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Établi : grille 3 x 3 -->
+                                <ItemsControl ItemsSource="{Binding GridSlots}" ItemTemplate="{StaticResource RecipeSlot}" Focusable="False" VerticalAlignment="Center"
+                                              Visibility="{Binding IsCrafting, Converter={StaticResource BoolToVisibility}}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="3" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                                <!-- Table de forgeron : modèle, objet, matériau -->
+                                <ItemsControl ItemsSource="{Binding SmithingSlots}" ItemTemplate="{StaticResource RecipeSlot}" Focusable="False" VerticalAlignment="Center"
+                                              Visibility="{Binding IsSmithing, Converter={StaticResource BoolToVisibility}}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                                <!-- Cuisson et tailleur de pierre : un ingrédient (et la flamme d'une cuisson) -->
+                                <StackPanel VerticalAlignment="Center" Visibility="{Binding HasSingleInput, Converter={StaticResource BoolToVisibility}}">
+                                    <ContentControl Content="{Binding InputSlot}" ContentTemplate="{StaticResource RecipeSlot}" Focusable="False" />
+                                    <TextBlock Text="🔥" FontSize="26" HorizontalAlignment="Center" Margin="0,6,0,0"
+                                               Visibility="{Binding IsCooking, Converter={StaticResource BoolToVisibility}}" />
+                                </StackPanel>
+                                <ContentControl ContentTemplate="{StaticResource RecipeArrow}" Focusable="False" VerticalAlignment="Center" />
+                                <!-- Résultat et sa quantité -->
+                                <StackPanel VerticalAlignment="Center">
+                                    <ContentControl Content="{Binding ResultSlot}" ContentTemplate="{StaticResource RecipeSlot}" Focusable="False" />
+                                    <ui:NumberBox Width="96" Margin="0,8,0,0" Minimum="1" Maximum="{Binding MaxResultCount}" SmallChange="1" SpinButtonPlacementMode="Compact"
+                                                  Value="{Binding ResultCount, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{l:Tr 'Result count'}"
+                                                  ToolTip="{l:Tr 'Result count'}" Visibility="{Binding HasResultCount, Converter={StaticResource BoolToVisibility}}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,12,0,0" TextAlignment="Center" TextWrapping="Wrap" Text="{Binding GridHint}" />
+                        <TextBlock Style="{StaticResource FieldHint}" Margin="0,4,0,0" TextAlignment="Center" TextWrapping="Wrap"
+                                   Text="{l:Tr 'Double-click a slot to choose its item in the asset selector; right-click to empty it.'}" />
+                    </StackPanel>
+                </Border>
+            </views:SideBySidePanel>
         </StackPanel>
     </DataTemplate>
 

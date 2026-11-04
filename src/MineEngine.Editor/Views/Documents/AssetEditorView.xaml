@@ -23,7 +23,7 @@
     </UserControl.Resources>
 
     <ScrollViewer Background="{DynamicResource HubBackgroundBrush}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="28,20,28,28" MaxWidth="760" HorizontalAlignment="Center">
+        <StackPanel Margin="28,20,28,28" MaxWidth="{Binding Asset.EditorMaxWidth, FallbackValue=760}" HorizontalAlignment="Center">
             <!-- Editor of the asset (name and identifier are edited in the Inspector) -->
             <ContentControl Content="{Binding Asset}" Focusable="False" />
         </StackPanel>

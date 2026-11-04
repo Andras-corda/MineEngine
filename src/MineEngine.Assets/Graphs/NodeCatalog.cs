@@ -165,6 +165,18 @@ public static class NodeCatalog
             Tr.T("A player presses a keybind of the mod (outside menus). Runs on the server."),
             inputs: [new PinInfo("key", Tr.T("Keybind (identifier)"), PinType.Text, string.Empty, Connectable: false)],
             outputs: [Player, new PinInfo("position", Tr.T("Player position"), PinType.Position)]) { DirectEvent = DirectEventKind.Key },
+        KeyEvent(GraphNodeKind.OnKeyReleased, Tr.T("On key released"),
+            Tr.T("A player releases a keybind of the mod. Gives how long it was held."), HeldSeconds),
+        KeyEvent(GraphNodeKind.OnKeyHeld, Tr.T("On key held"),
+            Tr.T("A player has held a keybind of the mod for its hold time (set on the keybind), once per press.")),
+        KeyEvent(GraphNodeKind.OnKeyPulse, Tr.T("On key pulse"),
+            Tr.T("Repeats while a player holds a keybind of the mod, at its pulse interval (set on the keybind), like an automatic fire. Gives the number of the pulse."),
+            new PinInfo("count", Tr.T("Pulse number"), PinType.Number)),
+        KeyEvent(GraphNodeKind.OnKeyHoldReleased, Tr.T("On key held then released"),
+            Tr.T("A player releases a keybind of the mod after holding it for at least its hold time, like a charged attack. Gives how long it was held."),
+            HeldSeconds),
+        KeyEvent(GraphNodeKind.OnKeyCombo, Tr.T("On key combo"),
+            Tr.T("A player presses a keybind of the mod while holding its combo key (set on the keybind), like Shift + R.")),
 
         // ----- Conditions -----
         new(GraphNodeKind.Branch, NodeCategory.Condition, Tr.T("If"),
@@ -968,6 +980,21 @@ public static class NodeCatalog
     private static PinInfo SparkleSystem => new("system", Tr.T("System (identifier)"), PinType.Text, "new_sparkle") { Suggest = PinSuggestion.SparkleSystem };
 
     private static PinInfo SparkleParameter => new("parameter", Tr.T("Parameter"), PinType.Text, "Parameter 1") { Suggest = PinSuggestion.SparkleParameter };
+
+    private static PinInfo HeldSeconds => new("seconds", Tr.T("Held time (seconds)"), DataType.Decimal);
+
+    /// <summary>Trigger of a keybind: its identifier as a field, the player and its position, and the values of the trigger.</summary>
+    private static NodeInfo KeyEvent(GraphNodeKind kind, string title, string description, params PinInfo[] values) =>
+        new(kind, NodeCategory.Event, title, description,
+            inputs: [new PinInfo("key", Tr.T("Keybind (identifier)"), PinType.Text, string.Empty, Connectable: false)],
+            outputs: [Player, new PinInfo("position", Tr.T("Player position"), PinType.Position), .. values]) { DirectEvent = DirectEventKind.Key };
+
+    /// <summary>Events of a keybind, in the order of its editor.</summary>
+    public static IReadOnlyList<GraphNodeKind> KeyEvents { get; } =
+    [
+        GraphNodeKind.OnKeyPressed, GraphNodeKind.OnKeyReleased, GraphNodeKind.OnKeyHeld,
+        GraphNodeKind.OnKeyPulse, GraphNodeKind.OnKeyHoldReleased, GraphNodeKind.OnKeyCombo,
+    ];
 
     private static PinInfo TextOut => new("text", Tr.T("Text"), PinType.Text);
 

@@ -201,7 +201,7 @@ public sealed class GraphTests
         var diagnostics = new DiagnosticBag();
         ModIR ir = ModIRBuilder.CreateDefault().Build(reopened, diagnostics)!;
         Assert.True(ir is not null, string.Join('\n', diagnostics));
-        Assert.Equal(20, ir.Content.Behaviors.Count); // With the event graphs of LibrarySample, GlobalsSample, TypesSample, ScopesSample, WorldSample, CameraSample, SparkleSample, EntitySample, BlockBaseSample, ItemSample, DamageSample, LootSample and GuiSample (2).
+        Assert.Equal(21, ir.Content.Behaviors.Count); // With the event graphs of LibrarySample, GlobalsSample, TypesSample, ScopesSample, WorldSample, CameraSample, SparkleSample, EntitySample, BlockBaseSample, ItemSample, DamageSample, LootSample, GuiSample (2) and the commands of GameplaySample.
     }
 
     [Fact]

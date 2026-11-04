@@ -82,7 +82,7 @@ public sealed class WorkspaceTests
         Assert.Equal(23, summary.Count(AssetType.Item)); // With the 8 items of ItemSample (V0.7.12) and the rune book of GuiSample.
         Assert.Equal(22, summary.Count(AssetType.Block)); // With the 4 blocks of BlockOptionsSample, the 10 of BlockBaseSample, the rune vault of LootSample and the rune table block of GuiSample.
         Assert.Equal(10, summary.Count(AssetType.Mob)); // With the 4 mobs of EntitySample (V0.7.9) and the rune keeper of GuiSample.
-        Assert.Equal(3, summary.Count(AssetType.Recipe));
+        Assert.Equal(9, summary.Count(AssetType.Recipe)); // With the stations and the recipe book of the recipes (V0.8.x).
         Assert.Equal(2, summary.PreviewTextures.Count);
 
         Assert.Null(ProjectSummary.TryRead(Path.Combine(temp.Path, "absent"), new ProjectSettingsSerializer()));

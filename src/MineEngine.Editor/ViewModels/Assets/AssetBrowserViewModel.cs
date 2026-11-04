@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
@@ -7,6 +6,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using MineEngine.Assets;
 using MineEngine.Assets.Commands;
+using MineEngine.Core.Assets;
 using MineEngine.Core.Commands;
 using MineEngine.Editor.Mvvm;
 using MineEngine.Project;
@@ -19,6 +19,9 @@ public enum AssetBrowserKind
 {
     Texture,
     Model,
+
+    /// <summary>An item or a block with an item form, of the project or of Minecraft, or a tag of items.</summary>
+    Item,
 }
 
 /// <summary>
@@ -27,9 +30,26 @@ public enum AssetBrowserKind
 /// </summary>
 public sealed record AssetBrowserItem(Guid Id, string Name, string? PreviewPath, string Details, string Folder, VanillaAsset? Vanilla = null)
 {
-    public bool IsNone => Id == Guid.Empty && Vanilla is null;
+    public bool IsNone => Id == Guid.Empty && Vanilla is null && Reference is null;
+
+    /// <summary>Item of Minecraft or tag chosen by an item tile ("minecraft:diamond", "#minecraft:planks").</summary>
+    public ContentReference? Reference { get; init; }
+
+    /// <summary>A tag of items: shown with "#" instead of an image.</summary>
+    public bool IsTag => Reference?.Kind == ContentReferenceKind.Tag;
 
     public bool IsVanilla => Vanilla is not null;
+
+    /// <summary>Name with the extension of the file, shown by the tooltip ("ruby.png", "minecraft:block/stone.json").</summary>
+    public string FileName { get; init; } = Name;
+
+    /// <summary>Format of a model ("JSON", "OBJ"...), shown on its tile; empty for a texture.</summary>
+    public string Badge { get; init; } = string.Empty;
+
+    public bool IsModelTile => Badge.Length > 0;
+
+    /// <summary>Keys of the filters that keep the tile ("project", "minecraft", "mc:block", "format:Obj"...).</summary>
+    public IReadOnlyList<string> Filters { get; init; } = [];
 
     /// <summary>Preview decoded in advance (in the background for the files of Minecraft), or null.</summary>
     public System.Windows.Media.ImageSource? Image { get; init; }
@@ -62,29 +82,61 @@ public sealed record AssetBrowserItem(Guid Id, string Name, string? PreviewPath,
         }
     }
 
-    /// <summary>Files of Minecraft the asset comes from (a model is read from it when it is chosen).</summary>
+    /// <summary>Files of Minecraft a model comes from (it is read from them when it is chosen).</summary>
     public VanillaAssetLibrary? Library { get; init; }
 }
 
 /// <summary>
-/// Window that shows the textures or the 3D models as a grid of tiles (double-click on a texture
-/// slot, Browse... of a 3D model), with a search, the size of the tiles, the import of new files,
-/// and those of Minecraft itself: a texture or a model of the game is copied into the project
-/// (folder "Minecraft") when it is chosen. Choosing a tile gives <see cref="Result"/>.
+/// Window that shows the textures or the 3D models as a grid of icons, like the element selector
+/// of MCreator: those of the project and those of Minecraft together, a filter (origin, folder of
+/// the game or format), a search, the import of new files and the name of each file in its tooltip.
+/// The textures of Minecraft are shipped with the editor (<see cref="MinecraftTextures"/>); its
+/// models are read from the jar of the game. A texture or a model of the game is copied into the
+/// project (folder "Minecraft") when it is chosen. Choosing a tile gives <see cref="Result"/>.
 /// </summary>
 public sealed class AssetBrowserViewModel : ObservableObject
 {
+    private const string All = "all";
+    private const string ProjectFilter = "project";
+    private const string MinecraftFilter = "minecraft";
+    private const string TagFilter = "tags";
+
+    /// <summary>Tags of items of the game offered for an ingredient, with those of the project.</summary>
+    private static readonly string[] VanillaItemTags =
+    [
+        "minecraft:planks", "minecraft:logs", "minecraft:wool", "minecraft:coals", "minecraft:stone_crafting_materials",
+        "minecraft:stone_tool_materials", "minecraft:wooden_slabs", "minecraft:sand", "minecraft:leaves", "minecraft:saplings",
+        "minecraft:small_flowers", "minecraft:fishes", "minecraft:arrows", "minecraft:beds", "minecraft:candles",
+    ];
+
+    /// <summary>Faces and states of block textures that are not items ("oak_log_top", "furnace_front_on"...).</summary>
+    private static readonly string[] BlockFaceSuffixes =
+    [
+        "_top", "_bottom", "_side", "_front", "_back", "_end", "_inner", "_outer", "_on", "_off", "_particle", "_open", "_still", "_flow",
+        "_overlay", "_lit", "_stage0", "_stage1", "_stage2", "_stage3", "_stage4", "_stage5", "_stage6", "_stage7", "_bloom", "_moist",
+    ];
+
+    /// <summary>Tiles of the shipped textures, decoded once for the whole session.</summary>
+    private static Task<List<AssetBrowserItem>>? _shippedTextures;
+
+    /// <summary>Items of Minecraft, guessed from the shipped textures: item/*, and block/* without the faces.</summary>
+    private static Task<List<AssetBrowserItem>>? _shippedItems;
+
     private readonly AssetEditingContext _context;
     private readonly string _emptyLabel;
     private readonly bool _entityModels;
+    private readonly List<AssetBrowserItem> _projectItems = [];
     private readonly List<AssetBrowserItem> _vanillaItems = [];
     private string _search = string.Empty;
+    private string _filter = All;
     private AssetBrowserItem? _selected;
-    private double _tileSize = 96;
-    private bool _showsMinecraft;
     private bool _isLoading;
     private string? _vanillaMessage;
     private Guid? _result;
+    private ContentReference? _referenceResult;
+    private readonly ContentReference? _currentReference;
+    private readonly bool _allowTags;
+    private ICollectionView _view;
 
     /// <param name="entityModels">Models for a mob: only Blockbench models (the models of Minecraft are not offered).</param>
     public AssetBrowserViewModel(AssetEditingContext context, AssetBrowserKind kind, Guid? current, string slotLabel, string emptyLabel, bool entityModels = false)
@@ -94,11 +146,34 @@ public sealed class AssetBrowserViewModel : ObservableObject
         _emptyLabel = emptyLabel;
         _entityModels = entityModels;
         Title = kind == AssetBrowserKind.Texture ? Tr.F("Choose a texture: {0}", slotLabel) : Tr.F("Choose a 3D model: {0}", slotLabel);
-        View = new ListCollectionView(Items) { Filter = Matches };
+        _view = new ListCollectionView(new List<AssetBrowserItem>());
         ImportCommand = new RelayCommand(Import);
         AcceptCommand = new RelayCommand(Accept, () => _selected is not null);
         CancelCommand = new RelayCommand(() => CloseRequested?.Invoke(this, false));
+        Filters = [.. BuildFilters()];
         Reload(current ?? Guid.Empty);
+        if (!_entityModels)
+        {
+            LoadVanilla();
+        }
+    }
+
+    /// <summary>Chooses an item (a recipe slot...): of the project, of Minecraft or, with <paramref name="allowTags"/>, a tag of items.</summary>
+    public AssetBrowserViewModel(AssetEditingContext context, ContentReference? current, string slotLabel, string emptyLabel, bool allowTags)
+    {
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+        Kind = AssetBrowserKind.Item;
+        _emptyLabel = emptyLabel;
+        _currentReference = current;
+        _allowTags = allowTags;
+        Title = Tr.F("Choose an item: {0}", slotLabel);
+        _view = new ListCollectionView(new List<AssetBrowserItem>());
+        ImportCommand = new RelayCommand(() => { }, () => false);
+        AcceptCommand = new RelayCommand(Accept, () => _selected is not null);
+        CancelCommand = new RelayCommand(() => CloseRequested?.Invoke(this, false));
+        Filters = [.. BuildFilters()];
+        Reload(Guid.Empty);
+        LoadVanilla();
     }
 
     /// <summary>The window closes (true: the selected asset is chosen).</summary>
@@ -110,9 +185,30 @@ public sealed class AssetBrowserViewModel : ObservableObject
 
     public string Title { get; }
 
-    public ObservableCollection<AssetBrowserItem> Items { get; } = [];
+    /// <summary>Every tile, the filter and the search aside: the project first, then Minecraft.</summary>
+    public IReadOnlyList<AssetBrowserItem> Items { get; private set; } = [];
 
-    public ICollectionView View { get; }
+    /// <summary>The tiles shown (filter and search applied).</summary>
+    public ICollectionView View
+    {
+        get => _view;
+        private set => SetProperty(ref _view, value);
+    }
+
+    /// <summary>Choices of the filter: everything, the project, Minecraft, then its folders (textures) or the formats (models).</summary>
+    public IReadOnlyList<Choice<string>> Filters { get; }
+
+    public string Filter
+    {
+        get => _filter;
+        set
+        {
+            if (SetProperty(ref _filter, value ?? All))
+            {
+                Refresh();
+            }
+        }
+    }
 
     public string Search
     {
@@ -121,13 +217,20 @@ public sealed class AssetBrowserViewModel : ObservableObject
         {
             if (SetProperty(ref _search, value ?? string.Empty))
             {
-                View.Refresh();
-                OnPropertyChanged(nameof(CountLabel));
+                Refresh();
             }
         }
     }
 
-    public string SearchHint => Kind == AssetBrowserKind.Texture ? Tr.T("Search a texture (name or folder)...") : Tr.T("Search a 3D model (name or folder)...");
+    public string SearchHint => Kind switch
+    {
+        AssetBrowserKind.Texture => Tr.T("Search a texture (name or folder)..."),
+        AssetBrowserKind.Item => Tr.T("Search an item or a tag..."),
+        _ => Tr.T("Search a 3D model (name or folder)..."),
+    };
+
+    /// <summary>Files can be imported (textures, models; not items).</summary>
+    public bool CanImport => Kind != AssetBrowserKind.Item;
 
     public AssetBrowserItem? Selected
     {
@@ -142,68 +245,45 @@ public sealed class AssetBrowserViewModel : ObservableObject
         }
     }
 
-    /// <summary>Width of the tiles (48 to 192 pixels).</summary>
-    public double TileSize
-    {
-        get => _tileSize;
-        set => SetProperty(ref _tileSize, Math.Clamp(value, 48, 192));
-    }
-
-    /// <summary>The tiles show the assets of Minecraft instead of those of the project.</summary>
-    public bool ShowsMinecraft
-    {
-        get => _showsMinecraft;
-        set
-        {
-            if (SetProperty(ref _showsMinecraft, value))
-            {
-                OnPropertyChanged(nameof(ShowsProject));
-                if (value && _vanillaItems.Count == 0)
-                {
-                    LoadVanilla();
-                }
-
-                Fill();
-            }
-        }
-    }
-
-    public bool ShowsProject
-    {
-        get => !_showsMinecraft;
-        set => ShowsMinecraft = !value;
-    }
-
-    /// <summary>Minecraft can be browsed (not for the model of a mob).</summary>
-    public bool CanShowMinecraft => !_entityModels;
-
     public bool IsLoading
     {
         get => _isLoading;
         private set => SetProperty(ref _isLoading, value);
     }
 
-    /// <summary>Where the files of Minecraft come from, or why there are none.</summary>
+    /// <summary>Where the models of Minecraft come from, or why there are none.</summary>
     public string? VanillaMessage
     {
         get => _vanillaMessage;
         private set => SetProperty(ref _vanillaMessage, value);
     }
 
-    public string CountLabel => Kind == AssetBrowserKind.Texture
-        ? Tr.F("{0} texture(s)", View.Cast<AssetBrowserItem>().Count(i => !i.IsNone))
-        : Tr.F("{0} model(s)", View.Cast<AssetBrowserItem>().Count(i => !i.IsNone));
+    public string CountLabel => Kind switch
+    {
+        AssetBrowserKind.Texture => Tr.F("{0} texture(s)", View.Cast<AssetBrowserItem>().Count(i => !i.IsNone)),
+        AssetBrowserKind.Item => Tr.F("{0} item(s)", View.Cast<AssetBrowserItem>().Count(i => !i.IsNone)),
+        _ => Tr.F("{0} model(s)", View.Cast<AssetBrowserItem>().Count(i => !i.IsNone)),
+    };
 
     public string SelectionLabel => _selected switch
     {
-        null => Kind == AssetBrowserKind.Texture ? Tr.T("Click a texture, then Choose (or double-click it).") : Tr.T("Click a model, then Choose (or double-click it)."),
+        null => Kind switch
+        {
+            AssetBrowserKind.Texture => Tr.T("Click a texture, then Select (or double-click it)."),
+            AssetBrowserKind.Item => Tr.T("Click an item, then Select (or double-click it)."),
+            _ => Tr.T("Click a model, then Select (or double-click it)."),
+        },
+        { Reference: not null } item => item.FileName,
         { IsNone: true } => _emptyLabel,
-        { IsVanilla: true } item => Tr.F("{0} · Minecraft: copied into the project when chosen", item.Vanilla!.Reference),
-        { } item => $"{item.Name} · {item.Details}",
+        { IsVanilla: true } item => Tr.F("{0} · Minecraft: copied into the project when chosen", item.FileName),
+        { } item => $"{item.FileName} · {item.Details}",
     };
 
     /// <summary>The asset chosen (a texture or a model of the project): null for the empty choice.</summary>
     public Guid? Result => _result;
+
+    /// <summary>The item or tag chosen by an item browser: null for the empty choice.</summary>
+    public ContentReference? ReferenceResult => _referenceResult;
 
     public ICommand ImportCommand { get; }
 
@@ -211,19 +291,90 @@ public sealed class AssetBrowserViewModel : ObservableObject
 
     public ICommand CancelCommand { get; }
 
-    private readonly List<AssetBrowserItem> _projectItems = [];
+    private IEnumerable<Choice<string>> BuildFilters()
+    {
+        yield return new Choice<string>(All, Tr.T("All"));
+        yield return new Choice<string>(ProjectFilter, Tr.T("Elements of the project"));
+        if (_entityModels)
+        {
+            yield break;
+        }
+
+        yield return new Choice<string>(MinecraftFilter, "Minecraft");
+        if (Kind == AssetBrowserKind.Item)
+        {
+            yield return new Choice<string>("mc:item", "Minecraft · item");
+            yield return new Choice<string>("mc:block", "Minecraft · block");
+            if (_allowTags)
+            {
+                yield return new Choice<string>(TagFilter, Tr.T("Tags"));
+            }
+        }
+        else if (Kind == AssetBrowserKind.Texture)
+        {
+            foreach (string folder in MinecraftTextures.All.Select(MinecraftTextures.TopFolder).Where(f => f.Length > 0).Distinct().Order(StringComparer.Ordinal))
+            {
+                yield return new Choice<string>("mc:" + folder, "Minecraft · " + folder);
+            }
+        }
+        else
+        {
+            foreach (ModelFormat format in Enum.GetValues<ModelFormat>())
+            {
+                yield return new Choice<string>("format:" + format, ModelFormats.Label(format));
+            }
+        }
+    }
 
     private void Reload(Guid selected)
     {
         _projectItems.Clear();
-        _projectItems.Add(new AssetBrowserItem(Guid.Empty, _emptyLabel, null, string.Empty, string.Empty));
-        if (Kind == AssetBrowserKind.Texture)
+        _projectItems.Add(new AssetBrowserItem(Guid.Empty, _emptyLabel, null, string.Empty, string.Empty) { FileName = _emptyLabel });
+        if (Kind == AssetBrowserKind.Item)
+        {
+            foreach (Core.Assets.Asset asset in _context.Project.Assets.Where(a => a is ItemAsset or BlockAsset { HasItemForm: true }).OrderBy(a => a.ResourceId))
+            {
+                ContentReference reference = ContentReference.ToAsset(asset.Id);
+                string? icon = ItemIcons.ProjectFile(_context.Project, reference);
+                _projectItems.Add(new AssetBrowserItem(asset.Id, asset.ResourceId.Value, icon, Details(asset is BlockAsset ? Tr.T("Block") : Tr.T("Item"), asset.Id), asset.Folder)
+                {
+                    FileName = $"{_context.Project.Settings.ModId}:{asset.ResourceId}",
+                    Filters = [ProjectFilter],
+                    Image = AssetBrowserItem.LoadImage(icon),
+                });
+            }
+
+            if (_allowTags)
+            {
+                IEnumerable<string> tags = _context.Project.Assets.OfType<TagAsset>().Where(t => t.Registry == TagRegistry.Items)
+                    .Select(t => t.Reference(_context.Project.Settings.ModId.Value).TrimStart('#'))
+                    .Concat(VanillaItemTags).Distinct().Order(StringComparer.Ordinal);
+                foreach (string tag in tags)
+                {
+                    if (Core.Identifiers.NamespacedId.TryParse(tag, out Core.Identifiers.NamespacedId? id))
+                    {
+                        _projectItems.Add(new AssetBrowserItem(Guid.Empty, tag, null, Tr.T("Tag of items: any of its items"), "tags")
+                        {
+                            FileName = "#" + tag,
+                            Filters = [TagFilter],
+                            Reference = ContentReference.ToTag(id!),
+                        });
+                    }
+                }
+            }
+        }
+        else if (Kind == AssetBrowserKind.Texture)
         {
             foreach (TextureAsset texture in _context.Project.Assets.OfType<TextureAsset>().OrderBy(t => t.ResourceId))
             {
                 string? file = AssetFileImporter.GetExistingFile(_context.Project, texture);
                 _projectItems.Add(new AssetBrowserItem(texture.Id, texture.ResourceId.Value, file,
-                    Details(file is null ? Tr.T("file missing") : PngSize(file), texture.Id), texture.Folder) { Image = AssetBrowserItem.LoadImage(file) });
+                    Details(file is null ? Tr.T("file missing") : PngSize(file), texture.Id), texture.Folder)
+                {
+                    FileName = texture.ResourceId.Value + ".png",
+                    Filters = [ProjectFilter],
+                    Image = AssetBrowserItem.LoadImage(file),
+                });
             }
         }
         else
@@ -236,14 +387,30 @@ public sealed class AssetBrowserViewModel : ObservableObject
                     .Select(t => AssetFileImporter.GetExistingFile(_context.Project, t)).FirstOrDefault(f => f is not null);
                 _projectItems.Add(new AssetBrowserItem(model.Id, model.ResourceId.Value, preview, Details(ModelFormats.Label(model.Format), model.Id), model.Folder)
                 {
+                    FileName = model.ResourceId.Value + ModelFormats.Extension(model.FilePath),
+                    Badge = BadgeOf(model.Format),
+                    Filters = [ProjectFilter, "format:" + model.Format],
                     Image = AssetBrowserItem.LoadImage(preview),
                 });
             }
         }
 
         Fill();
-        Selected = Items.FirstOrDefault(i => i.Id == selected && !i.IsVanilla) ?? (selected == Guid.Empty ? Items.FirstOrDefault() : null);
+        Selected = Kind == AssetBrowserKind.Item
+            ? Items.FirstOrDefault(i => _currentReference is not null && (Equals(i.Reference, _currentReference) || (i.Id != Guid.Empty && i.Id == _currentReference.AssetId && _currentReference.Kind == ContentReferenceKind.Asset)))
+              ?? (_currentReference is null ? Items.FirstOrDefault() : null)
+            : Items.FirstOrDefault(i => i.Id == selected && !i.IsVanilla) ?? (selected == Guid.Empty ? Items.FirstOrDefault() : null);
     }
+
+    /// <summary>Short name of a format on the tile of a model.</summary>
+    private static string BadgeOf(ModelFormat format) => format switch
+    {
+        ModelFormat.JavaJson => "JSON",
+        ModelFormat.Blockbench => "BB",
+        ModelFormat.BedrockGeometry => "GEO",
+        ModelFormat.Obj => "OBJ",
+        _ => "GLTF",
+    };
 
     private string Details(string first, Guid id)
     {
@@ -251,31 +418,50 @@ public sealed class AssetBrowserViewModel : ObservableObject
         return string.Join(" · ", new[] { first, usages == 0 ? Tr.T("unused") : Tr.F("used by {0}", usages) }.Where(p => p.Length > 0));
     }
 
+    /// <summary>The project first, then Minecraft.</summary>
     private void Fill()
     {
+        // A new view at once: thousands of tiles would be slow to add one by one.
         AssetBrowserItem? selected = _selected;
-        Items.Clear();
-        foreach (AssetBrowserItem item in _showsMinecraft ? _vanillaItems : _projectItems)
-        {
-            Items.Add(item);
-        }
-
+        var items = new List<AssetBrowserItem>(_projectItems);
+        items.AddRange(_vanillaItems);
+        Items = items;
+        View = new ListCollectionView(items) { Filter = Matches };
         Selected = selected is not null && Items.Contains(selected) ? selected : null;
         OnPropertyChanged(nameof(CountLabel));
     }
 
-    /// <summary>Reads the assets of Minecraft in the background (the textures are copied to a cache once).</summary>
+    private void Refresh()
+    {
+        View.Refresh();
+        OnPropertyChanged(nameof(CountLabel));
+    }
+
+    /// <summary>Adds the assets of Minecraft in the background: the shipped textures, or the models of the jar.</summary>
     private async void LoadVanilla()
     {
-        string version = _context.Project.Settings.MinecraftVersion;
-        string cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MineEngine", "vanilla");
         IsLoading = true;
-        VanillaMessage = Kind == AssetBrowserKind.Texture ? Tr.T("Reading the textures of Minecraft...") : Tr.T("Reading the models of Minecraft...");
         try
         {
-            List<AssetBrowserItem> items = await Task.Run(() => ReadVanilla(version, cache));
-            _vanillaItems.Clear();
-            _vanillaItems.AddRange(items);
+            if (Kind == AssetBrowserKind.Item)
+            {
+                _shippedItems ??= Task.Run(ReadShippedItems);
+                _vanillaItems.AddRange(await _shippedItems);
+                VanillaMessage = null;
+            }
+            else if (Kind == AssetBrowserKind.Texture)
+            {
+                _shippedTextures ??= Task.Run(ReadShippedTextures);
+                _vanillaItems.AddRange(await _shippedTextures);
+                VanillaMessage = _vanillaItems.Count == 0 ? Tr.T("The textures of Minecraft are missing next to the application.") : null;
+            }
+            else
+            {
+                string version = _context.Project.Settings.MinecraftVersion;
+                string cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MineEngine", "vanilla");
+                VanillaMessage = Tr.T("Reading the models of Minecraft...");
+                _vanillaItems.AddRange(await Task.Run(() => ReadVanillaModels(version, cache)));
+            }
         }
         catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
         {
@@ -286,38 +472,83 @@ public sealed class AssetBrowserViewModel : ObservableObject
             IsLoading = false;
         }
 
-        if (_showsMinecraft)
-        {
-            Fill();
-        }
+        Fill();
     }
 
-    private List<AssetBrowserItem> ReadVanilla(string version, string cache)
+    private static List<AssetBrowserItem> ReadShippedTextures() =>
+    [
+        .. MinecraftTextures.All.Select(path =>
+        {
+            string file = MinecraftTextures.FileOf(path)!;
+            var asset = new VanillaAsset(VanillaAssetKind.Texture, path);
+            return new AssetBrowserItem(Guid.Empty, asset.Name, file, asset.Reference, "minecraft/" + asset.Folder, asset)
+            {
+                FileName = asset.Reference + ".png",
+                Filters = [MinecraftFilter, "mc:" + MinecraftTextures.TopFolder(path)],
+                Image = AssetBrowserItem.LoadImage(file),
+            };
+        }),
+    ];
+
+    private static List<AssetBrowserItem> ReadShippedItems()
+    {
+        var items = new List<AssetBrowserItem>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string path in MinecraftTextures.All)
+        {
+            string folder = MinecraftTextures.TopFolder(path);
+            string name = path[(path.LastIndexOf('/') + 1)..];
+            bool item = folder == "item" && path.Count(c => c == '/') == 1;
+            bool block = folder == "block" && path.Count(c => c == '/') == 1 && !BlockFaceSuffixes.Any(s => name.EndsWith(s, StringComparison.Ordinal));
+            if (!(item || block) || !seen.Add(name) || !Core.Identifiers.NamespacedId.TryParse("minecraft:" + name, out Core.Identifiers.NamespacedId? id))
+            {
+                continue;
+            }
+
+            string file = MinecraftTextures.FileOf(path)!;
+            items.Add(new AssetBrowserItem(Guid.Empty, name, file, "minecraft:" + name, "minecraft/" + folder)
+            {
+                FileName = "minecraft:" + name,
+                Filters = [MinecraftFilter, "mc:" + folder],
+                Reference = ContentReference.ToId(id!),
+                Image = AssetBrowserItem.LoadImage(file),
+            });
+        }
+
+        return items;
+    }
+
+    private List<AssetBrowserItem> ReadVanillaModels(string version, string cache)
     {
         if (VanillaAssetLibrary.For(version, cache) is not { } library)
         {
             Application.Current?.Dispatcher.Invoke(() => VanillaMessage =
-                Tr.T("Minecraft was not found on this computer: launch the game once with the launcher, or prepare an MDK."));
+                Tr.T("The models of Minecraft come from the game: launch it once with the launcher, or prepare an MDK."));
             return [];
         }
 
-        library.ExtractTextures();
         string source = library.Version == version
-            ? Tr.F("Minecraft {0}", library.Version)
-            : Tr.F("Minecraft {0} (the files of {1} were not found)", library.Version, version);
+            ? Tr.F("Models of Minecraft {0}", library.Version)
+            : Tr.F("Models of Minecraft {0} (the files of {1} were not found)", library.Version, version);
         Application.Current?.Dispatcher.Invoke(() => VanillaMessage = source);
-        return Kind == AssetBrowserKind.Texture
-            ? [.. library.Textures.Select(t => Vanilla(t, library.FileOf(t), library))]
-            : [.. library.Models.Select(m => Vanilla(m, library.PreviewTexture(m) is { } texture ? library.FileOf(texture) : null, library))];
+        return
+        [
+            .. library.Models.Select(model =>
+            {
+                // The icon of a model is its first texture, shipped with the editor (or read from the jar).
+                VanillaAsset? texture = library.PreviewTexture(model);
+                string? preview = texture is null ? null : MinecraftTextures.FileOf(texture.Path) ?? library.FileOf(texture);
+                return new AssetBrowserItem(Guid.Empty, model.Name, preview, model.Reference, "minecraft/" + model.Folder, model)
+                {
+                    FileName = model.Reference + ".json",
+                    Badge = BadgeOf(ModelFormat.JavaJson),
+                    Filters = [MinecraftFilter, "format:" + ModelFormat.JavaJson],
+                    Library = library,
+                    Image = AssetBrowserItem.LoadImage(preview),
+                };
+            }),
+        ];
     }
-
-    /// <summary>A tile of a texture or a model of Minecraft, its preview decoded here (in the background).</summary>
-    private static AssetBrowserItem Vanilla(VanillaAsset asset, string? preview, VanillaAssetLibrary library) =>
-        new(Guid.Empty, asset.Name, preview, asset.Reference, "minecraft/" + asset.Folder, asset)
-        {
-            Library = library,
-            Image = AssetBrowserItem.LoadImage(preview),
-        };
 
     private bool Matches(object item)
     {
@@ -326,9 +557,19 @@ public sealed class AssetBrowserViewModel : ObservableObject
             return false;
         }
 
+        if (asset.IsNone)
+        {
+            return true;
+        }
+
+        if (_filter != All && !asset.Filters.Contains(_filter))
+        {
+            return false;
+        }
+
         string search = _search.Trim();
-        return search.Length == 0 || asset.IsNone
-               || asset.Name.Contains(search, StringComparison.OrdinalIgnoreCase)
+        return search.Length == 0
+               || asset.FileName.Contains(search, StringComparison.OrdinalIgnoreCase)
                || asset.Folder.Contains(search, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -337,6 +578,13 @@ public sealed class AssetBrowserViewModel : ObservableObject
     {
         if (_selected is not { } item)
         {
+            return;
+        }
+
+        if (Kind == AssetBrowserKind.Item)
+        {
+            _referenceResult = item.IsNone ? null : item.Reference ?? ContentReference.ToAsset(item.Id);
+            CloseRequested?.Invoke(this, true);
             return;
         }
 
@@ -431,7 +679,7 @@ public sealed class AssetBrowserViewModel : ObservableObject
                 [.. added.Select(a => (IUndoableCommand)new AddAssetCommand(_context.Project.Assets, a, label))]));
             _context.History.Seal();
             Search = string.Empty;
-            ShowsMinecraft = false;
+            Filter = All;
             Reload(added[^1].Id);
         }
 

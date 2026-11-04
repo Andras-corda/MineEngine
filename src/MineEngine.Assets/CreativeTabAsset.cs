@@ -12,6 +12,7 @@ public sealed class CreativeTabAsset : Asset
 {
     private ContentReference? _icon;
     private IReadOnlyList<ContentReference> _items = [];
+    private bool _hasSearchBar;
 
     public CreativeTabAsset(Guid id, ResourceId resourceId, string displayName)
         : base(id, resourceId, displayName)
@@ -25,6 +26,13 @@ public sealed class CreativeTabAsset : Asset
     {
         get => _icon;
         set => SetField(ref _icon, value);
+    }
+
+    /// <summary>True if the tab has a search bar above its items, like the Search tab of the game.</summary>
+    public bool HasSearchBar
+    {
+        get => _hasSearchBar;
+        set => SetField(ref _hasSearchBar, value);
     }
 
     public IReadOnlyList<ContentReference> Items

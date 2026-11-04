@@ -11,9 +11,8 @@ public sealed class CommandLowering : AssetLowering<CommandAsset>
     public override AssetType AssetType => AssetType.Command;
 
     protected override void Lower(CommandAsset asset, LoweringContext context) =>
-        context.AddCommand(new IRCommand(
-            asset.Id, asset.ResourceId, asset.PermissionLevel, asset.Argument, asset.ArgumentName,
-            Math.Min(asset.Minimum, asset.Maximum), Math.Max(asset.Minimum, asset.Maximum), asset.Feedback));
+        context.AddCommand(new IRCommand(asset.Id, asset.ResourceId, asset.PermissionLevel, asset.AnySource,
+            [.. asset.Parameters.Select(p => p with { Minimum = Math.Min(p.Minimum, p.Maximum), Maximum = Math.Max(p.Minimum, p.Maximum) })], asset.Feedback));
 }
 
 public sealed class CreativeTabLowering : AssetLowering<CreativeTabAsset>
@@ -25,7 +24,7 @@ public sealed class CreativeTabLowering : AssetLowering<CreativeTabAsset>
         string role = Tr.F("Creative tab '{0}'", asset.ResourceId);
         IReadOnlyList<NamespacedId> items = [.. asset.Items.Select(i => context.ResolveItem(asset, i, role)).OfType<NamespacedId>()];
         NamespacedId? icon = context.ResolveItem(asset, asset.Icon, role) ?? items.FirstOrDefault();
-        context.AddCreativeTab(new IRCreativeTab(asset.Id, asset.ResourceId, asset.DisplayName, icon, items));
+        context.AddCreativeTab(new IRCreativeTab(asset.Id, asset.ResourceId, asset.DisplayName, icon, items) { HasSearchBar = asset.HasSearchBar });
     }
 }
 
@@ -34,7 +33,14 @@ public sealed class KeybindLowering : AssetLowering<KeybindAsset>
     public override AssetType AssetType => AssetType.Keybind;
 
     protected override void Lower(KeybindAsset asset, LoweringContext context) =>
-        context.AddKeybind(new IRKeybind(asset.Id, asset.ResourceId, asset.DisplayName, asset.Key.Code));
+        context.AddKeybind(new IRKeybind(asset.Id, asset.ResourceId, asset.DisplayName, asset.Key.Code)
+        {
+            IsMouse = asset.Key.IsMouse,
+            HoldTicks = asset.HoldTicks,
+            PulseTicks = asset.PulseTicks,
+            ComboCode = asset.Combo.Code,
+            ComboIsMouse = asset.Combo.IsMouse,
+        });
 }
 
 public sealed class EnchantmentLowering : AssetLowering<EnchantmentAsset>
